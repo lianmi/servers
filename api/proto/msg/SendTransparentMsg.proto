@@ -1,0 +1,30 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.26. 发送透传消息
+//客户端发送透传消息，服务器不保存直接将该消息完整转发给目标。
+// 服务器只给在线的客户端转发该消息。
+message SendTransparentMsgReq{
+   //目标账号或群id
+   //是否必填-是
+   string to=1;
+   //目标设备id
+   //是否必填-否
+   string toDeviceId=2;
+   //传输场景
+   //是否必填-是
+   msg.Scene scene=3;
+   //客户端自定义命令号
+   //是否必填-是
+   int32 transparentCmd=4;
+   //消息内容，内部结构由客户端自己定义
+   //是否必填-是
+   bytes content=5;
+
+}
+message SendTransparentMsgRsp{
+
+}

@@ -1,0 +1,38 @@
+syntax = "proto3";
+import "api/proto/team/Team.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.1
+//创建讨论组/创建群-请求
+message CreateTeamReq{
+    //账号ID
+    //是否必须：是
+    repeated string accounts=1;
+    //备注
+    //是否必须：否
+    string	ps=2;
+    //群组类型
+    //是否必须：是
+    TeamType type=3;
+    //群组名称
+    //是否必须：是
+    string	name=4;
+    //入群校验方式
+    //是否必须：是
+    VerifyType verifyType=5;
+    //邀请用户入群前是否需要管理员同意
+    //Check - 需管理员同意才能邀请用户入群  
+    InviteMode inviteMode=6;
+}
+//2.5.1
+//创建讨论组/创建群-响应
+message CreateTeamRsp{
+    //群组信息
+    //是否必须：是
+    Team  teamInfo=1;
+    //邀请失败列表
+    //是否必须：否
+    repeated string failedAccidList=2;
+}

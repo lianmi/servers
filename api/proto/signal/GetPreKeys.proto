@@ -1,0 +1,21 @@
+syntax = "proto3"; 
+import "api/proto/signal/SignalData.proto";
+
+package cc.lianmi.im.signal;
+option go_package = "github.com/lianmi/servers/api/proto/signal";
+
+//向服务端获取某个用户的三种公钥,IK，SPK，OPK及Sig
+message GetPreKeysReq {
+
+    //好友用户账号,该接口不需要校验双方好友关系
+    string account = 1;
+
+    //设备ID,允许为空,为空时,返回所有
+    string deviceId = 2;
+
+}  
+//服务端响应参数
+message GetPreKeysRsp { 
+    //对方所有在线设备,一个设备一组key
+    repeated signal.DeviceKey deviceKeys = 1; 
+}

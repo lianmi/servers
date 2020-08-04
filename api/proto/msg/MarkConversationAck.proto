@@ -1,0 +1,25 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.6. 确认会话
+message MarkConversationAckReq{ 
+   //确认会话联系人帐号或群id
+   //是否必填-是
+   string sessionId=2;
+   //该会话最后接收的消息ID
+   //是否必填-是
+   string idServer=3; 
+   //idServer对应的seq
+   //是否必填-是
+   fixed64  seq=4;
+   //当次拉取消息列表中，最大消息ID对应的time字段值
+   //是否必填-是
+   fixed64 timeTag=5; 
+}
+//2.6.6. 确认会话
+//只包含状态码code，无内容载体
+message MarkConversationAckRsp{
+
+}

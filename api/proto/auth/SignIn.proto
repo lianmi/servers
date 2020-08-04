@@ -1,0 +1,135 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+ //客户端类型
+ //是否必填：是
+ enum ClientType{
+     Ct_UnKnow=0;
+     Ct_Android=1; 
+     Ct_iOS=2; 
+     Ct_RESTApi=3;
+     Ct_Windows=4;
+     Ct_MacOS=5; 
+     Ct_Web=6;
+}
+//客户端模式
+enum ClientMode{
+   Clm_UnKnow=0;
+   Clm_Im=1;//一般模式
+   Clm_ImEncrypted=2;//加密模式
+}
+//多端同时登录时，其他在线的客户端的信息
+message DeviceInfo{
+   //用户注册号
+   //是否必填-是
+   string username=1;
+   //连接ID,服务器分配,等同于http服务中的sessionId
+   //示例:624ecb8b-308a-451c-be6b-62faca49848b
+   //是否必填-是
+   string connectionId=2;
+   //设备Id
+   //是否必填-是
+   string deviceId=3;
+   //操作系统版本
+   //是否必填-是
+   string os=4;
+   //设备IP
+   //是否必填-是
+   string ip=5;
+   //设备类型
+   //是否必填-是
+   auth.ClientType  clientType=6;
+   //该设备最后登录时间
+   //是否必填-是
+   fixed64 time=7;
+   //设备索引号
+   //是否必填-是
+   int32 deviceIndex=8;
+   //是否是主设备
+   //是否必填：是
+   bool  isMaster=9;
+}
+//2.2.1
+//登录请求
+message SignInReq{
+   //用户注册号，在用户注册的时候由系统自动生成，字母 + 数字
+   //是否必填：是
+   string  username=1; 
+
+   //应用ID，IM管理后台分配
+   //是否必填：是
+   string  appKey=2;
+
+   //鉴权token,由业务系统请求IM REST服务器分配
+   //是否必填：是
+   string  token=3;  
+
+   //客户端具体类型
+   //是否必填：是
+   auth.ClientType clientType=4;
+
+   //用户标签,业务系统设置,用于根据标签进行消息推送,多个用半角逗号","分割
+   //是否必填：否
+    string customTag=5;
+
+   //设备Id
+   //是否必填：是
+   string deviceId=6;
+
+   //操作系统版本
+   //是否必填：是
+   string os=7;
+
+   //协议版本
+   //是否必填：是
+   string protocolVersion=8;
+
+   //SDK版本
+   //是否必填：是
+   string sdkVersion=9; 
+   //是否是主设备
+   //是否必填：是
+   bool  isMaster=10;
+   //客户端模式，一般模式和加密模式
+   //是否必填：是
+   ClientMode clientMode=11;
+}
+//2.2.1
+//登录请求
+message SignInRsp{
+   //连接ID,服务器分配,等同于http服务中的sessionId
+   //是否必填：是
+   string  connectionId=1; 
+
+   //国家iso编码
+   //是否必填：否
+   string  country=2;
+
+   //用户标签
+   //是否必填：否
+    string  customTag=3; 
+
+   //客户端接入IP
+   //是否必填：是
+   string  ip=4;
+
+   //客户端接入端口
+   //是否必填：是
+   string port=5;
+
+   //最后登录设备ID
+   //是否必填：否   
+    string lastLoginDeviceId=6; 
+   
+   //服务器分配的临时设备注册令牌
+   //是否必填-否
+   string  regToken=7;
+}
+
+
+
+
+
+

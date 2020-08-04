@@ -1,0 +1,159 @@
+syntax = "proto3"; 
+package cc.lianmi.im.global;
+option go_package = "github.com/lianmi/servers/api/proto/global";
+
+//业务模块定义
+enum BusinessType {
+    Bt_undefined     = 0;    //proto3必须从0开始
+    System           = 1;    //系统模块
+    Auth             = 2;    //鉴权授权模块
+    Users            = 3;    //用户模块
+    Friends          = 4;    //好友模块
+    Group            = 5;    //群组模块
+    Chat             = 6;    //消息模块
+    Sync             = 7;    //数据同步模块
+    AVRtc            = 8;    //实时音视频模块
+    SignalProtocol   = 9;    //加密消息模块
+}
+
+//系统模块子模块定义
+enum SystemSubType {
+    Sst_undefined     = 0;    //proto3必须从0开始
+    HeartBeat         = 1;   /**< 心跳*/
+    Signal            = 2;   /**< 信令*/
+    GetOssToken       = 3;   /**< 获取文件上传token*/
+    AppBackground     = 4;   /**< 终端前后台运行切换*/
+}
+
+//授权模块子模块定义
+enum AuthSubType {
+    Ast_undefined  = 0;    //proto3必须从0开始
+    SignIn         = 1;   /**< 登录; 主动*/
+    SignOut        = 2;   /**< 退出登录; 主动*/
+    Kick           = 3;   /**< 踢出其他设备; 主动*/
+    KickedEvent    = 4;   /**< 被其他终端踢下线事件; OnPush里处理*/
+    MultiPortLogin = 5;   /**< 多端登录事件*/
+}
+
+//用户模块子模块定义
+enum UsersSubType {
+    Ust_undefined          = 0;    //proto3必须从0开始
+    GetUsers               = 1;    /**< 根据用户标示返回用户信息*/
+    UpdateMyProfile        = 2;    /**< 更新当前用户信息*/
+    SyncMyProfileEvent     = 3;    /**< 登录成功后;用户资料增量更新事件*/
+    SyncUpdateProfileEvent = 4;    /**< 用户资料更新事件;同一账号其他终端修改个人资料会触发该事件*/
+    MarkTag                = 5;    /**< 用户打标*/
+    SyncTagsEvent          = 6;    /**< 同步用户标签信息*/
+    UpdatePushToken        = 7;    /**< 更新移动推送Token*/
+    SyncMarkTagEvent       = 8;    /**< 同步其他终端用户标签事件*/
+    PullAllRobots          = 9;    /**< 获取全部机器人列表 */
+    IsRobot                = 10;   /**< 是否是机器人账号 */
+    RobotChangedEvent      = 11;   /**< 机器人改变事件 */
+}
+
+//好友模块子模块定义
+enum FriendsSubType {
+    Fst_undefined         = 0;    //proto3必须从0开始
+    FriendRequest         = 1;     /**< 好友请求(直接添加/发起好友验证/拒绝/通过)*/
+    SyncFriendsEvent      = 2;     /**< 好友关系列表同步*/
+    SyncFriendUsersEvent  = 3;     /**< 好友用户信息同步*/
+    UpdateFriend          = 4;     /**< 更新好友信息*/
+    DeleteFriend          = 5;     /**< 删除好友*/
+    SyncUpdateFriendEvent = 6;     /**< 多终端更新好友信息同步事件*/
+    GetFriends            = 7;     /**<增量同步好友列表 */
+}
+
+//群组模块子模块定义
+enum GroupSubType {
+    Gst_undefined        = 0;    //proto3必须从0开始
+    CreateGroup          = 1;       /**< 2.5.1.  创建群组*/
+    GetGroupMembers      = 2;       /**< 2.5.2.  获取群成员*/
+    GetGroup             = 3;       /**< 2.5.3.  查询群组*/
+    InviteGroupMembers   = 4;       /**< 2.5.4.  邀请用户加群*/
+    RemoveGroupMembers   = 5;       /**< 2.5.5.  删除群组成员*/
+    AcceptGroupInvite    = 6;       /**< 2.5.6.  接受群邀请*/
+    RejectGroupInvite    = 7;       /**< 2.5.7.  拒绝群邀请*/
+    ApplyGroup           = 8;       /**< 2.5.8.  申请加群*/
+    PassGroupApply       = 9;       /**< 2.5.9.  通过群申请*/
+    RejectGroupApply     = 10;      /**< 2.5.10. 拒绝群申请*/
+    UpdateGroup          = 11;      /**< 2.5.11. 更新群资料*/
+    GetGroupHistoryMsgs  = 12;      /**< 2.5.12. 获取群组历史消息*/
+    DismissGroup         = 13;      /**< 2.5.13. 解散群组*/
+    LeaveGroup           = 14;     /**< 2.5.14. 离开群组*/
+    AddGroupManagers     = 15;     /**< 2.5.15. 设置群管理员*/
+    RemoveGroupManagers  = 16;     /**< 2.5.16. 取消群管理员*/
+    TransferGroup        = 17;     /**< 2.5.17. 转让群*/
+    SyncMyGroupsEvent    = 18;     /**< 2.5.18. 同步群组事件*/
+    GroupChangeEvent     = 20;     /**< 2.5.20. 群变更事件*/
+    MuteGroup            = 21;     /**< 2.5.21. 修改群禁言模式*/
+    MuteGroupMember      = 22;     /**< 2.5.22. 设置群成员禁言*/
+    SetNotifyType        = 23;     /**< 2.5.23. 修改群组消息通知方式*/
+    SetNick              = 24;     /**< 2.5.24. 设置群昵称*/
+    SetMemberNick        = 25;     /**< 2.5.25. 设置群成员昵称*/
+    SyncGroupChangeEvent = 26;     /**< 2.5.26. 同步群组系统事件*/
+    GetTribeMembers      = 27;     /**< 2.5.28. 分页获取部落成员信息*/
+    UpdateMyInfo         = 28;     /**< 2.5.23. 修改个人群资料*/
+    UpdateMemberInfo     = 29;     /**< 2.5.25. 设置群成员资料*/
+    PullGroupMembers     = 30;     /**< 2.5.29. 根据群成员ID获取群成员信息 */
+    GetMyGroups          = 31;     /**< 2.5.30. 增量群组信息 */
+    SyncCreateGroup      = 32;     /**< 2.5.27. 创建群组多终端同步事件 */
+    CheckGroupInvite     = 33;     /**< 2.5.31. 管理员审核邀请入群 */
+}
+
+//消息模块子模块定义
+enum ChatMsgSubType {
+    Cst_undefined                = 0;    //proto3必须从0开始
+    SendMsg                      = 1;    /**< 2.6.1.  发送个人消息*/
+    RecvMsgEvent                 = 2;    /**< 2.6.2.  接收个人消息事件*/
+    SendGroupMsg                 = 3;    /**< 2.6.3.  发送群消息*/
+    RecvGroupMsgEvent            = 4;    /**< 2.6.4.  接收群组消息事件*/
+    RecvSysMsgEvent              = 5;    /**< 2.6.15. 接收系统消息*/
+    SyncOfflineSysMsgsEvent      = 6;    /**< 2.6.5.  同步系统离线消息*/
+    BatchMarkRevced              = 7;    /**< 2.6.6.  批量确认消息送达*/
+    MarkConversationAck          = 8;   /**< 2.6.7.  确认会话*/
+    SyncConversationAckEvent     = 9;   /**< 2.6.8.  同步会话最大确认时间*/
+    ReadHistoryMsgs              = 10;   /**< 2.6.9.  拉取用户消息 拉取C2C私聊消息*/
+    ReadGroupHistoryMsgs         = 11;   /**< 2.6.10. 拉取群组消息*/
+    DeleteSessions               = 12;   /**< 2.6.11. 删除服务器会话*/
+    SyncSysMsgUpdateEvent        = 13;   /**< 2.6.16. 同步系统消息更新状态*/
+    MarkSysMsgAck                = 14;   /**< 2.6.17. 确认系统消息已读*/
+    RecvGroupNotificationEvent   = 15;   /**< 2.6.18. 接收群组通知事件*/
+    GetCurrentSeqACK             = 16;   /**< 2.6.19. 获取会话序列号 */
+    SyncSendMsgEvent             = 17;   /**< 2.6.12. 发送个人消息多终端同步事件 */
+    SyncSendGroupMsgEvent        = 18;   /**< 2.6.13. 发送群组消息多终端同步事件 */
+    SyncMarkConversationAckEvent = 19;   /**< 2.6.14. 同步其他终端确认会话事件 */
+    SyncMySysMsgUpdateEvent      = 20;   /**< 2.6.20. 同步系统消息更新状态 */
+    SendCancelMsg                = 21;   /**< 2.6.21. 发送撤销消息 */
+    RecvCancelMsgEvent           = 22;   /**< 2.6.22. 接收撤销消息事件 */
+    SyncSendCancelMsgEvent       = 23;   /**< 2.6.23. 同步发送撤销消息事件 */
+    UpdateConversation           = 24;   /**< 2.6.24. 更新会话 */
+    SyncUpdateConversationEvent  = 25;   /**< 2.6.25. 同步更新会话 */
+    SendTransparentMsg           = 26;   /** 2.6.26. 发送透传消息 */
+    RecvTransparentMsg           = 27;   /** 2.6.27. 接收透传消息 */
+    SyncSendTransparentMsg       = 28;   /** 2.6.28. 同步发送透传消息 */
+    SyncCancelMsgEvent           = 29;   /** 2.6.29. 同步撤销消息事件 */
+}
+
+//端对端消息模块
+enum SignalSubType {
+    Sig_undefined         = 0;    //proto3必须从0开始
+    AddSlaveDevice        =  1;     /**< 增加从设备 */
+    GetPreKeys            =  2;     /**< 端对端获取对方设备公钥 */
+    GetPreKeysCount       =  3;     /**< 从服务器获取当前用户未使用OPK存量 */
+    RecvSecretMsgEvent    =  4;     /**< 接收端对端私聊消息事件 */
+    AuthorizeCode         =  5;     /**< 从设备申请授权码 */
+    RegisterPreKeys       =  6;     /**< 端对端主设备注册上传Keys */
+    RemoveSlaveDevice     =  7;     /**< 主设备删除从设备 */
+    SendSecretMsg         =  8;     /**< 发送端对端加密消息 */
+    SlaveDeviceAuthEvent  =  9;     /**< 从设备被授权登录事件 */
+    GetAllDevices         =  10;     /**< 获取所有主从设备 */
+    RegDevice             =  11;     /**< 端对端设备注册 */
+
+}
+
+//同步模块子模块定义
+enum SyncSubType {
+    Syn_undefined  = 0;    //proto3必须从0开始
+    SyncEvent      = 1;     /**< 2.7.1. 同步请求*/
+    SyncDoneEvent  = 2;     /**< 2.7.2. 同步结束事件*/
+}

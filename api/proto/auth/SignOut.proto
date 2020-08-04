@@ -1,0 +1,15 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+//2.2.2
+//登录请求
+//无,只需发送相应的type和typeu即可
+message SignOutReq {
+}
+//2.2.2
+//登录响应
+//无,只需发送相应的type和typeu即可
+message SignOutRsp {
+}

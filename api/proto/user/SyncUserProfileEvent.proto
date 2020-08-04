@@ -1,0 +1,27 @@
+syntax = "proto3"; 
+
+import "api/proto/user/Account.proto";
+
+package cc.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+
+//同步当前用户资料事件
+//本指令为事件指令，客户端登录成功后，
+//将本地维护端用户资料最后更新时间通过sync同步至服务器端，
+//如果服务端用户资料更新时间与本地时间存在差异，
+//im服务器则通过该指令将完整用户信息push至客户端。
+message SyncUserProfileEvent{ 
+    //当前登录用户信息
+
+    user.User uInfo=1;
+    //最后请求的时间戳
+    fixed64 timeTag=2;
+}
+
+
+
+
+
+
+

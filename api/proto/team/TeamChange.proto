@@ -1,0 +1,159 @@
+syntax = "proto3";
+import "api/proto/team/Team.proto";
+import "api/proto/user/Account.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.19
+//群变更类型:
+//1、申请加群请求 
+//a)当有用户申请加群时，群管理员会收到申请加群事件，可展示给用户，由用户决定是否同意对方加群。 
+//b)opAccount为申请人ID
+//2、申请加群同意/拒绝消息
+//a)当管理员同意加群请求时，申请人会收到同意入群的事件，当管理员拒绝时，收到拒绝入群的事件。
+//b)opAccount为处理请求的管理员ID
+//3、邀请入群消息
+//a)当有用户被邀请群时，该用户会收到邀请入群事件，可展示给用户，由用户决定是否同意入群。
+//b)opAccount为邀请人ID
+//4、邀请入群同意/拒绝消息
+//a)当被邀请者同意入群请求时，邀请者会收到同意入群的事件，当被邀请者拒绝时，邀请者会收到拒绝入群的事件。
+//b)opAccount为被邀请人ID
+//5、群被解散
+//a)当群被解散时，全员会收到解散群事件。
+//b)opAccount为群主ID
+//6、被管理员踢出群
+//a)当用户被管理员踢出群组时，被踢成员会收到被踢出群的事件。
+//b)opAccount为操作管理员ID
+//7、主动退群
+//a)当用户主动退出群组时，该用户会收到退群事件，只有退群的用户自己可以收到。当用户调用 退出指令 时成功回调返回，
+//  表示已退出成功，此消息主要为了多终端同步，其他终端可以作为更新群列表的时机，本终端可以选择忽略。
+//b)opAccount为用户自己ID
+//8、设置/取消管理员
+//a)当用户被设置为管理员时，可收到被设置管理员的事件通知，当用户被取消管理员时，可收到取消事件，可提示用户。
+//b)opAccount为群组ID
+//9、群被回收
+//a)当群组被系统回收时，全员可收到群组被回收消息。
+//10、转让群
+//a)当有用户被转让群主时，该用户会收到转让群群事件。
+//b)opAccount为群主ID
+enum TeamChangeType{
+   //无效
+   Tct_Undefined=0;
+   //申请加群请求
+   Tct_ApplyJoinTeam=1;
+   //申请加群被同意
+   Tct_PassTeamApply=2;
+   //申请加群被拒绝
+   Tct_RejectTeamApply=3;
+   //邀请加群
+   Tct_TeamInvite=4;
+   //邀请加群被同意
+   Tct_PassTeamInvite=5;
+   //邀请加群被拒绝
+   Tct_RejectTeamInvite=6;
+   //群被解散
+   Tct_DismissTeam=7;
+   //被管理员踢出群
+   Tct_KickOffTeam=8;
+   //主动退群
+   Tct_QuitTeam=9;
+   //置管理员
+   Tct_GrantManager=10;
+   //取消管理员
+   Tct_CancelManager=11;
+   //群已被回收
+   Tct_RevokeTeam=12;
+   //转让群
+   Tct_TransferTeam=13;
+   //更新群资料
+   Tct_UpdateTeam=14;
+   //群成员禁言/解禁
+   Tct_MuteTeamMember=15;
+   //设置群组禁言模式
+   Tct_MuteTeam=16;
+   //管理员修改群成员信息
+   Tct_UpdateMemberInfo=17;
+}
+//2.5.19
+//群组系统事件
+//当有用户申请加群等事件发生时，管理员会收到邀请加群系统事件，
+//用户可根据情况接受请求或者拒绝，相应的消息通过群系统事件展示给用户。
+//操作场景:
+//1、申请加群请求 
+//a)当有用户申请加群时，群管理员会收到申请加群事件，可展示给用户，由用户决定是否同意对方加群。 
+//b)opAccount为申请人ID
+//2、申请加群同意/拒绝消息
+//a)当管理员同意加群请求时，申请人会收到同意入群的事件，当管理员拒绝时，收到拒绝入群的事件。
+//b)opAccount为处理请求的管理员ID
+//3、邀请入群消息
+//a)当有用户被邀请群时，该用户会收到邀请入群事件，可展示给用户，由用户决定是否同意入群。
+//b)opAccount为邀请人ID
+//4、邀请入群同意/拒绝消息
+//a)当被邀请者同意入群请求时，邀请者会收到同意入群的事件，当被邀请者拒绝时，邀请者会收到拒绝入群的事件。
+//b)opAccount为被邀请人ID
+//5、群被解散
+//a)当群被解散时，全员会收到解散群事件。
+//b)opAccount为群主ID
+//6、被管理员踢出群
+//a)当用户被管理员踢出群组时，被踢成员会收到被踢出群的事件。
+//b)opAccount为操作管理员ID
+//7、主动退群
+//a)当用户主动退出群组时，该用户会收到退群事件，只有退群的用户自己可以收到。当用户调用 退出指令 时成功回调返回，
+//  表示已退出成功，此消息主要为了多终端同步，其他终端可以作为更新群列表的时机，本终端可以选择忽略。
+//b)opAccount为用户自己ID
+//8、设置/取消管理员
+//a)当用户被设置为管理员时，可收到被设置管理员的事件通知，当用户被取消管理员时，可收到取消事件，可提示用户。
+//b)opAccount为群组ID
+//9、群被回收
+//a)当群组被系统回收时，全员可收到群组被回收消息。
+//10、转让群
+//a)当有用户被转让群主时，该用户会收到转让群群事件。
+//b)opAccount为群主ID
+//11、更新群基础信息 
+//当群组信息被群主、管理员修改后，所有群成员会收到改时间 
+//opAccount为修改人用户ID 
+//teamId 为目标群ID 
+//teamMembers 包含修改人信息 
+//newTeamInfo 为群组资料项变更内容
+message TeamChangeEvent{
+    //好友请求记录id
+    //是否必填-是
+    string idServer=1;
+    //变更类型
+    //是否必填-是
+    TeamChangeType type=2;
+    //同意或者拒绝理由
+    //是否必填-否
+    string ps=3;
+    //操作人账号
+    //是否必填-是
+    string opAccount=4; 
+    //群信息
+    //是否必填-是
+    Team teamInfo=5;
+    //群成员用户信息，参考用户模块，用户信息结构
+    //除了类型为ApplyJoinTeam，其他类型userInfos不参与传递
+    //是否必填-否
+    repeated user.User userInfos=6;
+    //被操作群成员信息，参考群模块群成员信息结构
+    //是否必填-否
+    repeated TeamMemberGet teamMembers=7;
+    //群组ID, UpdateTeam类型时，非空
+    //是否必填-否
+    string teamId=8;
+    //群组更新资料内容，UpdateTeam类型时，非空，key取值范围，请参考更新群组
+    //TeamProtocal.proto 中TeamField的索引值为key
+    //是否必填-否
+    map<int32,string> newTeamInfo=9;
+    //群成员是否禁言 true表示禁言、false表示解禁
+    //是否必填-否
+    bool mute=10;
+    //群组禁言模式
+    //是否必填-否
+    MuteMode muteModel=11;
+    //最后修改时间
+    //是否必填-是
+    fixed64 timetag=12;
+
+}

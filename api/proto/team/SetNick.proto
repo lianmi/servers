@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.23
+//设置群昵称-请求 
+message SetNickReq{
+   //群组ID
+   //是否必填-是
+   string teamId=1;
+   //昵称
+   //是否必填-是
+   string nick=2;
+}
+
+//2.5.23
+//设置群昵称-响应
+//只包含状态码，无内容载体
+message SetNickRsp{
+
+}

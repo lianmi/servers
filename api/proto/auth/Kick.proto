@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package cc.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+//2.2.4. 踢出其他在线终端
+//踢掉多端同时在线的其他端
+message KickReq{
+  //待登出的设备列表
+  repeated string deviceIds=1;
+}
+
+//2.2.4. 踢出其他在线终端
+//踢掉多端同时在线的其他端
+message KickRsp{
+  //成功登出的其他终端id
+  repeated string deviceIds=1;
+}

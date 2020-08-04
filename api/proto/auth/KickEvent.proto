@@ -1,0 +1,33 @@
+syntax = "proto3";
+import "api/proto/auth/SignIn.proto";
+
+package cc.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+//被踢原因枚举
+enum KickReason{
+   //无效
+   KickReasonUndefined=0;
+   //不允许同一个帐号在多个地方同时登录
+   SamePlatformKick=1;
+   //系统封号
+   Blacked=2;
+   //被其它端踢了
+   OtherPlatformKick=3;
+}
+//2.2.3
+//Api描述
+//当前版本支持单一设备在线,如发生账号在其他设备登录,则发送该事件将当前设备离线
+//Api类型
+//Event
+message KickEvent{
+   //消息来源,如果是服务器端踢出,可以忽略该字段
+   //是否必填-是
+    auth.ClientType clientType=1;
+   //被踢原因
+   //是否必填-是
+    KickReason reason=2;
+   //unix时间戳
+   //是否必填-是
+   fixed64 timeTag=3;
+}

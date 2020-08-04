@@ -1,0 +1,63 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+import "api/proto/auth/SignIn.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.18. 接收群组通知事件
+//群组通知完整下发
+message RecvTeamNotificationEvent{
+  //附件JSON信息(视/音频文件、文件、图片、地理位置、音视频通话)
+  //是否必填-否
+  string attach=1;
+  //用于UI展示的文本信息
+  //是否必填-否
+  string body=2;
+  //消息来源,用户ID
+  //是否必填-是
+  string from=3;
+  //消息来源设备类型,参考登录指令
+  //是否必填-是
+  auth.ClientType fromClientType=4;
+  //消息设备ID
+  //是否必填-是
+  string fromDeviceId=5;
+  //消息来源,用户昵称
+  //是否必填-是
+  string fromNick=6;
+  //消息来源，用户头像
+  //是否必填-是
+  string fromAvatar=7;
+  //客户端分配的消息ID
+  //是否必填-是
+  string idClient=8;
+  //服务器分配的消息ID
+  //是否必填-是
+  string idServer=9;
+  //消息序号，单个会话内自然递增
+  //是否必填-是
+  fixed64 seq=10;
+  //传输场景，固定为 C2G
+  //是否必填-是a+
+  msg.Scene scene=11;
+  //群ID
+  //是否必填-是
+  string to=12;
+  //推送通知栏显示内容
+  //是否必填-否
+  string pushContent=13;
+  //消息类型
+  //值固定为msg.MsgType.Mt_Notification
+  //是否必填-是
+  msg.MsgType type=14;
+  //true表示未读，false表示已读
+  //是否必填-是
+  bool unread=15;
+  //对方客户端发送时间,Unix时间戳
+  //是否必填-是
+  fixed64 userUpdateTime=16;
+  //服务器处理消息时间，Unix时间戳
+  //是否必填-是
+  fixed64 time=17;
+}

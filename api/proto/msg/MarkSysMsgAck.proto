@@ -1,0 +1,28 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.17. 确认系统消息已读
+//批量确认系统消息已读
+message MarkSysMsgAckReq{
+   //传输场景
+   //C2C(1) - 点对点通讯 
+   //C2G(2) - 群组通讯 
+   //System(3) - 系统消息
+   //是否必填-否
+   msg.Scene scene=1;
+   //当次拉取到的最大的消息ID
+   //是否必填-是
+   string idServer=2;
+   //当次拉取消息列表中，最大消息ID对应的time字段值
+   //是否必填-是
+   fixed64 timeTag=3;
+}
+//2.6.17. 确认系统消息已读
+//批量确认系统消息已读
+//只包含状态码，无内容载体
+message MarkSysMsgAckRsp{
+
+}

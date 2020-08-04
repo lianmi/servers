@@ -1,0 +1,18 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.23. 同步发送撤销消息事件
+message SyncSendCancelMsgEvent{
+  //被撤销的消息的接收方对应的sessionId
+  //完整格式 联系人ID.Scene.设备ID
+  //如撤销个人消息 toAccountId.C2C
+  //如撤销端对端消息 toAccountId.P2P.toDeviceId
+  //如撤销群消息 toTeamId.C2G 
+  //是否必填-是
+  string toSessionId=1;
+  //要撤销的消息的由服务器分配的消息id
+  //是否必填-是
+  string idServer=2; 
+}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+import "api/proto/team/Team.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.2
+//获取群成员信息-请求
+//权限说明 
+//讨论组/高级群时： 根据timetag增量返回所有群成员 
+//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+message GetTeamMembersReq{
+   //群组ID
+   //是否必须-是
+   string teamId=1;
+   //群成员信息最大修改时间戳，对应updateTime字段，为0时获取全量群成员副本
+   //是否必须-是
+   fixed64 timeTag=2;
+}
+
+//2.5.2
+//获取群成员信息-响应
+//权限说明 
+//讨论组/高级群时： 根据timetag增量返回所有群成员 
+//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+message GetTeamMembersRsp{ 
+   //群成员列表
+   //是否必须-是
+   repeated TeamMemberGet tmembers=1;
+   //该群退出或者被踢出群群成员id，该字段讨论组、普通群有效，部落该字段不传输
+   //是否必须-否
+   repeated string removedAccounts=2;
+   //本次同步后，服务器时间
+   //是否必须-是
+   fixed64 timeTag=3;
+}

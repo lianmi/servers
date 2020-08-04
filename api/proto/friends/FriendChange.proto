@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package cc.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//变更类型
+enum FriendChangeType{
+    //无效
+    Fc_Undefined=0;
+    //好友请求
+    Fc_ApplyFriend=1;
+    //通过好友请求
+    Fc_PassFriendApply=2;
+    //拒绝好友申请
+    Fc_RejectFriendApply=3;
+    //被删除好友
+    Fc_DeleteFriend=4;
+}
+//2.4.2
+//好友关系变更事件
+//该接口记录好友关系变更。 
+//关系类型和触发场景说明: 
+//1、好友申请系统事件 
+//当申请好友时对方需要验证，自己和对方会收到好友申请系统通知。
+//当申请好友时对方需要验证，自己和对方会收到好友申请系统通知，
+//对方可选择同意或者拒绝，自己不能操作，只做信息同步之用。
+//2、添加好友通过/拒绝事件 
+//好友申请通过/拒绝后,自己和对方都会收到该事件。均作为信息同步只用。
+//3、删除好友系统事件 
+//当自己的关系链变更，删除好友时，收到消息,系统采用双向删除方式。
+message FriendChangeEvent{
+    //好友请求记录id
+    //是否必填-是
+    string idServer=1;
+    //变更类型
+    //是否必填-是
+    FriendChangeType type=2;
+    //发起人账号
+    //是否必填-是
+    string from=3;
+    //接收人账号
+    //是否必填-是
+    string to=4;
+    //备注信息
+    //是否必填-否
+    string ps=5;
+    //好友来源,申请好友该字段非空
+    //是否必填-是
+    //好友来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等
+    string source=6; 
+    //最后修改时间
+    //是否必填-是
+    fixed64 timeTag=7;
+}

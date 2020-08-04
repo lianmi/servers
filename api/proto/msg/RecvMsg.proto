@@ -1,0 +1,47 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+  
+//2.6.2
+//私聊接收消息
+//服务器将从from端接收到的消息转发给to端
+//api类型-EVENT
+message RecvMsgEvent{ 
+  //传输场景，固定为 C2C或P2P
+  //是否必填-是
+  msg.Scene scene=1;
+  //用于UI展示的文本信息
+  //是否必填-否
+  string body=2;
+  //消息类型
+  //是否必填-是
+  msg.MsgType type=3;
+  //消息来源,用户ID
+  //是否必填-是
+  string from=4; 
+  //发消息，用户昵称
+  //是否必填-是
+  string fromNick=5;
+  //服务器分配的消息ID
+  //是否必填-是
+  string idServer=6; 
+  //消息序号，单个会话内自然递增
+  //是否必填-是
+  fixed64 seq=7;
+  //客户端分配的消息ID，SDK生成的消息id, 
+  //在发送消息之后会返回给开发者, 开发者可以在发送消息
+  //的结果回调里面根据这个ID来判断相应消息的发送状态, 
+  //到底是发送成功了还是发送失败了, 然后根据此状态来
+  //更新页面的UI。如果发送失败, 那么可以重新发送此消息，推荐UUID
+  //是否必填-是
+  string idClient=8;
+  //服务器处理消息时间，Unix时间戳
+  //是否必填-是
+  fixed64 time=9; 
+  //发送方消息设备ID
+  //是否必填-是
+  string fromDeviceId=10;
+}

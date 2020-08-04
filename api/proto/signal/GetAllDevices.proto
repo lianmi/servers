@@ -1,0 +1,17 @@
+syntax = "proto3"; 
+import "api/proto/auth/SignIn.proto";
+
+package cc.lianmi.im.signal;
+option go_package = "github.com/lianmi/servers/api/proto/signal";
+
+//向服务端查询所有主从设备列表
+message GetAllDevicesReq{
+
+}
+
+message GetAllDevicesRsp{
+   //当前在线设备列表
+   repeated auth.DeviceInfo onlineDevices=1;
+   //当前离线设备列表
+   repeated auth.DeviceInfo offlineDevices=2; 
+}

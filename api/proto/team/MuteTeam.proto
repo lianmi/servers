@@ -1,0 +1,25 @@
+syntax = "proto3"; 
+import "api/proto/team/Team.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.20
+//修改群禁言模式-请求
+//群主/管理修改群组发言模式,全员禁言只能由群主设置
+message MuteTeamReq{
+  //群组ID
+  //是否必填-是
+  string teamId=1;
+  //发言模式
+  //是否必填-是
+  //默认值为未定义
+  MuteMode mute=2;
+}
+//2.5.20
+//修改群禁言模式-响应
+//群主/管理修改群组发言模式,全员禁言只能由群主设置
+//只包含状态码，无内容载体
+message MuteTeamRsp{
+   
+}

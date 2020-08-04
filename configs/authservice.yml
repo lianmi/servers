@@ -1,0 +1,32 @@
+app:
+  name: authservice
+http:
+  mode: release
+  port: 28080
+db:
+  url: root:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
+  debug: false  
+kafka:
+  broker: 127.0.0.1
+  group: im
+  Topics: Auth.Backend
+redis:
+  addr: 127.0.0.1:6379
+  password: 
+  db: 0
+log:
+  filename: /tmp/authservice.log
+  maxSize: 500
+  maxBackups: 3
+  maxAge: 3
+  level: "debug"
+  stdout: true
+consul:
+  addr: 127.0.0.1:8500
+jaeger:
+  serviceName: authservice
+  reporter:
+    localAgentHostPort: "127.0.0.1:6831"
+  sampler:
+    type: const
+    param: 1

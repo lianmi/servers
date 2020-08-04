@@ -1,0 +1,21 @@
+syntax = "proto3"; 
+import "api/proto/signal/SignalData.proto";
+
+package cc.lianmi.im.signal;
+option go_package = "github.com/lianmi/servers/api/proto/signal";
+
+//向服务端上报IK，SPK，Sig, 本机registrationid， 100个OPK
+message RegisterPreKeysReq { 
+
+    //用户身份公钥
+    string identityKey = 1;  
+    
+    //预制公钥
+    signal.SignedPreKey signedPreKey = 2;
+
+    //一次性公钥数组
+    repeated signal.PreKey preKeys = 3;
+}
+message RegisterPreKeysRsp {
+
+} 

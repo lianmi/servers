@@ -1,0 +1,19 @@
+syntax = "proto3"; 
+package cc.lianmi.im.syn;
+option go_package = "github.com/lianmi/servers/api/proto/syn";
+
+//2.7.2
+//同步结束事件
+//登录发送了sync操作指令后,所有sync相关的指令发送完成后
+message SyncDoneEvent{
+   //unix时间戳
+   //是否必填-是
+   fixed64 timeTag=1; 
+}
+ 
+
+
+
+
+
+

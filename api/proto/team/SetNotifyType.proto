@@ -1,0 +1,25 @@
+syntax = "proto3";
+import "api/proto/team/Team.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.22
+//修改群组消息通知方式-请求
+//群成员设置接收群消息的通知方式
+message SetNotifyTypeReq{
+   //群组ID
+   //是否必填-是
+   string teamId=1;
+   //通知方式
+   //是否必填-是
+   NotifyType notifyType=2;
+}
+
+//2.5.22
+//修改群组消息通知方式-响应
+//群成员设置接收群消息的通知方式
+//只包含状态码，无内容载体
+message SetNotifyTypeRsp{
+
+}

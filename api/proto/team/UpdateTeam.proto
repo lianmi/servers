@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.11
+//更新群组信息请求
+//群信息更新
+message UpdateTeamReq{
+    // 群ID
+    //是否必须：是
+    string teamId=1; 
+    //采用字典表方式提交更新内容 key定义成枚举(TeamFieldEnum)
+    //TeamProtocal.proto 中TeamField的索引值为key
+    //value为字符串，值定义为枚举的则为对应枚举值的索引的字符串表示
+    //value值如果为枚举则枚举定义在TeamProtocal中
+    map<int32,string> fields=2;
+}
+//2.5.11
+//更新群组响应
+//群信息更新
+message UpdateTeamRsp{
+     //群组ID
+     //是否必须：是
+     string teamId=1;
+     //时间标记，unix时间戳
+     //是否必须:是
+     fixed64 timeTag=2;
+}

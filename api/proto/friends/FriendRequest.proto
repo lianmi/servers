@@ -1,0 +1,40 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//2.4.1
+//操作类型枚举
+enum OptType{
+   //无效
+   Fr_Undefined=0;
+   //发起好友验证
+   Fr_ApplyFriend=1;
+   //对方同意加你为好友
+   Fr_PassFriendApply=2;
+   //对方拒绝添加好友
+   Fr_RejectFriendApply=3; 
+}
+//2.4.1
+//处理好友请求相关操作-请求
+message FriendRequestReq{
+  //用户ID
+  //是否必填-是
+  string account=1;
+  //备注
+  //是否必填-否
+  string ps=2; 
+  //来源
+  //是否必填-是
+  //添加来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等
+  string source=3;
+  //操作类型
+  //是否必填-是
+  OptType type=4;
+}
+//2.4.1
+//处理好友请求相关操作-响应
+//只包含状态码code，无内容载体
+message FriendRequestRsp{ 
+   
+}

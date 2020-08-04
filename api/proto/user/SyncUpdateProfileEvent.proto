@@ -1,0 +1,26 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+
+//同步其他终端修改资料事件
+//当前登录用户在其它端修改自己的个人资料之后，触发该事件
+message SyncUpdateProfileEvent{
+  //更新时间戳
+  //是否必填-是
+  fixed64 timeTag=1;
+  //采用字典表方式提交更新内容 key定义成枚举(UserFieldEnum)
+  //取值范围： 
+  //Nick(1) - 昵称 
+  //Gender(2) - 性别 
+  //Avatar(3) - 头像 
+  //Birth(4) - 生日 
+  //Sign(5) - 签名 
+  //Tel(6) - 手机 
+  //Email(7) - email 
+  //Ex(8) - 扩展信息
+  //map的key为1到8的整数含义见上
+  //是否必填-是
+  map<int32,string> fields=2; 
+}

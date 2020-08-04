@@ -1,0 +1,38 @@
+app:
+  name: dispatcher
+http:
+  mode: release
+  port: 0
+kafka:
+  broker: 127.0.0.1
+  group: im
+  topics: System.Frontend,Auth.Frontend,Users.Frontend,Friends.Frontend,Group.Frontend,Chat.Frontend,Sync.Frontend,SignalProtocol.Frontend
+mqtt:
+  addr: 127.0.0.1:1883
+  user: ""
+  passwd: ""
+  clientid: dispatcher-client01
+  topicprefix: lianmi/cloud/device/
+  responseTopic: lianmi/cloud/dispatcher
+redis:
+  addr: 127.0.0.1:6379
+  password: 
+  db: 0
+log:
+  filename: /tmp/dispatcher.log
+  maxSize: 500
+  maxBackups: 3
+  maxAge: 3
+  level: "debug"
+  stdout: true
+consul:
+  addr: 127.0.0.1:8500
+grpc:
+  port: 0
+jaeger:
+  serviceName: dispatcher
+  reporter:
+    localAgentHostPort: "127.0.0.1:6831"
+  sampler:
+    type: const
+    param: 1

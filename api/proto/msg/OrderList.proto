@@ -1,0 +1,42 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//用于描述将消息存储到队列来强制实现自然时间排队
+//的描述
+
+//Message的包装
+//描述数据包是要发送给哪个用户的哪个终端
+//1,2,3,4,5,6字段为消息包描述字段，表示消息包发送给谁,不发给谁
+//7,8,9,10,11字段为mars协议字段
+message MessageOrderEntry{
+   // 应用id
+   string appId=1;
+   // 用户账号
+   string userId=2;
+   // 终端设备id
+   // 当不为空时，即给某个终端发送消息;否则给该用户的所有终端发送消息
+   string deviceId=3;
+   // 当把消息发送给终端时是否需要qos保障
+   bool  needQos=4;
+   // 当needQos=true时，该字段有效
+   string msgIdServer=5;
+   // 当deviceId为空时，该字段有效，表示排除给哪些终端发送消息
+   repeated string exDeviceIds=6;
+   // 协议字段
+   // 客户端协议版本
+   int32 clientVersion=7; 
+   // 协议字段
+   // 命令id
+   int32 cmdId=8; 
+   // 协议字段
+   // 命令序列号
+   int32 seq =9; 
+   // 协议字段
+   // 命令扩展
+   bytes options=10; 
+   // 协议字段
+   // 负载，数据体
+   bytes body=11; 
+}

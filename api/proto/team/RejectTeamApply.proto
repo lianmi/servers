@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.10
+//拒绝群申请-请求
+//管理员拒绝加群
+message RejectTeamApplyReq{
+    //申请方账号
+    //是否必须：是
+    string from=1; 
+    //附件信息
+    //是否必须：是
+    string ps=3; 
+    //群组ID
+    //是否必须：是
+    string teamId=4;
+}
+//2.5.10
+//拒绝群申请-响应
+//只包含状态码，无内容载体
+message RejectTeamApplyRsp {
+     
+}

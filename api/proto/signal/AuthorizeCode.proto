@@ -1,0 +1,46 @@
+syntax = "proto3"; 
+import  "api/proto/auth/SignIn.proto";
+
+package cc.lianmi.im.signal;
+option go_package = "github.com/lianmi/servers/api/proto/signal";
+
+//授权码登录模式,从设备申请授权码
+message AuthorizeCodeReq{
+
+   //应用ID，IM管理后台分配
+   //是否必填-是
+   string appKey=1;
+   
+   //客户端类型
+   //是否必填-是
+   auth.ClientType clientType=2;
+   
+   //客户端模式，一般模式和加密模式
+   //是否必填-是
+   auth.ClientMode clientMode=3;
+   
+   //设备Id
+   //是否必填-是
+   string deviceId=4;
+   
+   //操作系统版本
+   //是否必填-是
+   string os=5;
+   
+   //协议版本
+   //是否必填-是
+   string protocolVersion=6;
+   
+   //SDK版本
+   //是否必填-是
+   string sdkVersion=7;
+
+}
+
+message AuthorizeCodeRsp{
+     
+    //授权码
+    //由appId+tcp连接int型编号组成
+    //是否必填-是
+    string code=1;
+}

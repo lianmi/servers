@@ -1,0 +1,31 @@
+syntax = "proto3"; 
+
+import "api/proto/user/MarkTag.proto";
+
+package cc.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+
+//  同步用户标签列表
+message Tag{
+  //用户账号
+  //是否必须-是
+  string account=1;
+  //标签类型
+  //是否必须-是
+  
+  MarkTagType type=2; 
+}
+//2.3.6. 同步用户标签列表
+//用户登录成功后，增量同步黑名单列表。详情请参考同步请求
+message SyncTagsEvent{
+  //待添加的标签列表
+  //是否必须-是
+  repeated Tag addTags=1;
+  //待删除的标签列表
+  //是否必须-是
+  repeated Tag removedTags=2;
+  //当前同步服务器时间
+  //是否必须-是
+  fixed64 timeTag=3;
+}

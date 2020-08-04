@@ -1,0 +1,86 @@
+syntax = "proto3"; 
+
+package cc.lianmi.im.signal;
+option go_package = "github.com/lianmi/servers/api/proto/signal";
+
+//预签名公钥数据结构
+message SignedPreKey {
+    //KeyID
+    fixed64 keyId = 1;
+
+    //公钥
+    string publicKey = 2;
+
+    //签名
+    string signature = 3;
+} 
+message PreKey {
+    //对应的key_id
+    int32 keyId = 1;
+
+    //公钥
+    string publicKey = 2;
+}
+message DeviceKey {
+    //设备ID
+    string deviceId = 1;
+
+    //设备索引号
+    int32 deviceIndex = 2;
+
+    //用户注册ID
+    int32 registrationId = 3;
+
+    //预制公钥
+    SignedPreKey signedPreKey = 4;
+
+    //一次性公钥
+    PreKey preKey = 5;
+    
+    //身份公钥
+    string identityKey = 6;
+} 
+
+//端对端消息类型枚举
+enum SignalMsgType {
+   //无效
+   SignalMsgTypeUndefined=0;
+
+   //首次握手包
+   SignalMsgTypePREKEY_BUNDLE=1;
+
+   //密文数据包
+   SignalMsgTypeCIPHERTEXT=2;
+}
+//SecretMsg消息结构
+message SecretMsg {
+    //接收人账户ID，可能是对方账户，也可能是自己账户
+    string to = 1;
+
+    //消息类型
+    SignalMsgType type = 2;
+
+    //指定该消息接收设备UUID(to登录的任一设备)
+    string toDeviceId = 3;
+
+    //设备注册首次注册,注册ID,相当于用户登录版本号
+    int32 toRegistrationId = 4;
+
+    //密文内容
+    bytes body = 5;
+}
+//二维码数据结构
+message QrCodeDataSerialze {
+    string uuid = 1; //随机
+    string empub = 2; //临时公钥，用于加解密
+    //string applicationPublicKey = 3; //用于应用层的公钥，用于加解密
+    string os = 3; //操作系统
+}
+
+// 主设备向服务器发送的数据结构
+// 主设备的公私钥
+message IdentityKeyPair {
+    string publicKey = 1; //主设备ik公钥
+    string privateKey = 2; //主设备ik私钥
+    string token = 3; //主设备的token
+}

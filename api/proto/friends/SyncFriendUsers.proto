@@ -1,0 +1,19 @@
+syntax = "proto3"; 
+import "api/proto/user/Account.proto"; 
+
+package cc.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//2.4.4
+//好友信息同步
+//本地好友最后更新时间与服务器不一致时,服务器会增量推送该数据至客户端,首次登录timetag请置为0
+//API类型-EVENT  
+message SyncFriendUsersEvent{
+  //好友数组信息,参见用户结构
+  //是否必填-是
+  repeated user.User uInfos=1;
+  //本次同步服务器结束时间，unix时间戳，单位ms
+  //是否必填-是
+  fixed64 timeTag=2;
+}
+ 

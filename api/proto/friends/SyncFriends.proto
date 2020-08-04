@@ -1,0 +1,52 @@
+syntax = "proto3";  
+
+package cc.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//添加方式枚举
+enum VerifyAddType{
+     //无效
+     Va_Undefined=0;
+     //直接添加
+     Va_Direct=1;
+     //校验添加
+     Va_VerifyRequest=2; 
+}
+////好友列表中的好友的信息
+message FriendInfo{
+	 //用户ID
+	 //是否必填-是
+	 string account=1;
+	 //备注
+	 //是否必填-否
+	 string alias=2;
+	 //好友来源,默认0
+	 //由好友请求接口决定来源
+	 //是否必填-否
+	 string source=3;
+	 //添加方式,默认0
+	 //是否必填-否
+	 VerifyAddType verify_type=4; 
+	 //扩展字段，josn
+	 //是否必填-否
+	 string ex=6;
+	 //创建时间，unix时间戳
+	 //是否必填-是
+	 fixed64 createTime=7;
+	 //最后更新时间，unix时间戳
+	 //是否必填-是
+	 fixed64 updateTime=8;
+}
+//2.4.3
+//同步好友列表事件
+//本地好友最后更新时间与服务器不一致时,服务器会增量推送该数据至客户端,首次登录timetag请置为0
+message SyncFriendsEvent{ 
+     //好友信息列表
+     repeated FriendInfo friends=1;
+     //本次同步服务器结束时间，unix时间戳，单位ms
+     //是否必填-是
+     fixed64 timeTag=2;
+     //已解除好友关系的好友ID
+     //是否必填-否
+     repeated string removedAccounts=3;
+}

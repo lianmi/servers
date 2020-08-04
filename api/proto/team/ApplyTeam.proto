@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.8
+//申请加群请求
+message ApplyTeamReq{
+    //群组id
+    //是否必须：是
+    string teamId=1 ;
+    //附加信息
+    //是否必须：否
+    string ps=2;
+}
+//2.5.8
+//申请加群响应
+//只包含状态码，无内容载体
+message ApplyTeamRsp {
+    
+}

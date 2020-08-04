@@ -1,0 +1,89 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+import "api/proto/auth/SignIn.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.11. 拉取群组消息 
+message ReadTeamHistoryMsgsReq{
+  //会话ID
+  //是否必填-是
+  string sessionId=1;
+  //读取消息起始消息Id(对应消息结构IdServer字段)
+  //是否必填-是
+  string maxId=2;
+  //读取消息数量
+  //取值范围1～200
+  //是否必填-是
+  fixed32 limit=3;
+  //查询方向
+  //是否必填-是
+  //true 正序，查询比锚点时间更晚的消息 
+  //false 反序，查询比锚点时间更早的消息
+  bool direction=4;
+}
+////2.6.11
+message HistoryTeamMessage{
+  //32个位标识，每个bit位值1表示true,值0表示false; 
+  //通过Int类型数据来存储32个bit位标识，高字节在左低字节在右，
+  //即从左向右依次为bit31、bit30、…​、bit1、bit0;
+  //标识位值1-true,0-false 
+  //bit0-标识该条消息是否已经撤销即1标识已经撤销 
+  //bit1-标识该条消息是否未读即1标识未读
+  int32 bitset=1;
+  //附件JSON信息(视/音频文件、文件、图片、地理位置、音视频通话)
+  //是否必填-否
+  string attach=2;
+  //用于UI展示的文本信息
+  //是否必填-否
+  string body=3;
+  //消息来源,用户ID
+  //是否必填-是
+  string from=4;
+  //消息来源设备类型,参考登录指令
+  //是否必填-是
+  auth.ClientType fromClientType=5;
+  //消息设备ID
+  //是否必填-是
+  string fromDeviceId=6;
+  //消息来源,用户昵称
+  //是否必填-是
+  string fromNick=7;
+  //消息来源，用户头像
+  //是否必填-是
+  string fromAvatar=8;
+  //客户端分配的消息ID
+  //是否必填-是
+  string idClient=9;
+  //服务器分配的消息ID
+  //是否必填-是
+  string idServer=10;
+  //消息序号，单个会话内自然递增
+  //是否必填-是
+  fixed64 seq=11;
+  //传输场景，固定为 C2C
+  //是否必填-是a+
+  msg.Scene scene=12;
+  //接收人ID
+  //是否必填-是
+  string to=13;
+  //推送通知栏显示内容
+  //是否必填-否
+  string pushContent=14;
+  //消息类型
+  //是否必填-是
+  msg.MsgType type=15;  
+  //对方客户端发送时间,Unix时间戳
+  //是否必填-是
+  fixed64 userUpdateTime=16;
+  //服务器处理消息时间，Unix时间戳
+  //是否必填-是
+  fixed64 time=17;
+}
+//2.6.11. 拉取群组消息 
+message ReadTeamHistoryMsgsRsp{
+  //消息列表
+  //是否必填-是
+  repeated HistoryTeamMessage msgs=1;
+}

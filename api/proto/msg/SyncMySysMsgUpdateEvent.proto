@@ -1,0 +1,33 @@
+syntax = "proto3";
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.20. 同步系统消息更新状态
+//同步当前用户在其他终端上的系统消息操作
+message SyncMySysMsgUpdateEvent{
+   //通讯场景
+   //C2C(1) - 点对点通讯 
+   //C2G(2) - 群组通讯
+   //是否必填-是
+   msg.Scene scene=1;
+   //获取被操作用户ID
+   //是否必填-是
+   string account=2;
+   //群组ID，好友请求场景，该字段为空，群操作场景，该字段必填
+   //是否必填-否
+   string teamId=3;
+   //获取处理者添加的附加信息
+   //是否必填-否
+   string handledMsg=4;
+   //消息类型
+   //是否必填-是
+   msg.RecvSysMsgSubType type=5;
+   //消息处理状态
+   //是否必填-是
+   msg.RecvSysMsgStatus status=6;
+   //消息最后处理时间
+   //是否必填-是
+   fixed64 time=7; 
+}

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//管理员收到询问是否同意邀请用户入群的系统消息事件CheckTeamInvitel,
+//做出决定是同意还是不同意邀请用户入群操作
+//管理员审核群邀请的请求
+message CheckTeamInviteReq{
+  //群组id
+  //是否必须：是
+  string teamId=1;
+  //邀请人
+  //是否必须：是
+  string inviter=2;
+  //被邀请人
+  //是否必须：是
+  string invitee=3;
+  //是否同意邀请用户入群操作
+  //true-同意，false-不同意
+  //是否必须：是
+  bool isAgree=4;
+  //附加信息
+  //是否必须：是
+  string msg=5;
+}
+//管理员审核群邀请的响应
+message CheckTeamInviteRsp{
+
+}

@@ -1,0 +1,31 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.19. 获取会话消息序号
+//根据会话ID获取单个会话消息序号
+message GetCurrentSeqReq{
+   //会话ID
+   //是否必填-是
+   string sessionId=1;
+   //C2C(1) - 点对点通讯 
+   //C2G(2) - 群组通讯 
+   //System(3) - 系统消息
+   //是否必填-是
+   msg.Scene scene=2; 
+}
+
+//2.6.19. 获取会话消息序号
+//根据会话ID获取单个会话消息序号
+message GetCurrentSeqRsp{
+   //当前会话读取到的消息id位置
+   //默认值“0”
+   //是否必填-是
+   string currentMsgId=1;
+   //消息序号，单个会话内自然递增
+   //默认值0
+   //是否必填-是
+   fixed64 currentSeq=2;
+}

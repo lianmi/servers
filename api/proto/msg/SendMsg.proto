@@ -1,0 +1,55 @@
+syntax = "proto3"; 
+import "api/proto/msg/Msg.proto";
+
+package cc.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//2.6.1+2.6.4
+//发送消息请求
+//C2C消息发送接口
+message SendMsgReq{
+  //通过type确定具体内容(视/音频文件、文件、图片、地理位置、音视频通话)
+  //是否必填-否
+  string attach=1;
+  //用于UI展示的文本信息
+  //是否必填-否
+  string body=2;
+  //客户端分配的消息ID，SDK生成的消息id, 
+  //在发送消息之后会返回给开发者, 
+  //开发者可以在发送消息的结果回调里面根据这个ID来判断相应消息的发送状态, 
+  //到底是发送成功了还是发送失败了, 然后根据此状态来更新页面的UI。
+  //如果发送失败, 那么可以重新发送此消息，推荐UUID
+  //是否必填-是
+  string idClient=3;
+  //传输场景
+  //是否必填-是
+  Scene scene=4;
+  //接收人ID
+  //是否必填-是
+  string to=5;
+  //消息类型
+  //是否必填-是
+  MsgType type=6;
+  //客户端发送时间,Unix时间戳
+  //是否必填-是
+  fixed64 userUpdateTime=7;
+  //指定该消息接收设备(to登录的任一设备)
+  //是否必填-否
+  string toDeviceId=8; 
+}
+//2.6.1+2.6.4
+//发送消息响应 
+message SendMsgRsp{ 
+  //消息客户端ID
+  //是否必填-是
+  string idClient=1;
+  //消息服务器ID
+  //是否必填-是  
+  string idServer=2;
+  //消息序号，单个会话内自然递增
+  //是否必填-是
+  fixed64 seq=3;
+  //消息服务器处理时间,Unix时间戳
+  //是否必填-是
+  fixed64 time=4; 
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+import "api/proto/team/Team.proto";
+
+package cc.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//2.5.3
+//查询群请求
+message GetTeamReq{
+    //群组ID
+    //是否必须：是
+    string teamId=1;
+}
+//2.5.3
+//查询群响应
+message GetTeamRsp{
+    //群组信息
+    Team  teamInfo=1;
+}
