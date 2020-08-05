@@ -1,4 +1,4 @@
-apps = 'authservice' 'dispatcher' 'details'
+apps = 'authservice' 'dispatcher'
 .PHONY: run
 run: proto wire
 	for app in $(apps) ;\
