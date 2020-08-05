@@ -14,11 +14,17 @@ test: mock
 	do \
 		go test -v ./internal/app/$$app/... -f `pwd`/configs/$$app.yml -covermode=count -coverprofile=dist/cover-$$app.out ;\
 	done
-.PHONY: build
-build:
+.PHONY: mac
+mac:
 	for app in $(apps) ;\
 	do \
 		GOOS=darwin GOARCH="amd64" go build -o dist/$$app-darwin-amd64 ./cmd/$$app/; \
+	done
+.PHONY: linux
+linux:
+	for app in $(apps) ;\
+	do \
+		GOOS=linux GOARCH="amd64" go build -o dist/$$app-linux-amd64 ./cmd/$$app/; \
 	done
 .PHONY: cover
 cover: test
