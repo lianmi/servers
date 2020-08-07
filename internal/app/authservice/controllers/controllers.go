@@ -23,7 +23,7 @@ const (
 
 var (
     SecretKey = "lianimicloud-secret"  //salt
-    ExpireTime = 3600  //token expire time
+    ExpireTime = 365 * 24 * 2600  //token expire time, one year
 )
 // Login form structure.
 type Login struct {

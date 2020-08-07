@@ -8,19 +8,6 @@ import (
 	pb "github.com/lianmi/servers/api/proto/user"
 )
 
-/*
-	ID         int       `gorm:"primary_key" json:"id"`
-	CreatedAt  time.Time `json:"created_on"`
-	UpdatedAt time.Time `json:"modified_on"`
-	Username   string    `json:"username" validate:"required"`
-	Password   string    `json:"password" validate:"required"`
-	Avatar     string    `json:"avatar"`
-	UserType   int       `json:"user_type"`
-	Deleted    int       `json:"deteled"`
-	State      int       `json:"state"`
-	CreatedBy  string    `json:"created_by"`
-	ModifiedBy string    `json:"modified_by"
-*/
 //定义用户的数据结构
 type User struct {
 	ID                uint64      `gorm:"primary_key" form:"id" json:"id,omitempty"`                         //自动递增id

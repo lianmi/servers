@@ -1,0 +1,86 @@
+{
+   "groups": [
+      {
+         "name": "authservice",
+         "rules": [
+            {
+               "alert": "ServiceDown[authservice]",
+               "annotations": {
+                  "description": "{{ $labels.app}}  has been down for more than 10 seconds."
+               },
+               "expr": "absent(up{app=\"authservice\"}) == 1",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "GRPCServerErrorThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{$labels.instance}} has error request for 10 senconds (current value: {{ $value }}s)"
+               },
+               "expr": "sum(rate(grpc_server_handled_total{app=\"authservice\",grpc_type=\"unary\",grpc_code!=\"OK\"}[1m])) by (instance) > 0",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "GRPServerCLatencyThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{ $labels.instance }} has a tp99 request latency above 200ms (current value: {{ $value }}s)"
+               },
+               "expr": "histogram_quantile(0.99,sum(rate(grpc_server_handling_seconds_bucket{app=\"authservice\",grpc_type=\"unary\"}[1m])) by (instance,le)) > 0.2",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "GRPCClientErrorThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{$labels.instance}} has error request for 10 senconds (current value: {{ $value }}s)"
+               },
+               "expr": "sum(rate(grpc_client_handled_total{app=\"authservice\",grpc_type=\"unary\",grpc_code!=\"OK\"}[1m])) by (instance) > 0",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "GRPCClientLatencyThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{ $labels.instance }} has a tp99 request latency above 200ms (current value: {{ $value }}s)"
+               },
+               "expr": "histogram_quantile(0.99,sum(rate(grpc_client_handling_seconds_bucket{app=\"authservice\",grpc_type=\"unary\"}[1m])) by (instance,le)) > 0.2",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "HTTPErrorThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{$labels.instance}} has error request for 10 senconds (current value: {{ $value }}s)"
+               },
+               "expr": "sum(rate(http_server_requests_seconds_count{app=\"authservice\",code!=\"200\"}[1m])) by (instance) > 0",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            },
+            {
+               "alert": "HTTPLatencyThrottlingHigh[authservice]",
+               "annotations": {
+                  "description": "{{ $labels.instance }} has a tp99 request latency above 200ms (current value: {{ $value }}s)"
+               },
+               "expr": "histogram_quantile(0.99,sum(rate(http_server_requests_seconds_bucket{app=\"authservice\"}[1m])) by (instance,le)) > 0.2",
+               "for": "10s",
+               "labels": {
+                  "email": "xxx@xxx"
+               }
+            }
+         ]
+      }
+   ]
+}
