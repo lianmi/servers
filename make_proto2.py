@@ -4,7 +4,7 @@ CONFIG_LIST = {
     "output": "../im-mqtt-sdk/src",
     "modules":[
         "auth",
-        "code",
+        # "code",
         "friends",
         "global",
         "msg",

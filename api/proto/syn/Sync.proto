@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cc.lianmi.im.syn;
+package cloud.lianmi.im.syn;
 option go_package = "github.com/lianmi/servers/api/proto/syn";
 
 //2.7.1

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cc.lianmi.im.team;
+package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
 //2.5.21

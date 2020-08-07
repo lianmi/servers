@@ -12,6 +12,7 @@
 *.zip
 *.tar.gz
 *.lock
+*.bak
 /bak/
 *.idea/
 /temp/

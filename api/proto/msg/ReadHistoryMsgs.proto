@@ -2,7 +2,7 @@ syntax = "proto3";
 import "api/proto/msg/Msg.proto";
 import "api/proto/auth/SignIn.proto";
 
-package cc.lianmi.im.msg;
+package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 //2.6.10. 拉取用户消息

@@ -1,6 +1,6 @@
 syntax = "proto3"; 
 
-package cc.lianmi.im.auth;
+package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
 
  //客户端类型

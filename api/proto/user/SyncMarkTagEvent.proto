@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "api/proto/user/MarkTag.proto";
 
-package cc.lianmi.im.user;
+package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
 //同步其他终端用户标签事件

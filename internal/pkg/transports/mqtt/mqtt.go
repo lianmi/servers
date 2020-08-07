@@ -216,9 +216,6 @@ func (mc *MQTTClient) Start() error {
 
 			//分发到后端的各自的服务器
 			switch Global.BusinessType(businessType) {
-			case Global.BusinessType_System: //系统模块
-				//TODO
-
 			case Global.BusinessType_Auth: //鉴权授权模块
 				mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
 				mc.logger.Info("message has send to KafkaChan", zap.String("kafkaTopic", kafkaTopic), zap.String("backendService", backendService))
@@ -233,9 +230,6 @@ func (mc *MQTTClient) Start() error {
 				//TODO
 
 			case Global.BusinessType_Chat:
-				//TODO
-
-			case Global.BusinessType_SignalProtocol:
 				//TODO
 
 			case Global.BusinessType_Sync: //同步服务程序

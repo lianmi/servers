@@ -1,6 +1,6 @@
 syntax = "proto3"; 
 
-package cc.lianmi.im.msg;
+package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 //2.6.6. 确认会话

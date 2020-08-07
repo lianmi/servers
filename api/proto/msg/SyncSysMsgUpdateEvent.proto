@@ -1,7 +1,7 @@
 syntax = "proto3"; 
 import "api/proto/msg/Msg.proto";
 
-package cc.lianmi.im.msg;
+package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 //2.6.16. 同步系统消息更新状态

@@ -1,7 +1,7 @@
 syntax = "proto3"; 
 import "google/protobuf/timestamp.proto";
 
-package cc.lianmi.im.user;
+package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
 //性别枚举定义 

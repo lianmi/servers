@@ -1,6 +1,6 @@
 syntax = "proto3"; 
 
-package cc.lianmi.im.msg;
+package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 //用于描述将消息存储到队列来强制实现自然时间排队

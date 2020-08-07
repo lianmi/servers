@@ -2,7 +2,7 @@ syntax = "proto3";
 import "api/proto/team/Team.proto";
 import "api/proto/user/Account.proto";
 
-package cc.lianmi.im.team;
+package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
 //2.5.19

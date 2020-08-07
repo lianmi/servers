@@ -1,6 +1,6 @@
 syntax = "proto3"; 
 
-package cc.lianmi.im.user;
+package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
 //更新当前用户资料请求 

@@ -40,14 +40,9 @@ lint:
 	golint ./...
 .PHONY: proto
 proto:
-	rm -f api/proto/*.go
-	protoc -I api/proto/ ./api/proto/*.proto --go_out=plugins=grpc:api/proto
 
 	rm -f api/proto/auth/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/auth/*.proto
-
-	rm -f api/proto/code/*.go
-	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/code/*.proto
 
 	rm -f api/proto/friends/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/friends/*.proto

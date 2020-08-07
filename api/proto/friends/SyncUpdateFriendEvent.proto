@@ -1,6 +1,6 @@
 syntax = "proto3";   
 
-package cc.lianmi.im.friends;
+package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";
 
 //2.4.8. 更新好友信息多终端同步事件

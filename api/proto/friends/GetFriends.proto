@@ -1,7 +1,7 @@
 syntax = "proto3";
 import  "api/proto/friends/SyncFriends.proto"; 
 
-package cc.lianmi.im.friends;
+package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";
 
 //2.4.9. 增量同步好友列表

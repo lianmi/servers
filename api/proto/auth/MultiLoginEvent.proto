@@ -1,7 +1,7 @@
 syntax = "proto3";
 import "api/proto/auth/SignIn.proto";
 
-package cc.lianmi.im.auth;
+package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
 
 //2.2.5. 多端登录状态变化事件
