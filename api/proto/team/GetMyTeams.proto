@@ -1,25 +1,28 @@
 syntax = "proto3";
-import "api/proto/team/Team.proto";
+import "api/proto/team/TeamInfo.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.30. 增量群组信息
-message GetMyTeamsReq{
-   //上次同步，服务器时间，为0时为全量同步
-   //是否必填-是
-   fixed64 timeTag=1; 
+//. 增量群组信息
+message GetMyTeamsReq {
+    //上次同步，服务器时间，为0时为全量同步
+    //是否必填-是
+    fixed64 timeAt = 1;
+
+    //TODO ??? 文档确定???? 4-25 增量同步群组信息
+    repeated string Usernames = 2;
 }
 
-//2.5.30. 增量群组信息
-message GetMyTeamsRsp{
-   //本次同步服务器结束时间，unix时间戳，单位ms
-   //是否必填-是
-   fixed64 timeTag=1; 
-   //个人加入的群组列表
-   //是否必填-是
-   repeated Team teams=2;
-   //退出\被踢出\解散群组列表
-   //是否必填-否
-   repeated string removedTeams=3;
+//. 增量群组信息
+message GetMyTeamsRsp {
+    //本次同步服务器结束时间，unix时间戳，单位ms
+    //是否必填-是
+    fixed64 timeAt = 1;
+    //个人加入的群组列表
+    //是否必填-是
+    repeated TeamInfo teams = 2;
+    //   //退出\被踢出\解散群组列表
+    //   //是否必填-否
+    //   repeated string removedTeams=3;
 }

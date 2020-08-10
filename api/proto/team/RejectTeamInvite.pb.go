@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.5.7
+//
 //拒绝群邀请-请求
 //被拉的人系统通知有显示入群的通知,点拒绝,注意不能重复点拒绝
 type RejectTeamInviteReq struct {
@@ -97,7 +97,7 @@ func (x *RejectTeamInviteReq) GetPs() string {
 	return ""
 }
 
-//2.5.7
+//
 //拒绝群邀请-响应
 //只包含状态码，无内容载体
 type RejectTeamInviteRsp struct {

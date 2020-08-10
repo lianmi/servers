@@ -1,14 +1,13 @@
 syntax = "proto3";
-import "api/proto/team/Team.proto";
+import "api/proto/team/TeamInfo.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-
 //创建群组多终端同步事件
 //同步其他终端创建群组事件，当某一个用户同时有两个终端(a\b)在线，a终端执行创建群组成功后，b终端会收到该事件。
 //api类型EVENT
-message SyncCreateTeamEvent{
+message SyncCreateTeamEventRsp {
     //群组信息
-    Team teamInfo=1;
+    TeamInfo teamInfo = 1;
 }

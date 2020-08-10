@@ -1,4 +1,4 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 import "api/proto/user/MarkTag.proto";
 
@@ -7,15 +7,15 @@ option go_package = "github.com/lianmi/servers/api/proto/user";
 
 //同步其他终端用户标签事件
 //当前登录用户在其他终端为好友添加、删除标签事件同步
-message SyncMarkTagEvent{
-  //用户账号
-  //是否必填-是
-  string account=1;
-  //标签类型
-  //是否必填-是
-  MarkTagType type=2;
-  //是否是添加操作，true表示添加，false表示移除
-  //是否必填-是
-  bool isAdd=3;
+message SyncMarkTagEventRsp {
+    //用户账号
+    //是否必填-是
+    string account = 1;
+    //标签类型
+    //是否必填-是
+    MarkTagType type = 2;
+    //是否是添加操作，true表示添加，false表示移除
+    //是否必填-是
+    bool isAdd = 3;
 
 }

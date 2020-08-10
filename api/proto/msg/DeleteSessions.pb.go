@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.6.10. 删除会话
+//. 删除会话
 //删除会话记录
 type DeleteSessionsReq struct {
 	state         protoimpl.MessageState
@@ -76,7 +76,7 @@ func (x *DeleteSessionsReq) GetSessions() []string {
 	return nil
 }
 
-//2.6.10. 删除会话
+//. 删除会话
 //删除会话记录
 //只包含状态码，无内容载体
 type DeleteSessionsRsp struct {

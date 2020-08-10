@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.5.13
+//
 //离开群组请求
 type LeaveTeamReq struct {
 	state         protoimpl.MessageState
@@ -76,7 +76,7 @@ func (x *LeaveTeamReq) GetTeamId() string {
 	return ""
 }
 
-//2.5.13
+//
 //离开群组响应
 type LeaveTeamRsp struct {
 	state         protoimpl.MessageState

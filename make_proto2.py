@@ -1,7 +1,7 @@
 import os
 CONFIG_LIST = {
     "protoroot":".",
-    "output": "../im-mqtt-sdk/src",
+    "output": "../ImMqttSDK/src",
     "modules":[
         "auth",
         # "code",

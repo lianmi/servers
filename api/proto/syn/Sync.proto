@@ -3,7 +3,6 @@ syntax = "proto3";
 package cloud.lianmi.im.syn;
 option go_package = "github.com/lianmi/servers/api/proto/syn";
 
-//2.7.1
 //API描述
 //客户端登录成功后，将本地维护的各模块的最后更新时间通过sync同步至服务器端，
 //如果服务端用户资料更新时间与本地时间存在差异，im服务器则通过该指令将完整用户信息push至客户端。
@@ -24,15 +23,11 @@ message SyncReq{
    //群组信息，触发同步群组事件事件
    //是否必填-是 
    fixed64 teamsAt=4;   
-   //会话最大确认时间戳，触发同步会话最大确认时间事件
    //是否必填-是 
-   fixed64 conversationAckAt=5;
-   //标签最后同步时间戳，触发同步用户标签列表事件
-   //是否必填-是 
-   fixed64 tagsAt=6;
+   fixed64 tagsAt=5;
    //系统消息最后同步时间戳，触发同步系统离线消息事件
    //是否必填-是 
-   fixed64 systemMsgAt=7;
+   fixed64 systemMsgAt=6;
 }
 //只包含状态码，无内容载体
 message SyncRsp{

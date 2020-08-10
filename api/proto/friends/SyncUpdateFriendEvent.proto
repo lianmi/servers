@@ -1,21 +1,21 @@
-syntax = "proto3";   
+syntax = "proto3";
 
 package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";
 
-//2.4.8. 更新好友信息多终端同步事件
+// 更新好友信息多终端同步事件
 //同步其他终端修改好友资料事件，当某一个用户同时有两个终端(a\b)在线，
 //a终端执行修改好友信息资料时，b终端会收到该事件。
-message SyncUpdateFriendEvent{
-  //好友账号
-  //是否必填-是
-  string account=1;
-  //采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围： 
-  //Alias(1) - 好友昵称或备注名 
-  //Ex(2) - 扩展字段
-  map<int32,string> fields=2;
-  //最后更新时间，unix时间戳
-  //是否必填-是
-  fixed64 timeTag=3;
+message SyncUpdateFriendEventRsp {
+    //好友账号
+    //是否必填-是
+    string username = 1;
+    //采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围：
+    //Alias(1) - 好友昵称或备注名
+    //Ex(2) - 扩展字段
+    map<int32, string> fields = 2;
+    //最后更新时间，unix时间戳
+    //是否必填-是
+    fixed64 timeAt = 3;
 
 }

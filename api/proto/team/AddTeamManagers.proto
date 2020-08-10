@@ -3,20 +3,20 @@ syntax = "proto3";
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.14
+//
 //群主设置群管理员
-message AddTeamManagersReq{
-   //群组ID
-   //是否必须-是
-   string teamId=1;
-   //群组成员账号ID
-   //是否必须-是
-   repeated string accounts=2;
+message AddTeamManagersReq {
+    //群组ID
+    //是否必须-是
+    string teamId = 1;
+    //群组成员账号ID
+    //是否必须-是
+    repeated string usernames = 2;
 }
-//2.5.14
+//
 //群主设置群管理员
-message AddTeamManagersRsp{
-   //邀请失败的用户列表(用户不存在群中、用户被封号、用户已是管理员等)
-   //是否必须-是
-   repeated string abortedAccidList=1;
+message AddTeamManagersRsp {
+    //邀请失败的用户列表(用户不存在群中、用户被封号、用户已是管理员等)
+    //是否必须-是
+    repeated string abortedUsernames = 1;
 }

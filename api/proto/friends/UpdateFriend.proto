@@ -1,27 +1,27 @@
-syntax = "proto3";  
+syntax = "proto3";
 
 package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";
 
-//2.4.6
+//
 //更新好友信息
 //好友资料页面修改备注
 //API类型-API
-message UpdateFriendReq{
-  //好友账号
-  //例子-17782722078
-  //是否必填-是
-  string account=1;
-  //采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围：
-  //Alias(1) - 好友昵称或备注名
-  //Ex(2) - 扩展字段
-  //是否必填-是
-  map<int32,string>fields=2;
+message UpdateFriendReq {
+    //好友账号
+    //例子-17782722078
+    //是否必填-是
+    string username = 1;
+    //采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围：
+    //Alias(1) - 好友昵称或备注名
+    //Ex(2) - 扩展字段
+    //是否必填-是
+    map<int32, string> fields = 2;
 }
-//2.4.6
+//
 //只包含状态码，无内容载体
-message UpdateFriendRsp{
-  //最后更新时间戳
-  //是否必填-是
-  fixed64 timeTag=1;
+message UpdateFriendRsp {
+    //最后更新时间戳
+    //是否必填-是
+    fixed64 timeAt = 1;
 }

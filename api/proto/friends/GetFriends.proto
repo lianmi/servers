@@ -1,29 +1,29 @@
 syntax = "proto3";
-import  "api/proto/friends/SyncFriends.proto"; 
+import "api/proto/friends/SyncFriends.proto";
 
 package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";
 
-//2.4.9. 增量同步好友列表
+//. 增量同步好友列表
 //本地好友最后更新时间与服务器不一致时,
 //服务器会增量推送该数据至客户端,首次登录timetag请置为0
-message GetFriendsReq{
-   //上次同步，服务器时间，为0时为全量同步
-   //是否必填-是
-   fixed64 timeTag=1;
+message GetFriendsReq {
+    //上次同步，服务器时间，为0时为全量同步
+    //是否必填-是
+    fixed64 timeAt = 1;
 }
 
-//2.4.9. 增量同步好友列表
+//. 增量同步好友列表
 //本地好友最后更新时间与服务器不一致时,
 //服务器会增量推送该数据至客户端,首次登录timetag请置为0
-message GetFriendsRsp{
-   //本次同步服务器结束时间，unix时间戳，单位ms
-   //是否必填-是
-   fixed64 timeTag=1;
-   //好友列表
-   //是否必填-是
-   repeated friends.FriendInfo friends=2;
-   //已解除好友关系的好友ID
-   //是否必填-否
-   repeated string removedAccounts=3;
+message GetFriendsRsp {
+    //本次同步服务器结束时间，unix时间戳，单位ms
+    //是否必填-是
+    fixed64 timeAt = 1;
+    //好友列表
+    //是否必填-是
+    repeated friends.Friend friends = 2;
+    //已解除好友关系的好友ID
+    //是否必填-否
+    repeated string removedUsers = 3;
 }

@@ -1,66 +1,10 @@
 syntax = "proto3";
-import "api/proto/msg/Msg.proto";
-import "api/proto/auth/SignIn.proto";
-
+import "api/proto/msg/MessagePackage.proto";
+// 发送消息
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
-//发送个人消息多终端同步事件
-//API名称
-//SyncSendMsgEvent 
-//API描述
-//将当前登录用户其他终端上发送的个人消息同步到当前终端，该消息为完整消息
-message SyncSendMsgEvent{
-  //附件JSON信息(视/音频文件、文件、图片、地理位置、音视频通话)
-  //是否必填-否
-  string attach=1;
-  //用于UI展示的文本信息
-  //是否必填-否
-  string body=2;
-  //消息来源,用户ID
-  //是否必填-是
-  string from=3;
-  //消息来源设备类型,参考登录指令
-  //是否必填-是
-  auth.ClientType fromClientType=4;
-  //消息设备ID
-  //是否必填-是
-  string fromDeviceId=5;
-  //消息来源,用户昵称
-  //是否必填-是
-  string fromNick=6;
-  //客户端分配的消息ID
-  //是否必填-是
-  string idClient=7;
-  //服务器分配的消息ID
-  //是否必填-是
-  string idServer=8;
-  //消息序号，单个会话内自然递增
-  //是否必填-是
-  fixed64 seq=9;
-  //传输场景，固定为 C2C
-  //是否必填-是
-  msg.Scene scene=10; //[default=Sc_C2C];
-  //接收人ID
-  //是否必填-是
-  string to=11;
-  //推送通知栏显示内容
-  //是否必填-否
-  string pushContent=12; 
-  //消息类型
-  //是否必填-是
-  msg.MsgType type=13;
-  //true表示未读，false表示已读
-  //是否必填-是
-  bool unread=14;
-  //对方客户端发送时间,Unix时间戳
-  //是否必填-是
-  fixed64 userUpdateTime=15; 
-  //服务器处理消息时间，Unix时间戳
-  //是否必填-是
-  fixed64 time=16;
-  //指定该消息接收设备(to登录的任一设备)
-  //是否必填-否
-  string toDeviceId=17;
-   
+
+message SyncSendMsgEventRsp {
+    MessagePackage message = 1;
 }

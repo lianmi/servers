@@ -1,22 +1,22 @@
 syntax = "proto3";
-import "api/proto/team/Team.proto";
+import "api/proto/team/TeamInfo.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.6
+//
 //接受群邀请-请求
 //被拉的人系统通知有显示入群的通知,点接收,注意拒绝后,再接受会出现群成员状态不对,通知只能操作一次
-message AcceptTeamInviteReq{
-   //邀请方
-   //是否必填-是
-   string from=1;
-   //群组ID
-   //是否必填-是
-   string teamId=2;
+message AcceptTeamInviteReq {
+    //邀请方
+    //是否必填-是
+    string from = 1;
+    //群组ID
+    //是否必填-是
+    string teamId = 2;
 }
-//2.5.6
+//
 //接收群邀请-响应
-message AcceptTeamInviteRsp{
-   Team  teamInfo=1;
+message AcceptTeamInviteRsp {
+    TeamInfo teamInfo = 1;
 }

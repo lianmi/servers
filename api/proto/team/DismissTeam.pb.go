@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.5.12
+//
 //群主解散群组请求
 type DismissTeamReq struct {
 	state         protoimpl.MessageState
@@ -76,7 +76,7 @@ func (x *DismissTeamReq) GetTeamId() string {
 	return ""
 }
 
-//2.5.12
+//
 //群主解散群组响应
 //无内容，code有效
 type DismissTeamRsp struct {

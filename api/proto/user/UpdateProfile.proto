@@ -1,20 +1,20 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
 //更新当前用户资料请求 
-message UpdateProfileReq{ 
-   //采用字典表方式提交更新内容 key定义成枚举(UserFieldEnum) 
-   //是否必填-是
-   //key为User中枚举AccountField的索引值
-   //value为User中Account的字段值的字符串表示，注意字段值为枚举的字符串表示未其索引值
-   map<int32,string>fields=1;
+message UpdateProfileReq {
+    //采用字典表方式提交更新内容 key定义成枚举(UserFieldEnum)
+    //是否必填-是
+    //key为User中枚举AccountField的索引值
+    //value为User中Account的字段值的字符串表示，注意字段值为枚举的字符串表示未其索引值
+    map<int32, string> fields = 1;
 }
 
 //更新当前用户资料响应
-message UpdateProfileRsp{ 
-   //最后更新时间戳
-   //是否必须-是
-   fixed64 timeTag=1;
+message UpdateProfileRsp {
+    //最后更新时间戳
+    //是否必须-是
+    fixed64 timeTag = 1;
 }

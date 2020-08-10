@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.2.4. 踢出其他在线终端
+//踢出其他在线终端
 //踢掉多端同时在线的其他端
 type KickReq struct {
 	state         protoimpl.MessageState
@@ -75,7 +75,7 @@ func (x *KickReq) GetDeviceIds() []string {
 	return nil
 }
 
-//2.2.4. 踢出其他在线终端
+//踢出其他在线终端
 //踢掉多端同时在线的其他端
 type KickRsp struct {
 	state         protoimpl.MessageState

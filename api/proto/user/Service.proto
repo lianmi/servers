@@ -1,0 +1,87 @@
+syntax = "proto3";
+import "api/proto/user/GetUsers.proto";
+import "api/proto/user/MarkTag.proto";
+
+package cloud.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+
+//Restful 接口
+service Users {
+    //获取用户信息
+    rpc GetUser (UserReq) returns (UserRsp);
+
+    //短信验证码
+    rpc GenerateSmsCode (SmsCodeReq) returns (SmsCodeResp);
+
+    //注册
+    rpc Register (RegisterReq) returns (RegisterResp);
+
+    //登录 Login,  根据手机号及密码， 获取token 
+    rpc Login (LoginReq) returns (LoginResp);
+
+    //修改密码
+    rpc ChanPasswd (ChanPasswdReq) returns (ChanPasswdResp);
+
+    //打标签
+    rpc MarkTag (MarkTagReq) returns (MarkTagRsp);
+}
+
+message RespHeader {
+    int32 errCode = 1; //错误码  默认是0为成功， 非0-失败
+    string errMsg = 2; //错误描述
+}
+
+//=== 用户信息 === //
+message UserReq {
+    string user = 1;
+}
+
+message UserRsp {
+    RespHeader status  = 1;
+    User       user    = 2;
+}
+
+//==== 注册 ===//
+message RegisterReq {
+    User user = 1;
+    string smsCode = 2; //短信验证码
+}
+
+message RegisterResp {
+    RespHeader status = 1;
+    string accesstoken = 2; //注册成功后返回token
+}
+
+//=== 获取短信验证码 ===//
+message SmsCodeReq {
+    string mobile = 1; //手机号码
+}
+
+message SmsCodeResp {
+    RespHeader status = 1;
+    string smsCode = 2; //短信验证码
+}
+
+//==== 修改密码 ===//
+message ChanPasswdReq {
+    string oldpasswd = 1; //旧密码
+    string smsCode = 2; //短信验证码
+    string password = 3; //新密码
+}
+
+message ChanPasswdResp {
+    RespHeader status = 1;
+}
+
+//==== 根据用户名及密码登录 ===//
+message LoginReq {
+    string username = 1; //用户名
+    string password = 2; //MD5加密过的
+    string smsCode = 3; //短信验证码
+}
+
+message LoginResp {
+    RespHeader status = 1;
+    string accesstoken = 2; //用户token, jwt
+}

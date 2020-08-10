@@ -35,6 +35,7 @@ require (
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.0.0+incompatible
+	github.com/unrolled/secure v1.0.8
 	go.uber.org/zap v1.12.0
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	google.golang.org/grpc v1.30.0

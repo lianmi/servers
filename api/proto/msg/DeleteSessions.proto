@@ -1,18 +1,18 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
-//2.6.10. 删除会话
+//. 删除会话
 //删除会话记录
-message DeleteSessionsReq{
-   //待删除的会话列表
-   //是否必须-是
-   repeated string sessions=1;
+message DeleteSessionsReq {
+    //待删除的会话列表
+    //是否必须-是
+    repeated string sessions = 1;
 }
-//2.6.10. 删除会话
+//. 删除会话
 //删除会话记录
 //只包含状态码，无内容载体
-message DeleteSessionsRsp{
+message DeleteSessionsRsp {
 
 }

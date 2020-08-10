@@ -3,19 +3,20 @@ syntax = "proto3";
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.9
+//
 //通过群组申请请求
-message PassTeamApplyReq{
-    //申请方账号
-    //是否必须：是
-    string from=1; 
+message PassTeamApplyReq {
     // 群组ID
     //是否必须：是
-    string teamId=3;
+    string teamId = 1;
+    //申请方账号
+    //是否必须：是
+    string from = 2;
+
 }
-//2.5.9
+//
 //通过群组申请响应
 //只包含状态码，无内容载体
-message PassTeamApplyRsp{
-     
+message PassTeamApplyRsp {
+
 }

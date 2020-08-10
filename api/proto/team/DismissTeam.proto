@@ -3,16 +3,16 @@ syntax = "proto3";
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.12
+//
 //群主解散群组请求
-message DismissTeamReq{
+message DismissTeamReq {
     //群组ID
     //是否必须：是
-    string teamId=1;
+    string teamId = 1;
 }
-//2.5.12
+//
 //群主解散群组响应
 //无内容，code有效
-message DismissTeamRsp{
-     
+message DismissTeamRsp {
+
 }

@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.5.8
+//
 //申请加群请求
 type ApplyTeamReq struct {
 	state         protoimpl.MessageState
@@ -86,7 +86,7 @@ func (x *ApplyTeamReq) GetPs() string {
 	return ""
 }
 
-//2.5.8
+//
 //申请加群响应
 //只包含状态码，无内容载体
 type ApplyTeamRsp struct {

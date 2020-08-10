@@ -1,38 +1,35 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
-
 //用户打标
 //标签类型
-enum MarkTagType{
-  //无定义
-  Mtt_Undefined=0;
-  //黑名单
-  Mtt_Blocked=1;
-  //免打扰
-  Mtt_Muted=2;
-  //置顶
-  Mtt_Sticky=3; 
+enum MarkTagType {
+    //无定义
+    Mtt_Undefined = 0;
+    //黑名单
+    Mtt_Blocked = 1;
+    //免打扰
+    Mtt_Muted = 2;
+    //置顶
+    Mtt_Sticky = 3;
 }
 
 //可以把任意用户打上指定标签
-message MarkTagReq{
-  //用户账号
-  //是否必须-是
-  string account=1;
-  //标签类型
-  //是否必须-是
-  MarkTagType type=2;
-  //是否是添加操作，true表示添加，false表示移除
-  //是否必须-是
-  bool isAdd=3; 
+message MarkTagReq {
+    //用户账号
+    //是否必须-是
+    string username = 1;
+    //标签类型
+    //是否必须-是
+    MarkTagType type = 2;
+    //是否是添加操作，true表示添加，false表示移除
+    //是否必须-是
+    bool isAdd = 3;
 }
 
 //可以把任意用户打上指定标签
-message MarkTagRsp{
-
-
+message MarkTagRsp {
 }

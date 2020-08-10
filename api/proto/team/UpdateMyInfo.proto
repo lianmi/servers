@@ -1,23 +1,22 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-
 //修改个人群资料
 //群成员修改自己在群里的个人资料
-message UpdateMyInfoReq{
-   //群组ID
-   //是否必填-是
-   string teamId=1;
-   //采用字典表方式提交群成员资料更新内容， key定义成枚举(TeamMemberFieldEnum)取值范围：
-   //1-NICK("昵称") 2-ACCOUNT("账号") 3-TEAM_ID("群组id") 4-EX("扩展信息")
-   //是否必填-是
-   map<int32,string>fields=2;
+message UpdateMyInfoReq {
+    //群组ID
+    //是否必填-是
+    string teamId = 1;
+    //采用字典表方式提交群成员资料更新内容， key定义成枚举(TeamMemberFieldEnum)取值范围：
+    //1-NICK("昵称") 2-ACCOUNT("账号") 3-TEAM_ID("群组id") 4-EX("扩展信息")
+    //是否必填-是
+    map<int32, string> fields = 2;
 }
 
 //响应
 //只包含状态码，无内容载体
-message UpdateMyInfoRsp{
+message UpdateMyInfoRsp {
 
 }

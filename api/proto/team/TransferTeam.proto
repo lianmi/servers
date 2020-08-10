@@ -3,19 +3,19 @@ syntax = "proto3";
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.16
+//
 //转让群主身份
-message TransferTeamReq{
-   //群组ID
-   //是否必须-是  
-   string teamId=1;
-   //受让人ID
-   //是否必须-是  
-   string account=2;
+message TransferTeamReq {
+    //群组ID
+    //是否必须-是
+    string teamId = 1;
+    //受让人ID
+    //是否必须-是
+    string username = 2;
 }
-//2.5.16
+//
 //转让群主身份
 //只包含状态码，无内容载体
-message TransferTeamRsp{
+message TransferTeamRsp {
 
 }

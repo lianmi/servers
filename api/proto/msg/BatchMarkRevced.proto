@@ -1,18 +1,20 @@
-syntax = "proto3"; 
+syntax = "proto3";
 
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
-//2.6.5
+//
 //批量确认消息送达-请求
 //批量确认消息送达，跟qos一样。
 //API类型-API
-message BatchMarkRevcedReq{
-   //消息id
-   repeated string ids=1;
+message BatchMarkRevcedReq {
+    //消息id
+    repeated string ids = 1;
 }
-//2.6.5
+//
 //批量确认消息送达-响应
-message BatchMarkRevcedRsp{
-   //响应体为空
+message BatchMarkRevcedRsp {
+    //响应体为空
+    //TODO 返回失败的条目 ???
+    repeated string ids = 1;
 }

@@ -1,0 +1,9 @@
+syntax = "proto3";
+package cloud.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+message SlaveDeviceAuthEventRsp {
+    string username = 1;
+    string consultPublickey = 2;
+    string userData = 3;
+}

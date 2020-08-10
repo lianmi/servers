@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.team;
+option go_package = "github.com/lianmi/servers/api/proto/team";
+
+//
+//枚举信息
+enum TeamType {
+    // 无效
+    Tt_Undefined = 0;
+    // 讨论组,类似微信群,弱管理方式
+    Tt_Normal = 1;
+    // 普通群,类似qq群有更多管理权限
+    Tt_Advanced = 2;
+    // 部落，超大群
+    Tt_Tribe = 3;
+    // 临时群
+    Tt_Temporary = 4;
+
+}
+
+//查询类型
+enum TribeMemberQueryType {
+    //无效
+    Tmqt_Undefined = 0;
+    //全部,默认
+    Tmqt_All = 1;
+    //管理员
+    Tmqt_Manager = 2;
+    //禁言成员
+    Tmqt_Muted = 3;
+}
+
+//群状态
+enum Status {
+    //无效
+    Status_Undefined = 0;
+    //初始状态,未审核
+    Status_Init = 1;
+    //正常状态
+    Status_Normal = 2;
+    //封禁状态
+    Status_Blocked = 3;
+
+}
+
+//校验模式
+enum VerifyType {
+    // 无定义
+    Vt_Undefined = 0;
+    //所有人可加入
+    Vt_Free = 1;
+    //需要审核加入
+    Vt_Apply = 2;
+    //仅限邀请加入
+    Vt_Private = 3;
+
+}
+
+//发言方式
+enum MuteMode {
+    // 无定义
+    Mm_Undefined = 0;
+    //所有人可发言
+    Mm_None = 1;
+    //群主可发言,集体禁言
+    Mm_MuteALL = 2;
+    //管理员可发言,普通成员禁言
+    Mm_MuteNormal = 3;
+
+}
+
+//群被邀请模式：被邀请人的同意方式
+enum BeInviteMode {
+    // 无定义
+    Bim_Undefined = 0;
+    //需要被邀请方同意
+    Bim_NeedAuth = 1;
+    //不需要被邀请方同意言
+    Bim_NoAuth = 2;
+
+}
+
+//群邀请模式：谁可以邀请他人入群
+enum InviteMode {
+    // 无定义
+    Invite_Undefined = 0;
+    //所有人都可以邀请其他人入群
+    Invite_All = 1;
+    //只有管理员可以邀请其他人入群
+    Invite_Manager = 2;
+    //邀请用户入群时需要管理员审核
+    Invite_Check = 3;
+
+}
+
+//群资料修改模式：谁可以修改群资料
+
+enum UpdateMode {
+    // 无定义
+    Update_Undefined = 0;
+    //	所有人可以修改
+    Update_All = 1;
+    //	只有管理员/群主可以修改
+    Update_Manager = 2;
+
+}
+
+//冗余字段,记录接收消息提醒方式
+enum NotifyType {
+    //无效
+    Notify_Undefined = 0;
+    //群全部消息提醒
+    Notify_All = 1;
+    //管理员消息提醒
+    Notify_Manager = 2;
+    //联系人提醒
+    Notify_Contact = 3;
+    //全部不提醒
+    Notify_Mute = 4;
+}
+//群成员类型
+enum TeamMemberType {
+    //无效
+    Tmt_Undefined = 0;
+    //待审核的申请加入用户
+    Tmt_Apply = 1;
+    //管理员
+    Tmt_Manager = 2;
+    //普通成员
+    Tmt_Normal = 3;
+    //创建者
+    Tmt_Owner = 4;
+}
+//群组信息
+enum TeamField {
+    Tmf_Undefined = 0;
+    //群名称
+    //是否必须:否
+    Tmf_Name = 1;
+    //群头像
+    //是否必须:否
+    Tmf_Icon = 2;
+    //群公告
+    //是否必须:否
+    Tmf_Announcement = 3;
+    //群简介
+    //是否必须：否
+    Tmf_Introduce = 4;
+    //入群校验方式
+    //是否必须：是
+    Tmf_VerifyType = 5;
+    //邀请模式
+    //是否必须：是
+    Tmf_InviteMode = 6;
+    //群资料更新方式
+    //是否必须：否
+    Tmf_UpdateTeamMode = 7;
+    //群资料扩展信息
+    Tmf_Ex = 8;
+}
+//群组信息
+message TeamInfo {
+    // 群ID
+    //是否必须：是
+    string teamId = 1;
+    //群名称
+    //是否必须:是
+    string name = 2;
+    //群头像
+    //是否必须:否
+    string icon = 3;
+    //群公告
+    //是否必须:否
+    string announcement = 4;
+    //群简介
+    //是否必须：否
+    string introduce = 5;
+
+    //创建人id
+    //是否必须：是
+    string creator = 6;
+    //群主id
+    //是否必须：是
+    string owner = 7;
+    //群类型,枚举类型
+    //是否必须:是
+    TeamType type = 8;
+    //校验模式
+    //是否必须：是
+    VerifyType verifyType = 9;
+    //成员上限
+    //是否必须：是
+    int32 memberLimit = 10;
+
+    //当前成员人数
+    //取值范围200~2000
+    //是否必须：是
+    int32 memberNum = 11;
+    //群状态
+    //是否必须：是
+    Status status = 12;
+
+    //发言方式
+    //是否必须：是
+    MuteMode muteType = 13;
+    //邀请模式
+    //是否必须：是
+    InviteMode inviteMode = 14;
+    //群资料修改模式：谁可以修改群资料
+    //是否必须：是
+    UpdateMode updateTeamMode = 15;
+    //JSON扩展字段,由业务方解析
+    //是否必填-否
+    string ex = 16;
+    //群组创建时间，unix时间戳
+    //是否必须：是
+    fixed64 createAt = 17;
+    //最后更新时间，unix时间戳
+    //是否必须：是
+    fixed64 updateAt = 18;
+    //邀请用户入群前是否需要管理员同意
+    //true - 需管理员同意才能邀请用户入群
+    //false - 邀请用户入群，无需管理员同意
+    //    bool inviteCheck=19;
+}

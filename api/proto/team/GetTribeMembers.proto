@@ -1,36 +1,37 @@
-syntax = "proto3"; 
-import "api/proto/team/Team.proto";
+syntax = "proto3";
+import "api/proto/team/TeamInfo.proto";
+import "api/proto/team/CreateTeam.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
 //分页获取部落成员信息
 //分页方式获取部落群成员信息，该接口仅支持在线获取，SDK不进行缓存
-message GetTribeMembersReq{
-   //群组ID
-   //是否必填-是
-   string teamId=1;
-   //查询类型
-   //MemberQueryTypeEnum
-   //是否必填-否
-   TribeMemberQueryType queryType=2;
-   //查询成员数量
-   //默认100,最大只允许100
-   //是否必填-否
-   int32 limit=3; // [default=100];
-   //偏移量,对应SQL语法中offset用法
-   //默认0
-   //是否必填-否
-   int32 offset=4; // [default=0];
+message GetTribeMembersReq {
+    //群组ID
+    //是否必填-是
+    string teamId = 1;
+    //查询类型
+    //MemberQueryTypeEnum
+    //是否必填-否
+    TribeMemberQueryType queryType = 2;
+    //查询成员数量
+    //默认100,最大只允许100
+    //是否必填-否
+    int32 limit = 3; // [default=100];
+    //偏移量,对应SQL语法中offset用法
+    //默认0
+    //是否必填-否
+    int32 offset = 4; // [default=0];
 
 }
 
 //响应
 //分页获取部落成员信息
-message GetTribeMembersRsp{
-   //群成员列表
-   //是否必填-是
-   repeated TeamMemberGet members=1;
+message GetTribeMembersRsp {
+    //群成员列表
+    //是否必填-是
+    repeated Tmember members = 1;
 
 }
 

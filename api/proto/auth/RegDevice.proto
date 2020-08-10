@@ -1,0 +1,11 @@
+syntax = "proto3";
+package cloud.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+message RegDeviceReq {
+    string regToken = 1;
+}
+
+message RegDeviceRsp {
+    int32 deviceIndex = 1;
+}

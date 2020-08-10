@@ -1,0 +1,97 @@
+syntax = "proto3";
+package cloud.lianmi.im.msg;
+
+import "api/proto/msg/MsgTypeEnum.proto";
+import "api/proto/auth/SignIn.proto";
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+//私聊接收消息
+//服务器将从from端接收到的消息转发给to端
+//api类型-EVENT
+message RecvMsgEventRsp {
+    //传输场景，固定为 C2C或P2P
+    //是否必填-是
+    MessageScene scene = 1;
+    //消息类型
+    //是否必填-是
+    MessageType type = 2;
+    //接受消息事件的内容 , 更具 type 选择处理方式
+    //是否必填-否
+    bytes body = 3;
+    //消息来源,用户ID
+    //是否必填-是
+    string from = 4;
+    //发消息，用户昵称
+    //是否必填-是
+    string fromNick = 5;
+    //发送方消息设备ID
+    //是否必填-是
+    string fromDeviceId = 6;
+    //服务器分配的消息ID
+    //是否必填-是
+    string serverMsgId = 7;
+    //消息序号，单个会话内自然递增
+    //是否必填-是
+    fixed64 seq = 8;
+    //客户端分配的消息ID，SDK生成的消息id,
+    //在发送消息之后会返回给开发者, 开发者可以在发送消息
+    //的结果回调里面根据这个ID来判断相应消息的发送状态,
+    //到底是发送成功了还是发送失败了, 然后根据此状态来
+    //更新页面的UI。如果发送失败, 那么可以重新发送此消息，推荐UUID
+    //是否必填-是
+    string uuid = 9;
+    //服务器处理消息时间，Unix时间戳
+    //是否必填-是
+    fixed64 time = 10;
+
+}
+
+// 消息事件 推送是通知的时候 的数据体
+message MessageNotification {
+    // 通知的时候 body 的二进制内容
+
+    //消息来源设备类型,参考登录指令
+    //是否必填-是
+    auth.ClientType fromClientType = 1;
+
+    //推送通知栏显示内容
+    //是否必填-否
+    string pushContent = 2;
+
+    // 通知类型 NOTE 暂定 数字不用枚举
+    int32 type = 3;
+
+    // TODO 需要完善
+
+}
+
+// 系统消息更新 数据体
+message MessageSystemUpdate {
+    // S2C 的时候 RecvMsgEvent 的body 的负载
+    // TODO 为定义
+
+    // 系统消息类型
+    int32 type = 1;
+    //最后处理人
+    //添加好友，对方接收/拒绝后，该字段填充为对方ID
+    //申请入群，管理员通过/拒绝后，该字段填充管理员ID
+    //邀请入群，用户通过/拒绝后，该字段填充目标用户ID
+    //是否必填-否
+    string handledAccount = 2;
+    //获取处理者添加的附加信息
+    //添加好友，拒绝附言
+    //申请入群，拒绝附言
+    //邀请入群，拒绝附言
+    //是否必填-否
+    string handledMsg = 3;
+
+    // 消息状态 bitset 存储
+    int32 status = 4;
+
+    // 附带的文本 该系统消息的文本
+    string text = 5;
+
+    // 最终接受者
+    // 管理员可以看到 系统通知 所以管理员有权限修改
+    // 所以推送的时候 需要 同时给 管理员推送
+    string to = 6;
+}

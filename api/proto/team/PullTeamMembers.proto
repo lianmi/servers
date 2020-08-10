@@ -1,23 +1,23 @@
 syntax = "proto3";
-import "api/proto/team/Team.proto";
+import "api/proto/team/CreateTeam.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.29. 获取指定群组成员
+//. 获取指定群组成员
 //根据群组用户ID获取最新群成员信息
-message PullTeamMembersReq{
-   //群组ID
-   //是否必填-是
-   string teamId=1;
-   //群成员账号ID数组
-   //是否必填-是
-   repeated string accounts=2;
+message PullTeamMembersReq {
+    //群组ID
+    //是否必填-是
+    string teamId = 1;
+    //群成员账号ID数组
+    //是否必填-是
+    repeated string accounts = 2;
 }
-//2.5.29. 获取指定群组成员
+//. 获取指定群组成员
 //根据群组用户ID获取最新群成员信息
-message PullTeamMembersRsp{
-   //群成员列表
-   //是否必填-是
-   repeated TeamMemberGet  tmembers=1;
+message PullTeamMembersRsp {
+    //群成员列表
+    //是否必填-是
+    repeated Tmember tmembers = 1;
 }

@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//2.2.2
+//
 //登录请求
 //无,只需发送相应的type和typeu即可
 type SignOutReq struct {
@@ -66,7 +66,7 @@ func (*SignOutReq) Descriptor() ([]byte, []int) {
 	return file_api_proto_auth_SignOut_proto_rawDescGZIP(), []int{0}
 }
 
-//2.2.2
+//
 //登录响应
 //无,只需发送相应的type和typeu即可
 type SignOutRsp struct {

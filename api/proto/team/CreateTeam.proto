@@ -1,38 +1,84 @@
 syntax = "proto3";
-import "api/proto/team/Team.proto";
+import "api/proto/team/TeamInfo.proto";
 
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
-//2.5.1
+//
 //创建讨论组/创建群-请求
-message CreateTeamReq{
-    //账号ID
-    //是否必须：是
-    repeated string accounts=1;
-    //备注
-    //是否必须：否
-    string	ps=2;
+message CreateTeamReq {
+    string creator = 1;
+    string owner = 2;
     //群组类型
     //是否必须：是
-    TeamType type=3;
-    //群组名称
-    //是否必须：是
-    string	name=4;
+    TeamType type = 3;
+
+    string name = 4;
+
     //入群校验方式
     //是否必须：是
-    VerifyType verifyType=5;
+    VerifyType verifyType = 5;
+
     //邀请用户入群前是否需要管理员同意
     //Check - 需管理员同意才能邀请用户入群  
-    InviteMode inviteMode=6;
+    InviteMode inviteMode = 6;
 }
-//2.5.1
+//
 //创建讨论组/创建群-响应
-message CreateTeamRsp{
+message CreateTeamRsp {
     //群组信息
     //是否必须：是
-    Team  teamInfo=1;
+    TeamInfo teamInfo = 1;
     //邀请失败列表
     //是否必须：否
-    repeated string failedAccidList=2;
+    repeated string failedAccidList = 2;
+}
+
+//
+//获取群成员信息-响应
+//权限说明
+//讨论组/高级群时： 根据timetag增量返回所有群成员
+//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+message Tmember {
+    //群组ID
+    //是否必须-是
+    string teamId = 1;
+    //用户账号id
+    //是否必须-是
+    string username = 2;
+    //群昵称
+    //是否必须-是
+    string nick = 3;
+    //群成员头像
+    //是否必须-否
+    string avatar = 4;
+    //群成员来源,需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等,
+    //UI可以根据该字段动态显示该成员来源,例: "abc邀请cde加入群组"
+    //是否必须-是
+    string source = 5;
+    //成员类型
+    //是否必须-是
+    TeamMemberType type = 6;
+    //群消息通知方式
+    //是否必须-是
+    NotifyType notifyType = 7;
+    //是否被禁言
+    //是否必须-是
+    bool mute = 8;
+    //扩展字段
+    //是否必须-否
+    string ex = 9;
+    //入群时间，unix时间戳
+    //是否必须-是
+    fixed64 joinTime = 10;
+    //最近更新时间，unix时间戳
+    //是否必须-是
+    fixed64 updateTime = 11;
+}
+enum MemberStatus {
+    MemStatus_Undefined = 0;
+    //启用
+    MemStatus_Enabled = 1;
+    //禁用
+    MemStatus_Disabled = 2;
 }

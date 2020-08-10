@@ -1,18 +1,17 @@
 syntax = "proto3";
 import "api/proto/auth/SignIn.proto";
-
 package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
 
-//2.2.5. 多端登录状态变化事件
+// 多端登录状态变化事件
 //多端登录状态变化的回调, 会收到登录端列表, 以下情况会收到此回调
 //1、登录时其它端在线，服务器会推送
 //2、登录后其它端上线或者下线 
-message MultiLoginEvent{
-   //其他终端状态 true表示在线 false表示离线
-   //是否必填-是
-   bool state=1;
-   //当前登录，其他终端列表
-   //是否必填-是
-   repeated auth.DeviceInfo clients=2; 
+message MultiLoginEventRsp {
+    //其他终端状态 true表示在线 false表示离线
+    //是否必填-是
+    bool state = 1;
+    //当前登录，其他终端列表
+    //是否必填-是
+    repeated auth.DeviceInfo clients = 2;
 } 
