@@ -2,7 +2,6 @@ syntax = "proto3";
 package cloud.lianmi.im.msg;
 
 import "api/proto/msg/MsgTypeEnum.proto";
-import "api/proto/auth/SignIn.proto";
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 //私聊接收消息
 //服务器将从from端接收到的消息转发给to端
@@ -51,14 +50,14 @@ message MessageNotification {
 
     //消息来源设备类型,参考登录指令
     //是否必填-是
-    auth.ClientType fromClientType = 1;
+//    auth.ClientType fromClientType = 1;
 
     //推送通知栏显示内容
     //是否必填-否
-    string pushContent = 2;
+    string pushContent = 1;
 
     // 通知类型 NOTE 暂定 数字不用枚举
-    int32 type = 3;
+    int32 type = 2;
 
     // TODO 需要完善
 

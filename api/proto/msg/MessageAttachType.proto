@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "api/proto/global/Global.proto";
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 //消息内容-Image
@@ -100,9 +101,27 @@ message AttachGeo {
     float lng = 3;
 }
 
-
+// TODO 订单数据 需完善
 message AttachOrder {
-    // TODO 订单数据 需完善
-    bytes orderData=1 ;
+    //订单类型，必填
+    global.OrderType orderType=1;
+    //订单加密二进制数据
+    bytes orderData=2;
+}
 
+//钱包相关的交易数据(提现，充值 ，转账，收款 ，退款等)
+message AttachTransaction {
+    //订单类型，必填
+    global.TransactionType transactionType=1;
+    //交易加密二进制数据
+    bytes transactionData=2;
+}
+
+// 加密数据包
+message SecretPackage
+{
+    // 加密的数据
+    bytes secret =1 ;
+    // 公钥
+    bytes pubkey =2 ;
 }

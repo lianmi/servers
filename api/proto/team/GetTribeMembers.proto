@@ -1,3 +1,4 @@
+
 syntax = "proto3";
 import "api/proto/team/TeamInfo.proto";
 import "api/proto/team/CreateTeam.proto";

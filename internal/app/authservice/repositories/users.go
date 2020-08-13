@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"time"
+
 	"github.com/jinzhu/gorm"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -9,7 +10,6 @@ import (
 )
 
 type UsersRepository interface {
-
 	GetUser(ID uint64) (p *models.User, err error)
 	Register(user *models.User) (err error)
 	AddRole(role *models.Role) (err error)
@@ -17,18 +17,16 @@ type UsersRepository interface {
 	GetUserRoles(where interface{}) []*models.Role
 	CheckUser(where interface{}) bool
 	GetUserAvatar(where interface{}, sel string) string
-	
+
 	//获取用户ID
 	GetUserID(where interface{}) uint64
-	
+
 	//根据用户id获取token
 	GetTokenByUserId(where interface{}) string
-	
-	
+
 	//保存用户token
-	SaveUserToken(username string, token string,  expire time.Time) bool
-	
-	
+	SaveUserToken(username string, token string, expire time.Time) bool
+
 	//获取用户信息
 	GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User
 
@@ -39,21 +37,20 @@ type UsersRepository interface {
 	UpdateUser(user *models.User, role *models.Role) bool
 
 	//获取用户
-	GetUserByID(id int) *models.User	
-	
+	GetUserByID(id int) *models.User
 }
 
 type MysqlUsersRepository struct {
 	logger *zap.Logger
 	db     *gorm.DB
-	base  *BaseRepository
+	base   *BaseRepository
 }
 
 func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB) UsersRepository {
 	return &MysqlUsersRepository{
 		logger: logger.With(zap.String("type", "UsersRepository")),
 		db:     db,
-		base: NewBaseRepository(logger, db),
+		base:   NewBaseRepository(logger, db),
 	}
 }
 
@@ -62,6 +59,7 @@ func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
 	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
 	}
+	s.logger.Debug("GetUser run...")
 	return
 }
 
@@ -93,7 +91,6 @@ func (s *MysqlUsersRepository) CheckUser(where interface{}) bool {
 	return true
 }
 
-
 func (s *MysqlUsersRepository) AddRole(role *models.Role) (err error) {
 	if err := s.db.Create(role).Error; err != nil {
 		s.logger.Error("新建用户角色失败")
@@ -122,13 +119,13 @@ func (s *MysqlUsersRepository) DeleteUser(id uint64) bool {
 	return true
 }
 
-func (s *MysqlUsersRepository) GetUserAvatar(where interface{}, sel string) string { 
+func (s *MysqlUsersRepository) GetUserAvatar(where interface{}, sel string) string {
 	var user models.User
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
-    //     "id":       id,
-    //     // "itemName like": "%22220",
-    //     // "id in":         []int{20, 19, 30},
-    //     // "num !=" : 20,
+	//     "id":       id,
+	//     // "itemName like": "%22220",
+	//     // "id in":         []int{20, 19, 30},
+	//     // "num !=" : 20,
 	// })
 	// err := s.base.First(conditionString, values, &user, sel)
 	err := s.base.First(&where, &user, sel)
@@ -140,11 +137,10 @@ func (s *MysqlUsersRepository) GetUserAvatar(where interface{}, sel string) stri
 	return user.Avatar
 }
 
-
 func (s *MysqlUsersRepository) GetUserID(where interface{}) uint64 {
 	var user models.User
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
-    //     "username":       username,
+	//     "username":       username,
 	// })
 	// where := models.User{Username: username}
 	err := s.base.First(&where, &user, "id")
@@ -152,7 +148,7 @@ func (s *MysqlUsersRepository) GetUserID(where interface{}) uint64 {
 	if gorm.IsRecordNotFoundError(err) {
 		s.logger.Error("获取用户id失败", zap.Error(err))
 		return 0 //TODO 默认
-	}	
+	}
 
 	return user.ID
 }
@@ -166,11 +162,10 @@ func (s *MysqlUsersRepository) GetTokenByUserId(where interface{}) string {
 	if gorm.IsRecordNotFoundError(err) {
 		s.logger.Error("获取Token失败", zap.Error(err))
 		return "" //TODO 默认
-	}	
+	}
 
 	return tbToken.Token
 }
-
 
 func (s *MysqlUsersRepository) GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User {
 	var users []*models.User
@@ -180,17 +175,16 @@ func (s *MysqlUsersRepository) GetUsers(PageNum int, PageSize int, total *uint64
 	return users
 }
 
-
 //判断用户名是否已存在
 func (s *MysqlUsersRepository) ExistUserByName(username string) bool {
 	var user models.User
 	sel := "id"
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
-    //     "username":       username,
-    //     // "itemName like": "%22220",
-    //     // "id in":         []int{20, 19, 30},
-    //     // "num !=" : 20,
-	// })	
+	//     "username":       username,
+	//     // "itemName like": "%22220",
+	//     // "id in":         []int{20, 19, 30},
+	//     // "num !=" : 20,
+	// })
 	where := models.User{Username: username}
 	err := s.base.First(&where, &user, sel)
 	//记录不存在错误(RecordNotFound)，返回false
@@ -233,13 +227,13 @@ func (s *MysqlUsersRepository) GetUserByID(id int) *models.User {
 }
 
 //保存用户token
-func (s *MysqlUsersRepository) SaveUserToken(username string, token string,  expire time.Time) bool {
+func (s *MysqlUsersRepository) SaveUserToken(username string, token string, expire time.Time) bool {
 	//使用事务同时更新用户 token
-	 tokeStrc := &models.Token {
-		Username : username,
-		 ExpiredAt : expire,
-		 Token : token,
-	 }
+	tokeStrc := &models.Token{
+		Username:  username,
+		ExpiredAt: expire,
+		Token:     token,
+	}
 	tx := s.base.GetTransaction()
 	if err := tx.Save(tokeStrc).Error; err != nil {
 		s.logger.Error("更新用户token失败", zap.Error(err))

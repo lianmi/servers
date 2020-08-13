@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message BalanceReq{
+    //用户账号
+    string userName=1;
+    //钱包地址
+    string walletAddress=2;
+}
+
+message BalanceRsp{
+    //余额
+    double amount=1;
+
+}

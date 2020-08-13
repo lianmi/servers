@@ -18,7 +18,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/authbackend"
+	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 )
 
@@ -41,7 +41,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := authbackend.NewKafkaOptions(viper)
+	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaClient := authbackend.NewKafkaClient(kafkaOptions, pool, logger)
+	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, pool, logger)
 	httpOptions, err := http.NewOptions(viper)
 	if err != nil {
 		return nil, err
@@ -100,4 +100,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, http.ProviderSet, authbackend.ProviderSet, authservice.ProviderSet, controllers.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, http.ProviderSet, kafkaBackend.ProviderSet, authservice.ProviderSet, controllers.ProviderSet)

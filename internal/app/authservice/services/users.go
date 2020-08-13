@@ -57,7 +57,7 @@ func (s *DefaultUsersService) Register(user *models.User) (err error) {
 	role.UserID = user.ID
 	role.UserName = user.Username
 	role.Value = ""
-	if user.UserType == pb.UserType_Ut_System {
+	if user.UserType == pb.UserType_Ut_Operator {
 		role.Value = "admin"
 	}
 	//同时增加用户类型角色 

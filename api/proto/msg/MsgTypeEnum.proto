@@ -35,10 +35,13 @@ enum MessageType {
     // 订单 类型
     MsgType_Order = 6;
 
+    // 系统消息更新 类型
+    MsgType_SysMsgUpdate = 7 ;
     //用户自定义
     MSgType_Customer = 100;
 
 }
+//附件类型枚举定义
 enum AttachType {
     //　未定义的附件类型
     AttachType_Undefined = 0;
@@ -52,4 +55,8 @@ enum AttachType {
     AttachType_File = 4;
     // 地理位置
     AttachType_Geo = 5;
+    // 订单数据
+    AttachType_Order = 6;
+    //钱包相关的交易数据(提现，充值 ，转账，收款 ，退款等)
+    AttachType_Transaction = 7;
 }

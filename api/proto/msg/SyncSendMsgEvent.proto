@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "api/proto/msg/MessagePackage.proto";
-// 发送消息
+
+// 用户主从设备之间的消息同步事件
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 

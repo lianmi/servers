@@ -129,3 +129,41 @@ enum SyncSubType {
     SyncEvent      = 1;     /**< 1. 同步请求*/
     SyncDoneEvent  = 2;     /**< 2. 同步结束事件*/
 }
+
+//订单状态枚举：
+enum OrderState {
+    OS_Undefined   = 0;     //proto3必须从0开始
+    OS_Prepare     = 1;     /**< 预审核状态*/
+    OS_SendOK      = 2;     /**< 订单发送成功*/
+    OS_RecvOK      = 3;     /**< 订单送达成功*/
+    OS_Taked       = 4;     /**< 接单成功*/
+    OS_Done        = 5;     /**< 完成订单*/
+    OS_Cancel      = 6;     /**< 取消订单*/
+    OS_InHand      = 7;     /**< 订单处理中*/
+}
+
+//订单类型
+enum OrderType {
+    OT_Undefined     = 0;     //proto3必须从0开始
+    OT_FreshProduct  = 1;     /**< 生鲜产品*/
+    OT_Meat          = 2;     /**< 肉类*/
+    OT_Fruits        = 3;     /**< 水果蔬菜类*/
+    OT_GrainOil      = 4;     /**< 粮油类*/
+    OT_Delicatessen  = 5;     /**< 熟食类*/
+    OT_Bakery        = 6;     /**< 面包糕饼类*/
+    OT_HouseKeeping  = 7;     /**< 家政*/
+    OT_Lottery       = 8;      /**< 彩票*/
+    OT_Carry         = 9;      /**< 搬运*/
+    OT_Maintenance   = 10;     /**< 维修*/
+}
+
+//交易类型枚举(钱包资产的收支)： 
+enum TransactionType {
+    DT_Undefined     = 0;     //proto3必须从0开始
+    DT_Deposit       = 1;     /**< 充值*/
+    DT_WithDraw      = 2;     /**< 提现*/
+    DT_RollOut       = 3;     /**< 支付*/
+    DT_RollIn        = 4;     /**< 收款*/
+    DT_Refoud        = 5;     /**< 退款*/
+}
+

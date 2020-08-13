@@ -53,6 +53,9 @@ proto:
 	rm -f api/proto/msg/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/msg/*.proto
 
+	rm -f api/proto/order/*.go
+	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/order/*.proto
+
 	rm -f api/proto/syn/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/syn/*.proto
 
@@ -62,6 +65,21 @@ proto:
 	rm -f api/proto/user/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/user/*.proto
 
+	rm -f api/proto/wallet/*.go
+	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/wallet/*.proto
+
+.PHONY: clear
+clear:
+
+	rm -f api/proto/auth/*.go
+	rm -f api/proto/friends/*.go
+	rm -f api/proto/global/*.go
+	rm -f api/proto/msg/*.go
+	rm -f api/proto/order/*.go
+	rm -f api/proto/syn/*.go
+	rm -f api/proto/team/*.go
+	rm -f api/proto/user/*.go
+	rm -f api/proto/wallet/*.go
 	
 .PHONY: stop
 stop:

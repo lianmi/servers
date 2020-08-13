@@ -3,6 +3,7 @@ module github.com/lianmi/servers
 go 1.12
 
 require (
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/bingjian-zhu/gin-vue-admin v0.0.0-20200506131022-dcbf95f91663
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect

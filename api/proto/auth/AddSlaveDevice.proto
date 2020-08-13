@@ -2,7 +2,7 @@ syntax = "proto3";
 package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
 
-message AddSlaveAuthorizeCodeReq {
+message AddSlaveDeviceReq {
     string authCode = 1;
     string os = 2;
     string consultPublickey = 3;

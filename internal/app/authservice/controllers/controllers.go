@@ -3,28 +3,31 @@ package controllers
 import (
 	// "fmt"
 	// "errors"
-	"net/http"
 	"encoding/json"
-	"time"
 	"log"
-	"github.com/gin-gonic/gin"
-	"github.com/google/wire"
-	"go.uber.org/zap"
-	"github.com/lianmi/servers/internal/pkg/models"
-	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
+	"net/http"
+	"time"
+
 	gin_jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common/helper"
+	"github.com/lianmi/servers/internal/pkg/models"
+	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
+	"go.uber.org/zap"
 )
+
 const (
-    ErrorServerBusy = "server is busy"
-    ErrorReLogin = "relogin"
+	ErrorServerBusy = "server is busy"
+	ErrorReLogin    = "relogin"
 )
 
 var (
-    SecretKey = "lianimicloud-secret"  //salt
-    ExpireTime = 365 * 24 * 2600  //token expire time, one year
+	SecretKey  = "lianimicloud-secret" //salt
+	ExpireTime = 365 * 24 * 2600       //token expire time, one year
 )
+
 // Login form structure.
 type Login struct {
 	Username string `form:"username" json:"username" binding:"required"`
@@ -34,21 +37,21 @@ type Login struct {
 var identityKey = "userName"
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
-    var token *jwt.Token
-    token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {
-        return SecretKey, nil
-    })
-    claims = token.Claims
-    return
+	var token *jwt.Token
+	token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {
+		return SecretKey, nil
+	})
+	claims = token.Claims
+	return
 }
 
-// lishijia 每增加一个路由需要在这里添加，并且在controllers/users.go及services/users.go增加相应的方法 
+// lishijia 每增加一个路由需要在这里添加，并且在controllers/users.go及services/users.go增加相应的方法
 func CreateInitControllersFn(
 	pc *UsersController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
-		r.POST("/register", pc.Register)      //注册用户
-		r.GET("/smscode", pc.GenerateSmsCode) //根据手机生成短信注册码
+		r.POST("/register", pc.Register)       //注册用户
+		r.POST("/smscode", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
@@ -62,13 +65,13 @@ func CreateInitControllersFn(
 				//TODO 这里仅仅判断了User是否存在就授权，要改进
 				if v, ok := data.(*models.UserRole); ok {
 					//get roles from UserName
-					v.UserRoles = pc.GetUserRoles(v.UserName) 
+					v.UserRoles = pc.GetUserRoles(v.UserName)
 					pc.logger.Debug("Find Username", zap.String("UserName", v.UserName))
 
 					jsonRole, _ := json.Marshal(v.UserRoles)
 					//maps the claims in the JWT
 					return gin_jwt_v2.MapClaims{
-						identityKey:  v.UserName,
+						identityKey: v.UserName,
 						"userRoles": helper.B2S(jsonRole),
 					}
 				} else {
@@ -81,15 +84,15 @@ func CreateInitControllersFn(
 			IdentityHandler: func(c *gin.Context) interface{} {
 
 				roles := gin_jwt_v2.ExtractClaims(c)
-				
+
 				//extracts identity from roles
 				jsonRole := roles["userRoles"].(string)
-				
+
 				var userRoles []*models.Role
 				json.Unmarshal(helper.S2B(jsonRole), &userRoles)
 				//Set the identity
 				// log.Println("IdentityHandler run ... %#v", roles)
-				
+
 				return &models.UserRole{
 					UserName:  roles[identityKey].(string),
 					UserRoles: userRoles,
@@ -110,7 +113,7 @@ func CreateInitControllersFn(
 				// 检测用户及密码是否存在
 				if pc.CheckUser(username, password) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
-					return &models.UserRole {
+					return &models.UserRole{
 						UserName: username,
 					}, nil
 				}
@@ -122,12 +125,12 @@ func CreateInitControllersFn(
 			Authorizator: func(data interface{}, c *gin.Context) bool {
 				if v, ok := data.(*models.UserRole); ok {
 					for _, itemRole := range v.UserRoles {
-						if itemRole.Value == "admin" {  //超级管理员，目前只支持一种后台管理用户
+						if itemRole.Value == "admin" { //超级管理员，目前只支持一种后台管理用户
 							return true
 						}
 					}
 				}
-			
+
 				return false
 			},
 			//处理不进行授权的逻辑
@@ -156,7 +159,7 @@ func CreateInitControllersFn(
 				// 	"expire":  t.Format(time.RFC3339),
 				// 	"message": "login successfully",
 				// })
-			},			
+			},
 			// TokenLookup is a string in the form of "<source>:<name>" that is used
 			// to extract token from the request.
 			// Optional. Default value "header:Authorization".
@@ -194,9 +197,9 @@ func CreateInitControllersFn(
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
 			// auth.GET("/hello", helloHandler)
-			auth.GET("/user/:id", pc.GetUser)  //根据id获取用户信息
+			auth.POST("/user/:id", pc.GetUser)          //根据id获取用户信息
 			auth.POST("/chanpassword", pc.ChanPassword) //修改密码
-	
+
 		}
 
 	}

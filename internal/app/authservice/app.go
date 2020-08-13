@@ -4,7 +4,7 @@ import (
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/lianmi/servers/internal/pkg/app"
-	"github.com/lianmi/servers/internal/pkg/transports/authbackend"
+	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -29,7 +29,7 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, kc *authbackend.KafkaClient, hs *http.Server) (*app.Application, error) { 
+func NewApp(o *Options, logger *zap.Logger, kc *kafkaBackend.KafkaClient, hs *http.Server) (*app.Application, error) { 
 
 	a, err := app.New(o.Name, logger, app.KafkaClientOption(kc), app.HttpServerOption(hs)) 
 

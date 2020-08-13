@@ -8,10 +8,10 @@ message SendMsgReq {
     //传输场景
     //是否必填-是
     MessageScene scene = 1;
-    //消息类型
+    //消息数据包的类型
     //是否必填-是
     MessageType type = 2;
-    //接收人ID
+    //接受方的用户账号
     //是否必填-是
     string to = 3;
     //客户端分配的消息ID，SDK生成的消息id,
@@ -26,7 +26,7 @@ message SendMsgReq {
     bytes body = 5;
     //客户端发送时间,Unix时间戳
     //是否必填-是
-    fixed64 userUpdateTime = 6;
+    fixed64 sendAt = 6;
     //指定该消息接收设备(to登录的任一设备)
     //是否必填-否
     string toDeviceId = 7;

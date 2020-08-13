@@ -9,7 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
-	"github.com/lianmi/servers/internal/pkg/transports/authbackend"
+	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/kafka"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
 
@@ -22,7 +22,7 @@ type Application struct {
 	httpServer *http.Server
 	grpcServer *grpc.Server
 	kafkaClient *kafka.KafkaClient
-	kafkaBackendClient *authbackend.KafkaClient
+	kafkaBackendClient *kafkaBackend.KafkaClient
 	mqttClient *mqtt.MQTTClient
 }
 
@@ -60,7 +60,7 @@ func KafkaOption(kc *kafka.KafkaClient) Option {
 	}
 }
 
-func KafkaClientOption(kbc *authbackend.KafkaClient) Option {
+func KafkaClientOption(kbc *kafkaBackend.KafkaClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
 		app.kafkaBackendClient = kbc

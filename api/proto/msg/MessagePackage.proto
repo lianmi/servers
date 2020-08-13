@@ -32,3 +32,4 @@ message MessagePackage {
     //是否必填-是
     fixed64 time = 11;
 }
+

@@ -123,13 +123,14 @@ Android客户端 -> Minio -> ipfs
 
 ##  mysql新建用户并授权
 ```
+USE mysql;
 set global validate_password.policy=0;
-CREATE USER 'lianmidba'@'127.0.0.1' IDENTIFIED BY '12345678';
-GRANT ALL PRIVILEGES ON *.* TO 'lianmidba'@'127.0.0.1' IDENTIFIED BY '12345678';
+CREATE USER lianmidba IDENTIFIED BY '12345678';
+//让lianmidba拥有lianmicloud数据库的所有权限
+GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'%';
+FLUSH PRIVILEGES;
 
-
-GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'127.0.0.1' IDENTIFIED BY '12345678' WITH GRANT OPTION;
-
-grant all privileges on lianmicloud.* to lianmidba@localhost identified by '12345678';
+SELECT * FROM USER WHERE USER='lianmidba' ;
+SHOW GRANTS FOR lianmidba;
 
 ```

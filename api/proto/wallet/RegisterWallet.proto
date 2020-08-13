@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message RegisterWalletReq{
+    //用户账号
+    string userName=1;
+    //用户本地的协商公钥
+    string publicKey=2;
+    //加密过的签名后的创建钱包交易数据
+    bytes sigTxData=3;
+}
+
+
+message RegisterWalletRsp{
+    //钱包地址
+    string walletAddess=1;
+
+}

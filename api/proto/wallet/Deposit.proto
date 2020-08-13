@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message DepositReq{
+    //用户账号
+    string userName=1;
+    //充值金额
+    double amount=2;
+}
+
+message DepositRsp{
+    //是否成功
+    bool isOk=1;
+
+}

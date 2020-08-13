@@ -1,17 +1,17 @@
 import os
 CONFIG_LIST = {
     "protoroot":".",
-    "output": "../ImMqttSDK/src",
+    "output": "../imcore/src",
     "modules":[
         "auth",
-        # "code",
         "friends",
         "global",
         "msg",
-        # "signal",
+        "order",
         "syn",
         "team",
-        "user"
+        "user",
+        "wallet",
     ]
 }
 
