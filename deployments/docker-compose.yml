@@ -9,13 +9,13 @@ services:
       - 28080:28080
     volumes:
       - ${LOG_DIR}/authservice.log:/tmp/authservice.log
-    # logging:
-    #   driver: fluentd
-    #   options:
-    #     fluentd-address: localhost:24224
-    #     fluentd-retry-wait: '1s'
-    #     fluentd-max-retries: '30'
-    #     tag: lianmi.lm-cloud.authservice
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        fluentd-retry-wait: '1s'
+        fluentd-max-retries: '30'
+        tag: lianmi.lm-cloud.authservice
 
 
   lianmi-dispatcher:
@@ -25,13 +25,13 @@ services:
     restart: unless-stopped
     volumes:
       - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
-    # logging:
-    #   driver: fluentd
-    #   options:
-    #     fluentd-address: localhost:24224
-    #     fluentd-retry-wait: '1s'
-    #     fluentd-max-retries: '30'
-    #     tag: lianmi.lm-cloud.dispatcher
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        fluentd-retry-wait: '1s'
+        fluentd-max-retries: '30'
+        tag: lianmi.lm-cloud.dispatcher
 
 
 networks:
