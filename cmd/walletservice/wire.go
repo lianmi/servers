@@ -5,10 +5,10 @@ package main
 import (
 	"github.com/google/wire"
 
-	"github.com/lianmi/servers/internal/app/orderservice"
-	// "github.com/lianmi/servers/internal/app/orderservice/controllers"
-	"github.com/lianmi/servers/internal/app/orderservice/repositories"
-	// "github.com/lianmi/servers/internal/app/orderservice/services"
+	"github.com/lianmi/servers/internal/app/walletservice"
+	// "github.com/lianmi/servers/internal/app/walletservice/controllers"
+	"github.com/lianmi/servers/internal/app/walletservice/repositories"
+	// "github.com/lianmi/servers/internal/app/walletservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -31,7 +31,7 @@ var providerSet = wire.NewSet(
 	redis.ProviderSet,
 	// http.ProviderSet,
 	kafkaBackend.ProviderSet,
-	orderservice.ProviderSet,
+	walletservice.ProviderSet,
 	// controllers.ProviderSet,
 )
 

@@ -20,7 +20,7 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateOrderRepository(f string) (OrderRepository, error) {
+func CreateChatRepository(f string) (ChatRepository, error) {
 	panic(wire.Build(testProviderSet))
 }
 

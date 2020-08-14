@@ -6,11 +6,9 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
-	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/log"
+	"github.com/lianmi/servers/internal/pkg/redis"
 )
-
-
 
 var testProviderSet = wire.NewSet(
 	log.ProviderSet,
@@ -20,7 +18,6 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateOrderRepository(f string) (OrderRepository, error) {
+func CreateWalletRepository(f string) (WalletRepository, error) {
 	panic(wire.Build(testProviderSet))
 }
-

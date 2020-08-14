@@ -195,3 +195,8 @@ Location: https://:28080/login
 ```
 http -v --json GET localhost:28080/v1/user/2 "Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTczNzYzNjAsIm9yaWdfaWF0IjoxNTk3MzcyNzYwLCJ1c2VyTmFtZSI6ImxzajAwMSIsInVzZXJSb2xlcyI6Ilt7XCJpZFwiOjIsXCJ1c2VyX2lkXCI6MixcInVzZXJfbmFtZVwiOlwibHNqMDAxXCIsXCJ2YWx1ZVwiOlwiXCJ9XSJ9.Kz8JNpAggbfGeCG1Ky2H6r4Qxe8shdqxXj46GC94JNU"  "Content-Type: application/json"
 ```
+
+## mosquitto鉴权
+```
+mosquitto-1.6.10/test/random/auth_plugin.c
+```

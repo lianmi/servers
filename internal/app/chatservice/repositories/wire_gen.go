@@ -15,7 +15,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateOrderRepository(f string) (OrderRepository, error) {
+func CreateChatRepository(f string) (ChatRepository, error) {
 	viper, err := config.New(f)
 	if err != nil {
 		return nil, err
@@ -44,8 +44,8 @@ func CreateOrderRepository(f string) (OrderRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	orderRepository := NewMysqlOrderRepository(logger, db, pool)
-	return orderRepository, nil
+	chatRepository := NewMysqlChatRepository(logger, db, pool)
+	return chatRepository, nil
 }
 
 // wire.go:
