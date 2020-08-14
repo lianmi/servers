@@ -31,14 +31,20 @@ type MessageRoute struct {
 	Group string `json:"group, omitempty"`
 	// where the message come to，后端的具体业务模块Topic订阅
 	Target string `json:"target,omitempty"`
-	
-	// deviceid 
-	DeviceId string `json:"deviceid,omitempty"`	
+
+	//消息里携带的jwt令牌
+	JwtToken string `json:"jwt_token,omitempty"`
+
+	//消息里携带的jwt令牌解析出的userName
+	UserName string `json:"user_name,omitempty"`
+
+	// deviceid
+	DeviceId string `json:"deviceid,omitempty"`
 
 	//SDK发到服务端的taskid
-	TaskId uint32 `json:"taskid,omitempty"` 
+	TaskId uint32 `json:"taskid,omitempty"`
 	//SDK账号id
-	// Account string `json:"account,omitempty"`  
+	// Account string `json:"account,omitempty"`
 	// what's the business type
 	BusinessTypeName string `json:"businesstypename,omitempty"`
 	BusinessType     uint32 `json:"businesstype,omitempty"`
@@ -47,14 +53,14 @@ type MessageRoute struct {
 
 // Message struct
 type Message struct {
-	Header  MessageHeader `json:"header"`
-	Router  MessageRoute  `json:"router,omitempty"`
+	Header MessageHeader `json:"header"`
+	Router MessageRoute  `json:"router,omitempty"`
 
 	//错误码， 200表示正常
-	Code             int32  `json:"code,omitempty"`
+	Code int32 `json:"code,omitempty"`
 	// 错误描述
-	ErrorMsg []byte `json:"errormsg,omitempty"` 
-	Content []byte        `json:"content,omitempty"`
+	ErrorMsg []byte `json:"errormsg,omitempty"`
+	Content  []byte `json:"content,omitempty"`
 }
 
 //GetID returns message ID
@@ -77,9 +83,9 @@ func (msg *Message) BuildRouter(source, group, target string) *Message {
 // 										    clientMode uint32,
 // 										    deviceId string,
 // 										    cmdId uint32,
-// 											taskId uint32, 
-// 											businesstypename string, 
-// 											businessType uint16, 
+// 											taskId uint32,
+// 											businesstypename string,
+// 											businessType uint16,
 // 											businessSubType uint16,
 // 										 ) *Message {
 
@@ -106,14 +112,23 @@ func (msg *Message) GetDeviceId() string {
 	return msg.Router.DeviceId
 }
 
-// func (msg *Message) SetCmdid(cmdId uint32) *Message {
-// 	msg.Router.CmdId = cmdId
-// 	return msg
-// }
+func (msg *Message) SetJwtToken(jwtToken string) *Message {
+	msg.Router.JwtToken = jwtToken
+	return msg
+}
 
-// func (msg *Message) GetCmdId() uint32 {
-// 	return msg.Router.CmdId
-// }
+func (msg *Message) GetJwtToken() string {
+	return msg.Router.JwtToken
+}
+
+func (msg *Message) SetUserName(userName string) *Message {
+	msg.Router.UserName = userName
+	return msg
+}
+
+func (msg *Message) GetUserName() string {
+	return msg.Router.UserName
+}
 
 func (msg *Message) SetTaskId(taskId uint32) *Message {
 	msg.Router.TaskId = taskId
@@ -182,8 +197,8 @@ func (msg *Message) GetContent() []byte {
 }
 
 //GetBusinessTypeName returns message route BusinessTypeName
-func (msg *Message) SetBusinessTypeName(businessTypeName string)  {
- 	msg.Router.BusinessTypeName = businessTypeName
+func (msg *Message) SetBusinessTypeName(businessTypeName string) {
+	msg.Router.BusinessTypeName = businessTypeName
 }
 
 //GetBusinessTypeName returns message route BusinessTypeName

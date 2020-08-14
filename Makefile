@@ -1,4 +1,5 @@
-apps = 'authservice' 'dispatcher'
+apps = 'authservice' 'dispatcher' 
+# 'orderservice' 'chatservice'
 .PHONY: run
 run: proto wire
 	for app in $(apps) ;\
@@ -106,5 +107,9 @@ rules:
 	done
 .PHONY: docker
 docker-compose: build dash rules
+	for app in $(apps) ;\
+	do \
+		cp -f dist/$$app-linux-amd64 ./deployments/$$app/; \
+	done
 	docker-compose -f deployments/docker-compose.yml up --build -d
 all: lint cover docker

@@ -50,62 +50,6 @@ message DeviceInfo {
 
 
 }
-//
-//登录请求
-message SignInReq{
-   //用户注册号，在用户注册的时候由系统自动生成，字母 + 数字
-   //是否必填：是
-   string  username=1; 
-
-   //应用ID，IM管理后台分配
-   //是否必填：是
-   string  appKey=2;
-
-   //鉴权token,由业务系统请求IM REST服务器分配
-   //是否必填：是
-   string  token=3;  
-
-   //客户端具体类型
-   //是否必填：是
-   auth.ClientType clientType=4;
-
-   //用户标签,业务系统设置,用于根据标签进行消息推送,多个用半角逗号","分割
-   //是否必填：否
-    string customTag=5;
-
-   //设备Id
-   //是否必填：是
-   string deviceId=6;
-
-   //操作系统版本
-   //是否必填：是
-   string os=7;
-
-   //协议版本
-   //是否必填：是
-   string protocolVersion=8;
-
-   //SDK版本
-   //是否必填：是
-   string sdkVersion=9; 
-   //是否是主设备
-   //是否必填：是
-   bool  isMaster=10;
-
-}
-
-//
-//登录请求
-message SignInRsp {
-    //连接ID, 服务端分配的UUID
-    //是否必填：是
-    string connectId = 1;
-    //服务端登录时间戳
-    int64 lastLoginAt = 2;
-
-}
-
-
 
 
 

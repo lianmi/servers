@@ -1,6 +1,8 @@
 这是连米信息科技后端微服务整体框架项目，囊括了项目的结构、分层思想、依赖注入、错误处理、单元测试、服务治理、框架选择等方面.
 
-项目分为dispatcher、authservice、singlechatservice、groupchatservice、e-commerceservice、区块链认证的下单小程序、lmc公链(ChinkLink)、FileCoin区块链，收银称重一体系统等微服务。
+项目分为dispatcher、authservice、orderservice、chatservice、walletservice等微服务。
+另外内部联盟链是单节点的以太坊。
+ipfs星际文件系统
 
 
 ## 准备
@@ -33,21 +35,8 @@ $ consul agen -dev
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
 ```
 
-### 平台 linux && mac
-```
-	do \
-	    GOOS=linux GOARCH="amd64" go build -o dist/$$app-linux-amd64 ./cmd/$$app/; \
-		GOOS=darwin GOARCH="amd64" go build -o dist/$$app-darwin-amd64 ./cmd/$$app/; \
-	done
-```
 
-
-### 运行, 以dispatcher为例
-```
-$ ./dist/dispatcher-darwin-amd64 -f ./configs/dispatcher.yml
-```
-
-* **访问接口**： http://localhost:28080/auth/v1/register
+* **访问接口**：post http://localhost:28080/register
 * **consul**: http://localhost:8500/
 * **grafana**: http://localhost:3000/ 
 * **jaeger**: http://localhost:16686/search
@@ -62,12 +51,6 @@ $ ./dist/dispatcher-darwin-amd64 -f ./configs/dispatcher.yml
 ### Prometheus Alert 监控告警,自动生成！
 
 ### 调用链跟踪
-
-## 开发文档及相关协议约定
-```
-cd doc
-gitbook 
-```
 
 
 ## 使用eclipse paho.golang master版本
@@ -108,12 +91,10 @@ https://github.com/Bingjian-Zhu/gin-vue
 https://github.com/Bingjian-Zhu/gin-vue-admin
 ```
 
-## minio文件服务器
-Android客户端 -> Minio -> ipfs
-
-方法： 将Minio作为服务端运行，当Android发送完成后，通过mqtt发送到dispatcher，再由miniouploader进行ipfs上链操作
+### JWT+Redis实现用户登录验证
 ```
-/Users/mac/developments/lianmi/ipfs/minio-client/file-uploader.go
+
+https://blog.csdn.net/mirage003/article/details/87865582
 ```
 
 ### ipfs client
@@ -130,7 +111,87 @@ CREATE USER lianmidba IDENTIFIED BY '12345678';
 GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'%';
 FLUSH PRIVILEGES;
 
+use lianmicloud;
 SELECT * FROM USER WHERE USER='lianmidba' ;
 SHOW GRANTS FOR lianmidba;
 
+```
+
+## 平台 linux  
+
+### 1 编译 
+```
+$ make linux
+```
+
+### 2 停止（首次运行不需要）
+```
+$ make stop
+```
+
+### 3 构造镜像并运行
+```
+$ make docker-compose
+```
+
+### 4 检查是否正常运行
+```
+$ docker ps
+$ netstat -tunlp|grep 28080
+$ ps -el|grep dispatcher
+$ ps -el|grep authervice
+```
+如果运行成功，都会出现正常结果
+
+## Restful http 接口测试
+
+### 安装httpie
+Download and install [httpie](https://github.com/jkbrzt/httpie) CLI HTTP client.
+
+### 注册
+
+
+```sh
+http -v --json POST localhost:28080/register username=lsj001 password=C33367701511B4F6020EC61DED352059 gender=1 mobile=13702290109 user_type=1 contact_person=李示佳
+```
+
+### 登录
+
+```sh
+http -v --json POST localhost:28080/login username=lsj001 password=C33367701511B4F6020EC61DED352059 
+```
+
+输出：
+```
+POST /login HTTP/1.1
+Accept: application/json, */*;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Length: 70
+Content-Type: application/json
+Host: localhost:28080
+User-Agent: HTTPie/2.2.0
+
+{
+    "password": "C33367701511B4F6020EC61DED352059",
+    "username": "lsj001"
+}
+
+HTTP/1.1 200 OK
+Content-Length: 302
+Content-Type: application/json; charset=utf-8
+Date: Fri, 14 Aug 2020 02:39:20 GMT
+Location: https://:28080/login
+
+{
+    "code": 200,
+    "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTczNzYzNjAsIm9yaWdfaWF0IjoxNTk3MzcyNzYwLCJ1c2VyTmFtZSI6ImxzajAwMSIsInVzZXJSb2xlcyI6Ilt7XCJpZFwiOjIsXCJ1c2VyX2lkXCI6MixcInVzZXJfbmFtZVwiOlwibHNqMDAxXCIsXCJ2YWx1ZVwiOlwiXCJ9XSJ9.Kz8JNpAggbfGeCG1Ky2H6r4Qxe8shdqxXj46GC94JNU",
+    "msg": "ok"
+}
+
+```
+
+### 查询
+```
+http -v --json GET localhost:28080/v1/user/2 "Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTczNzYzNjAsIm9yaWdfaWF0IjoxNTk3MzcyNzYwLCJ1c2VyTmFtZSI6ImxzajAwMSIsInVzZXJSb2xlcyI6Ilt7XCJpZFwiOjIsXCJ1c2VyX2lkXCI6MixcInVzZXJfbmFtZVwiOlwibHNqMDAxXCIsXCJ2YWx1ZVwiOlwiXCJ9XSJ9.Kz8JNpAggbfGeCG1Ky2H6r4Qxe8shdqxXj46GC94JNU"  "Content-Type: application/json"
 ```

@@ -6,6 +6,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
+	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/app/authservice/services"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
@@ -16,6 +17,7 @@ var testProviderSet = wire.NewSet(
 	config.ProviderSet,
 	database.ProviderSet,
 	services.ProviderSet,
+	redis.ProviderSet,
 	// repositories.ProviderSet, //不需要！！！
 	ProviderSet,
 )

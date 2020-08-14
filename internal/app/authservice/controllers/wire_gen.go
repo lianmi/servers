@@ -12,6 +12,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
+	"github.com/lianmi/servers/internal/pkg/redis"
 )
 
 // Injectors from wire.go:
@@ -36,4 +37,4 @@ func CreateUsersController(cf string, sto repositories.UsersRepository) (*UsersC
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, redis.ProviderSet, ProviderSet)

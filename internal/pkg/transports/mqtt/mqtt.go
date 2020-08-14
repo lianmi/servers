@@ -25,6 +25,9 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	"github.com/lianmi/servers/internal/app/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
+
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/lianmi/servers/internal/common"
 )
 
 const (
@@ -128,17 +131,13 @@ func (mc *MQTTClient) OnMQTTConnect(client paho.Client) {
 	mc.logger.Info("Client connected ", zap.String("ClientID", mc.ClientID))
 
 	mc.State = MQTT_CLIENT_CONNECTED
-
-	//将对应的用户设备在线状态存入redis,以设备为维度
-	//HSET('device_online_status', deviceid, 1)
 }
 
 func (mc *MQTTClient) OnMQTTLost(client paho.Client, err error) {
 	mc.logger.Error("Client disconnected with error ", zap.Error(err))
 
 	mc.State = MQTT_CLIENT_DISCONNECTED
-	//用户设备离线, 需要从redis的哈希表里删除此设备
-	//HDEL('device_online_status', deviceid)
+
 }
 
 func (mc *MQTTClient) Application(name string) {
@@ -159,6 +158,7 @@ func (mc *MQTTClient) Start() error {
 			topic := m.Topic
 			//在屏幕上输出chat消息
 			// log.Printf("%s : %s", m.Properties.User["deviceId"], string(m.Payload))
+			jwtToken := string(m.Properties.CorrelationData)
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
@@ -168,27 +168,32 @@ func (mc *MQTTClient) Start() error {
 			businessType, _ := strconv.Atoi(businessTypeStr)
 			businessSubType, _ := strconv.Atoi(businessSubTypeStr)
 
-			//输出
-			mc.logger.Debug("Incoming mqtt message",
-				zap.String("Topic:", topic),
-				zap.String("DeviceId:", deviceId),            // 设备id
-				zap.Int("TaskID:", taskId),                   // 任务id
-				zap.Int("BusinessType:", businessType),       // 业务类型
-				zap.Int("BusinessSubType:", businessSubType), // 业务子类型
-			)
-
 			//是否是必须经过授权的请求包
-			if !(businessType == 2 && businessSubType == 1) {
-				//是否需要有效授权才能传递到后端
-				if isAuthed, err := mc.MakeSureAuthed(deviceId, businessType, businessSubType, taskId); err != nil {
-					mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
+			isAuthed := false
+			userName := ""
+			// if !(businessType == 2 && businessSubType == 1) {
+			//是否需要有效授权才能传递到后端
+			if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
+				mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
+				return
+			} else {
+				if !isAuthed {
+					mc.logger.Warn("This message is unauthirized!!!")
 					return
-				} else {
-					if !isAuthed {
-						return
-					}
 				}
 			}
+			// }
+
+			//输出
+			mc.logger.Debug("Incoming mqtt message",
+				zap.String("jwtToken", jwtToken),
+				zap.String("userName", userName),
+				zap.String("Topic", topic),
+				zap.String("DeviceId", deviceId),            // 设备id
+				zap.Int("TaskID", taskId),                   // 任务id
+				zap.Int("BusinessType", businessType),       // 业务类型
+				zap.Int("BusinessSubType", businessSubType), // 业务子类型
+			)
 
 			businessTypeName := Global.BusinessType_name[int32(businessType)]
 
@@ -201,7 +206,9 @@ func (mc *MQTTClient) Start() error {
 			backendMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 			backendMsg.BuildRouter(businessTypeName, "", kafkaTopic)
-
+			
+			backendMsg.SetJwtToken(jwtToken)
+			backendMsg.SetUserName(userName)
 			backendMsg.SetDeviceId(string(deviceId))
 			backendMsg.SetTaskId(uint32(taskId))
 			backendMsg.SetBusinessTypeName(businessTypeName)
@@ -315,6 +322,7 @@ func (mc *MQTTClient) Run() {
 		case msg := <-mc.kafkamqttChannel.MTChan: //从kafka读取数据
 			if msg != nil {
 				//向MQTT Broker发送，加入SDK订阅了此topic，则会收到
+				jwtToken := msg.GetJwtToken()
 				topic := mc.o.TopicPrefix + msg.GetDeviceId()
 				// topic := "lianmi/cloud/device/" + msg.GetDeviceId()
 				businessTypeStr := fmt.Sprintf("%d", msg.GetBusinessType())
@@ -334,9 +342,9 @@ func (mc *MQTTClient) Run() {
 					QoS:     byte(1),
 					Payload: msg.Content,
 					Properties: &paho.PublishProperties{
-						CorrelationData: []byte("2"),
+						CorrelationData: []byte(jwtToken),   //jwt令牌
 						ResponseTopic:   mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
-						User: map[string]string {
+						User: map[string]string{
 							"businessType":    businessTypeStr,
 							"businessSubType": businessSubTypeStr,
 							"taskId":          taskIdStr,
@@ -366,20 +374,82 @@ func (mc *MQTTClient) Stop() error {
 	return nil
 }
 
-func (mc *MQTTClient) MakeSureAuthed(deviceId string, businessType, businessSubType, taskId int) (bool, error) {
-	mc.logger.Info("MakeSureAuthed start...", zap.Int("businessType:", businessType), zap.Int("businessSubType:", businessSubType), zap.Int("taskId:", taskId))
-	var isAuthed bool
+func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
+	var token *jwt.Token
+	token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {
+		return SecretKey, nil
+	})
+	claims = token.Claims
+	return
+}
 
-	//TODO redis里查找HEXISTS('device_online_status', deviceid)
-	isAuthed = true
+/*
+jwtToken如果在redis里没找到，原因可能有如下三种：
+1. 用户未登录；
+2. 登录超时（redis中的数据到期自动删除）；
+3. SDK存储的 jwtToken, 被非法修改；
+
+该情况直接返回错误信息通知前端让用户重新登录；
+*/
+func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceId string, businessType, businessSubType, taskId int) (string, bool, error) {
+	mc.logger.Info("MakeSureAuthed start...", zap.Int("businessType:", businessType), zap.Int("businessSubType:", businessSubType), zap.Int("taskId:", taskId), zap.String("jwtToken:", jwtToken))
+
+	var isAuthed bool = false
+	var isExists bool = false
+	var userName string
+	var err error
+
+	//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTczNzc2MzksIm9yaWdfaWF0IjoxNTk3Mzc0MDM5LCJ1c2VyTmFtZSI6ImFkbWluIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJhZG1pblwiLFwidmFsdWVcIjpcImFkbWluXCJ9XSJ9.hmh3a3EFTi53seHnfxETXp7MYfmgW20MB4_6eseEb34
+	if jwtToken != "" {
+		//TODO redis里查找EXISTS('jwtToken', jwtToken)
+		redisConn := mc.redisPool.Get()
+		defer redisConn.Close()
+
+		if isExists, err = redis.Bool(redisConn.Do("GET", jwtToken)); err != nil {
+			mc.logger.Error("redisConn GET Error", zap.Error(err))
+			isAuthed = false
+		} else {
+			mc.logger.Info("redisConn GET ok ", zap.String("jwtToken", jwtToken))
+		}
+
+		if isExists {
+			//验证token是否有效
+			claims, err := ParseToken(jwtToken, []byte(common.SecretKey))
+			if nil != err {
+				mc.logger.Error("ParseToken Error", zap.Error(err))
+			}
+
+			//jwt令牌里的用户名
+			userName = claims.(jwt.MapClaims)[common.IdentityKey].(string)
+			mc.logger.Debug("jwt令牌里的用户名", zap.String("userName", userName))
+
+			isBlocked := true
+			//TODO 检测userName是否在封号名单上，如果是，则不授权
+			if isBlocked, err = redis.Bool(redisConn.Do("SISMEMBER", "BlockedSet", userName)); err != nil {
+				mc.logger.Error("redisConn SISMEMBER Error", zap.Error(err))
+			} else {
+				if isBlocked {
+					mc.logger.Debug("此用户被封禁了", zap.String("userName", userName))
+					isAuthed = false
+				} else {
+					isAuthed = true
+				}
+			}
+
+		} else {
+			isAuthed = false
+		}
+
+	}
 
 	if isAuthed {
-
-		return isAuthed, nil
+		mc.logger.Debug("MakeSureAuthed, 授权通过", zap.Bool("isAuthed", isAuthed))
+		return userName, isAuthed, nil
 
 	} else {
 
 		// topic := "lianmi/cloud/device/" + deviceId
+
 		topic := mc.o.TopicPrefix + deviceId
 		businessTypeStr := fmt.Sprintf("%d", businessType)
 		businessSUbTypeStr := fmt.Sprintf("%d", businessSubType)
@@ -390,13 +460,13 @@ func (mc *MQTTClient) MakeSureAuthed(deviceId string, businessType, businessSubT
 			QoS:     mc.QOS,
 			Payload: []byte{},
 			Properties: &paho.PublishProperties{
-				CorrelationData: []byte("2"),
+				CorrelationData: []byte("error"), //jwt令牌，填error，客户端必须重新登录进行认证
 				ResponseTopic:   mc.o.ResponseTopic,
 				User: map[string]string{
 					"businessType":    businessTypeStr,
 					"businessSubType": businessSUbTypeStr,
 					"taskId":          taskIdStr,
-					"code":            "410",
+					"code":            "403", //无授权
 					"errormsg":        "Without authorization",
 				},
 			},
@@ -406,7 +476,7 @@ func (mc *MQTTClient) MakeSureAuthed(deviceId string, businessType, businessSubT
 			// log.Println(err)
 			mc.logger.Error("Failed to Publish ", zap.Error(err))
 		}
-		return false, errors.New("DeviceId is not authorized")
+		return userName, false, errors.New("DeviceId is not authorized")
 	}
 
 }

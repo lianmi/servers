@@ -3,7 +3,9 @@ package repositories
 import (
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
+	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -41,16 +43,18 @@ type UsersRepository interface {
 }
 
 type MysqlUsersRepository struct {
-	logger *zap.Logger
-	db     *gorm.DB
-	base   *BaseRepository
+	logger    *zap.Logger
+	db        *gorm.DB
+	redisPool *redis.Pool
+	base      *BaseRepository
 }
 
-func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB) UsersRepository {
+func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool) UsersRepository {
 	return &MysqlUsersRepository{
-		logger: logger.With(zap.String("type", "UsersRepository")),
-		db:     db,
-		base:   NewBaseRepository(logger, db),
+		logger:    logger.With(zap.String("type", "UsersRepository")),
+		db:        db,
+		redisPool: redisPool,
+		base:      NewBaseRepository(logger, db),
 	}
 }
 
@@ -226,20 +230,34 @@ func (s *MysqlUsersRepository) GetUserByID(id int) *models.User {
 	return &user
 }
 
-//保存用户token
+//保存用户token到redis里
 func (s *MysqlUsersRepository) SaveUserToken(username string, token string, expire time.Time) bool {
-	//使用事务同时更新用户 token
-	tokeStrc := &models.Token{
-		Username:  username,
-		ExpiredAt: expire,
-		Token:     token,
-	}
-	tx := s.base.GetTransaction()
-	if err := tx.Save(tokeStrc).Error; err != nil {
-		s.logger.Error("更新用户token失败", zap.Error(err))
-		tx.Rollback()
+	/*
+		//使用事务同时更新用户 token
+		tokeStrc := &models.Token{
+			Username:  username,
+			ExpiredAt: expire,
+			Token:     token,
+		}
+		tx := s.base.GetTransaction()
+		if err := tx.Save(tokeStrc).Error; err != nil {
+			s.logger.Error("更新用户token失败", zap.Error(err))
+			tx.Rollback()
+			return false
+		}
+		tx.Commit()
+	*/
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	err := redisConn.Send("SET", token, 1)                   //增加key
+	err = redisConn.Send("EXPIRE", token, common.ExpireTime) //过期时间
+	_ = err
+
+	//一次性写入到Redis
+	if err := redisConn.Flush(); err != nil {
+		s.logger.Error("写入用户token失败", zap.Error(err))
 		return false
 	}
-	tx.Commit()
+
 	return true
 }

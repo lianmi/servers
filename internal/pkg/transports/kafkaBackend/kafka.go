@@ -3,7 +3,6 @@ package kafkaBackend
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"os"
 	"os/signal"
@@ -12,7 +11,6 @@ import (
 
 	// "time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
@@ -21,7 +19,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	Auth "github.com/lianmi/servers/api/proto/auth"
+	// Auth "github.com/lianmi/servers/api/proto/auth"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
@@ -99,8 +97,8 @@ func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, logger *zap.Logger) 
 	}
 
 	//注册每个业务子类型的处理方法
-	kClient.handleFuncMap[UnionUint16ToUint32(2, 1)] = kClient.HandleSignIn  //登录处理程序
-	kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut //登出处理程序
+	// kClient.handleFuncMap[UnionUint16ToUint32(2, 1)] = kClient.HandleSignIn  //登录处理程序
+	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut //登出处理程序
 
 	return kClient
 }
@@ -122,6 +120,7 @@ func (kc *KafkaClient) Start() error {
 
 	//尝试读取redis
 	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
 	// vkey := fmt.Sprintf("verificationCode:%s", email)
 
 	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
@@ -231,6 +230,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 	}
 }
 
+/*
 //登录认证
 func (kc *KafkaClient) HandleSignIn(msg *models.Message) error {
 	body := msg.GetContent()
@@ -325,6 +325,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 	}
 	return nil
 }
+*/
 
 //Produce
 func (kc *KafkaClient) Produce(topic string, msg *models.Message) error {

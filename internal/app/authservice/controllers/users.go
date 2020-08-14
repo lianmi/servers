@@ -78,8 +78,12 @@ func (pc *UsersController) Register(c *gin.Context) {
 }
 
 func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
-	code := codes.SUCCESS
-	RespOk(c, http.StatusOK, code)
+	// code := codes.SUCCESS
+	// RespOk(c, http.StatusOK, code)
+	resp := models.Response{Code: 200, Message: "Ok", Data: "323211"}
+	pc.logger.Debug("Response Data", zap.String("Json", resp.ToJson()))
+	c.JSON(http.StatusOK, &resp)
+
 }
 
 func (pc *UsersController) ChanPassword(c *gin.Context) {

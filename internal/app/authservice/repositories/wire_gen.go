@@ -10,6 +10,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
+	"github.com/lianmi/servers/internal/pkg/redis"
 )
 
 // Injectors from wire.go:
@@ -35,10 +36,18 @@ func CreateUserRepository(f string) (UsersRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	usersRepository := NewMysqlUsersRepository(logger, db)
+	redisOptions, err := redis.NewRedisOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := redis.New(redisOptions)
+	if err != nil {
+		return nil, err
+	}
+	usersRepository := NewMysqlUsersRepository(logger, db, pool)
 	return usersRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)

@@ -3,22 +3,22 @@ package http
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-contrib/pprof"
-	"github.com/gin-contrib/zap"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	consulApi "github.com/hashicorp/consul/api"
+	"github.com/lianmi/servers/internal/pkg/transports/http/middlewares/ginprom"
+	"github.com/lianmi/servers/internal/pkg/utils/netutil"
 	"github.com/opentracing-contrib/go-gin/ginhttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/lianmi/servers/internal/pkg/transports/http/middlewares/ginprom"
-	"github.com/lianmi/servers/internal/pkg/transports/http/middlewares/Tls"
-	"github.com/lianmi/servers/internal/pkg/utils/netutil"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type Options struct {
@@ -62,14 +62,15 @@ func NewRouter(o *Options, logger *zap.Logger, init InitControllers, tracer open
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 	r.Use(ginprom.New(r).Middleware()) // 添加prometheus 监控
-	r.Use(Tls.TlsHandler()) //ssl
+	// r.Use(Tls.TlsHandler())            // tls ssl
 	r.Use(ginhttp.Middleware(tracer))
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	pprof.Register(r)
 
 	init(r)
-	r.RunTLS(":28080", "server.pem", "server.key")
+	//https
+	// r.RunTLS(":28080", "server.pem", "server.key")
 
 	return r
 }

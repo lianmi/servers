@@ -18,8 +18,8 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 )
 
 // Injectors from wire.go:
@@ -66,7 +66,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	usersRepository := repositories.NewMysqlUsersRepository(logger, db)
+	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool)
 	usersService := services.NewUserService(logger, usersRepository)
 	usersController := controllers.NewUsersController(logger, usersService)
 	initControllers := controllers.CreateInitControllersFn(usersController)

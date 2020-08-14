@@ -12,6 +12,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
 	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
@@ -23,18 +24,17 @@ const (
 	ErrorReLogin    = "relogin"
 )
 
-var (
-	SecretKey  = "lianimicloud-secret" //salt
-	ExpireTime = 365 * 24 * 2600       //token expire time, one year
-)
-
 // Login form structure.
 type Login struct {
-	Username string `form:"username" json:"username" binding:"required"`
-	Password string `form:"password" json:"password" binding:"required"`
+	Username        string `form:"username" json:"username" binding:"required"`
+	Password        string `form:"password" json:"password" binding:"required"`
+	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`
+	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
+	Os              string `form:"os" json:"os" binding:"required"`
+	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
+	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`
+	IsMaster        bool   `form:"ismaster" json:"ismaster" binding:"required"`
 }
-
-var identityKey = "userName"
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token
@@ -50,16 +50,16 @@ func CreateInitControllersFn(
 	pc *UsersController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
-		r.POST("/register", pc.Register)       //注册用户
-		r.POST("/smscode", pc.GenerateSmsCode) //根据手机生成短信注册码
+		r.POST("/register", pc.Register)      //注册用户
+		r.GET("/smscode", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "test zone",
-			Key:         []byte(SecretKey),
-			Timeout:     time.Hour,
+			Key:         []byte(common.SecretKey),
+			Timeout:     common.ExpireTime, //expire过期时间   time.Hour
 			MaxRefresh:  time.Hour,
-			IdentityKey: identityKey,
+			IdentityKey: common.IdentityKey,
 			//登录期间的回调的函数
 			PayloadFunc: func(data interface{}) gin_jwt_v2.MapClaims {
 				//TODO 这里仅仅判断了User是否存在就授权，要改进
@@ -71,8 +71,8 @@ func CreateInitControllersFn(
 					jsonRole, _ := json.Marshal(v.UserRoles)
 					//maps the claims in the JWT
 					return gin_jwt_v2.MapClaims{
-						identityKey: v.UserName,
-						"userRoles": helper.B2S(jsonRole),
+						common.IdentityKey: v.UserName,
+						"userRoles":        helper.B2S(jsonRole),
 					}
 				} else {
 					pc.logger.Error("Can not find Username")
@@ -94,7 +94,7 @@ func CreateInitControllersFn(
 				// log.Println("IdentityHandler run ... %#v", roles)
 
 				return &models.UserRole{
-					UserName:  roles[identityKey].(string),
+					UserName:  roles[common.IdentityKey].(string),
 					UserRoles: userRoles,
 				}
 			},
@@ -141,15 +141,18 @@ func CreateInitControllersFn(
 				})
 			},
 			LoginResponse: func(c *gin.Context, code int, token string, t time.Time) {
-
-				claims, err := ParseToken(token, []byte(SecretKey))
+				//验证token是否有效
+				claims, err := ParseToken(token, []byte(common.SecretKey))
 				if nil != err {
 					pc.logger.Error("ParseToken Error", zap.Error(err))
 				}
-				userName := claims.(jwt.MapClaims)[identityKey].(string)
+				userName := claims.(jwt.MapClaims)[common.IdentityKey].(string)
 				pc.logger.Debug("get userName ok", zap.String("userName", userName))
+				pc.logger.Debug("expire", zap.String("expire", t.Format(time.RFC3339)))
 
-				//将token及expire保存到db
+				//将token及expire保存到redis
+				//TODO
+
 				pc.SaveUserToken(userName, token, t)
 
 				RespData(c, http.StatusOK, code, token)
@@ -197,7 +200,7 @@ func CreateInitControllersFn(
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
 			// auth.GET("/hello", helloHandler)
-			auth.POST("/user/:id", pc.GetUser)          //根据id获取用户信息
+			auth.GET("/user/:id", pc.GetUser)           //根据id获取用户信息
 			auth.POST("/chanpassword", pc.ChanPassword) //修改密码
 
 		}
