@@ -20,6 +20,9 @@ service Users {
     //登录 Login,  根据手机号及密码， 获取token 
     rpc Login (LoginReq) returns (LoginResp);
 
+    //登出 SignOut,  服务端会删除此用户的Token
+    rpc SignOut (SignOutReq) returns (SignOutResp);
+
     //修改密码
     rpc ChanPasswd (ChanPasswdReq) returns (ChanPasswdResp);
 
@@ -84,4 +87,12 @@ message LoginReq {
 message LoginResp {
     RespHeader status = 1;
     string accesstoken = 2; //用户token, jwt
+}
+
+//==== 登出 =====//
+message SignOutReq {
+}
+
+message SignOutResp {
+
 }

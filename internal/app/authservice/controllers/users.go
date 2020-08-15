@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
+	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/app/authservice/services"
+	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
-	// jwt "github.com/appleboy/gin-jwt/v2"
 )
 
 type UsersController struct {
@@ -27,6 +28,7 @@ func NewUsersController(logger *zap.Logger, s services.UsersService) *UsersContr
 }
 
 func (pc *UsersController) GetUser(c *gin.Context) {
+	pc.logger.Debug("GetUser start ...")
 	ID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		_ = c.AbortWithError(http.StatusBadRequest, err)
@@ -35,7 +37,7 @@ func (pc *UsersController) GetUser(c *gin.Context) {
 
 	p, err := pc.service.GetUser(ID)
 	if err != nil {
-		pc.logger.Error("get product by id error", zap.Error(err))
+		pc.logger.Error("get User by id error", zap.Error(err))
 		c.String(http.StatusInternalServerError, "%+v", err)
 		return
 	}
@@ -58,7 +60,7 @@ func (pc *UsersController) Register(c *gin.Context) {
 		user.CreatedAt = time.Now() //注意，必须要显式
 
 		user.State = 1
-		user.Avatar = "https://zbj-bucket1.oss-cn-shenzhen.aliyuncs.com/avatar.JPG"
+		user.Avatar = common.PubAvatar
 		if !pc.service.ExistUserByName(user.Username) {
 			if err := pc.service.Register(&user); err == nil {
 				code = codes.SUCCESS
@@ -99,6 +101,30 @@ func (pc *UsersController) CheckUser(username, password string) bool {
 	return pc.service.CheckUser(username, password)
 }
 
-func (pc *UsersController) SaveUserToken(username string, token string, expire time.Time) bool {
-	return pc.service.SaveUserToken(username, token, expire)
+func (pc *UsersController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
+	return pc.service.SaveUserToken(username, deviceID, token, expire)
+}
+func (pc *UsersController) ExistsTokenInRedis(token string) bool {
+	return pc.service.ExistsTokenInRedis(token)
+}
+
+func (pc *UsersController) SignOut(c *gin.Context) {
+	// c.ClientIP
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[common.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+	pc.logger.Debug("SignOut",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
+	if pc.service.SignOut(token, userName, deviceID) {
+		pc.logger.Debug("SignOut  run ok")
+	} else {
+		pc.logger.Debug("SignOut  run FAILD")
+
+	}
+
+	RespOk(c, http.StatusOK, 200)
 }

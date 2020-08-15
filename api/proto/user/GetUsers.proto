@@ -18,7 +18,7 @@ enum UserType {
     //网点用户
     Ut_Business = 2;
     //操作员, 例如admin
-    Ut_Operator = 3;
+    Ut_Operator = 10086;
 }
 enum UserState {
     Ss_Unknow = 0;

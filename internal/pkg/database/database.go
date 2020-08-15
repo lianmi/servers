@@ -49,7 +49,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Device{})  //  设备表
 	db.AutoMigrate(&models.Contact{}) //  联系人表
 	db.AutoMigrate(&models.Role{})    //  权限表
-	db.AutoMigrate(&models.Token{})    // 令牌表
+	// db.AutoMigrate(&models.Token{})    // 令牌表 不存数据库， 存在redis里
 
 	return db, nil
 }

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -27,7 +28,7 @@ type UsersRepository interface {
 	GetTokenByUserId(where interface{}) string
 
 	//保存用户token
-	SaveUserToken(username string, token string, expire time.Time) bool
+	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
 
 	//获取用户信息
 	GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User
@@ -40,6 +41,12 @@ type UsersRepository interface {
 
 	//获取用户
 	GetUserByID(id int) *models.User
+
+	//登出
+	SignOut(token, username, deviceID string) bool
+
+	//令牌是否存在
+	ExistsTokenInRedis(token string) bool
 }
 
 type MysqlUsersRepository struct {
@@ -230,34 +237,63 @@ func (s *MysqlUsersRepository) GetUserByID(id int) *models.User {
 	return &user
 }
 
-//保存用户token到redis里
-func (s *MysqlUsersRepository) SaveUserToken(username string, token string, expire time.Time) bool {
-	/*
-		//使用事务同时更新用户 token
-		tokeStrc := &models.Token{
-			Username:  username,
-			ExpiredAt: expire,
-			Token:     token,
-		}
-		tx := s.base.GetTransaction()
-		if err := tx.Save(tokeStrc).Error; err != nil {
-			s.logger.Error("更新用户token失败", zap.Error(err))
-			tx.Rollback()
-			return false
-		}
-		tx.Commit()
-	*/
+/*
+保存用户token到redis里
+登出的处理需要删除redis里的key
+*/
+func (s *MysqlUsersRepository) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
+
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
-	err := redisConn.Send("SET", token, 1)                   //增加key
-	err = redisConn.Send("EXPIRE", token, common.ExpireTime) //过期时间
+	err := redisConn.Send("SET", token, 1) //增加key
+	deviceKey := fmt.Sprintf("%s:%s", token, deviceID)
+	err = redisConn.Send("SET", deviceKey, 1)                    //增加deviceKey， mqtt消息必须要验证这个
+	err = redisConn.Send("EXPIRE", token, common.ExpireTime)     //过期时间
+	err = redisConn.Send("EXPIRE", deviceKey, common.ExpireTime) //过期时间
 	_ = err
 
 	//一次性写入到Redis
 	if err := redisConn.Flush(); err != nil {
-		s.logger.Error("写入用户token失败", zap.Error(err))
+		s.logger.Error("写入redis失败", zap.Error(err))
 		return false
 	}
 
 	return true
+}
+
+/*
+登出
+1. 如果是主设备，则踢出此用户的所有主从设备， 如果仅仅是从设备，就删除自己的token
+2. 删除redis里的此用户的哈希记录
+3. 如果是商户的登出，则需要删除数据库里其对应的所有OPK(下次登录需要重新上传)
+*/
+func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	err := redisConn.Send("DEL", token) //删除key
+	deviceKey := fmt.Sprintf("%s:%s", token, deviceID)
+	err = redisConn.Send("DEL", deviceKey) //删除deviceKey
+	_ = err
+
+	//一次性写入到Redis
+	if err := redisConn.Flush(); err != nil {
+		s.logger.Error("写入redis失败", zap.Error(err))
+		return false
+	}
+	s.logger.Debug("写入redis成功")
+	return true
+}
+
+func (s *MysqlUsersRepository) ExistsTokenInRedis(token string) bool {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	if isExists, err := redis.Bool(redisConn.Do("GET", token)); err != nil {
+		s.logger.Error("redisConn GET token Error", zap.Error(err))
+		return false
+	} else {
+		s.logger.Info("redisConn GET token ok ", zap.String("token", token))
+		return isExists
+	}
+
 }

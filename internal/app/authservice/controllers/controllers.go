@@ -29,6 +29,7 @@ type Login struct {
 	Username        string `form:"username" json:"username" binding:"required"`
 	Password        string `form:"password" json:"password" binding:"required"`
 	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`
+	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
 	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
 	Os              string `form:"os" json:"os" binding:"required"`
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
@@ -57,22 +58,25 @@ func CreateInitControllersFn(
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "test zone",
 			Key:         []byte(common.SecretKey),
-			Timeout:     common.ExpireTime, //expire过期时间   time.Hour
+			Timeout:     24 * time.Hour, //24小时， common.ExpireTime, //expire过期时间   time.Hour
 			MaxRefresh:  time.Hour,
 			IdentityKey: common.IdentityKey,
-			//登录期间的回调的函数
+			//构造JWT负载的回调
 			PayloadFunc: func(data interface{}) gin_jwt_v2.MapClaims {
-				//TODO 这里仅仅判断了User是否存在就授权，要改进
+				//取出用户身份结构体里的数据
 				if v, ok := data.(*models.UserRole); ok {
 					//get roles from UserName
 					v.UserRoles = pc.GetUserRoles(v.UserName)
-					pc.logger.Debug("Find Username", zap.String("UserName", v.UserName))
+					pc.logger.Debug("PayloadFunc",
+						zap.String("UserName", v.UserName),
+						zap.String("deviceID", v.DeviceID))
 
 					jsonRole, _ := json.Marshal(v.UserRoles)
-					//maps the claims in the JWT
+					//maps the claims in the JWT，将userRoles封装到JWT里
 					return gin_jwt_v2.MapClaims{
-						common.IdentityKey: v.UserName,
-						"userRoles":        helper.B2S(jsonRole),
+						common.IdentityKey: v.UserName,           //用户账号
+						"deviceID":         v.DeviceID,           //设备id
+						"userRoles":        helper.B2S(jsonRole), //角色
 					}
 				} else {
 					pc.logger.Error("Can not find Username")
@@ -91,14 +95,15 @@ func CreateInitControllersFn(
 				var userRoles []*models.Role
 				json.Unmarshal(helper.S2B(jsonRole), &userRoles)
 				//Set the identity
-				// log.Println("IdentityHandler run ... %#v", roles)
+				log.Println("IdentityHandler run ... %#v", roles)
 
 				return &models.UserRole{
 					UserName:  roles[common.IdentityKey].(string),
+					DeviceID:  roles["deviceID"].(string),
 					UserRoles: userRoles,
 				}
 			},
-			//根据登录信息对用户进行身份验证的回调函数
+			//认证，根据登录信息对用户进行身份验证的回调函数
 			Authenticator: func(c *gin.Context) (interface{}, error) {
 				pc.logger.Debug("Authenticator ...")
 				//handles the login logic. On success LoginResponse is called, on failure Unauthorized is called
@@ -109,20 +114,32 @@ func CreateInitControllersFn(
 				}
 				username := loginVals.Username
 				password := loginVals.Password
+				deviceID := loginVals.DeviceID
 
 				// 检测用户及密码是否存在
 				if pc.CheckUser(username, password) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
 					return &models.UserRole{
 						UserName: username,
+						DeviceID: deviceID,
 					}, nil
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication
 			},
 
-			//接收用户信息并编写授权规则，本项目的API权限控制就是通过该函数编写授权规则的
+			//授权, 接收用户信息并编写授权规则，本项目的API权限控制就是通过该函数编写授权规则的
 			Authorizator: func(data interface{}, c *gin.Context) bool {
+				pc.logger.Debug("Authorizator ...授权")
+
+				token := gin_jwt_v2.GetToken(c)
+				//检测此令牌是否存在redis里，如果不存在，则不能授权通过
+				isExists := pc.ExistsTokenInRedis(token)
+				if !isExists {
+					pc.logger.Debug("令牌不存在redis里")
+					return false
+				}
+
 				if v, ok := data.(*models.UserRole); ok {
 					for _, itemRole := range v.UserRoles {
 						if itemRole.Value == "admin" { //超级管理员，目前只支持一种后台管理用户
@@ -130,6 +147,7 @@ func CreateInitControllersFn(
 						}
 					}
 				}
+				pc.logger.Debug("Authorizator faild, must be admin")
 
 				return false
 			},
@@ -141,20 +159,19 @@ func CreateInitControllersFn(
 				})
 			},
 			LoginResponse: func(c *gin.Context, code int, token string, t time.Time) {
-				//验证token是否有效
+				//解析JWT令牌
 				claims, err := ParseToken(token, []byte(common.SecretKey))
 				if nil != err {
 					pc.logger.Error("ParseToken Error", zap.Error(err))
 				}
 				userName := claims.(jwt.MapClaims)[common.IdentityKey].(string)
-				pc.logger.Debug("get userName ok", zap.String("userName", userName))
-				pc.logger.Debug("expire", zap.String("expire", t.Format(time.RFC3339)))
+				deviceID := claims.(jwt.MapClaims)["deviceID"].(string)
+				pc.logger.Debug("LoginResponse", zap.String("userName", userName), zap.String("deviceID", deviceID), zap.String("expire", t.Format(time.RFC3339)))
 
-				//将token及expire保存到redis
-				//TODO
+				//将userName, deviceID, token及expire保存到redis, 用于mqtt协议的消息的授权验证
+				pc.SaveUserToken(userName, deviceID, token, t)
 
-				pc.SaveUserToken(userName, token, t)
-
+				//向客户端回复生成的JWT令牌
 				RespData(c, http.StatusOK, code, token)
 				// c.JSON(http.StatusOK, gin.H{
 				// 	"code":    http.StatusOK,
@@ -199,7 +216,7 @@ func CreateInitControllersFn(
 		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
-			// auth.GET("/hello", helloHandler)
+			auth.GET("/signout", pc.SignOut)            //登出
 			auth.GET("/user/:id", pc.GetUser)           //根据id获取用户信息
 			auth.POST("/chanpassword", pc.ChanPassword) //修改密码
 

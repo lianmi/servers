@@ -19,3 +19,4 @@
 /dist/
 /third-party/
 /api/proto/out
+/deployments

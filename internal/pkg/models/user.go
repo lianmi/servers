@@ -54,8 +54,9 @@ func (user *User) BeforeUpdate(scope *gorm.Scope) error {
 	return nil
 }
 
-// UserRole 用户身份结构体  用Account代替用户名
+// UserRole 用户身份结构体
 type UserRole struct {
 	UserName  string
+	DeviceID  string
 	UserRoles []*Role
 }
