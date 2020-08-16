@@ -15,8 +15,8 @@ type User struct {
 	UpdatedAt         time.Time   `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻
 	Username          string      `json:"username" `                                                         //用户注册号，自动生成，字母 + 数字
 	Password          string      `json:"password" validate:"required"`                                      //用户密码，md5加密
-	SmsCode           string      `json:"smscode" validate:"required"`                                       //用户密码，md5加密
-	Nick              string      `json:"nick" validate:"required"`                                          //用户密码，md5加密
+	SmsCode           string      `json:"smscode" validate:"required"`                                       //校验码
+	Nick              string      `json:"nick" validate:"required"`                                          //用户呢称，必填
 	Gender            pb.Gender   `form:"gender" json:"gender" binding:"required"`                           //性别
 	Avatar            string      `form:"avatar" json:"avatar,omitempty"`                                    //头像url
 	Label             string      `form:"label" json:"label,omitempty" `                                     //签名标签

@@ -13,7 +13,7 @@ import (
 
 type UsersService interface {
 	GetUser(ID uint64) (*models.User, error)
-	Register(user *models.User) (err error)
+	Register(user *models.User) (string, error)
 	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
 	CheckUser(username string, password string) bool
@@ -27,6 +27,9 @@ type UsersService interface {
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
+
+	//检测校验码是否正确
+	CheckSmsCode(mobile, smscode string) bool
 }
 
 type DefaultUsersService struct {
@@ -53,14 +56,22 @@ func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
 //生成短信校验码
 func (s *DefaultUsersService) GenerateSmsCode(mobile string) bool {
 
-	return  s.Repository.GenerateSmsCode(mobile)
+	return s.Repository.GenerateSmsCode(mobile)
 
 }
 
-func (s *DefaultUsersService) Register(user *models.User) (err error) {
+//检测校验码是否正确
+func (s *DefaultUsersService) CheckSmsCode(mobile, smscode string) bool {
+	return s.Repository.CheckSmsCode(mobile, smscode)
+}
+
+func (s *DefaultUsersService) Register(user *models.User) (string, error) {
+    // var username string
+    var err error
 	if err = s.Repository.Register(user); err != nil {
-		return errors.Wrap(err, "Register user error")
+		return "",  errors.Wrap(err, "Register user error")
 	}
+
 	//当成功插入User数据后，user为指针地址，可以获取到ID的值。省去了查数据库拿ID的值步骤
 	var role models.Role
 	role.UserID = user.ID
@@ -74,11 +85,11 @@ func (s *DefaultUsersService) Register(user *models.User) (err error) {
 		//增加角色失败，需要删除users表的对应用户
 		if s.Repository.DeleteUser(user.ID) == false {
 
-			return errors.Wrap(err, "Register role error")
+			return "", errors.Wrap(err, "Register role error")
 		}
 	}
 
-	return nil
+	return user.Username, nil
 }
 
 func (s *DefaultUsersService) ChanPassword(oldpassword, smsCode, password string) (string, error) {

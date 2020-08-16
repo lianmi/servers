@@ -116,6 +116,8 @@ func CreateInitControllersFn(
 				password := loginVals.Password
 				deviceID := loginVals.DeviceID
 
+		        //检测是否主设备登录还是从设备登录
+
 				// 检测用户及密码是否存在
 				if pc.CheckUser(username, password) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")

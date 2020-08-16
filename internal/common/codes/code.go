@@ -15,7 +15,8 @@ const (
 	ErrAuthToken             = 20003
 	ErrAuth                  = 20004
 
-	ErrExistUser = 30001
+	ErrExistUser   = 30001
+	ErrExistMobile = 30002
 
 	PageNotFound = 40001
 )

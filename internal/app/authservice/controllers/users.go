@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/lianmi/servers/util/conv"
+
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/app/authservice/services"
@@ -62,42 +64,50 @@ func (pc *UsersController) Register(c *gin.Context) {
 		user.State = 0                 //预审核
 		user.Avatar = common.PubAvatar //公共头像
 
+		//检测手机是数字
+		if !conv.IsDigit(user.Mobile) {
+			pc.logger.Error("Register user error, Mobile is not digital")
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			return
+		}
+
 		//检测手机是否已经注册过了
 		if pc.service.ExistUserByMobile(user.Mobile) {
-
-			code = codes.ErrExistUser
+			pc.logger.Error("Register user error, Mobile is already registered")
+			code = codes.ErrExistMobile
+			RespFail(c, http.StatusBadRequest, code, "Mobile is already registered")
+			return
 		}
 
 		//检测校验码是否正确
+		if !pc.service.CheckSmsCode(user.Mobile, user.SmsCode) {
+			pc.logger.Error("Register user error, SmsCode is wrong")
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
+			return
+		}
 
-		//检测是否主设备登录还是从设备登录
+		//是否是商户， 如果是，则商户信息是必填
+		if user.UserType == 2 {
+			if user.Province == "" || user.County == "" || user.City == "" || user.Street == "" || user.LegalPerson == "" || user.LegalIdentityCard == "" {
+				code = codes.InvalidParams
+				RespFail(c, http.StatusBadRequest, code, "商户信息必填")
+				return
+			}
+		}
 
-		//手机号码还没注册
-		if err := pc.service.Register(&user); err == nil {
+		if userName, err := pc.service.Register(&user); err == nil {
+			pc.logger.Debug("Register user success", zap.String("userName", userName))
 			code = codes.SUCCESS
 		} else {
-			pc.logger.Error("Register user error, Mobile is already registered", zap.Error(err))
+			pc.logger.Error("Register user error", zap.Error(err))
 			code = codes.ERROR
+			RespFail(c, http.StatusBadRequest, code, "Register user error")
+			return
 		}
-
-		RespOk(c, http.StatusOK, code)
+		RespData(c, http.StatusOK, code, user.Username)
 	}
-}
-
-func IsNum(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
-	return err == nil
-}
-
-func IsDigit(data string) bool {
-	for _, item := range data {
-		if IsNum(string(item)) {
-			continue
-		} else {
-			return false
-		}
-	}
-	return true
 }
 
 func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
@@ -117,7 +127,7 @@ func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
 	}
 
 	//不是全数字
-	if !IsDigit(mobile) {
+	if !conv.IsDigit(mobile) {
 		pc.logger.Warn("GenerateSmsCode Is not Digit")
 		code = codes.ERROR
 		RespOk(c, http.StatusOK, code)

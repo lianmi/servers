@@ -202,3 +202,20 @@ func Int64sToMap(ints []int64) map[int64]bool {
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
 }
+
+
+func IsNum(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
+}
+
+func IsDigit(data string) bool {
+	for _, item := range data {
+		if IsNum(string(item)) {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}

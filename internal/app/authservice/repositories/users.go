@@ -53,6 +53,9 @@ type UsersRepository interface {
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
+
+	//检测校验码是否正确
+	CheckSmsCode(mobile, smscode string) bool
 }
 
 type MysqlUsersRepository struct {
@@ -80,12 +83,26 @@ func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
 	return
 }
 
+//注册用户，username需要唯一
 func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
+	//获取redis里最新id， 生成唯一的username
+	var newIndex uint64
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	if newIndex, err = redis.Uint64(redisConn.Do("INCR", "usernameindex")); err != nil {
+		s.logger.Error("redisConn GET usernameindex Error", zap.Error(err))
+		return err
+	}
+	
+	user.Username = fmt.Sprintf("id%d", newIndex)
 
 	if err := s.base.Create(user); err != nil {
-		s.logger.Error("新建用户失败")
+		s.logger.Error("注册用户失败")
 		return err
 	} else {
+		s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 		return nil
 	}
 }
@@ -354,4 +371,34 @@ func (s *MysqlUsersRepository) GenerateSmsCode(mobile string) bool {
 	}
 	s.logger.Debug("GenerateSmsCode, 写入redis成功")
 	return true
+}
+
+//检测校验码是否正确
+func (s *MysqlUsersRepository) CheckSmsCode(mobile, smscode string) bool {
+	var err error
+	var isExists bool
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	key := fmt.Sprintf("smscode:%s", mobile)
+
+	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
+		s.logger.Error("redisConn GET smscode Error", zap.Error(err))
+		return false
+	} else {
+		if !isExists {
+			s.logger.Warn("smscode is expire")
+			return false
+		} else {
+			if smscodeInRedis, err := redis.String(redisConn.Do("GET", key)); err != nil {
+				s.logger.Error("redisConn GET smscode Error", zap.Error(err))
+				return false
+			} else {
+				s.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
+				return smscodeInRedis == smscode
+			}
+		}
+	}
+	return false
+
 }
