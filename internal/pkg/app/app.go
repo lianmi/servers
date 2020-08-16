@@ -9,7 +9,10 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
-	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
+	authKafka "github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	chatKafka "github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
+	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
+	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/kafka"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
 
@@ -22,7 +25,10 @@ type Application struct {
 	httpServer *http.Server
 	grpcServer *grpc.Server
 	kafkaClient *kafka.KafkaClient
-	kafkaBackendClient *kafkaBackend.KafkaClient
+	authKafkaClient *authKafka.KafkaClient
+	chatKafkaClient *chatKafka.KafkaClient
+	orderKafkaClient *orderKafka.KafkaClient
+	walletKafkaClient *walletKafka.KafkaClient
 	mqttClient *mqtt.MQTTClient
 }
 
@@ -60,10 +66,34 @@ func KafkaOption(kc *kafka.KafkaClient) Option {
 	}
 }
 
-func KafkaClientOption(kbc *kafkaBackend.KafkaClient) Option {
+func AuthKafkaOption(kbc *authKafka.KafkaClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
-		app.kafkaBackendClient = kbc
+		app.authKafkaClient = kbc
+		return nil
+	}
+}
+
+func ChatKafkaOption(kbc *chatKafka.KafkaClient) Option {
+	return func(app *Application) error {
+		kbc.Application(app.name)
+		app.chatKafkaClient = kbc
+		return nil
+	}
+}
+
+func OrderKafkaOption(kbc *orderKafka.KafkaClient) Option {
+	return func(app *Application) error {
+		kbc.Application(app.name)
+		app.orderKafkaClient = kbc
+		return nil
+	}
+}
+
+func WalletKafkaOption(kbc *walletKafka.KafkaClient) Option {
+	return func(app *Application) error {
+		kbc.Application(app.name)
+		app.walletKafkaClient = kbc
 		return nil
 	}
 }
@@ -105,9 +135,27 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.kafkaBackendClient != nil {
-		if err := a.kafkaBackendClient.Start(); err != nil {
-			return errors.Wrap(err, "kafka backend client start error")
+	if a.authKafkaClient != nil {
+		if err := a.authKafkaClient.Start(); err != nil {
+			return errors.Wrap(err, "authservice kafka backend client start error")
+		}
+	}
+
+	if a.chatKafkaClient != nil {
+		if err := a.chatKafkaClient.Start(); err != nil {
+			return errors.Wrap(err, "chatservice kafka backend client start error")
+		}
+	}
+
+	if a.orderKafkaClient != nil {
+		if err := a.orderKafkaClient.Start(); err != nil {
+			return errors.Wrap(err, "orderservice kafka backend client start error")
+		}
+	}
+
+	if a.walletKafkaClient != nil {
+		if err := a.walletKafkaClient.Start(); err != nil {
+			return errors.Wrap(err, "walletservice kafka backend client start error")
 		}
 	}
 
@@ -145,9 +193,9 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		if a.kafkaBackendClient != nil {
-			if err := a.kafkaBackendClient.Stop(); err != nil {
-				a.logger.Warn("stop kafka client error", zap.Error(err))
+		if a.authKafkaClient != nil {
+			if err := a.authKafkaClient.Stop(); err != nil {
+				a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
 			}
 		}
 

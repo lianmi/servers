@@ -18,7 +18,7 @@ type UsersRepository interface {
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
-	CheckUser(where interface{}) bool
+	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 	GetUserAvatar(where interface{}, sel string) string
 
 	//获取用户ID
@@ -95,7 +95,7 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 		s.logger.Error("redisConn GET usernameindex Error", zap.Error(err))
 		return err
 	}
-	
+
 	user.Username = fmt.Sprintf("id%d", newIndex)
 
 	if err := s.base.Create(user); err != nil {
@@ -116,12 +116,48 @@ func (s *MysqlUsersRepository) GetUserRoles(where interface{}) []*models.Role {
 	return roles
 }
 
-func (s *MysqlUsersRepository) CheckUser(where interface{}) bool {
+func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+
+	// redisConn := s.redisPool.Get()
+	// defer redisConn.Close()
+
+	where := models.User{Username: username}
 	var user models.User
 	if err := s.base.First(where, &user); err != nil {
-		s.logger.Error("手机号或密码错误")
+		s.logger.Error("用户账号不存在")
 		return false
 	}
+
+	if user.State == 3 {
+		s.logger.Error("用户被封号")
+		return false
+	}
+
+	mobile := user.Mobile
+	if mobile == "" {
+		s.logger.Error("用户手机不存在")
+		return false
+	}
+
+	if isMaster {
+		//主设备
+
+	} else {
+		//从设备
+
+	}
+
+	//检测校验码
+	if !s.CheckSmsCode(mobile, smscode) {
+		s.logger.Error("校验码不匹配")
+		return false
+	}
+
+	if user.Password != password {
+		s.logger.Error("密码不匹配")
+		return false
+	}
+
 	return true
 }
 

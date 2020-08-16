@@ -9,6 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/authservice"
 	"github.com/lianmi/servers/internal/app/authservice/controllers"
+	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/app/authservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -19,7 +20,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
-	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 )
 
 // Injectors from wire.go:

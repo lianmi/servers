@@ -108,7 +108,7 @@ func (kc *KafkaClient) Start() error {
 
 	//尝试读取redis
 	redisConn := kc.redisPool.Get()
-	// defer redisConn.Close()
+	defer redisConn.Close()
 	// vkey := fmt.Sprintf("verificationCode:%s", email)
 
 	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
@@ -161,7 +161,7 @@ func (kc *KafkaClient) Start() error {
 							zap.String("BusinessTypeName:", businessTypeName), //业务
 							zap.Uint32("businessType:", businessType),         // 业务类型
 							zap.Uint32("businessSubType:", businessSubType),   // 业务子类型
-							zap.Int32("code:", code),   // 状态码
+							zap.Int32("code:", code),                          // 状态码
 							zap.String("Source:", backendMessage.GetSource()), //发送者
 							zap.String("Target:", backendMessage.GetTarget()), //接收者
 						)
@@ -220,7 +220,7 @@ func (kc *KafkaClient) Produce(topic string, msg *models.Message) error {
 	}
 
 	//需要序化后才能传输
-	if rawData, err := json.Marshal(msg);  err != nil {
+	if rawData, err := json.Marshal(msg); err != nil {
 		return err
 	} else {
 		//发送到kafka的broker

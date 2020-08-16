@@ -97,7 +97,6 @@ func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, logger *zap.Logger) 
 	}
 
 	//注册每个业务子类型的处理方法
-	// kClient.handleFuncMap[UnionUint16ToUint32(2, 1)] = kClient.HandleSignIn  //登录处理程序
 	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut //登出处理程序
 
 	return kClient
@@ -126,6 +125,7 @@ func (kc *KafkaClient) Start() error {
 	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
 		kc.logger.Info("redisConn GET ", zap.String("bar", bar))
 	}
+
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
 
@@ -180,7 +180,7 @@ func (kc *KafkaClient) Start() error {
 	return nil
 }
 
-// 处理recvFromFrontChan通道的数据
+// 处理dispatcher发来的业务数据
 func (kc *KafkaClient) ProcessRecvPayload() {
 	run := true
 	sigchan := make(chan os.Signal, 1)
@@ -231,83 +231,6 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 }
 
 /*
-//登录认证
-func (kc *KafkaClient) HandleSignIn(msg *models.Message) error {
-	body := msg.GetContent()
-
-	body_hex := strings.ToUpper(hex.EncodeToString(body))
-
-	kc.logger.Info("HandleSignIn=>body_hex", zap.String("body_hex", body_hex))
-	//解包body
-	var signInReq Auth.SignInReq
-
-	if err := proto.Unmarshal(body, &signInReq); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		return err
-	}
-
-	username := signInReq.GetUsername()          //当前登录用户ID账号
-	appKey := signInReq.GetAppKey()              //应用ID，IM管理后台分配
-	token := signInReq.GetToken()                //鉴权token,由业务系统请求IM REST服务器分配
-	clientType := int(signInReq.GetClientType()) //客户端类型
-	// clientMode := int(signInReq.GetClientMode())      //客户端模式，一般模式和加密模式
-	customTag := signInReq.GetCustomTag() //用户标签
-	// deviceId := signInReq.GetDeviceId()               //设备Id
-	isMaster := signInReq.GetIsMaster()               //是否是主设备
-	os := signInReq.GetOs()                           //操作系统版本
-	protocolVersion := signInReq.GetProtocolVersion() //协议版本
-	sdkVersion := signInReq.GetSdkVersion()           //SDK版本
-
-	kc.logger.Info("Handle SignInReq...",
-		zap.String("Username:", username),
-		zap.String("AppKey:", appKey),
-		zap.String("Token:", token),
-		zap.Int("ClientType:", int(clientType)),
-		// zap.Int("ClientMode:", int(clientMode)),
-		zap.String("CustomTag:", customTag),
-		// zap.String("DeviceId:", deviceId),
-		zap.Bool("IsMaster:", isMaster),
-		zap.String("Os:", os),
-		zap.String("ProtocolVersion:", protocolVersion),
-		zap.String("SdkVersion:", sdkVersion),
-	)
-
-	// connectionId := uuid.NewV4().String()
-	// country := "cn"
-	// ip := "127.0.0.1"
-	// port := "12121"
-	// lastLoginDeviceId := msg.GetID()
-
-	signInRsp := &Auth.SignInRsp{
-		// ConnectionId:      connectionId,
-		// Country:           country,
-		// CustomTag:         customTag,
-		// Ip:                ip,
-		// Port:              port,
-		// LastLoginDeviceId: lastLoginDeviceId,
-	}
-
-	msg.SetCode(200) //登录成功的状态码
-
-	data, _ := proto.Marshal(signInRsp)
-	rspHex := strings.ToUpper(hex.EncodeToString(data))
-
-	kc.logger.Info("SignIn Succeed",
-		zap.String("Username:", username),
-		zap.Int("length", len(data)),
-		zap.String("rspHex", rspHex))
-
-	msg.FillBody(data) //网络包的body，承载真正的业务数据
-
-	//处理完成，向dispatcher发送
-	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
-		kc.logger.Info("SignInResp message succeed send to ProduceChannel", zap.String("topic", topic))
-	} else {
-		kc.logger.Error("Failed to send SignInResp message to ProduceChannel", zap.Error(err))
-	}
-	return nil
-}
 
 //登出
 func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {

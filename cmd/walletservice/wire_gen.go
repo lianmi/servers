@@ -8,6 +8,7 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/walletservice"
+	"github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
@@ -16,7 +17,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 )
 
 // Injectors from wire.go:

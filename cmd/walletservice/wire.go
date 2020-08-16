@@ -9,6 +9,7 @@ import (
 	// "github.com/lianmi/servers/internal/app/walletservice/controllers"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	// "github.com/lianmi/servers/internal/app/walletservice/services"
+	"github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -16,7 +17,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/kafkaBackend"
 	// "github.com/lianmi/servers/internal/pkg/transports/http"
 )
 

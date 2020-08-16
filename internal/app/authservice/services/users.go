@@ -16,7 +16,10 @@ type UsersService interface {
 	Register(user *models.User) (string, error)
 	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
-	CheckUser(username string, password string) bool
+
+	//检测用户登录
+	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
 	// 判断手机号码是否已存在
@@ -102,9 +105,9 @@ func (s *DefaultUsersService) GetUserRoles(username string) []*models.Role {
 }
 
 //CheckUser 身份验证
-func (s *DefaultUsersService) CheckUser(username string, password string) bool {
-	where := models.User{Username: username, Password: password}
-	return s.Repository.CheckUser(&where)
+func (s *DefaultUsersService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+	
+	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
 }
 
 func (s *DefaultUsersService) ExistUserByName(username string) bool {

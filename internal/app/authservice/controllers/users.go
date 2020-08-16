@@ -152,8 +152,8 @@ func (pc *UsersController) GetUserRoles(username string) []*models.Role {
 	return pc.service.GetUserRoles(username)
 }
 
-func (pc *UsersController) CheckUser(username, password string) bool {
-	return pc.service.CheckUser(username, password)
+func (pc *UsersController) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+	return pc.service.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
 }
 
 func (pc *UsersController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {

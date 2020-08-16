@@ -51,7 +51,7 @@ func CreateInitControllersFn(
 	pc *UsersController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
-		r.POST("/register", pc.Register)      //注册用户
+		r.POST("/register", pc.Register)              //注册用户
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件
@@ -112,19 +112,22 @@ func CreateInitControllersFn(
 					pc.logger.Error("Authenticator Error", zap.Error(err))
 					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
+				isMaster := loginVals.IsMaster
+				smscode := loginVals.SmsCode
 				username := loginVals.Username
 				password := loginVals.Password
 				deviceID := loginVals.DeviceID
+				clientType := loginVals.ClientType
+				os := loginVals.Os
 
-		        //检测是否主设备登录还是从设备登录
-
-				// 检测用户及密码是否存在
-				if pc.CheckUser(username, password) {
+				// 检测用户是否可以登陆
+				if pc.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
 					return &models.UserRole{
 						UserName: username,
 						DeviceID: deviceID,
 					}, nil
+
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication

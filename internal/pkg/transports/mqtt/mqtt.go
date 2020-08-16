@@ -172,7 +172,7 @@ func (mc *MQTTClient) Start() error {
 			isAuthed := false
 			userName := ""
 
-			//授权码登录模式,从设备申请授权码，此时还没有令牌
+			//从设备申请授权码，此时还没有令牌
 			if businessType == 2 && businessSubType == 7 {
 
 			} else {
@@ -233,6 +233,8 @@ func (mc *MQTTClient) Start() error {
 
 			case Global.BusinessType_Users:
 				//TODO
+				mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
+				mc.logger.Info("message has send to KafkaChan", zap.String("kafkaTopic", kafkaTopic), zap.String("backendService", backendService))
 
 			case Global.BusinessType_Friends:
 				//TODO
@@ -244,6 +246,15 @@ func (mc *MQTTClient) Start() error {
 				//TODO
 
 			case Global.BusinessType_Sync: //同步服务程序
+				//TODO
+
+			case Global.BusinessType_Order: //订单服务 程序
+				//TODO
+
+			case Global.BusinessType_Wallet: //钱包服务 程序
+				//TODO
+
+			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 				//TODO
 
 			default: //default case
@@ -396,11 +407,11 @@ jwtToken如果在redis里没找到，原因可能有如下三种：
 该情况直接返回错误信息通知前端让用户重新登录；
 */
 func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, businessSubType, taskID int) (string, bool, error) {
-	mc.logger.Info("MakeSureAuthed start...", 
-					zap.Int("businessType:", businessType), 
-					zap.Int("businessSubType:", businessSubType), 
-					zap.Int("taskID:", taskID), 
-					zap.String("jwtToken:", jwtToken))
+	mc.logger.Info("MakeSureAuthed start...",
+		zap.Int("businessType:", businessType),
+		zap.Int("businessSubType:", businessSubType),
+		zap.Int("taskID:", taskID),
+		zap.String("jwtToken:", jwtToken))
 
 	var isAuthed bool = false
 	var isExists bool = false
@@ -431,7 +442,7 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 				jwtDeviceID = claims.(jwt.MapClaims)["deviceID"].(string)
 				mc.logger.Debug("jwt令牌", zap.String("jwtUserName", jwtUserName), zap.String("jwtDeviceID", jwtDeviceID))
 
-				if (deviceID == jwtDeviceID) {
+				if deviceID == jwtDeviceID {
 
 					deviceIDKey := fmt.Sprintf("%s:%s", jwtToken, deviceID)
 					//判断deviceIDKey是否存在这个key，如果设备登出后，这个key就会删除，如果非法获取token，也无法使用
