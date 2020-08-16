@@ -52,7 +52,7 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
 		r.POST("/register", pc.Register)      //注册用户
-		r.GET("/smscode", pc.GenerateSmsCode) //根据手机生成短信注册码
+		r.GET("/smscode/:mobile", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{

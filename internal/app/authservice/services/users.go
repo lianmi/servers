@@ -13,16 +13,20 @@ import (
 
 type UsersService interface {
 	GetUser(ID uint64) (*models.User, error)
-	GenerateSmsCode(mobile string) (string, error)
 	Register(user *models.User) (err error)
 	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
 	CheckUser(username string, password string) bool
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
+	// 判断手机号码是否已存在
+	ExistUserByMobile(mobile string) bool
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
 	SignOut(token, username, deviceID string) bool
 	ExistsTokenInRedis(token string) bool
+
+	//生成注册校验码
+	GenerateSmsCode(mobile string) bool
 }
 
 type DefaultUsersService struct {
@@ -46,9 +50,11 @@ func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
 	return
 }
 
-func (s *DefaultUsersService) GenerateSmsCode(mobile string) (string, error) {
+//生成短信校验码
+func (s *DefaultUsersService) GenerateSmsCode(mobile string) bool {
 
-	return "1234", nil
+	return  s.Repository.GenerateSmsCode(mobile)
+
 }
 
 func (s *DefaultUsersService) Register(user *models.User) (err error) {
@@ -93,6 +99,11 @@ func (s *DefaultUsersService) CheckUser(username string, password string) bool {
 func (s *DefaultUsersService) ExistUserByName(username string) bool {
 
 	return s.Repository.ExistUserByName(username)
+}
+
+// 判断手机号码是否已存在
+func (s *DefaultUsersService) ExistUserByMobile(mobile string) bool {
+	return s.Repository.ExistUserByMobile(mobile)
 }
 
 func (s *DefaultUsersService) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {

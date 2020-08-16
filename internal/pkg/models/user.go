@@ -13,8 +13,9 @@ type User struct {
 	ID                uint64      `gorm:"primary_key" form:"id" json:"id,omitempty"`                         //自动递增id
 	CreatedAt         time.Time   `form:"created_at" json:"created_at,omitempty"`                            //创建时刻
 	UpdatedAt         time.Time   `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻
-	Username          string      `json:"username" validate:"required"`                                      //用户注册号，自动生成，字母 + 数字
+	Username          string      `json:"username" `                                                         //用户注册号，自动生成，字母 + 数字
 	Password          string      `json:"password" validate:"required"`                                      //用户密码，md5加密
+	SmsCode           string      `json:"smscode" validate:"required"`                                       //用户密码，md5加密
 	Nick              string      `json:"nick" validate:"required"`                                          //用户密码，md5加密
 	Gender            pb.Gender   `form:"gender" json:"gender" binding:"required"`                           //性别
 	Avatar            string      `form:"avatar" json:"avatar,omitempty"`                                    //头像url
@@ -26,7 +27,7 @@ type User struct {
 	Bank              string      `form:"bank" json:"bank,omitempty" `                                       //开户银行
 	TrueName          string      `form:"true_name" json:"true_name,omitempty" `                             //用户实名
 	Deleted           int         `form:"deteled" json:"deteled"`                                            //软删除开关
-	State             int         `form:"state" json:"state"`                                                //状态 0-正常 1-禁用
+	State             int         `form:"state" json:"state"`                                                //状态 0-预审核 1-付费用户(至少充值一次) 2-封号
 	Extend            string      `form:"extend" json:"extend,omitempty" `                                   //扩展字段
 	ContactPerson     string      `form:"contact_person" json:"contact_person" binding:"required"`           //联系人
 	Introductory      string      `gorm:"type:text;null" form:"introductory" json:"introductory,omitempty" ` // Text文本类型

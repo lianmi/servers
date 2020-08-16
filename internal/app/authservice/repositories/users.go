@@ -36,6 +36,9 @@ type UsersRepository interface {
 	//判断用户名是否已存在
 	ExistUserByName(username string) bool
 
+	// 判断手机号码是否已存在
+	ExistUserByMobile(mobile string) bool
+
 	//更新用户
 	UpdateUser(user *models.User, role *models.Role) bool
 
@@ -47,6 +50,9 @@ type UsersRepository interface {
 
 	//令牌是否存在
 	ExistsTokenInRedis(token string) bool
+
+	//生成注册校验码
+	GenerateSmsCode(mobile string) bool
 }
 
 type MysqlUsersRepository struct {
@@ -210,6 +216,24 @@ func (s *MysqlUsersRepository) ExistUserByName(username string) bool {
 	return true
 }
 
+// 判断手机号码是否已存在
+func (s *MysqlUsersRepository) ExistUserByMobile(mobile string) bool {
+	var user models.User
+	sel := "id"
+	where := models.User{Mobile: mobile}
+	err := s.base.First(&where, &user, sel)
+	//记录不存在错误(RecordNotFound)，返回false
+	if gorm.IsRecordNotFoundError(err) {
+		return false
+	}
+	//其他类型的错误，写下日志，返回false
+	if err != nil {
+		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
+		return false
+	}
+	return true
+}
+
 //更新用户
 func (s *MysqlUsersRepository) UpdateUser(user *models.User, role *models.Role) bool {
 	//使用事务同时更新用户数据和角色数据
@@ -296,4 +320,38 @@ func (s *MysqlUsersRepository) ExistsTokenInRedis(token string) bool {
 		return isExists
 	}
 
+}
+
+//生成注册校验码
+func (s *MysqlUsersRepository) GenerateSmsCode(mobile string) bool {
+	var err error
+	var isExists bool
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	key := fmt.Sprintf("smscode:%s", mobile)
+
+	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
+		s.logger.Error("redisConn GET smscode Error", zap.Error(err))
+		return false
+	}
+
+	if isExists {
+		err = redisConn.Send("DEL", key) //删除key
+	}
+
+	//TODO 调用短信接口发送  暂时固定为123456
+
+	err = redisConn.Send("SET", key, "123456") //增加key
+
+	err = redisConn.Send("EXPIRE", key, 300) //设置有效期为300秒
+
+	_ = err
+
+	//一次性写入到Redis
+	if err := redisConn.Flush(); err != nil {
+		s.logger.Error("写入redis失败", zap.Error(err))
+		return false
+	}
+	s.logger.Debug("GenerateSmsCode, 写入redis成功")
+	return true
 }
