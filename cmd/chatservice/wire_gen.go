@@ -42,6 +42,14 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	databaseOptions, err := database.NewOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	db, err := database.New(databaseOptions)
+	if err != nil {
+		return nil, err
+	}
 	redisOptions, err := redis.NewRedisOptions(viper, logger)
 	if err != nil {
 		return nil, err
@@ -50,7 +58,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, pool, logger)
+	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
 	application, err := chatservice.NewApp(chatserviceOptions, logger, kafkaClient)
 	if err != nil {
 		return nil, err

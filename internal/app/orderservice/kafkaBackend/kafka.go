@@ -3,7 +3,9 @@ package kafkaBackend
 import (
 	"bytes"
 	"encoding/binary"
+	// "encoding/hex"
 	"encoding/json"
+	// "fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,8 +13,10 @@ import (
 
 	// "time"
 
+	// "github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 
 	// uuid "github.com/satori/go.uuid"
@@ -20,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	// Auth "github.com/lianmi/servers/api/proto/auth"
+	// User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
@@ -39,6 +44,7 @@ type KafkaClient struct {
 	consumer          *kafka.Consumer
 	producer          *kafka.Producer
 	logger            *zap.Logger
+	db                *gorm.DB
 	redisPool         *redis.Pool
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 	handleFuncMap map[uint32]func(payload *models.Message) error
@@ -57,11 +63,12 @@ func NewKafkaOptions(v *viper.Viper) (*KafkaOptions, error) {
 	return o, err
 }
 
-func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, logger *zap.Logger) *KafkaClient {
+func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *KafkaClient {
 	topicArray := strings.Split(o.Topics, ",")
 	topics := make([]string, 0)
 	for _, topic := range topicArray {
 		topics = append(topics, topic)
+		logger.Debug("NewKafkaClient增加topic", zap.String("topic", topic))
 	}
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
@@ -92,12 +99,13 @@ func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, logger *zap.Logger) 
 		consumer:          c,
 		producer:          p,
 		logger:            logger.With(zap.String("type", "kafka.Client")),
+		db:                db,
 		redisPool:         redisPool,
 		handleFuncMap:     make(map[uint32]func(payload *models.Message) error),
 	}
 
 	//注册每个业务子类型的处理方法
-	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut //登出处理程序
+	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut        //登出处理程序
 
 	return kClient
 }
@@ -118,13 +126,13 @@ func (kc *KafkaClient) Start() error {
 	}
 
 	//尝试读取redis
-	redisConn := kc.redisPool.Get()
-	defer redisConn.Close()
+	// redisConn := kc.redisPool.Get()
+	// defer redisConn.Close()
 	// vkey := fmt.Sprintf("verificationCode:%s", email)
 
-	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
-		kc.logger.Info("redisConn GET ", zap.String("bar", bar))
-	}
+	// if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
+	// 	kc.logger.Info("redisConn GET ", zap.String("bar", bar))
+	// }
 
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
