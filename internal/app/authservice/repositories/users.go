@@ -53,7 +53,7 @@ type UsersRepository interface {
 	SignOut(token, username, deviceID string) bool
 
 	//令牌是否存在
-	ExistsTokenInRedis(token string) bool
+	ExistsTokenInRedis(deviceID, token string) bool
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
@@ -199,6 +199,10 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		return false
 	}
 
+	//用完就要删除
+	smscodeKey := fmt.Sprintf("smscode:%s", mobile)
+	_, err = redisConn.Do("DEL", smscodeKey) //删除smscode
+
 	deviceListKey := fmt.Sprintf("devices:%s", username)
 
 	if isMaster { //主设备
@@ -213,7 +217,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSlice {
 			s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
@@ -290,6 +294,10 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		if err := redisConn.Flush(); err != nil {
 			s.logger.Error("写入redis失败", zap.Error(err))
 			return false
+		} else {
+			s.logger.Debug("写入redis成功",
+				zap.String("deviceListKey", deviceListKey),
+				zap.String("deviceHashKey", deviceHashKey))
 		}
 
 	} else {
@@ -303,7 +311,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			eDeviceID := curSlaceDeviceSlice[index]
 
 			s.logger.Debug("查询出从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
@@ -369,7 +377,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			//查询出当前在线所有主从设备
 			for _, eDeviceID := range deviceIDSliceNew {
 				targetMsg := &models.Message{}
-				curDeviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 				s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
@@ -430,7 +438,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSliceNew {
 			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 			s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
@@ -678,18 +686,21 @@ func (s *MysqlUsersRepository) SaveUserToken(username, deviceID string, token st
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	deviceKey := fmt.Sprintf("userDeviceID:%s", deviceID)
-	err := redisConn.Send("SET", deviceKey, token) //deviceID关联到token, mqtt消息必须要验证这个
+	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+	_, err := redisConn.Do("SET", deviceKey, token) //deviceID关联到token, mqtt消息必须要验证这个
 
-	err = redisConn.Send("EXPIRE", deviceKey, common.ExpireTime) //过期时间
-	_ = err
+	_, err = redisConn.Do("EXPIRE", deviceKey, common.ExpireTime) //过期时间
 
-	//一次性写入到Redis
-	if err := redisConn.Flush(); err != nil {
-		s.logger.Error("写入redis失败", zap.Error(err))
+	//重新读出token，看看是否可以读出
+
+	if tokenInRedis, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
+		s.logger.Error("重新读出token失败", zap.Error(err))
 		return false
+	} else {
+		isEqueal := tokenInRedis == token
+		s.logger.Debug("重新读出token成功", zap.String("tokenInRedis", tokenInRedis), zap.Bool("isEqueal", isEqueal))
 	}
-
+	_ = err
 	return true
 }
 
@@ -725,7 +736,7 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSlice {
 			s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
@@ -785,8 +796,8 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 	} else { //如果是从设备
 
 		//删除token
-		deviceKey := fmt.Sprintf("userDeviceID:%s", deviceID)
-		_, err = redisConn.Do("DEL", deviceKey) 
+		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+		_, err = redisConn.Do("DEL", deviceKey)
 
 		//删除有序集合里的元素
 		//移除单个元素 ZREM deviceListKey {设备id}
@@ -794,7 +805,7 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 
 		//删除哈希
 		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
-		_, err = redisConn.Do("DEL", deviceHashKey) 
+		_, err = redisConn.Do("DEL", deviceHashKey)
 
 		//多端登录状态变化事件
 		//向其它端发送此从设备离线的事件
@@ -802,7 +813,7 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 		//查询出当前在线所有主从设备
 		for _, eDeviceID := range deviceIDSliceNew {
 			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("userDeviceID:%s", eDeviceID)
+			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 			s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
@@ -856,17 +867,16 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 
 	}
 
+	s.logger.Debug("SignOut end")
 	_ = err
-
-	s.logger.Debug("登出成功")
 	return true
 }
 
-func (s *MysqlUsersRepository) ExistsTokenInRedis(token string) bool {
+func (s *MysqlUsersRepository) ExistsTokenInRedis(deviceID, token string) bool {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
-
-	if isExists, err := redis.Bool(redisConn.Do("GET", token)); err != nil {
+	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+	if isExists, err := redis.Bool(redisConn.Do("EXISTS", deviceKey)); err != nil {
 		s.logger.Error("redisConn GET token Error", zap.Error(err))
 		return false
 	} else {

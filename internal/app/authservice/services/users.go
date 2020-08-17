@@ -27,7 +27,7 @@ type UsersService interface {
 	ExistUserByMobile(mobile string) bool
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
 	SignOut(token, username, deviceID string) bool
-	ExistsTokenInRedis(token string) bool
+	ExistsTokenInRedis(deviceID, token string) bool
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
@@ -138,6 +138,6 @@ func (s *DefaultUsersService) SignOut(token, username, deviceID string) bool {
 	return s.Repository.SignOut(token, username, deviceID)
 }
 
-func (s *DefaultUsersService) ExistsTokenInRedis(token string) bool {
-	return s.Repository.ExistsTokenInRedis(token)
+func (s *DefaultUsersService) ExistsTokenInRedis(deviceID, token string) bool {
+	return s.Repository.ExistsTokenInRedis(deviceID, token)
 }

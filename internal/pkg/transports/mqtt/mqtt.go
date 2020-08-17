@@ -423,14 +423,14 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		//TODO redis里查找EXISTS('jwtToken', jwtToken)
 		redisConn := mc.redisPool.Get()
 		defer redisConn.Close()
-		deviceKey := fmt.Sprintf("userDeviceID:%s", deviceID)
+		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
 		if tokenInRedis, err = redis.String(redisConn.Do("GET", deviceKey)); err != nil {
-			mc.logger.Error("redisConn GET JWT Error", zap.Error(err))
+			mc.logger.Error("redisConn GET JWT Error", zap.String("deviceKey", deviceKey), zap.Error(err))
 			isAuthed = false
 		} else {
 			mc.logger.Info("redisConn GET JWT ok ", zap.String("tokenInRedis", tokenInRedis))
 
-			if tokenInRedis == jwtToken  {
+			if tokenInRedis == jwtToken {
 				//验证token是否有效
 				claims, err := ParseToken(jwtToken, []byte(common.SecretKey))
 				if nil != err {
@@ -444,10 +444,10 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 
 				if deviceID == jwtDeviceID {
 
-					deviceIDKey := fmt.Sprintf("%s:%s", jwtToken, deviceID)
-					//判断deviceIDKey是否存在这个key，如果设备登出后，这个key就会删除，如果非法获取token，也无法使用
-					if isExistDeviceID, err := redis.Bool(redisConn.Do("GET", deviceIDKey)); err != nil {
-						mc.logger.Error("redisConn GET DeviceID Error", zap.Error(err))
+					deviceKey := fmt.Sprintf("DeviceJwtToken:%s", jwtDeviceID)
+					//判断deviceKey是否存在这个key，如果设备登出后，这个key就会删除，如果非法获取token，也无法使用
+					if isExistDeviceID, err := redis.Bool(redisConn.Do("EXISTS", deviceKey)); err != nil {
+						mc.logger.Error("redisConn GET DeviceID Error", zap.String("deviceKey", deviceKey), zap.Error(err))
 						isAuthed = false
 					} else {
 						if isExistDeviceID {

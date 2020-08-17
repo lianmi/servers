@@ -178,8 +178,8 @@ func (pc *UsersController) CheckUser(isMaster bool, smscode, username, password,
 func (pc *UsersController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 	return pc.service.SaveUserToken(username, deviceID, token, expire)
 }
-func (pc *UsersController) ExistsTokenInRedis(token string) bool {
-	return pc.service.ExistsTokenInRedis(token)
+func (pc *UsersController) ExistsTokenInRedis(deviceID, token string) bool {
+	return pc.service.ExistsTokenInRedis(deviceID, token)
 }
 
 func (pc *UsersController) SignOut(c *gin.Context) {

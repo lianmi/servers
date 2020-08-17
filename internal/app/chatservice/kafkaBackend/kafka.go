@@ -97,7 +97,6 @@ func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, logger *zap.Logger) 
 	}
 
 	//注册每个业务子类型的处理方法
-	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut //登出处理程序
 
 	return kClient
 }
@@ -229,26 +228,6 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 		}
 	}
 }
-
-/*
-
-//登出
-func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
-	kc.logger.Info("HandleSignOut star...", zap.String("DeviceId", msg.GetDeviceID()))
-	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
-
-	msg.SetCode(200) //登出成功的状态码
-
-	//处理完成，向dispatcher发送
-	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
-		kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-	} else {
-		kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-	}
-	return nil
-}
-*/
 
 //Produce
 func (kc *KafkaClient) Produce(topic string, msg *models.Message) error {

@@ -58,7 +58,7 @@ func CreateInitControllersFn(
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "test zone",
 			Key:         []byte(common.SecretKey),
-			Timeout:     24 * time.Hour, //24小时， common.ExpireTime, //expire过期时间   time.Hour
+			Timeout:     24 * 30 * time.Hour, //30日， common.ExpireTime, //expire过期时间   time.Hour
 			MaxRefresh:  time.Hour,
 			IdentityKey: common.IdentityKey,
 			//构造JWT负载的回调
@@ -138,20 +138,21 @@ func CreateInitControllersFn(
 				pc.logger.Debug("Authorizator ...授权")
 
 				token := gin_jwt_v2.GetToken(c)
-				//检测此令牌是否存在redis里，如果不存在，则不能授权通过
-				isExists := pc.ExistsTokenInRedis(token)
+
+				claims, err := ParseToken(token, []byte(common.SecretKey))
+				if nil != err {
+					pc.logger.Error("ParseToken Error", zap.Error(err))
+				}
+				userName := claims.(jwt.MapClaims)[common.IdentityKey].(string)
+				deviceID := claims.(jwt.MapClaims)["deviceID"].(string)
+				pc.logger.Debug("Authorizator", zap.String("userName", userName), zap.String("deviceID", deviceID))
+
+				//检测deviceID 对应的此=令牌是否存在redis里，如果不存在，则不能授权通过
+				isExists := pc.ExistsTokenInRedis(deviceID, token)
 				if !isExists {
-					pc.logger.Debug("令牌不存在redis里")
+					pc.logger.Debug("此deviceID的令牌不存在redis里", zap.String("deviceID", deviceID))
 					return false
 				}
-
-				// claims, err := ParseToken(token, []byte(common.SecretKey))
-				// if nil != err {
-				// 	pc.logger.Error("ParseToken Error", zap.Error(err))
-				// }
-				// userName := claims.(jwt.MapClaims)[common.IdentityKey].(string)
-				// deviceID := claims.(jwt.MapClaims)["deviceID"].(string)
-				// pc.logger.Debug("Authorizator", zap.String("userName", userName), zap.String("deviceID", deviceID), zap.String("expire", t.Format(time.RFC3339)))
 
 				if v, ok := data.(*models.UserRole); ok {
 					for _, itemRole := range v.UserRoles {
