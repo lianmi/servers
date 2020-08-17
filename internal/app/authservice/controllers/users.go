@@ -47,6 +47,25 @@ func (pc *UsersController) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, p)
 }
 
+//封号
+func (pc *UsersController) BlockUser(c *gin.Context) {
+	pc.logger.Debug("BlockUser start ...")
+	ID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	p, err := pc.service.BlockUser(ID)
+	if err != nil {
+		pc.logger.Error("Block User by id error", zap.Error(err))
+		c.String(http.StatusInternalServerError, "%+v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, p)
+}
+
 // 用户注册
 func (pc *UsersController) Register(c *gin.Context) {
 	var user models.User

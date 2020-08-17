@@ -193,7 +193,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			_ = sig
 			run = false
 		case msg := <-kc.recvFromFrontChan: //读取来着dispatcher的数据
-			taskId := msg.GetTaskId()
+			taskId := msg.GetTaskID()
 			businessType := uint16(msg.GetBusinessType())
 			businessSubType := uint16(msg.GetBusinessSubType())
 			businessTypeName := msg.GetBusinessTypeName()
@@ -234,7 +234,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 
 //登出
 func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
-	kc.logger.Info("HandleSignOut star...", zap.String("DeviceId", msg.GetDeviceId()))
+	kc.logger.Info("HandleSignOut star...", zap.String("DeviceId", msg.GetDeviceID()))
 	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
 
 	msg.SetCode(200) //登出成功的状态码

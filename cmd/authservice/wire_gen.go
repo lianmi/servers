@@ -45,19 +45,6 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	redisOptions, err := redis.NewRedisOptions(viper, logger)
-	if err != nil {
-		return nil, err
-	}
-	pool, err := redis.New(redisOptions)
-	if err != nil {
-		return nil, err
-	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, pool, logger)
-	httpOptions, err := http.NewOptions(viper)
-	if err != nil {
-		return nil, err
-	}
 	databaseOptions, err := database.NewOptions(viper, logger)
 	if err != nil {
 		return nil, err
@@ -66,7 +53,20 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool)
+	redisOptions, err := redis.NewRedisOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := redis.New(redisOptions)
+	if err != nil {
+		return nil, err
+	}
+	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
+	httpOptions, err := http.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool, kafkaClient)
 	usersService := services.NewUserService(logger, usersRepository)
 	usersController := controllers.NewUsersController(logger, usersService)
 	initControllers := controllers.CreateInitControllersFn(usersController)

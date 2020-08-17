@@ -145,6 +145,14 @@ func CreateInitControllersFn(
 					return false
 				}
 
+				// claims, err := ParseToken(token, []byte(common.SecretKey))
+				// if nil != err {
+				// 	pc.logger.Error("ParseToken Error", zap.Error(err))
+				// }
+				// userName := claims.(jwt.MapClaims)[common.IdentityKey].(string)
+				// deviceID := claims.(jwt.MapClaims)["deviceID"].(string)
+				// pc.logger.Debug("Authorizator", zap.String("userName", userName), zap.String("deviceID", deviceID), zap.String("expire", t.Format(time.RFC3339)))
+
 				if v, ok := data.(*models.UserRole); ok {
 					for _, itemRole := range v.UserRoles {
 						if itemRole.Value == "admin" { //超级管理员，目前只支持一种后台管理用户
@@ -223,6 +231,7 @@ func CreateInitControllersFn(
 		{
 			auth.GET("/signout", pc.SignOut)            //登出
 			auth.GET("/user/:id", pc.GetUser)           //根据id获取用户信息
+			auth.GET("/blockuser/:id", pc.BlockUser)    //根据id将此用户封号
 			auth.POST("/chanpassword", pc.ChanPassword) //修改密码
 
 		}

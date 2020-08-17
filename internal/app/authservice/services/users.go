@@ -13,6 +13,7 @@ import (
 
 type UsersService interface {
 	GetUser(ID uint64) (*models.User, error)
+	BlockUser(ID uint64) (*models.User, error)
 	Register(user *models.User) (string, error)
 	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
@@ -51,6 +52,15 @@ func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
 	s.logger.Debug("GetUser", zap.Uint64("ID", ID))
 	if p, err = s.Repository.GetUser(ID); err != nil {
 		return nil, errors.Wrap(err, "Get user error")
+	}
+
+	return
+}
+
+func (s *DefaultUsersService) BlockUser(ID uint64) (p *models.User, err error) {
+	s.logger.Debug("BlockUser", zap.Uint64("ID", ID))
+	if p, err = s.Repository.BlockUser(ID); err != nil {
+		return nil, errors.Wrap(err, "Block user error")
 	}
 
 	return

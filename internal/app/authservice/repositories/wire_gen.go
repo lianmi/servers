@@ -7,6 +7,7 @@ package repositories
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -44,10 +45,15 @@ func CreateUserRepository(f string) (UsersRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	usersRepository := NewMysqlUsersRepository(logger, db, pool)
+	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
+	usersRepository := NewMysqlUsersRepository(logger, db, pool, kafkaClient)
 	return usersRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, kafkaBackend.ProviderSet, ProviderSet)

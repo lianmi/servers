@@ -28,7 +28,7 @@ type MessageRoute struct {
 	// where the message come from, 这里用于存储业务模块名称，如："Auth", "Users" ...
 	Source string `json:"source,omitempty"`
 	// where the message will broadcasted to
-	Group string `json:"group, omitempty"`
+	Group string `json:"group,omitempty"`
 	// where the message come to，后端的具体业务模块Topic订阅
 	Target string `json:"target,omitempty"`
 
@@ -39,10 +39,10 @@ type MessageRoute struct {
 	UserName string `json:"user_name,omitempty"`
 
 	// deviceid
-	DeviceId string `json:"deviceid,omitempty"`
+	DeviceID string `json:"deviceid,omitempty"`
 
 	//SDK发到服务端的taskid
-	TaskId uint32 `json:"taskid,omitempty"`
+	TaskID uint32 `json:"taskid,omitempty"`
 	//SDK账号id
 	// Account string `json:"account,omitempty"`
 	// what's the business type
@@ -74,42 +74,13 @@ func (msg *Message) BuildRouter(source, group, target string) *Message {
 	return msg
 }
 
-//SetBusinessAndSession sets router fields  in message
-// func (msg *Message) SetBusinessAndSession(
-// 											appKey string,
-// 											os string,
-// 										    clientType uint32,
-// 										    clientVersion uint32,
-// 										    clientMode uint32,
-// 										    deviceId string,
-// 										    cmdId uint32,
-// 											taskId uint32,
-// 											businesstypename string,
-// 											businessType uint16,
-// 											businessSubType uint16,
-// 										 ) *Message {
-
-// 	msg.Router.AppKey = appKey
-// 	msg.Router.Os = os
-// 	msg.Router.ClientType = clientType
-// 	msg.Router.ClientVersion = clientVersion
-// 	msg.Router.ClientMode = clientMode
-// 	msg.Router.DeviceId = deviceId
-// 	msg.Router.CmdId = cmdId
-// 	msg.Router.TaskId = taskId
-// 	msg.Router.BusinessTypeName = businesstypename
-// 	msg.Router.BusinessType = businessType
-// 	msg.Router.BusinessSubType = businessSubType
-// 	return msg
-// }
-
-func (msg *Message) SetDeviceId(deviceId string) *Message {
-	msg.Router.DeviceId = deviceId
+func (msg *Message) SetDeviceID(deviceID string) *Message {
+	msg.Router.DeviceID = deviceID
 	return msg
 }
 
-func (msg *Message) GetDeviceId() string {
-	return msg.Router.DeviceId
+func (msg *Message) GetDeviceID() string {
+	return msg.Router.DeviceID
 }
 
 func (msg *Message) SetJwtToken(jwtToken string) *Message {
@@ -130,13 +101,13 @@ func (msg *Message) GetUserName() string {
 	return msg.Router.UserName
 }
 
-func (msg *Message) SetTaskId(taskId uint32) *Message {
-	msg.Router.TaskId = taskId
+func (msg *Message) SetTaskID(taskID uint32) *Message {
+	msg.Router.TaskID = taskID
 	return msg
 }
 
-func (msg *Message) GetTaskId() uint32 {
-	return msg.Router.TaskId
+func (msg *Message) GetTaskID() uint32 {
+	return msg.Router.TaskID
 }
 
 func (msg *Message) SetBusinessType(businesstype uint32) *Message {

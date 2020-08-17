@@ -84,7 +84,7 @@ func (x *AuthorizeCodeReq) GetClientType() ClientType {
 	return ClientType_Ct_UnKnow
 }
 
-func (x *AuthorizeCodeReq) GetDeviceId() string {
+func (x *AuthorizeCodeReq) GetDeviceID() string {
 	if x != nil {
 		return x.DeviceId
 	}

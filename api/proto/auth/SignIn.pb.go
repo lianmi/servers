@@ -217,7 +217,7 @@ func (x *DeviceInfo) GetConnectionId() string {
 	return ""
 }
 
-func (x *DeviceInfo) GetDeviceId() string {
+func (x *DeviceInfo) GetDeviceID() string {
 	if x != nil {
 		return x.DeviceId
 	}

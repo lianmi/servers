@@ -213,8 +213,8 @@ func (mc *MQTTClient) Start() error {
 
 			backendMsg.SetJwtToken(jwtToken)
 			backendMsg.SetUserName(userName)
-			backendMsg.SetDeviceId(string(deviceId))
-			backendMsg.SetTaskId(uint32(taskId))
+			backendMsg.SetDeviceID(string(deviceId))
+			backendMsg.SetTaskID(uint32(taskId))
 			backendMsg.SetBusinessTypeName(businessTypeName)
 			backendMsg.SetBusinessType(uint32(businessType))
 			backendMsg.SetBusinessSubType(uint32(businessSubType))
@@ -338,15 +338,15 @@ func (mc *MQTTClient) Run() {
 			if msg != nil {
 				//向MQTT Broker发送，加入SDK订阅了此topic，则会收到
 				jwtToken := msg.GetJwtToken()
-				topic := mc.o.TopicPrefix + msg.GetDeviceId()
-				// topic := "lianmi/cloud/device/" + msg.GetDeviceId()
+				topic := mc.o.TopicPrefix + msg.GetDeviceID()
+				// topic := "lianmi/cloud/device/" + msg.GetDeviceID()
 				businessTypeStr := fmt.Sprintf("%d", msg.GetBusinessType())
 				businessSubTypeStr := fmt.Sprintf("%d", msg.GetBusinessSubType())
-				taskIdStr := fmt.Sprintf("%d", msg.GetTaskId())
+				taskIdStr := fmt.Sprintf("%d", msg.GetTaskID())
 				codeStr := fmt.Sprintf("%d", msg.GetCode())
 				mc.logger.Info("Consume backend kafak message",
 					zap.String("topic", topic),
-					zap.String("deviceId", msg.GetDeviceId()),
+					zap.String("deviceId", msg.GetDeviceID()),
 					zap.String("businessType", businessTypeStr),
 					zap.String("businessSubType", businessSubTypeStr),
 					zap.String("taskId", taskIdStr),
@@ -414,8 +414,8 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		zap.String("jwtToken:", jwtToken))
 
 	var isAuthed bool = false
-	var isExists bool = false
 	var jwtUserName string
+	var tokenInRedis string
 	var jwtDeviceID string
 	var err error
 
@@ -423,14 +423,14 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		//TODO redis里查找EXISTS('jwtToken', jwtToken)
 		redisConn := mc.redisPool.Get()
 		defer redisConn.Close()
-
-		if isExists, err = redis.Bool(redisConn.Do("GET", jwtToken)); err != nil {
+		deviceKey := fmt.Sprintf("userDeviceID:%s", deviceID)
+		if tokenInRedis, err = redis.String(redisConn.Do("GET", deviceKey)); err != nil {
 			mc.logger.Error("redisConn GET JWT Error", zap.Error(err))
 			isAuthed = false
 		} else {
-			mc.logger.Info("redisConn GET JWT ok ", zap.String("jwtToken", jwtToken))
+			mc.logger.Info("redisConn GET JWT ok ", zap.String("tokenInRedis", tokenInRedis))
 
-			if isExists {
+			if tokenInRedis == jwtToken  {
 				//验证token是否有效
 				claims, err := ParseToken(jwtToken, []byte(common.SecretKey))
 				if nil != err {

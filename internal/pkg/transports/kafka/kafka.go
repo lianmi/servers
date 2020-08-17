@@ -149,7 +149,7 @@ func (kc *KafkaClient) Start() error {
 
 						businessType := backendMessage.GetBusinessType()
 						businessSubType := backendMessage.GetBusinessSubType()
-						taskId := backendMessage.GetTaskId()
+						taskId := backendMessage.GetTaskID()
 						businessTypeName := backendMessage.GetBusinessTypeName()
 						code := backendMessage.GetCode()
 
