@@ -19,6 +19,7 @@ type UsersRepository interface {
 	GetUser(ID uint64) (p *models.User, err error)
 	BlockUser(ID uint64) (p *models.User, err error)
 	Register(user *models.User) (err error)
+	Resetpwd(mobile, password string, user *models.User) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
@@ -127,6 +128,41 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 		s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 		return nil
 	}
+}
+
+//重置密码
+func (s *MysqlUsersRepository) Resetpwd(mobile, password string, user *models.User) error {
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// var user models.User
+	sel := "id"
+	where := models.User{Mobile: mobile}
+	err := s.base.First(&where, &user, sel)
+	//记录不存在错误(RecordNotFound)，返回false
+	if gorm.IsRecordNotFoundError(err) {
+		return err
+	}
+	//其他类型的错误，写下日志，返回false
+	if err != nil {
+		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
+		return err
+	}
+
+	//替换旧密码
+	user.Password = password
+
+	tx := s.base.GetTransaction()
+	if err := tx.Save(user).Error; err != nil {
+		s.logger.Error("更新用户失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
 }
 
 // 获取用户角色

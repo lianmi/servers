@@ -15,6 +15,7 @@ type UsersService interface {
 	GetUser(ID uint64) (*models.User, error)
 	BlockUser(ID uint64) (*models.User, error)
 	Register(user *models.User) (string, error)
+	Resetpwd(mobile, password string, user *models.User) error
 	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
 
@@ -79,10 +80,10 @@ func (s *DefaultUsersService) CheckSmsCode(mobile, smscode string) bool {
 }
 
 func (s *DefaultUsersService) Register(user *models.User) (string, error) {
-    // var username string
-    var err error
+	// var username string
+	var err error
 	if err = s.Repository.Register(user); err != nil {
-		return "",  errors.Wrap(err, "Register user error")
+		return "", errors.Wrap(err, "Register user error")
 	}
 
 	//当成功插入User数据后，user为指针地址，可以获取到ID的值。省去了查数据库拿ID的值步骤
@@ -105,6 +106,15 @@ func (s *DefaultUsersService) Register(user *models.User) (string, error) {
 	return user.Username, nil
 }
 
+func (s *DefaultUsersService) Resetpwd(mobile, password string, user *models.User) error {
+	if err := s.Repository.Resetpwd(mobile, password, user); err != nil {
+		return errors.Wrap(err, "Resetpwd error")
+	}
+
+
+	return  nil
+}
+
 func (s *DefaultUsersService) ChanPassword(oldpassword, smsCode, password string) (string, error) {
 	return "", nil
 }
@@ -116,7 +126,7 @@ func (s *DefaultUsersService) GetUserRoles(username string) []*models.Role {
 
 //CheckUser 身份验证
 func (s *DefaultUsersService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
-	
+
 	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
 }
 

@@ -52,6 +52,7 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
 		r.POST("/register", pc.Register)              //注册用户
+		r.POST("/resetpwd", pc.Resetpwd)              //重置密码
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件

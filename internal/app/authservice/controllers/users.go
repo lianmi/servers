@@ -22,6 +22,13 @@ type UsersController struct {
 	service services.UsersService
 }
 
+type ResetPassword struct {
+	Mobile   string `form:"mobile" json:"mobile" binding:"required"` //注册手机
+	Password string `json:"password" validate:"required"`            //用户密码，md5加密
+	SmsCode  string `json:"smscode" validate:"required"`             //校验码
+
+}
+
 func NewUsersController(logger *zap.Logger, s services.UsersService) *UsersController {
 	return &UsersController{
 		logger:  logger,
@@ -123,6 +130,55 @@ func (pc *UsersController) Register(c *gin.Context) {
 			pc.logger.Error("Register user error", zap.Error(err))
 			code = codes.ERROR
 			RespFail(c, http.StatusBadRequest, code, "Register user error")
+			return
+		}
+		RespData(c, http.StatusOK, code, user.Username)
+	}
+}
+
+// 重置密码
+func (pc *UsersController) Resetpwd(c *gin.Context) {
+	var user models.User
+	var rp ResetPassword
+	code := codes.InvalidParams
+
+	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到ResetPassword变量中，必填字段一定要填
+	if c.BindJSON(&rp) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		//检测手机是数字
+		if !conv.IsDigit(rp.Mobile) {
+			pc.logger.Error("ResetPassword error, Mobile is not digital")
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			return
+		}
+
+		//检测手机是否已经注册， 如果未注册，则返回失败
+		if !pc.service.ExistUserByMobile(rp.Mobile) {
+			pc.logger.Error("ResetPassword error, Mobile is not registered")
+			code = codes.ErrExistMobile
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not registered")
+			return
+		}
+
+		//检测校验码是否正确
+		if !pc.service.CheckSmsCode(rp.Mobile, rp.SmsCode) {
+			pc.logger.Error("ResetPassword error, SmsCode is wrong")
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
+			return
+		}
+
+		if err := pc.service.Resetpwd(rp.Mobile, rp.Password, &user); err == nil {
+			pc.logger.Debug("ResetPassword success", zap.String("userName", user.Username))
+			code = codes.SUCCESS
+		} else {
+			pc.logger.Error("ResetPassword error", zap.Error(err))
+			code = codes.ERROR
+			RespFail(c, http.StatusBadRequest, code, "Reset password error")
 			return
 		}
 		RespData(c, http.StatusOK, code, user.Username)
