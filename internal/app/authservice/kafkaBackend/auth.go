@@ -7,9 +7,8 @@
 2-5 在线设备被踢下线事件 KickedEvent
 2-6 添加从设备 AddSlaveDevice
 2-7 从设备申请授权码 AuthorizeCode
-2-8 主设备删除从设备 未完成
-2-9 从设备被授权登录事件 SlaveDeviceAuthEvent
-2-10 获取所有主从设备  GetAllDevices
+2-8 从设备被授权登录事件 SlaveDeviceAuthEvent
+2-9 获取所有主从设备  GetAllDevices
 */
 package kafkaBackend
 
@@ -223,7 +222,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 }
 
 /*
-2-4 踢出其它在线设备
+2-4 踢出其它在线设备 Kick
 1. 主设备才能踢出从设备, 被踢的从设备收到被踢下线事件
 2. 从设备被踢后，只删除自己的数据，并发出多端登录状态变化事件
 */
@@ -285,7 +284,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 				//移除单个元素 ZREM deviceListKey {设备id}
 				_, err = redisConn.Do("ZREM", deviceListKey, did)
 
-				//删除哈希
+				//删除在线设备哈希表
 				deviceHashKey := fmt.Sprintf("devices:%s:%s", username, did)
 				_, err = redisConn.Do("DEL", deviceHashKey)
 
@@ -427,7 +426,7 @@ COMPLETE:
 }
 
 /*
-2-10 获取所有主从设备
+2-9 获取所有主从设备
 */
 func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 	var err error
