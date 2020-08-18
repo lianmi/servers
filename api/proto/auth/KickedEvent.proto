@@ -19,7 +19,7 @@ enum KickReason {
 //当前版本支持单一设备在线,如发生账号在其他设备登录,则发送该事件将当前设备离线
 //Api类型
 //Event
-message KickEventRsp {
+message KickedEventRsp {
     //消息来源,如果是服务器端踢出,可以忽略该字段
     //是否必填-是
     auth.ClientType clientType = 1;

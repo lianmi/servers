@@ -246,7 +246,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			kickMsg.BuildHeader(backendService, now)
 
 			//构造负载数据
-			resp := &Auth.KickEventRsp{
+			resp := &Auth.KickedEventRsp{
 				ClientType: 0,
 				Reason:     Auth.KickReason_SamePlatformKick,
 				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
@@ -346,7 +346,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			kickMsg.BuildHeader(backendService, now)
 
 			//构造负载数据
-			resp := &Auth.KickEventRsp{
+			resp := &Auth.KickedEventRsp{
 				ClientType: 0,
 				Reason:     Auth.KickReason_SamePlatformKick,
 				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
@@ -765,7 +765,7 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 			kickMsg.BuildHeader(backendService, now)
 
 			//构造负载数据
-			resp := &Auth.KickEventRsp{
+			resp := &Auth.KickedEventRsp{
 				ClientType: 0,
 				Reason:     Auth.KickReason_SamePlatformKick,
 				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
