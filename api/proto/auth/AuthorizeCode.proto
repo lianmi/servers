@@ -7,15 +7,12 @@ option go_package = "github.com/lianmi/servers/api/proto/auth";
 message AuthorizeCodeReq {
     string appKey = 1;
     ClientType clientType = 2;
-    string deviceId = 3;
-    string os = 4;
-    string protocolVersion = 5;
-    string sdkVersion = 6;
+    string os = 3;
+    string protocolVersion = 4;
+    string sdkVersion = 5;
 
 }
 
 message AuthorizeCodeRsp {
     string code = 1;
-    int64 ExpiredAt = 2;
-
 }

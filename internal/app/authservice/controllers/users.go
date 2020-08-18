@@ -77,11 +77,11 @@ func (pc *UsersController) Register(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
-		// roles := jwt.ExtractClaims(c)
-		user.CreatedAt = time.Now() //注意，必须要显式
-
-		user.State = 0                 //预审核
-		user.Avatar = common.PubAvatar //公共头像
+		//初始化一些默认值及当期时间
+		user.CreatedAt = time.Now().Unix() //注意，必须要unix时间戳
+		user.State = 0                     //预审核
+		user.Avatar = common.PubAvatar     //公共头像
+		user.AllowType = 3
 
 		//检测手机是数字
 		if !conv.IsDigit(user.Mobile) {

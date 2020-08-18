@@ -3,10 +3,5 @@ package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
 
 message AddSlaveDeviceReq {
-    string authCode = 1;
-    string os = 2;
-    string consultPublickey = 3;
-    string userData = 4;
-    string protocolVersion = 5;
-    string sdkVersion = 6;
+    int32 authCode = 1;
 }

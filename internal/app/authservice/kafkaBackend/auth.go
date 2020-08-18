@@ -1,0 +1,660 @@
+package kafkaBackend
+
+import (
+	"encoding/hex"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
+	Auth "github.com/lianmi/servers/api/proto/auth"
+	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/randtool"
+	"go.uber.org/zap"
+)
+
+/*
+登出
+1. 主设备登出，需要删除从设备一切数据，踢出从设备
+2. 从设备登出，只删除自己的数据，并刷新此用户的在线设备列表
+*/
+func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
+	kc.logger.Info("HandleSignOut start...", zap.String("DeviceId", msg.GetDeviceID()))
+
+	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+	var err error
+
+	//取出当前旧的设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("SignOut", zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+
+	if isMaster { //如果是主设备
+		//查询出所有主从设备
+		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+		for index, eDeviceID := range deviceIDSlice {
+			kc.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
+			kc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+
+			businessType := 2
+			businessSubType := 5 //KickedEvent
+
+			businessTypeName := "Auth"
+			kafkaTopic := businessTypeName + ".Frontend"
+			backendService := businessTypeName + "Service"
+
+			//向当前主设备及从设备发出踢下线
+			kickMsg := &models.Message{}
+			now := time.Now().UnixNano() / 1e6
+			kickMsg.UpdateID()
+			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
+
+			kickMsg.SetJwtToken(jwtToken)
+			kickMsg.SetUserName(username)
+			kickMsg.SetDeviceID(string(eDeviceID))
+			// kickMsg.SetTaskID(uint32(taskId))
+			kickMsg.SetBusinessTypeName(businessTypeName)
+			kickMsg.SetBusinessType(uint32(businessType))
+			kickMsg.SetBusinessSubType(uint32(businessSubType))
+
+			kickMsg.BuildHeader(backendService, now)
+
+			//构造负载数据
+			resp := &Auth.KickEventRsp{
+				ClientType: 0,
+				Reason:     Auth.KickReason_SamePlatformKick,
+				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
+			}
+			data, _ := proto.Marshal(resp)
+			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+			kickMsg.SetCode(200) //成功的状态码
+
+			//构建数据完成，向dispatcher发送
+			topic := "Auth.Frontend"
+			if err := kc.Produce(topic, kickMsg); err == nil {
+				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			} else {
+				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			}
+
+			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
+
+			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+			_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+
+		}
+
+		//删除所有与之相关的key
+		_, err = redisConn.Do("DEL", deviceListKey) //删除deviceListKey
+
+	} else { //如果是从设备
+
+		//删除token
+		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+		_, err = redisConn.Do("DEL", deviceKey)
+
+		//删除有序集合里的元素
+		//移除单个元素 ZREM deviceListKey {设备id}
+		_, err = redisConn.Do("ZREM", deviceListKey, deviceID)
+
+		//删除哈希
+		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+		_, err = redisConn.Do("DEL", deviceHashKey)
+
+		//多端登录状态变化事件
+		//向其它端发送此从设备离线的事件
+		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+		//查询出当前在线所有主从设备
+		for _, eDeviceID := range deviceIDSliceNew {
+			targetMsg := &models.Message{}
+			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+			now := time.Now().UnixNano() / 1e6
+			targetMsg.UpdateID()
+			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+			targetMsg.SetJwtToken(curJwtToken)
+			targetMsg.SetUserName(username)
+			targetMsg.SetDeviceID(eDeviceID)
+			// kickMsg.SetTaskID(uint32(taskId))
+			targetMsg.SetBusinessTypeName("Auth")
+			targetMsg.SetBusinessType(uint32(2))
+			targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
+
+			targetMsg.BuildHeader("AuthService", now)
+
+			//构造负载数据
+			clients := make([]*Auth.DeviceInfo, 0)
+			deviceInfo := &Auth.DeviceInfo{
+				Username:     username,
+				ConnectionId: "",
+				DeviceId:     deviceID,
+				DeviceIndex:  0,
+				IsMaster:     false,
+				Os:           curOs,
+				ClientType:   Auth.ClientType(curClientType),
+				LogonAt:      curLogonAt,
+			}
+
+			clients = append(clients, deviceInfo)
+
+			resp := &Auth.MultiLoginEventRsp{
+				State:   false,
+				Clients: clients,
+			}
+
+			data, _ := proto.Marshal(resp)
+			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+			targetMsg.SetCode(200) //成功的状态码
+			//构建数据完成，向dispatcher发送
+			topic := "Auth.Frontend"
+			if err := kc.Produce(topic, targetMsg); err == nil {
+				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			} else {
+				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			}
+		}
+
+	}
+
+	//向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	msg.SetCode(200) //成功的状态码
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+
+	kc.logger.Debug("登出成功", zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	return nil
+}
+
+/*
+踢出其它终端
+1. 主设备才能踢出从设备
+2. 从设备被踢后，只删除自己的数据，并发出多端登录状态变化事件
+*/
+func (kc *KafkaClient) HandleKick(msg *models.Message) error {
+	var err error
+	kc.logger.Info("HandleKick start...", zap.String("DeviceId", msg.GetDeviceID()))
+
+	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("Kick",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+
+	var deviceiIDs []string
+	if isMaster { //如果是主设备
+
+		//打开msg里的负载， 获取即将被踢的设备列表
+		body := msg.GetContent()
+		//解包body
+		var kickReq Auth.KickReq
+		if err := proto.Unmarshal(body, &kickReq); err != nil {
+			kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+			return err
+		}
+		deviceiIDs = kickReq.GetDeviceIds()
+
+		for _, did := range deviceiIDs {
+			kc.logger.Debug("To be kick ...", zap.String("DeviceId", did))
+			//删除token
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", did)
+			_, err = redisConn.Do("DEL", deviceKey)
+
+			//删除有序集合里的元素
+			//移除单个元素 ZREM deviceListKey {设备id}
+			_, err = redisConn.Do("ZREM", deviceListKey, did)
+
+			//删除哈希
+			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, did)
+			_, err = redisConn.Do("DEL", deviceHashKey)
+
+			//多端登录状态变化事件
+			//向其它端发送此从设备离线的事件
+			deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+			//查询出当前在线所有主从设备
+			for _, eDeviceID := range deviceIDSliceNew {
+				targetMsg := &models.Message{}
+				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+				kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+				now := time.Now().UnixNano() / 1e6
+				targetMsg.UpdateID()
+				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+				targetMsg.SetJwtToken(curJwtToken)
+				targetMsg.SetUserName(username)
+				targetMsg.SetDeviceID(eDeviceID)
+				// kickMsg.SetTaskID(uint32(taskId))
+				targetMsg.SetBusinessTypeName("Auth")
+				targetMsg.SetBusinessType(uint32(2))
+				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
+
+				targetMsg.BuildHeader("AuthService", now)
+
+				//构造负载数据
+				clients := make([]*Auth.DeviceInfo, 0)
+				deviceInfo := &Auth.DeviceInfo{
+					Username:     username,
+					ConnectionId: "",
+					DeviceId:     did,
+					DeviceIndex:  0,
+					IsMaster:     false,
+					Os:           curOs,
+					ClientType:   Auth.ClientType(curClientType),
+					LogonAt:      curLogonAt,
+				}
+
+				clients = append(clients, deviceInfo)
+
+				resp := &Auth.MultiLoginEventRsp{
+					State:   false,
+					Clients: clients,
+				}
+
+				data, _ := proto.Marshal(resp)
+				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+				targetMsg.SetCode(200) //成功的状态码
+				//构建数据完成，向dispatcher发送
+				topic := "Auth.Frontend"
+				if err := kc.Produce(topic, targetMsg); err == nil {
+					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				} else {
+					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+				}
+			}
+
+		}
+
+	} else {
+		//从设备无权踢出其它设备
+	}
+
+	//响应客户端的OnKick
+
+	kickRsp := &Auth.KickRsp{
+		DeviceIds: deviceiIDs,
+	}
+	msg.SetCode(200) //状态码
+
+	data, _ := proto.Marshal(kickRsp)
+	rspHex := strings.ToUpper(hex.EncodeToString(data))
+
+	kc.logger.Info("Kick Succeed",
+		zap.String("Username:", username),
+		zap.Int("length", len(data)),
+		zap.String("rspHex", rspHex))
+
+	msg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("KickRsp message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send KickRsp message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+2-10 获取所有主从设备
+
+*/
+func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
+	var err error
+	kc.logger.Info("HandleGetAllDevices start...", zap.String("DeviceId", msg.GetDeviceID()))
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetAllDevices",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+	resp := &Auth.GetAllDevicesRsp{}
+	resp.OnlineDevices = make([]*Auth.DeviceInfo, 0)
+	resp.OfflineDevices = make([]*Auth.DeviceInfo, 0)
+
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for index, eDeviceID := range deviceIDSliceNew {
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		now := time.Now().UnixNano() / 1e6
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(eDeviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Auth")
+		targetMsg.SetBusinessType(uint32(2))
+		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
+
+		targetMsg.BuildHeader("AuthService", now)
+
+		curIsMaster := isMaster
+		if eDeviceID != deviceID {
+			curIsMaster = false
+		}
+		//构造负载数据
+		deviceInfo := &Auth.DeviceInfo{
+			Username:     username,
+			ConnectionId: "",
+			DeviceId:     eDeviceID,
+			DeviceIndex:  int32(index + 1), //从1开始
+			IsMaster:     curIsMaster,
+			Os:           curOs,
+			ClientType:   Auth.ClientType(curClientType),
+			LogonAt:      curLogonAt,
+		}
+
+		resp.OnlineDevices = append(resp.OnlineDevices, deviceInfo)
+		data, _ := proto.Marshal(resp)
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+	}
+
+	//响应客户端
+
+	msg.SetCode(200) //状态码
+
+	data, _ := proto.Marshal(resp)
+	rspHex := strings.ToUpper(hex.EncodeToString(data))
+
+	kc.logger.Info("GetAllDevices Succeed",
+		zap.String("Username:", username),
+		zap.Int("length", len(data)),
+		zap.String("rspHex", rspHex))
+
+	msg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("KickRsp message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send KickRsp message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+2-6 添加从设备
+1. 此接口是主设备批准从设备的授权
+*/
+func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
+	var err error
+	kc.logger.Info("HandleAddSlaveDevice start...", zap.String("DeviceId", msg.GetDeviceID()))
+	username := msg.GetUserName() //主设备用户账号
+	// deviceID := msg.GetDeviceID() //主设备设备id
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//打开msg里的负载， 获取里面的参赛
+	body := msg.GetContent()
+
+	//解包body
+	var req Auth.AddSlaveDeviceReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		return err
+	}
+	kc.logger.Debug("AddSlaveDeviceReq",
+		zap.Int32("authCode", req.GetAuthCode()),
+	)
+
+	tempKey := fmt.Sprintf("SlaveTemporaryIdentity:%d", req.GetAuthCode())
+
+	slaveDeviceID, err := redis.String(redisConn.Do("GET", tempKey))
+	if err != nil {
+		kc.logger.Error("Failed to GET slaveDeviceID", zap.Error(err))
+		return err
+	}
+
+	//查询出主设备的手机号
+	userKey := fmt.Sprintf("userData:%s", username)
+	mobile, _ := redis.String(redisConn.Do("HGET", userKey, "mobile"))
+
+	//生成 smscode
+	key := fmt.Sprintf("smscode:%s", mobile)
+
+	_, err = redisConn.Do("DEL", key) //删除key
+
+	//TODO 调用短信接口发送  暂时固定为123456
+
+	err = redisConn.Send("SET", key, "123456") //增加key
+
+	err = redisConn.Send("EXPIRE", key, 300) //设置有效期为300秒
+
+	//一次性写入到Redis
+	if err := redisConn.Flush(); err != nil {
+		kc.logger.Error("写入redis失败", zap.Error(err))
+		return err
+	}
+	kc.logger.Debug("GenerateSmsCode, 写入redis成功")
+
+	//向从设备下发消息
+	//TODO
+	{
+		targetMsg := &models.Message{}
+
+		now := time.Now().UnixNano() / 1e6
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(fmt.Sprintf("%d", req.GetAuthCode()))
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(slaveDeviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Auth")
+		targetMsg.SetBusinessType(uint32(2))
+		targetMsg.SetBusinessSubType(uint32(9)) //SlaveDeviceAuthEvent = 9
+
+		targetMsg.BuildHeader("AuthService", now)
+
+		//构造负载数据
+		resp := &Auth.SlaveDeviceAuthEventRsp{
+			Username : username,
+			Smscode:   "123456",
+		}
+
+		data, _ := proto.Marshal(resp)
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+	}
+
+	msg.SetCode(200) //状态码
+
+	kc.logger.Info("AddSlaveDevice Succeed",
+		zap.String("deviceID:", slaveDeviceID),
+		zap.Int32("Code", req.GetAuthCode()))
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("AddSlaveDevice message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send AddSlaveDevice message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+2-7 从设备申请授权码
+1. 此接口是从设备发起，从设备还没有JWT令牌，因此不能拦截
+*/
+func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
+	var err error
+	kc.logger.Info("HandleAuthorizeCode start...", zap.String("DeviceId", msg.GetDeviceID()))
+
+	deviceID := msg.GetDeviceID()
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//打开msg里的负载， 获取里面的参赛
+	body := msg.GetContent()
+	//解包body
+	var req Auth.AuthorizeCodeReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		return err
+	}
+	kc.logger.Debug("AuthorizeCodeReq",
+		zap.String("AppKey", req.GetAppKey()),
+		zap.Int32("ClientType", int32(req.GetClientType())),
+		zap.String("Os", req.GetOs()),
+		zap.String("ProtocolVersion", req.GetProtocolVersion()),
+		zap.String("SdkVersion", req.GetSdkVersion()),
+	)
+
+	//生成一个 100000 - 999999 之间的随机数
+
+	tId := randtool.RangeRand(100000, 999999)
+
+	tempKey := fmt.Sprintf("SlaveTemporaryIdentity:%d", tId)
+
+	_, err = redisConn.Do("SET", tempKey, deviceID)
+	if err != nil {
+		kc.logger.Error("Failed to SET ", zap.Error(err))
+		return err
+	}
+	kc.logger.Debug("HandleAuthorizeCode",
+		zap.String("tempKey", tempKey),
+		zap.Int64("tId", tId),
+	)
+	//120秒的有效期
+	_, err = redisConn.Do("EXPIRE", tempKey, 120)
+	if err != nil {
+		kc.logger.Error("Failed to EXPIRE ", zap.Error(err))
+		return err
+	}
+
+	resp := &Auth.AuthorizeCodeRsp{
+		Code: fmt.Sprintf("%d", tId),
+	}
+
+	msg.SetCode(200) //状态码
+
+	data, _ := proto.Marshal(resp)
+	rspHex := strings.ToUpper(hex.EncodeToString(data))
+
+	kc.logger.Info("AuthorizeCode Succeed",
+		zap.String("deviceID:", deviceID),
+		zap.String("Code", fmt.Sprintf("%d", tId)),
+		zap.Int("length", len(data)),
+		zap.String("rspHex", rspHex))
+
+	msg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("AuthorizeCode message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send AuthorizeCode message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}

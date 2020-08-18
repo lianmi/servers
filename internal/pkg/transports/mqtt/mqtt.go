@@ -156,8 +156,6 @@ func (mc *MQTTClient) Start() error {
 	mc.client = paho.NewClient(paho.ClientConfig{
 		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 			topic := m.Topic
-			//在屏幕上输出chat消息
-			// log.Printf("%s : %s", m.Properties.User["deviceId"], string(m.Payload))
 			jwtToken := string(m.Properties.CorrelationData)
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
@@ -174,6 +172,11 @@ func (mc *MQTTClient) Start() error {
 
 			//从设备申请授权码，此时还没有令牌
 			if businessType == 2 && businessSubType == 7 {
+				mc.logger.Debug("从设备申请授权码，此时还没有令牌")
+
+				//生成临时的身份标识
+				// mc.CreateSlaveTemporaryIdentity(deviceId, businessType, businessSubType, taskId)
+				// return
 
 			} else {
 				//是否需要有效授权才能传递到后端
@@ -227,41 +230,25 @@ func (mc *MQTTClient) Start() error {
 
 			//分发到后端的各自的服务器
 			switch Global.BusinessType(businessType) {
-			case Global.BusinessType_Auth: //从设备鉴权授权模块
-				mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
-				mc.logger.Info("message has send to KafkaChan", zap.String("kafkaTopic", kafkaTopic), zap.String("backendService", backendService))
-
-			case Global.BusinessType_Users:
-				//TODO
-				mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
-				mc.logger.Info("message has send to KafkaChan", zap.String("kafkaTopic", kafkaTopic), zap.String("backendService", backendService))
-
-			case Global.BusinessType_Friends:
-				//TODO
-
-			case Global.BusinessType_Group:
-				//TODO
-
-			case Global.BusinessType_Chat:
-				//TODO
-
-			case Global.BusinessType_Sync: //同步服务程序
-				//TODO
-
-			case Global.BusinessType_Order: //订单服务 程序
-				//TODO
-
-			case Global.BusinessType_Wallet: //钱包服务 程序
-				//TODO
+			case Global.BusinessType_Auth,
+				Global.BusinessType_User,
+				Global.BusinessType_Friends,
+				Global.BusinessType_Group,
+				Global.BusinessType_Chat,
+				Global.BusinessType_Sync,
+				Global.BusinessType_Order,
+				Global.BusinessType_Wallet:
 
 			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
-				//TODO
 
 			default: //default case
 				mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
 				return
 			}
-
+			mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
+			mc.logger.Info("message has send to KafkaChan",
+				zap.String("kafkaTopic", kafkaTopic),
+				zap.String("backendService", backendService))
 		}),
 		Conn: conn,
 	})

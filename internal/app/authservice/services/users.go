@@ -90,7 +90,7 @@ func (s *DefaultUsersService) Register(user *models.User) (string, error) {
 	role.UserID = user.ID
 	role.UserName = user.Username
 	role.Value = ""
-	if user.UserType == pb.UserType_Ut_Operator { //10086
+	if user.GetUserType() == pb.UserType_Ut_Operator { //10086
 		role.Value = "admin"
 	}
 	//同时增加用户类型角色

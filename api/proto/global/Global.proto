@@ -6,7 +6,7 @@ option go_package = "github.com/lianmi/servers/api/proto/global";
 //业务模块定义
 enum BusinessType {
     Bt_undefined     = 0;    //proto3必须从0开始
-    Users            = 1;    //用户模块
+    User             = 1;    //用户模块
     Auth             = 2;    //鉴权授权模块
     Friends          = 3;    //好友模块
     Group            = 4;    //群组模块

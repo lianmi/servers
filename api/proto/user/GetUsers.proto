@@ -27,6 +27,14 @@ enum UserState {
 
 }
 
+//获取用户加好友的选项,3是默认
+enum AllowType {
+    UAT_Unknow = 0;
+    UAT_AllowAny = 1;
+    UAT_DenyAny = 2;
+    UAT_NeedConfirm = 3; 
+
+}
 //根据用户ID批量获取用户信息,登录后拉取其他用户资料,添加好友查询好友资料
 message GetUsersReq {
     repeated string usernames = 1;
