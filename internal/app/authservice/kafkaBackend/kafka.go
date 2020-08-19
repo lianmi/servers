@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/randtool"
 
@@ -106,6 +107,8 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 6)] = kClient.HandleAddSlaveDevice //Kick处理程序
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 7)] = kClient.HandleAuthorizeCode  //2-7 从设备申请授权码
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 10)] = kClient.HandleGetAllDevices //向服务端查询所有主从设备列表
+
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(6, 1)] = kClient.HandleSync //6-1 发起同步请求
 
 	return kClient
 }

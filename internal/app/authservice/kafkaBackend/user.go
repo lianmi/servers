@@ -2,8 +2,8 @@
 本文件是处理业务号是用户模块，分别有
 1-1 获取用户资料 GetUsers
 1-2 修改用户资料 UpdateUserProfile
-1-3 同步用户资料事件 未完成
-1-4 同步其它端修改的用户资料 未完成
+1-3 同步用户资料事件 SyncUserProfileEvent
+1-4 同步其它端修改的用户资料 SyncUpdateProfileEvent 未完成
 1-5 打标签 MarkTag
 1-6 同步其它端标签更改事件 SyncMarkTagEvent
 */
@@ -27,7 +27,6 @@ import (
 1. 先从redis里读取 哈希表 userData:{username} 里的元素，如果无法读取，则直接从MySQL里读取
 2. 注意，更新资料后，也需要同步更新 哈希表 userData:{username}
 哈希表 userData:{username} 的元素就是User的各个字段
-LegalIdentityCard //法人身份证不读取
 */
 func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 	var err error
@@ -105,20 +104,20 @@ func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 				}
 			}
 			user := &User.User{
-				Username:     userData.Username,
-				Nick:         userData.Nick,
-				Gender:       userData.GetGender(),
-				Avatar:       userData.Avatar,
-				Label:        userData.Label,
-				Introductory: userData.Introductory,
-				Province:     userData.Province,
-				City:         userData.City,
-				County:       userData.County,
-				Street:       userData.Street,
-				Address:      userData.Address,
-				Branchesname: userData.Branchesname,
-				LegalPerson:  userData.LegalPerson,
-				// LegalIdentityCard:  userData.LegalIdentityCard,
+				Username:          userData.Username,
+				Nick:              userData.Nick,
+				Gender:            userData.GetGender(),
+				Avatar:            userData.Avatar,
+				Label:             userData.Label,
+				Introductory:      userData.Introductory,
+				Province:          userData.Province,
+				City:              userData.City,
+				County:            userData.County,
+				Street:            userData.Street,
+				Address:           userData.Address,
+				Branchesname:      userData.Branchesname,
+				LegalPerson:       userData.LegalPerson,
+				LegalIdentityCard: userData.LegalIdentityCard,
 			}
 
 			getUsersResp.Users = append(getUsersResp.Users, user)
@@ -158,6 +157,11 @@ COMPLETE:
 
 }
 
+/*
+1-2 更新用户资料
+将触发 1-4 同步其它端修改的用户资料
+
+*/
 func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
 	var errorMsg string
@@ -287,6 +291,86 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			}
 		}
 
+		if province, ok := req.Fields[8]; ok {
+			pUser.Province = province
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户province失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户province失败[province=%s]", province)
+				goto COMPLETE
+			}
+		}
+
+		if city, ok := req.Fields[9]; ok {
+			pUser.City = city
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户city失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户city失败[city=%s]", city)
+				goto COMPLETE
+			}
+		}
+
+		if county, ok := req.Fields[10]; ok {
+			pUser.County = county
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户county失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户county失败[county=%s]", county)
+				goto COMPLETE
+			}
+		}
+
+		if street, ok := req.Fields[10]; ok {
+			pUser.Street = street
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户street失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户street失败[street=%s]", street)
+				goto COMPLETE
+			}
+		}
+
+		if address, ok := req.Fields[10]; ok {
+			pUser.Address = address
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户address失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户address失败[address=%s]", address)
+				goto COMPLETE
+			}
+		}
+
+		if branches_name, ok := req.Fields[11]; ok {
+			pUser.Branchesname = branches_name
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户Branchesname失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户Branchesname失败[Branchesname=%s]", branches_name)
+				goto COMPLETE
+			}
+		}
+
+		if legal_person, ok := req.Fields[11]; ok {
+			pUser.LegalPerson = legal_person
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户LegalPerson失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户LegalPerson失败[LegalPerson=%s]", legal_person)
+				goto COMPLETE
+			}
+		}
+
+		if legal_identity_card, ok := req.Fields[11]; ok {
+			pUser.LegalPerson = legal_identity_card
+			if err := tx.Save(pUser).Error; err != nil {
+				kc.logger.Error("更新用户LegalIdentityCard失败", zap.Error(err))
+				tx.Rollback()
+				errorMsg = fmt.Sprintf("更新用户LegalIdentityCard失败[LegalIdentityCard=%s]", legal_identity_card)
+				goto COMPLETE
+			}
+		}
+
 		//修改UpdateAt
 		pUser.UpdatedAt = time.Now().Unix()
 		if err := tx.Save(pUser).Error; err != nil {
@@ -314,6 +398,10 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 		} else {
 			kc.logger.Debug("刷新Redis的用户数据成功", zap.String("username", username))
 		}
+
+		//更新redis的sync:{用户账号} myInfoAt 时间戳
+		myInfoAtKey := fmt.Sprintf("sync:%s", username)
+		redisConn.Do("HSET", myInfoAtKey, "myInfoAt", time.Now().Unix())
 
 		rsp := &User.UpdateProfileRsp{
 			TimeTag: uint64(time.Now().UnixNano() / 1e6),
@@ -346,6 +434,91 @@ COMPLETE:
 		kc.logger.Error("Failed to send UpdateProfileRsp message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
+	return nil
+
+}
+
+/*
+1-4 同步其它端修改的用户资料
+*/
+func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userData *models.User) error {
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//构造SyncUpdateProfileEventRsp
+	username := userData.Username
+
+	rsp := &User.SyncUpdateProfileEventRsp{
+		Fields: make(map[int32]string),
+	}
+
+	rsp.Fields[1] = userData.Nick
+	rsp.Fields[2] = User.Gender_name[int32(userData.GetGender())]
+	rsp.Fields[3] = userData.Avatar
+	rsp.Fields[4] = userData.Label
+	rsp.Fields[5] = userData.Email
+	rsp.Fields[6] = userData.Extend
+	rsp.Fields[7] = User.AllowType_name[int32(userData.GetAllowType())]
+	rsp.Fields[8] = userData.Province
+	rsp.Fields[9] = userData.City
+	rsp.Fields[10] = userData.County
+	rsp.Fields[11] = userData.Street
+	rsp.Fields[12] = userData.Address
+	rsp.Fields[13] = userData.Branchesname
+	rsp.Fields[14] = userData.LegalPerson
+	rsp.Fields[15] = userData.LegalIdentityCard
+
+	data, _ := proto.Marshal(rsp)
+
+	//向其它端响应SyncUpdateProfileEvent事件
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		//如果设备id是当前操作的，则不发送此事件
+		if sourceDeviceID == eDeviceID {
+			continue
+		}
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(curDeviceKey)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessType(uint32(1))
+		targetMsg.SetBusinessSubType(uint32(4)) //SyncUpdateProfileEvent = 4
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("Sync myInfoAt Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", curDeviceKey),
+			zap.Int64("Now", time.Now().Unix()))
+
+	}
+
 	return nil
 
 }
@@ -455,12 +628,17 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 			//查询出当前在线所有主从设备
 			for _, eDeviceID := range deviceIDSliceNew {
+
+				//自己不发, 其他端才发
+				if deviceID == eDeviceID {
+					continue
+				}
+
 				targetMsg := &models.Message{}
 				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 				kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
-				now := time.Now().UnixNano() / 1e6
 				targetMsg.UpdateID()
 				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
@@ -473,7 +651,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(2))
 				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-				targetMsg.BuildHeader("AuthService", now)
+				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 				//构造负载数据
 				resp := &User.SyncMarkTagEventRsp{

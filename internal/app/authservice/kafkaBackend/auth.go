@@ -146,6 +146,10 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		//查询出当前在线所有主从设备
 		for _, eDeviceID := range deviceIDSliceNew {
+			if deviceID == eDeviceID {
+				continue
+			}
+
 			targetMsg := &models.Message{}
 			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
@@ -329,6 +333,9 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 				deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 				//查询出当前在线所有主从设备
 				for _, eDeviceID := range deviceIDSliceNew {
+					if deviceID == eDeviceID {
+						continue
+					}
 					targetMsg := &models.Message{}
 					curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 					curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
@@ -464,7 +471,7 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
-	for index, eDeviceID := range deviceIDSliceNew {
+	for index, eDeviceID := range deviceIDSliceNew {		
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))

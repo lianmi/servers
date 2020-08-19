@@ -124,10 +124,15 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 	if err := s.base.Create(user); err != nil {
 		s.logger.Error("注册用户失败")
 		return err
-	} else {
-		s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
-		return nil
 	}
+
+	//创建redis的sync:{用户账号} myInfoAt 时间戳
+	myInfoAtKey := fmt.Sprintf("sync:%s", user.Username)
+	redisConn.Do("HSET", myInfoAtKey, "myInfoAt", time.Now().Unix())
+
+	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
+	return nil
+
 }
 
 //重置密码
@@ -257,47 +262,9 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-			businessType := 2
-			businessSubType := 5 //KickedEvent
-
-			businessTypeName := "Auth"
-			kafkaTopic := businessTypeName + ".Frontend"
-			backendService := businessTypeName + "Service"
-
 			//向当前主设备及从设备发出踢下线
-			kickMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6
-			kickMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
-
-			kickMsg.SetJwtToken(jwtToken)
-			kickMsg.SetUserName(username)
-			kickMsg.SetDeviceID(string(eDeviceID))
-			// kickMsg.SetTaskID(uint32(taskId))
-			kickMsg.SetBusinessTypeName(businessTypeName)
-			kickMsg.SetBusinessType(uint32(businessType))
-			kickMsg.SetBusinessSubType(uint32(businessSubType))
-
-			kickMsg.BuildHeader(backendService, now)
-
-			//构造负载数据
-			resp := &Auth.KickedEventRsp{
-				ClientType: 0,
-				Reason:     Auth.KickReason_SamePlatformKick,
-				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
-			}
-			data, _ := proto.Marshal(resp)
-			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			kickMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			if err := s.kafka.Produce(topic, kickMsg); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+				s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
 			}
 
 			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
@@ -342,189 +309,44 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		curSlaceDeviceSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, clientType, clientType))
 
 		if len(curSlaceDeviceSlice) > 0 {
-			kickMsg := &models.Message{}
 			index := 0
-			eDeviceID := curSlaceDeviceSlice[index]
+			oldDeviceID := curSlaceDeviceSlice[index]
 
-			s.logger.Debug("查询出从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+			s.logger.Debug("查询出之前的旧的在线从设备", zap.Int("index", index), zap.String("oldDeviceID", oldDeviceID))
+			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", oldDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
 			//取出当前旧的设备的os， clientType， logonAt
-			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
 			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
 			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-			businessType := 2
-			businessSubType := 5 //KickedEvent
-
-			businessTypeName := "Auth"
-			kafkaTopic := businessTypeName + ".Frontend"
-			backendService := businessTypeName + "Service"
-
 			//当前从设备踢下线
-
-			now := time.Now().UnixNano() / 1e6
-			kickMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
-
-			kickMsg.SetJwtToken(jwtToken)
-			kickMsg.SetUserName(username)
-			kickMsg.SetDeviceID(string(eDeviceID))
-			// kickMsg.SetTaskID(uint32(taskId))
-			kickMsg.SetBusinessTypeName(businessTypeName)
-			kickMsg.SetBusinessType(uint32(businessType))
-			kickMsg.SetBusinessSubType(uint32(businessSubType))
-
-			kickMsg.BuildHeader(backendService, now)
-
-			//构造负载数据
-			resp := &Auth.KickedEventRsp{
-				ClientType: 0,
-				Reason:     Auth.KickReason_SamePlatformKick,
-				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
-			}
-			data, _ := proto.Marshal(resp)
-			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			kickMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			if err := s.kafka.Produce(topic, kickMsg); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			if err := s.SendKickedMsgToDevice(jwtToken, username, oldDeviceID); err != nil {
+				s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
 			}
 
 			//移除单个元素 ZREM deviceListKey {设备id}
-			_, err = redisConn.Do("ZREM", deviceListKey, eDeviceID)
+			_, err = redisConn.Do("ZREM", deviceListKey, oldDeviceID)
 
 			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
 
-			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
 			_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
 
 			//向其它端发送此从设备离线的事件
-			deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-			//查询出当前在线所有主从设备
-			for _, eDeviceID := range deviceIDSliceNew {
-				targetMsg := &models.Message{}
-				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-				s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-				now := time.Now().UnixNano() / 1e6
-				targetMsg.UpdateID()
-				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-				targetMsg.SetJwtToken(curJwtToken)
-				targetMsg.SetUserName(username)
-				targetMsg.SetDeviceID(eDeviceID)
-				// kickMsg.SetTaskID(uint32(taskId))
-				targetMsg.SetBusinessTypeName("Auth")
-				targetMsg.SetBusinessType(uint32(2))
-				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
-
-				targetMsg.BuildHeader("AuthService", now)
-
-				//构造负载数据
-				clients := make([]*Auth.DeviceInfo, 0)
-				deviceInfo := &Auth.DeviceInfo{
-					Username:     username,
-					ConnectionId: "",
-					DeviceId:     deviceID,
-					DeviceIndex:  0,
-					IsMaster:     false,
-					Os:           curOs,
-					ClientType:   Auth.ClientType(curClientType),
-					LogonAt:      curLogonAt,
-				}
-
-				clients = append(clients, deviceInfo)
-
-				resp := &Auth.MultiLoginEventRsp{
-					State:   false,
-					Clients: clients,
-				}
-
-				data, _ := proto.Marshal(resp)
-				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-				targetMsg.SetCode(200) //成功的状态码
-				//构建数据完成，向dispatcher发送
-				topic := "Auth.Frontend"
-				if err := s.kafka.Produce(topic, targetMsg); err == nil {
-					s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-				} else {
-					s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-				}
+			if err := s.SendMultiLoginEventToOtherDevices(false, username, oldDeviceID, curOs, curClientType, curLogonAt); err != nil {
+				s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
 			}
 
 		}
 
 		//向其它端发送此从设备上线的事件
 		logonAt := uint64(time.Now().UnixNano() / 1e6)
-
-		//查询出在线所有主从设备
-		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-		for index, eDeviceID := range deviceIDSliceNew {
-			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-			now := time.Now().UnixNano() / 1e6
-			targetMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(curJwtToken)
-			targetMsg.SetUserName(username)
-			targetMsg.SetDeviceID(eDeviceID) //其它端的设备id
-			// kickMsg.SetTaskID(uint32(taskId))
-			targetMsg.SetBusinessTypeName("Auth")
-			targetMsg.SetBusinessType(uint32(2))
-			targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
-
-			targetMsg.BuildHeader("AuthService", now)
-
-			//构造负载数据
-			clients := make([]*Auth.DeviceInfo, 0)
-			deviceInfo := &Auth.DeviceInfo{
-				Username:     username,
-				ConnectionId: "",
-				DeviceId:     deviceID,
-				DeviceIndex:  int32(index),
-				IsMaster:     false,
-				Os:           os,
-				ClientType:   Auth.ClientType(clientType),
-				LogonAt:      logonAt,
-			}
-
-			clients = append(clients, deviceInfo)
-
-			resp := &Auth.MultiLoginEventRsp{
-				State:   true,
-				Clients: clients,
-			}
-
-			data, _ := proto.Marshal(resp)
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			if err := s.kafka.Produce(topic, targetMsg); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
+		if err := s.SendMultiLoginEventToOtherDevices(true, username, deviceID, os, clientType, logonAt); err != nil {
+			s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
 		}
 
 		//增加新的从设备
@@ -558,6 +380,71 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 	s.logger.Debug("当前所有主从设备数量", zap.Int("count", count))
 
 	return true
+}
+
+//向其它端发送此从设备MultiLoginEvent事件
+func (s *MysqlUsersRepository) SendMultiLoginEventToOtherDevices(isOnline bool, username, deviceID, curOs string, curClientType int, curLogonAt uint64) (err error) {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(eDeviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Auth")
+		targetMsg.SetBusinessType(uint32(2))
+		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		//构造负载数据
+		clients := make([]*Auth.DeviceInfo, 0)
+		deviceInfo := &Auth.DeviceInfo{
+			Username:     username,
+			ConnectionId: "",
+			DeviceId:     deviceID,
+			DeviceIndex:  0,
+			IsMaster:     isOnline,
+			Os:           curOs,
+			ClientType:   Auth.ClientType(curClientType),
+			LogonAt:      curLogonAt,
+		}
+
+		clients = append(clients, deviceInfo)
+
+		resp := &Auth.MultiLoginEventRsp{
+			State:   false,
+			Clients: clients,
+		}
+
+		data, _ := proto.Marshal(resp)
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := s.kafka.Produce(topic, targetMsg); err == nil {
+			s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+	}
+
+	return nil
 }
 
 func (s *MysqlUsersRepository) AddRole(role *models.Role) (err error) {
@@ -776,47 +663,9 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-			businessType := 2
-			businessSubType := 5 //KickedEvent
-
-			businessTypeName := "Auth"
-			kafkaTopic := businessTypeName + ".Frontend"
-			backendService := businessTypeName + "Service"
-
 			//向当前主设备及从设备发出踢下线
-			kickMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6
-			kickMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
-
-			kickMsg.SetJwtToken(jwtToken)
-			kickMsg.SetUserName(username)
-			kickMsg.SetDeviceID(string(eDeviceID))
-			// kickMsg.SetTaskID(uint32(taskId))
-			kickMsg.SetBusinessTypeName(businessTypeName)
-			kickMsg.SetBusinessType(uint32(businessType))
-			kickMsg.SetBusinessSubType(uint32(businessSubType))
-
-			kickMsg.BuildHeader(backendService, now)
-
-			//构造负载数据
-			resp := &Auth.KickedEventRsp{
-				ClientType: 0,
-				Reason:     Auth.KickReason_SamePlatformKick,
-				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
-			}
-			data, _ := proto.Marshal(resp)
-			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			kickMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			if err := s.kafka.Produce(topic, kickMsg); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+				s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
 			}
 
 			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
@@ -845,67 +694,55 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 
 		//多端登录状态变化事件
 		//向其它端发送此从设备离线的事件
-		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-		//查询出当前在线所有主从设备
-		for _, eDeviceID := range deviceIDSliceNew {
-			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-			now := time.Now().UnixNano() / 1e6
-			targetMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(curJwtToken)
-			targetMsg.SetUserName(username)
-			targetMsg.SetDeviceID(eDeviceID)
-			// kickMsg.SetTaskID(uint32(taskId))
-			targetMsg.SetBusinessTypeName("Auth")
-			targetMsg.SetBusinessType(uint32(2))
-			targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
-
-			targetMsg.BuildHeader("AuthService", now)
-
-			//构造负载数据
-			clients := make([]*Auth.DeviceInfo, 0)
-			deviceInfo := &Auth.DeviceInfo{
-				Username:     username,
-				ConnectionId: "",
-				DeviceId:     deviceID,
-				DeviceIndex:  0,
-				IsMaster:     false,
-				Os:           curOs,
-				ClientType:   Auth.ClientType(curClientType),
-				LogonAt:      curLogonAt,
-			}
-
-			clients = append(clients, deviceInfo)
-
-			resp := &Auth.MultiLoginEventRsp{
-				State:   false,
-				Clients: clients,
-			}
-
-			data, _ := proto.Marshal(resp)
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			if err := s.kafka.Produce(topic, targetMsg); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
+		if err := s.SendMultiLoginEventToOtherDevices(false, username, deviceID, curOs, curClientType, curLogonAt); err != nil {
+			s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
 		}
-
 	}
 
 	s.logger.Debug("SignOut end")
 	_ = err
 	return true
+}
+
+func (s *MysqlUsersRepository) SendKickedMsgToDevice(jwtToken, username, eDeviceID string) error {
+	businessType := 2
+	businessSubType := 5 //KickedEvent
+
+	kickMsg := &models.Message{}
+	kickMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	kickMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+	kickMsg.SetJwtToken(jwtToken)
+	kickMsg.SetUserName(username)
+	kickMsg.SetDeviceID(string(eDeviceID))
+	// kickMsg.SetTaskID(uint32(taskId))
+	kickMsg.SetBusinessTypeName("Auth")
+	kickMsg.SetBusinessType(uint32(businessType))
+	kickMsg.SetBusinessSubType(uint32(businessSubType))
+
+	kickMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+	//构造负载数据
+	resp := &Auth.KickedEventRsp{
+		ClientType: 0,
+		Reason:     Auth.KickReason_SamePlatformKick,
+		TimeTag:    uint64(time.Now().UnixNano() / 1e6),
+	}
+	data, _ := proto.Marshal(resp)
+	kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	kickMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Auth.Frontend"
+	if err := s.kafka.Produce(topic, kickMsg); err == nil {
+		s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		return err
+	} else {
+		s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+	}
+	return nil
 }
 
 func (s *MysqlUsersRepository) ExistsTokenInRedis(deviceID, token string) bool {
