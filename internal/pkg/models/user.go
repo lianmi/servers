@@ -7,7 +7,13 @@ import (
 
 	pb "github.com/lianmi/servers/api/proto/user"
 )
+/*
+AllowAny(1)<允许任何人添加好友>
 
+DenyAny(2)<拒绝任何人添加好友>
+
+NeedConfirm(3)<添加好友需要验证,默认值>
+*/
 //定义用户的数据结构
 type User struct {
 	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`                         //自动递增id

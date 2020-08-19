@@ -8,7 +8,7 @@ option go_package = "github.com/lianmi/servers/api/proto/friends";
 message DeleteFriendReq {
     //好友账号
     //是否必填-是
-    string User = 1;
+    string Username = 1;
 }
 //
 //该接口处理好友删除相关操作-响应

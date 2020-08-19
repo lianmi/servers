@@ -14,6 +14,6 @@ type Contact struct {
 	Source       string `form:"source" json:"source" binding:"required"` //好友来源
 	Extend       string `form:"extend" json:"extend,omitempty" `
 	LatestChatAt uint64 `form:"latest_chat_at" json:"latest_chat_at,omitempty""` //最后一次聊天时间(unix)
-	CreatedAt    int64 `form:"created_at" json:"created_at,omitempty"`
-	UpdatedAt    int64 `form:"updated_at" json:"updated_at,omitempty"`
+	CreatedAt    int64  `form:"created_at" json:"created_at,omitempty"`
+	UpdatedAt    int64  `form:"updated_at" json:"updated_at,omitempty"`
 }

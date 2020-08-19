@@ -42,10 +42,11 @@ func New(o *Options) (*gorm.DB, error) {
 
 	//自动迁移仅仅会创建表，缺少列和索引，并且不会改变现有列的类型或删除未使用的列以保护数据
 	db.AutoMigrate(&models.User{})    // 用户表
-	// db.AutoMigrate(&models.Device{})  //  设备表
-	db.AutoMigrate(&models.Contact{}) //  联系人表
-	db.AutoMigrate(&models.Role{})    //  权限表
+	db.AutoMigrate(&models.Token{})   // 令牌表
+	db.AutoMigrate(&models.Contact{}) // 联系人表
+	db.AutoMigrate(&models.Role{})    // 权限表
 	db.AutoMigrate(&models.Tag{})     // 标签表
+	db.AutoMigrate(&models.Friend{})  // 好友表
 
 	return db, nil
 }

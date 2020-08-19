@@ -15,10 +15,22 @@ enum OptType {
     //对方拒绝添加好友
     Fr_RejectFriendApply = 3;
 }
-//
+
+//操作状态枚举
+enum OpStatusType {
+    //无效
+    Ost_Undefined = 0;
+    //添加好友成功
+    Ost_ApplySucceed= 1;
+    //等待对方同意加你为好友
+    Ost_WaitConfirm = 2;
+    //对方设置了拒绝任何人添加好友
+    Ost_RejectFriendApply = 3;
+}
+
 //处理好友请求相关操作-请求
 message FriendRequestReq {
-    //用户ID
+    //对方用户ID
     //是否必填-是
     string username = 1;
     //备注
@@ -32,9 +44,15 @@ message FriendRequestReq {
     //是否必填-是
     OptType type = 4;
 }
-//
+
 //处理好友请求相关操作-响应
 //只包含状态码code，无内容载体
 message FriendRequestRsp {
+    //对方用户ID
+    //是否必填-是
+    string username = 1;
 
+    //操作状态
+    //是否必填-是
+    OpStatusType status = 2;
 }
