@@ -225,7 +225,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 
 	where := models.User{Username: username}
 	var user models.User
-	if err := s.base.First(where, &user); err != nil {
+	if err := s.base.First(&where, &user); err != nil {
 		s.logger.Error("用户账号不存在")
 		return false
 	}

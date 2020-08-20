@@ -227,8 +227,107 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	return nil
 }
 
+//处理 friendUsersAt
+func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	friendUsersAt := req.GetFriendUsersAt()
+	friendUsersAtKey := fmt.Sprintf("sync:%s", username)
+
+	cur_friendUsersAt, _ := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_friendUsersAt > friendUsersAt {
+		//构造SyncFriendsEventRsp
+		rsp := &Friends.SyncFriendUsersEventRsp{
+			TimeTag: uint64(time.Now().UnixNano() / 1e6),
+			UInfos:  make([]*User.User, 0),
+		}
+
+		//从redis里读取username的好友列表
+		fUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
+		for _, fuser := range fUsers {
+
+			fUserData := new(models.User)
+			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("userData:%s", fuser))); err == nil {
+				if err := redis.ScanStruct(result, fUserData); err != nil {
+
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+
+				} else {
+					rsp.UInfos = append(rsp.UInfos, &User.User{
+						Username:          username,
+						Gender:            User.Gender(fUserData.Gender),
+						Nick:              fUserData.Nick,
+						Avatar:            fUserData.Avatar,
+						Label:             fUserData.Label,
+						Mobile:            fUserData.Mobile,
+						Email:             fUserData.Email,
+						UserType:          User.UserType(fUserData.UserType),
+						Extend:            fUserData.Extend,
+						ContactPerson:     fUserData.ContactPerson,
+						Introductory:      fUserData.Introductory,
+						Province:          fUserData.Province,
+						City:              fUserData.City,
+						County:            fUserData.County,
+						Street:            fUserData.Street,
+						Address:           fUserData.Address,
+						Branchesname:      fUserData.Branchesname,
+						LegalPerson:       fUserData.LegalPerson,
+						LegalIdentityCard: fUserData.LegalIdentityCard,
+					})
+				}
+			}
+
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessType(uint32(3))
+		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("Sync FriendUsers Event Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().Unix()))
+	}
+	//完成
+	ch <- 1
+
+	return nil
+}
+
 /*
-注意： syncCount 是所有需要同步的数量，最终是6个，目前只实现了2个
+注意： syncCount 是所有需要同步的数量，最终是6个，目前只实现了3个
 */
 func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	var err error
@@ -274,7 +373,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		//异步
 		go func() {
 
-			syncCount := 2 //最终是6, 每增加一个处理，就加1
+			syncCount := 3 //最终是6, 每增加一个处理，就加1
 			chs := make([]chan int, syncCount)
 
 			i := 0
@@ -287,16 +386,14 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			i++
 			chs[i] = make(chan int)
 			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("friendsAt is done")
+				kc.logger.Debug("friendUsersAt is done")
 			}
 
-			/*
-				i++
-				chs[i] = make(chan int)
-				if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[i]); err == nil {
-					kc.logger.Debug("myInfoAt is done")
-				}
-			*/
+			i++
+			chs[i] = make(chan int)
+			if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[i]); err == nil {
+				kc.logger.Debug("myInfoAt is done")
+			}
 
 			for _, ch := range chs {
 				<-ch

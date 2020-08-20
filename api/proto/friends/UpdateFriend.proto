@@ -23,5 +23,5 @@ message UpdateFriendReq {
 message UpdateFriendRsp {
     //最后更新时间戳
     //是否必填-是
-    fixed64 timeAt = 1;
+    fixed64 timeTag = 1;
 }

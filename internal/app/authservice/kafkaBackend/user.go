@@ -400,8 +400,21 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 		}
 
 		//更新redis的sync:{用户账号} myInfoAt 时间戳
-		myInfoAtKey := fmt.Sprintf("sync:%s", username)
-		redisConn.Do("HSET", myInfoAtKey, "myInfoAt", time.Now().Unix())
+		redisConn.Do("HSET",
+			fmt.Sprintf("sync:%s", username),
+			"myInfoAt",
+			time.Now().Unix())
+
+		//更新redis的sync:{用户账号} friendUsersAt 时间戳 让所有与此用户为好友的用户触发更新用户资料
+		//从redis里读取username的好友列表
+		friends, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
+		for _, friendUsername := range friends {
+
+			redisConn.Do("HSET",
+				fmt.Sprintf("sync:%s", friendUsername),
+				"friendUsersAt",
+				time.Now().Unix())
+		}
 
 		rsp := &User.UpdateProfileRsp{
 			TimeTag: uint64(time.Now().UnixNano() / 1e6),
@@ -585,7 +598,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 
 			//如果已经存在，则先删除，确保不会重复增加
 			where := models.Tag{UserID: pUser.ID, TagType: int(req.GetType())}
-			db := kc.db.Where(where).Delete(models.Tag{})
+			db := kc.db.Where(&where).Delete(models.Tag{})
 			err = db.Error
 			if err != nil {
 				kc.logger.Error("删除实体出错", zap.Error(err))
@@ -611,7 +624,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 
 		} else { //删除
 			where := models.Tag{UserID: pUser.ID, TagType: int(req.GetType())}
-			db := kc.db.Where(where).Delete(models.Tag{})
+			db := kc.db.Where(&where).Delete(models.Tag{})
 			err = db.Error
 			if err != nil {
 				kc.logger.Error("删除实体出错", zap.Error(err))
