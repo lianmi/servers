@@ -63,7 +63,7 @@ message Friend {
 
 
 message SyncFriendsEventRsp {
-    fixed64 timeAt = 1;
+    fixed64 timeTag = 1;
     repeated Friend friends = 2;
     repeated Friend removedAccounts = 3;
 

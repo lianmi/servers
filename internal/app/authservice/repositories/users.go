@@ -8,6 +8,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	pb "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -84,6 +85,8 @@ func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.P
 func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
 	p = new(models.User)
 	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
+		//记录找不到也会触发错误
+		// fmt.Println("GetUser first error:", err.Error())
 		return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
 	}
 	s.logger.Debug("GetUser run...")
@@ -119,7 +122,11 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 		return err
 	}
 
-	user.Username = fmt.Sprintf("id%d", newIndex)
+	if user.GetUserType() == pb.UserType_Ut_Operator { //10086
+		user.Username = fmt.Sprintf("admin%d", newIndex)
+	} else {
+		user.Username = fmt.Sprintf("id%d", newIndex)
+	}
 
 	if err := s.base.Create(user); err != nil {
 		s.logger.Error("注册用户失败")

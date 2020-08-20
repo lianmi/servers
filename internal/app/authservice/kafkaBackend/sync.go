@@ -1,7 +1,7 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理myInfoAt, friendsAt, friendUsersAt, teamsAt, conversationAckAt, systemMsgAt
+    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, conversationAckAt, systemMsgAt
 
 6-2 同步请求完成
 
@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	Friends "github.com/lianmi/servers/api/proto/friends"
 	Sync "github.com/lianmi/servers/api/proto/syn"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -125,9 +126,110 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 	return nil
 }
 
-/*
+//处理friendsAt
+func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
 
- */
+	//req里的成员
+	friendsAt := req.GetFriendsAt()
+	friendsAtKey := fmt.Sprintf("sync:%s", username)
+
+	cur_friendsAt, _ := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_friendsAt > friendsAt {
+		//构造SyncFriendsEventRsp
+		rsp := &Friends.SyncFriendsEventRsp{
+			TimeTag:         uint64(time.Now().UnixNano() / 1e6),
+			Friends:         make([]*Friends.Friend, 0),
+			RemovedAccounts: make([]*Friends.Friend, 0),
+		}
+
+		//从redis里读取username的好友列表
+		friends, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
+		for _, friendUsername := range friends {
+
+			nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
+			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
+			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
+			createAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "CreateAt"))
+			updateAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "UpdateAt"))
+
+			rsp.Friends = append(rsp.Friends, &Friends.Friend{
+				Username: friendUsername,
+				Nick:     nick,
+				Source:   source,
+				Ex:       ex,
+				CreateAt: createAt,
+				UpdateAt: updateAt,
+			})
+		}
+		//从redis里读取username的删除的好友列表
+		RemoveFriends, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:2", username), "-inf", "+inf"))
+		for _, friendUsername := range RemoveFriends {
+			nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
+			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
+			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
+			createAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "CreateAt"))
+			updateAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "UpdateAt"))
+
+			rsp.RemovedAccounts = append(rsp.RemovedAccounts, &Friends.Friend{
+				Username: friendUsername,
+				Nick:     nick,
+				Source:   source,
+				Ex:       ex,
+				CreateAt: createAt,
+				UpdateAt: updateAt,
+			})
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应SyncFriendsEvent事件
+
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessType(uint32(1))
+		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("Sync myInfoAt Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().Unix()))
+	}
+	//完成
+	ch <- 1
+
+	return nil
+}
+
+/*
+注意： syncCount 是所有需要同步的数量，最终是6个，目前只实现了2个
+*/
 func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	var err error
 	var errorMsg string
@@ -172,7 +274,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		//异步
 		go func() {
 
-			syncCount := 1 //最终是6, 每增加一个处理，就加1
+			syncCount := 2 //最终是6, 每增加一个处理，就加1
 			chs := make([]chan int, syncCount)
 
 			i := 0
@@ -180,6 +282,12 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 
 			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[i]); err == nil {
 				kc.logger.Debug("myInfoAt is done")
+			}
+
+			i++
+			chs[i] = make(chan int)
+			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[i]); err == nil {
+				kc.logger.Debug("friendsAt is done")
 			}
 
 			/*
