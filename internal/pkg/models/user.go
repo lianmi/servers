@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/lianmi/servers/api/proto/user"
 )
+
 /*
 AllowAny(1)<允许任何人添加好友>
 

@@ -13,10 +13,10 @@ import (
 
 type UsersService interface {
 	GetUser(ID uint64) (*models.User, error)
-	BlockUser(ID uint64) (*models.User, error)
+	BlockUser(username string) (*models.User, error)
+	DisBlockUser(username string) (*models.User, error)
 	Register(user *models.User) (string, error)
 	Resetpwd(mobile, password string, user *models.User) error
-	ChanPassword(oldpassword, smsCode, password string) (string, error)
 	GetUserRoles(username string) []*models.Role
 
 	//检测用户登录
@@ -35,6 +35,15 @@ type UsersService interface {
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
+
+	//修改密码
+	ChanPassword(username, oldPassword, newPassword string) error
+
+	//授权新创建的群组
+	ApproveTeam(teamID string) error
+
+	//封禁群组
+	BlockTeam(teamID string) error
 }
 
 type DefaultUsersService struct {
@@ -58,10 +67,18 @@ func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
 	return
 }
 
-func (s *DefaultUsersService) BlockUser(ID uint64) (p *models.User, err error) {
-	s.logger.Debug("BlockUser", zap.Uint64("ID", ID))
-	if p, err = s.Repository.BlockUser(ID); err != nil {
+func (s *DefaultUsersService) BlockUser(username string) (p *models.User, err error) {
+	s.logger.Debug("BlockUser", zap.String("username", username))
+	if p, err = s.Repository.BlockUser(username); err != nil {
 		return nil, errors.Wrap(err, "Block user error")
+	}
+
+	return
+}
+func (s *DefaultUsersService) DisBlockUser(username string) (p *models.User, err error) {
+	s.logger.Debug("DisBlockUser", zap.String("username", username))
+	if p, err = s.Repository.DisBlockUser(username); err != nil {
+		return nil, errors.Wrap(err, "DisBlockUser user error")
 	}
 
 	return
@@ -111,12 +128,13 @@ func (s *DefaultUsersService) Resetpwd(mobile, password string, user *models.Use
 		return errors.Wrap(err, "Resetpwd error")
 	}
 
-
-	return  nil
+	return nil
 }
 
-func (s *DefaultUsersService) ChanPassword(oldpassword, smsCode, password string) (string, error) {
-	return "", nil
+//修改密码
+func (s *DefaultUsersService) ChanPassword(username, oldPassword, newPassword string) error {
+
+	return s.Repository.ChanPassword(username, oldPassword, newPassword)
 }
 
 func (s *DefaultUsersService) GetUserRoles(username string) []*models.Role {
@@ -150,4 +168,13 @@ func (s *DefaultUsersService) SignOut(token, username, deviceID string) bool {
 
 func (s *DefaultUsersService) ExistsTokenInRedis(deviceID, token string) bool {
 	return s.Repository.ExistsTokenInRedis(deviceID, token)
+}
+
+func (s *DefaultUsersService) ApproveTeam(teamID string) error {
+	return s.Repository.ApproveTeam(teamID)
+}
+
+//封禁群组
+func (s *DefaultUsersService) BlockTeam(teamID string) error {
+	return s.Repository.BlockTeam(teamID)
 }

@@ -8,7 +8,7 @@ option go_package = "github.com/lianmi/servers/api/proto/team";
 enum TeamType {
     // 无效
     Tt_Undefined = 0;
-    // 讨论组,类似微信群,弱管理方式
+    // 普通群,类似微信群,弱管理方式
     Tt_Normal = 1;
     // 普通群,类似qq群有更多管理权限
     Tt_Advanced = 2;
@@ -209,7 +209,7 @@ message TeamInfo {
     InviteMode inviteMode = 14;
     //群资料修改模式：谁可以修改群资料
     //是否必须：是
-    UpdateMode updateTeamMode = 15;
+    //UpdateMode updateTeamMode = 15;
     //JSON扩展字段,由业务方解析
     //是否必填-否
     string ex = 16;

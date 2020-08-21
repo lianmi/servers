@@ -5,7 +5,7 @@ package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
 //
-//创建讨论组/创建群-请求
+//创建普通群/创建群-请求
 message CreateTeamReq {
     string creator = 1;
     string owner = 2;
@@ -24,7 +24,7 @@ message CreateTeamReq {
     InviteMode inviteMode = 6;
 }
 //
-//创建讨论组/创建群-响应
+//创建普通群/创建群-响应
 message CreateTeamRsp {
     //群组信息
     //是否必须：是
@@ -37,7 +37,7 @@ message CreateTeamRsp {
 //
 //获取群成员信息-响应
 //权限说明
-//讨论组/高级群时： 根据timetag增量返回所有群成员
+//普通群/高级群时： 根据timetag增量返回所有群成员
 //部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
 message Tmember {
     //群组ID

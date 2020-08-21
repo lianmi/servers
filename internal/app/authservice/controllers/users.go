@@ -29,6 +29,13 @@ type ResetPassword struct {
 
 }
 
+type ChangePassword struct {
+	Username    string `json:"username" validate:"username"`     //用户账号s
+	OldPassword string `json:"old_password" validate:"required"` //用户密码，md5加密
+	NewPassword string `json:"new_password" validate:"required"` //用户密码，md5加密
+
+}
+
 func NewUsersController(logger *zap.Logger, s services.UsersService) *UsersController {
 	return &UsersController{
 		logger:  logger,
@@ -56,17 +63,38 @@ func (pc *UsersController) GetUser(c *gin.Context) {
 
 //封号
 func (pc *UsersController) BlockUser(c *gin.Context) {
+
 	pc.logger.Debug("BlockUser start ...")
-	ID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusNotFound, nil) //404
 		return
 	}
 
-	p, err := pc.service.BlockUser(ID)
+	p, err := pc.service.BlockUser(username)
 	if err != nil {
-		pc.logger.Error("Block User by id error", zap.Error(err))
-		c.String(http.StatusInternalServerError, "%+v", err)
+		pc.logger.Error("Block User by username error", zap.Error(err))
+		c.JSON(http.StatusNotFound, nil) //404
+		return
+	}
+
+	c.JSON(http.StatusOK, p)
+}
+
+//解封
+func (pc *UsersController) DisBlockUser(c *gin.Context) {
+	pc.logger.Debug("DisBlockUser start ...")
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusNotFound, nil) //404
+		return
+	}
+
+	p, err := pc.service.DisBlockUser(username)
+	if err != nil {
+		pc.logger.Error("DisBlockUser User by username error", zap.Error(err))
+		// c.String(http.StatusInternalServerError, "%+v", err)
+		c.JSON(http.StatusNotFound, nil) //404
 		return
 	}
 
@@ -219,6 +247,24 @@ func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
 }
 
 func (pc *UsersController) ChanPassword(c *gin.Context) {
+
+	var cp ChangePassword
+	if c.BindJSON(&cp) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		//修改密码
+		if err := pc.service.ChanPassword(cp.Username, cp.OldPassword, cp.NewPassword); err == nil {
+			pc.logger.Debug("ChanPassword  run ok")
+			RespOk(c, http.StatusOK, 200)
+		} else {
+			pc.logger.Debug("ChanPassword  run FAILD")
+			RespFail(c, http.StatusBadRequest, 400, "修改密码失败")
+
+		}
+
+	}
+
 	return
 }
 
@@ -257,4 +303,42 @@ func (pc *UsersController) SignOut(c *gin.Context) {
 	}
 
 	RespOk(c, http.StatusOK, 200)
+}
+
+//授权新创建的群组
+func (pc *UsersController) ApproveTeam(c *gin.Context) {
+	//读取
+	teamID := c.Param("teamid")
+	if teamID == "" {
+		c.JSON(http.StatusNotFound, nil) //404
+		return
+	}
+	if err := pc.service.ApproveTeam(teamID); err == nil {
+		pc.logger.Debug("ApproveTeam  run ok")
+		RespOk(c, http.StatusOK, 200)
+	} else {
+		pc.logger.Debug("ApproveTeam  run FAILD")
+		RespFail(c, http.StatusBadRequest, 400, "授权新创建的群组失败")
+
+	}
+
+}
+
+//封禁群组
+func (pc *UsersController) BlockTeam(c *gin.Context) {
+	//读取
+	teamID := c.Param("teamid")
+	if teamID == "" {
+		c.JSON(http.StatusNotFound, nil) //404
+		return
+	}
+	if err := pc.service.BlockTeam(teamID); err == nil {
+		pc.logger.Debug("BlockTeam  run ok")
+		RespOk(c, http.StatusOK, 200)
+	} else {
+		pc.logger.Debug("BlockTeam  run FAILD")
+		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
+
+	}
+
 }

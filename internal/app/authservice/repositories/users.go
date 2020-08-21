@@ -18,9 +18,11 @@ import (
 
 type UsersRepository interface {
 	GetUser(ID uint64) (p *models.User, err error)
-	BlockUser(ID uint64) (p *models.User, err error)
+	BlockUser(username string) (p *models.User, err error)
+	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
 	Resetpwd(mobile, password string, user *models.User) error
+	ChanPassword(username, oldPassword, newPassword string) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
@@ -62,6 +64,12 @@ type UsersRepository interface {
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
+
+	//授权新创建的群组
+	ApproveTeam(teamID string) error
+
+	//封禁群组
+	BlockTeam(teamID string) error
 }
 
 type MysqlUsersRepository struct {
@@ -98,14 +106,82 @@ func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
 1. 将users表的用户记录的state设置为3
 2. 踢出此用户的所有主从设备
 */
-func (s *MysqlUsersRepository) BlockUser(ID uint64) (p *models.User, err error) {
-	// p = new(models.User)
-	// if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
-	// 	return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
-	// }
-	// s.logger.Debug("BlockUser run...")
+func (s *MysqlUsersRepository) BlockUser(username string) (p *models.User, err error) {
 
-	//TODO
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	p = new(models.User)
+	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
+	}
+
+	p.State = 2 //1-正常， 2-封号
+
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(p).Error; err != nil {
+		s.logger.Error("封号失败", zap.Error(err))
+		tx.Rollback()
+
+	}
+	//提交
+	tx.Commit()
+
+	//将此用户所在在线设备全部踢出
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+
+	//查询出所有主从设备
+	deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	for index, eDeviceID := range deviceIDSlice {
+		s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
+		s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+
+		//向当前主设备及从设备发出踢下线
+		if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+			s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+		}
+
+		_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
+
+		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+		_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+
+	}
+
+	//删除所有与之相关的key
+	_, err = redisConn.Do("DEL", deviceListKey) //删除deviceListKey
+
+	s.logger.Debug("BlockUser run.")
+
+	return
+}
+
+/*
+解封
+1. 将users表的用户记录的state设置为1
+*/
+func (s *MysqlUsersRepository) DisBlockUser(username string) (p *models.User, err error) {
+	p = new(models.User)
+	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
+	}
+
+	p.State = 1 //1-正常， 2-封号
+
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(p).Error; err != nil {
+		s.logger.Error("解封失败", zap.Error(err))
+		tx.Rollback()
+
+	}
+	//提交
+	tx.Commit()
+
+	s.logger.Debug("DisBlockUser run.")
 	return
 }
 
@@ -175,6 +251,40 @@ func (s *MysqlUsersRepository) Resetpwd(mobile, password string, user *models.Us
 	tx.Commit()
 
 	return nil
+}
+
+//修改密码
+func (s *MysqlUsersRepository) ChanPassword(username, oldPassword, newPassword string) error {
+	var user models.User
+	sel := "id"
+	where := models.User{Username: username}
+	err := s.base.First(&where, &user, sel)
+	//记录不存在错误(RecordNotFound)，返回false
+	if gorm.IsRecordNotFoundError(err) {
+		return err
+	}
+	//其他类型的错误，写下日志，返回false
+	if err != nil {
+		s.logger.Error("获取用户信息失败", zap.Error(err))
+		return err
+	}
+
+	//判断旧密码
+	if oldPassword == user.Password {
+		user.Password = newPassword
+	}
+
+	tx := s.base.GetTransaction()
+	if err := tx.Save(user).Error; err != nil {
+		s.logger.Error("修改密码失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+
 }
 
 // 获取用户角色
@@ -827,5 +937,116 @@ func (s *MysqlUsersRepository) CheckSmsCode(mobile, smscode string) bool {
 		}
 	}
 	return false
+
+}
+
+//授权新创建的群组
+func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
+	var err error
+	// var isExists bool
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	p := new(models.Team)
+	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
+	}
+
+	p.Status = 2 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+
+	//存储群成员信息 TeamUser
+	memberNick, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Nick"))
+	memberAvatar, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Avatar"))
+	memberLabel, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Label"))
+	memberExtend, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Extend"))
+	memberProvince, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Province"))
+	memberCity, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "City"))
+	memberCounty, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "County"))
+	memberStreet, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Street"))
+	memberAddress, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Address"))
+
+	teamUser := new(models.TeamUser)
+	teamUser.JoinAt = time.Now().Unix()
+	teamUser.Teamname = p.Teamname
+	teamUser.Username = p.Owner
+	teamUser.Nick = memberNick         //群成员呢称
+	teamUser.Avatar = memberAvatar     //群成员头像
+	teamUser.Label = memberLabel       //群成员标签
+	teamUser.Source = ""               //群成员来源  TODO
+	teamUser.Extend = memberExtend     //群成员扩展字段
+	teamUser.TeamMemberType = 4        //群成员类型 Owner(4) - 创建者
+	teamUser.IsMute = false            //是否被禁言
+	teamUser.NotifyType = 1            //群消息通知方式 All(1) - 群全部消息提醒
+	teamUser.Province = memberProvince //省份, 如广东省
+	teamUser.City = memberCity         //城市，如广州市
+	teamUser.County = memberCounty     //区，如天河区
+	teamUser.Street = memberStreet     //街道
+	teamUser.Address = memberAddress   //地址
+
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(p).Error; err != nil {
+		s.logger.Error("授权新创建的群组失败", zap.Error(err))
+		tx.Rollback()
+		return err
+
+	}
+	if err := tx.Save(teamUser).Error; err != nil {
+		s.logger.Error("更新teamUser失败", zap.Error(err))
+		tx.Rollback()
+		return err
+
+	}
+	//提交
+	tx.Commit()
+
+	/*
+		redis
+		1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: Teamname
+		2. 群记录哈希表, key格式为: TeamInfo:{Teamname}, 字段为: Teamname Nick Icon 等Team表的字段
+		3. 每个群在用有序集合存储, key格式为： TeamUsers:{teamname}, 成员元素是: Username
+		4. 每个群成员用哈希表存储，Key格式为： TeamUser:{teamname}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+	*/
+	if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().Unix(), p.Teamname); err != nil {
+		s.logger.Error("ZADD Error", zap.Error(err))
+	}
+	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", p.Teamname)).AddFlat(p)...); err != nil {
+		s.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+	}
+
+	//当前只有群主一个成员
+	if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", p.Teamname), time.Now().Unix(), p.Owner); err != nil {
+		s.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.Teamname, p.Owner)).AddFlat(teamUser)...); err != nil {
+		s.logger.Error("错误：HMSET TeamUser", zap.Error(err))
+	}
+
+	return nil
+
+}
+
+//封禁群组
+func (s *MysqlUsersRepository) BlockTeam(teamID string) error {
+	p := new(models.Team)
+	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
+	}
+
+	p.Status = 3 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(p).Error; err != nil {
+		s.logger.Error("封禁群组失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+	//提交
+	tx.Commit()
+
+	return nil
 
 }

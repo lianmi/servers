@@ -114,6 +114,8 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 6)] = kClient.HandleUpdateFriend  //3-6 刷新好友资料
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 8)] = kClient.HandleGetFriends    //3-8 增量同步好友列表
 
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 1)] = kClient.HandleCreateTeam    //4-1 创建群组
+
 	return kClient
 }
 

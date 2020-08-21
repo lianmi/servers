@@ -231,10 +231,14 @@ func CreateInitControllersFn(
 		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
-			auth.GET("/signout", pc.SignOut)            //登出
-			auth.GET("/user/:id", pc.GetUser)           //根据id获取用户信息
-			auth.GET("/blockuser/:id", pc.BlockUser)    //根据id将此用户封号
-			auth.POST("/chanpassword", pc.ChanPassword) //修改密码
+			auth.GET("/signout", pc.SignOut)                     //登出
+			auth.GET("/user/:id", pc.GetUser)                    //根据id获取用户信息
+			auth.GET("/blockuser/:username", pc.BlockUser)       //根据用户账号, 将此用户封号
+			auth.GET("/disblockuser/:username", pc.DisBlockUser) //根据用户账号，将此用户解封
+			auth.POST("/chanpassword", pc.ChanPassword)          //修改用户密码
+
+			auth.GET("/approveteam/:teamid", pc.ApproveTeam) //授权新创建的群组
+			auth.GET("/blockteam/:teamid", pc.BlockTeam)     //将群组封禁
 
 		}
 
