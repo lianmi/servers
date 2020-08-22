@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package cloud.lianmi.im.msg;
-option go_package = "github.com/lianmi/servers/api/proto/msg";
-
-message UpdateConversationReq{
-    string sessionId =1 ;
-    string ext =2 ;
-}

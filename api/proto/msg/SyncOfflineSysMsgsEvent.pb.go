@@ -36,6 +36,7 @@ type SyncOfflineSysMsgsEvent struct {
 	TimeTag uint64 `protobuf:"fixed64,1,opt,name=timeTag,proto3" json:"timeTag,omitempty"`
 	//系统通知列表
 	//是否必填-是
+	// 离线时期的完整消息 ， 可以同步 个人/群/订单/系统事件 ，等
 	Messages []*MessagePackage `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
 }
 

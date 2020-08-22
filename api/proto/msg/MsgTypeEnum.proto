@@ -10,7 +10,7 @@ enum MessageScene {
     MsgScene_C2G = 2; // 用户到群
     //系统消息
     MsgScene_S2C = 3; // 服务端到 用户
-    MsgScene_C2S = 4; // 客户向服务端发起的事件
+//    MsgScene_C2S = 4; // 客户向服务端发起的事件
 
     //点对点
     MsgScene_P2P = 5; // 透传 点对点
@@ -35,7 +35,7 @@ enum MessageType {
     // 订单 类型
     MsgType_Order = 6;
 
-    // 系统消息更新 类型
+    // 系统消息更新 类型 用于更新系统消息
     MsgType_SysMsgUpdate = 7 ;
     //用户自定义
     MSgType_Customer = 100;

@@ -25,6 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// 撤回消息的数据结构
 type CancelMsg struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -36,10 +37,10 @@ type CancelMsg struct {
 	//account.P2P.deviceId
 	//是否必填-是
 	SessionId string `protobuf:"bytes,1,opt,name=sessionId,proto3" json:"sessionId,omitempty"`
-	//要撤销的消息的id
+	//要撤销的消息的客户端uuid
 	//是否必填-是
 	Uuid string `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	//要撤销的消息的id
+	//要撤销的消息的服务端消息id
 	//是否必填-是
 	ServerMsgId string `protobuf:"bytes,3,opt,name=serverMsgId,proto3" json:"serverMsgId,omitempty"`
 }
@@ -97,6 +98,7 @@ func (x *CancelMsg) GetServerMsgId() string {
 	return ""
 }
 
+//同步撤销消息事件
 type SyncCancelMsgEventRsp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

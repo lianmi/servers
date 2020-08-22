@@ -11,6 +11,7 @@ message SyncOfflineSysMsgsEvent{
    fixed64 timeTag=1; 
    //系统通知列表
    //是否必填-是
+   // 离线时期的完整消息 ， 可以同步 个人/群/订单/系统事件 ，等
    repeated MessagePackage messages = 2;
 }
 

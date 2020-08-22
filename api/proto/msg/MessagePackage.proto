@@ -3,7 +3,7 @@ import "api/proto/msg/MsgTypeEnum.proto";
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 // 应用层使用消息数据包 处理生成应用层的 数据包
-// 消息数据包
+// 完整的消息结构体
 message MessagePackage {
     // 消息的传输场景
     MessageScene scene = 1;

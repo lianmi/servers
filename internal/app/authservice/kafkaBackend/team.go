@@ -447,7 +447,6 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
-	userNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
 
 	kc.logger.Info("HandleInviteTeamMembers start...",
 		zap.String("username", username),
@@ -554,7 +553,6 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         []byte(""),                           //JSON
 							From:         username,                             //邀请人
-							FromNick:     userNick,
 							FromDeviceId: deviceID,
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号

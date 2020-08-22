@@ -233,11 +233,12 @@ func (mc *MQTTClient) Start() error {
 			case Global.BusinessType_Auth,
 				Global.BusinessType_User,
 				Global.BusinessType_Friends,
-				Global.BusinessType_Group,
-				Global.BusinessType_Chat,
+				Global.BusinessType_Team,
+				Global.BusinessType_Msg,
 				Global.BusinessType_Sync,
 				Global.BusinessType_Order,
-				Global.BusinessType_Wallet:
+				Global.BusinessType_Wallet,
+				Global.BusinessType_Product:
 
 			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 

@@ -5,7 +5,8 @@ import "api/proto/msg/MessagePackage.proto";
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
-
+// 多终端同步 发送消息 事件
+// 内容是完整的消息
 message SyncSendMsgEventRsp {
     MessagePackage message = 1;
 }

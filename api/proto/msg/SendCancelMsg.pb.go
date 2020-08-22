@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//撤销消息指令
+//撤销消息请求包
 type SendCancelMsgReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

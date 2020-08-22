@@ -26,7 +26,7 @@ const (
 const _ = proto.ProtoPackageIsVersion4
 
 // 应用层使用消息数据包 处理生成应用层的 数据包
-// 消息数据包
+// 完整的消息结构体
 type MessagePackage struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

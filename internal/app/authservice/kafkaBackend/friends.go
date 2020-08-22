@@ -1,7 +1,7 @@
 /*
 本文件是处理业务号是好友模块，分别有
 3-1 好友请求发起与处理 FriendRequest
-3-2 好友关系变更事件 FriendChangeEvent
+<已取消> 3-2 好友关系变更事件 FriendChangeEvent</已取消>
 3-3 好友列表同步事件 SyncFriendsEvent
 3-4 好友资料同步事件 SyncFriendUsersEvent
 3-5 移除好友 DeleteFriend
@@ -23,11 +23,11 @@ import (
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 
-	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +54,9 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
 	var allowType int
 
-	uid := uuid.NewV4().String()
+	var newSeq uint64
+
+	// uid := uuid.NewV4().String()
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -99,31 +101,28 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			zap.String("Source", req.GetSource()),
 			zap.Int("Type", int(req.GetType())))
 
-		targetUsername := req.GetUsername() //要加好友的对方的用户账号
-
 		//查出 targetUser 有效性，是否已经是好友，好友增加的设置等信息
 
-		targetKey := fmt.Sprintf("targetUsername:%s", targetUsername)
-		// targetUserData := new(models.User)
+		targetKey := fmt.Sprintf("userData:%s", req.GetUsername())
 
 		//检测目标用户是否注册及获取他的添加好友的设定
 		if isExists, err = redis.Bool(redisConn.Do("EXISTS", targetKey)); err != nil {
 			//redis出错
-			err = errors.Wrapf(err, "user not exists[targetUsername=%s]", targetUsername)
-			errorMsg = fmt.Sprintf("Query user error or user not exists[targetUsername=%s]", targetUsername)
+			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
+			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
 			goto COMPLETE
 		}
 		if !isExists {
-			//Bob不存在
-			err = errors.Wrapf(err, "user not exists[targetUsername=%s]", targetUsername)
-			errorMsg = fmt.Sprintf("Query user error or user not exists[targetUsername=%s]", targetUsername)
+			//B不存在
+			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
+			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
 			goto COMPLETE
 		}
 
 		//Bob的加好友设定
 		allowType, _ = redis.Int(redisConn.Do("HGET", targetKey, "AllowType"))
 
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), targetUsername); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), req.GetUsername()); err == nil {
 			if reply == nil {
 				//A好友列表中没有B
 				isAhaveB = false
@@ -132,7 +131,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			}
 
 		}
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", targetUsername), username); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", req.GetUsername()), username); err == nil {
 			if reply == nil {
 				//B好友列表中没有A
 				isBhaveA = false
@@ -155,6 +154,9 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 		switch Friends.OptType(req.GetType()) {
 		case Friends.OptType_Fr_ApplyFriend: //发起加好友验证
 			{
+				userA := username          //此时username是被加的人
+				userB := req.GetUsername() //发起方
+
 				//拒绝任何人添加好友
 				if allowType == common.DenyAny {
 
@@ -165,34 +167,34 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 					//在A的预审核好友列表里删除B ZREM
-					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", username), targetUsername); err != nil {
+					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
 						kc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//在A的移除好友列表里删除B ZREM
-					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", username), targetUsername); err != nil {
+					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userA), userB); err != nil {
 						kc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//在B的移除好友列表里删除A ZREM
-					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", targetUsername), username); err != nil {
+					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
 						kc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//直接让双方成为好友
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", username), time.Now().Unix(), targetUsername); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().Unix(), userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", targetUsername), time.Now().Unix(), username); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().Unix(), userA); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
 					//增加A的好友B的信息哈希表
 					//HMSET FriendInfo:{A}:{B} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-					nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "Nick"))
+					nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "Nick"))
 					_, err = redisConn.Do("HMSET",
-						fmt.Sprintf("FriendInfo:%s:%s", username, targetUsername),
-						"Username", targetUsername,
+						fmt.Sprintf("FriendInfo:%s:%s", userA, userB),
+						"Username", userB,
 						"Nick", nick,
 						"Source", req.GetSource(),
 						"Ex", req.GetPs(), //附言
@@ -202,10 +204,10 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 					//增加B的好友A的信息哈希表
 					//HMSET FriendInfo:{B}:{A} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-					nick, _ = redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
+					nick, _ = redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "Nick"))
 					_, err = redisConn.Do("HMSET",
-						fmt.Sprintf("FriendInfo:%s:%s", targetUsername, username),
-						"Username", username,
+						fmt.Sprintf("FriendInfo:%s:%s", userB, userA),
+						"Username", userA,
 						"Nick", nick,
 						"Source", req.GetSource(),
 						"Ex", req.GetPs(), //附言
@@ -216,13 +218,13 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					//写入MySQL的好友表, 需要增加两条记录
 					{
 
-						userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
-						targetUserID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "ID"))
+						userID_A, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "ID"))
+						userID_B, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "ID"))
 
 						pFriendA := new(models.Friend)
-						pFriendA.UserID = userID
-						pFriendA.FriendUserID = targetUserID
-						pFriendA.FriendUsername = targetUsername
+						pFriendA.UserID = userID_A
+						pFriendA.FriendUserID = userID_B
+						pFriendA.FriendUsername = userB
 						if err := kc.SaveAddFriend(pFriendA); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorMsg = "无法保存到数据库"
@@ -230,9 +232,9 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						}
 
 						pFriendB := new(models.Friend)
-						pFriendB.UserID = targetUserID
-						pFriendB.FriendUserID = userID
-						pFriendB.FriendUsername = username
+						pFriendB.UserID = userID_B
+						pFriendB.FriendUserID = userID_A
+						pFriendB.FriendUsername = userA
 						if err := kc.SaveAddFriend(pFriendB); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorMsg = "无法保存到数据库"
@@ -241,81 +243,108 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 					}
 
-					//下发通知给A所有端(From是B，To是A)
+					//下发MessageNotification通知给A所有端
 					{
 						//构造回包里的数据
-						eRsp := &Friends.FriendChangeEventRsp{
-							Uuid:   uid,
-							Type:   Friends.FriendChangeType_Fc_PassFriendApply, //通过加好友请求
-							From:   targetUsername,
-							To:     username,
-							Ps:     req.GetPs(),
-							Source: req.GetSource(),
-							TimeAt: uint64(time.Now().Unix()),
+						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
+							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							errorMsg = "无法INCR"
+							goto COMPLETE
 						}
-
+						body := Msg.MessageNotificationBody{
+							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
+							HandledAccount: userA,
+							HandledMsg:     "",
+							Status:         1,  //TODO, 消息状态 bitset 存储
+							Text:           "", // 附带的文本 该系统消息的文本
+							To:             userA,
+						}
+						eRsp := &Msg.RecvMsgEventRsp{
+							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+							Type:         Msg.MessageType_MsgType_Notification, //通知类型
+							Body:         []byte(body.String()),                //JSON
+							FromDeviceId: deviceID,
+							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+							Time:         uint64(time.Now().Unix()),
+						}
 						data, _ = proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(data, username)
+						go kc.BroadcastMsgToAllDevices(data, userA)
 					}
 
-					//下发通知给B所有端(From是A，To是B)
-					{
+					//下发通知给B所有端
+					// 例外： A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
+					if !isBhaveA {
 						//构造回包里的数据
-						eRsp := &Friends.FriendChangeEventRsp{
-							Uuid:   uid,
-							Type:   Friends.FriendChangeType_Fc_PassFriendApply, //通过加好友请求
-							From:   username,
-							To:     targetUsername,
-							Ps:     req.GetPs(),
-							Source: req.GetSource(),
-							TimeAt: uint64(time.Now().Unix()),
+						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
+							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							errorMsg = "无法INCR"
+							goto COMPLETE
 						}
 
+						body := Msg.MessageNotificationBody{
+							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
+							HandledAccount: userB,
+							HandledMsg:     "",
+							Status:         1,  //TODO, 消息状态 bitset 存储
+							Text:           "", // 附带的文本 该系统消息的文本
+							To:             userB,
+						}
+						eRsp := &Msg.RecvMsgEventRsp{
+							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+							Type:         Msg.MessageType_MsgType_Notification, //通知类型
+							Body:         []byte(body.String()),                //JSON
+							FromDeviceId: deviceID,
+							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+							Time:         uint64(time.Now().Unix()),
+						}
 						data, _ = proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(data, targetUsername)
+						go kc.BroadcastMsgToAllDevices(data, userB)
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
 					redisConn.Do("HSET",
-						fmt.Sprintf("sync:%s", username),
+						fmt.Sprintf("sync:%s", userA),
 						"friendsAt",
 						time.Now().Unix())
 
 					redisConn.Do("HSET",
-						fmt.Sprintf("sync:%s", targetUsername),
+						fmt.Sprintf("sync:%s", userB),
 						"friendsAt",
 						time.Now().Unix())
 
-				} else if allowType == common.NeedConfirm { //Bob的加好友设定是需要审核
+				} else if allowType == common.NeedConfirm { //加好友设定是需要审核
 					//redis里增加A的预审核好友列表
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", username), time.Now().Unix(), targetUsername); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().Unix(), userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
 					rsp.Status = Friends.OpStatusType_Ost_WaitConfirm
 
 					//构造回包里的数据
-					// eRsp := &Friends.FriendChangeEventRsp{
-					// 	Uuid:   uid,
-					// 	Type:   Friends.FriendChangeType_Fc_ApplyFriend,
-					// 	From:   username,
-					// 	To:     targetUsername,
-					// 	Ps:     req.GetPs(),
-					// 	Source: req.GetSource(),
-					// 	TimeAt: uint64(time.Now().Unix()),
-					// }
-					var newSeq uint64
-
-					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
 						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 
+					}
+					//HandledAccount 最后处理人
+					//添加好友，对方接收/拒绝后，该字段填充为对方ID
+					//申请入群，管理员通过/拒绝后，该字段填充管理员ID
+					//邀请入群，用户通过/拒绝后，该字段填充目标用户ID
+					body := Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
+						HandledAccount: userA,
+						HandledMsg:     "",
+						Status:         1,  //TODO, 消息状态 bitset 存储
+						Text:           "", // 附带的文本 该系统消息的文本
+						To:             userB,
 					}
 					eRsp := &Msg.RecvMsgEventRsp{
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
-						Body:         []byte(""),                           //JSON
-						From:         "system",                             //system
-						FromNick:     "system",
+						Body:         []byte(body.String()),                //JSON
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -323,53 +352,63 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Time:         uint64(time.Now().Unix()),
 					}
 					data, _ = proto.Marshal(eRsp)
+
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						go kc.BroadcastMsgToAllDevices(data, targetUsername)
+						go kc.BroadcastMsgToAllDevices(data, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						go kc.BroadcastMsgToAllDevices(data, targetUsername)
+						go kc.BroadcastMsgToAllDevices(data, userB)
+					}
+
+					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
+					if !isAhaveB && isBhaveA {
+						//Go程，下发系统通知给B
+						go kc.BroadcastMsgToAllDevices(data, userA)
 					}
 
 				}
 			}
 		case Friends.OptType_Fr_PassFriendApply: //对方同意加你为好友
 			{
+				userA := req.GetUsername() //发起方
+				userB := username          //此时username是被加的人
+
 				rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 				//在A的预审核好友列表里删除B ZREM
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", username), targetUsername); err != nil {
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//在A的移除好友列表里删除B ZREM
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", username), targetUsername); err != nil {
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userA), userB); err != nil {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//在B的移除好友列表里删除A ZREM
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", targetUsername), username); err != nil {
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//让双方成为好友
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", username), time.Now().Unix(), targetUsername); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().Unix(), userB); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", targetUsername), time.Now().Unix(), username); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().Unix(), userA); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
 				//增加A的好友B的信息哈希表
 				//HMSET FriendInfo:{A}:{B} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-				nick, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "Nick"))
+				nick, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "Nick"))
 				_, err = redisConn.Do("HMSET",
-					fmt.Sprintf("FriendInfo:%s:%s", username, targetUsername),
-					"Username", targetUsername,
+					fmt.Sprintf("FriendInfo:%s:%s", userA, userB),
+					"Username", userB,
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
@@ -379,26 +418,27 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 				//增加B的好友A的信息哈希表
 				//HMSET FriendInfo:{B}:{A} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-				nick, _ = redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
+				nick, _ = redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "Nick"))
 				_, err = redisConn.Do("HMSET",
-					fmt.Sprintf("FriendInfo:%s:%s", targetUsername, username),
-					"Username", username,
+					fmt.Sprintf("FriendInfo:%s:%s", userB, userA),
+					"Username", userA,
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
 					"CreateAt", uint64(time.Now().UnixNano()/1e6),
 					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
+
 				//写入数据库，增加两条记录
 				{
 
-					userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
-					targetUserID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "ID"))
+					userIDA, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "ID"))
+					userIDB, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "ID"))
 
 					pFriendA := new(models.Friend)
-					pFriendA.UserID = userID
-					pFriendA.FriendUserID = targetUserID
-					pFriendA.FriendUsername = targetUsername
+					pFriendA.UserID = userIDA
+					pFriendA.FriendUserID = userIDB
+					pFriendA.FriendUsername = userB
 					if err := kc.SaveAddFriend(pFriendA); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorMsg = "无法保存到数据库"
@@ -406,9 +446,9 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					}
 
 					pFriendB := new(models.Friend)
-					pFriendB.UserID = targetUserID
-					pFriendB.FriendUserID = userID
-					pFriendB.FriendUsername = username
+					pFriendB.UserID = userIDB
+					pFriendB.FriendUserID = userIDA
+					pFriendB.FriendUsername = userA
 					if err := kc.SaveAddFriend(pFriendB); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorMsg = "无法保存到数据库"
@@ -419,93 +459,97 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 				//更新redis的sync:{用户账号} friendsAt 时间戳
 				redisConn.Do("HSET",
-					fmt.Sprintf("sync:%s", username),
+					fmt.Sprintf("sync:%s", userA),
 					"friendsAt",
 					time.Now().Unix())
 
 				redisConn.Do("HSET",
-					fmt.Sprintf("sync:%s", targetUsername),
+					fmt.Sprintf("sync:%s", userB),
 					"friendsAt",
 					time.Now().Unix())
 
-				//A发起好友申请, A好友列表没有B, B好友列表中有A, B会收到A好友通过系统通知，A不接收好友申请系统通知。
-				//下发通知给A所有端(From是B，To是A)
-				if !(!isAhaveB && isBhaveA) {
-					//构造回包里的数据
-					eRsp := &Friends.FriendChangeEventRsp{
-						Uuid:   uid,
-						Type:   Friends.FriendChangeType_Fc_PassFriendApply, //通过加好友请求
-						From:   targetUsername,
-						To:     username,
-						Ps:     req.GetPs(),
-						Source: req.GetSource(),
-						TimeAt: uint64(time.Now().Unix()),
-					}
-
-					data, _ = proto.Marshal(eRsp)
-					go kc.BroadcastMsgToAllDevices(data, username)
-				}
-
-				//下发通知给B所有端(From是A，To是B)
+				//下发通知给A所有端
 				{
 					//构造回包里的数据
-					eRsp := &Friends.FriendChangeEventRsp{
-						Uuid:   uid,
-						Type:   Friends.FriendChangeType_Fc_PassFriendApply, //通过加好友请求
-						From:   username,
-						To:     targetUsername,
-						Ps:     req.GetPs(),
-						Source: req.GetSource(),
-						TimeAt: uint64(time.Now().Unix()),
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
+						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
+					body := Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
+						HandledAccount: userB,
+						HandledMsg:     "",
+						Status:         1,  //TODO, 消息状态 bitset 存储
+						Text:           "", // 附带的文本 该系统消息的文本
+						To:             userA,
+					}
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         []byte(body.String()),                //JSON
+						FromDeviceId: deviceID,
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().Unix()),
+					}
 					data, _ = proto.Marshal(eRsp)
-					go kc.BroadcastMsgToAllDevices(data, targetUsername)
+					isSend := false
+
+					if !isAhaveB && !isBhaveA { //A和B互相不是好友，B通过/拒绝申请后,A所有终端会收到该系统通知。
+						isSend = true
+					} else if isAhaveB && !isBhaveA { //A好友列表中有B，B好友列表没有A，A发起好友申请，B通过或拒绝后，A接收该系统通知。
+						isSend = true
+					} else if !isAhaveB && isBhaveA { //A好友列表中没有B，B好友列表有A，A发起好友申请，服务端无须发送系统消息给B，而是直接给A接收好友通过事件
+						isSend = true
+					}
+					if isSend {
+						go kc.BroadcastMsgToAllDevices(data, userA)
+					}
 				}
 
 			}
 		case Friends.OptType_Fr_RejectFriendApply: //对方拒绝添加好友
 			{
+				userA := req.GetUsername() //发起方
+				userB := username          //此时username是被加的人
+
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 				//在A的预审核好友列表里删除B ZREM
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", username), targetUsername); err != nil {
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
-				//下发通知给A所有端(From是B，To是A)
+				//下发通知给A所有端
 				{
 					//构造回包里的数据
-					eRsp := &Friends.FriendChangeEventRsp{
-						Uuid:   uid,
-						Type:   Friends.FriendChangeType_Fc_RejectFriendApply, //拒绝加好友请求
-						From:   targetUsername,
-						To:     username,
-						Ps:     req.GetPs(),
-						Source: req.GetSource(),
-						TimeAt: uint64(time.Now().Unix()),
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
+						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
-					data, _ = proto.Marshal(eRsp)
-					go kc.BroadcastMsgToAllDevices(data, username)
-				}
-
-				//下发通知给B所有端(From是A，To是B)
-				{
-					//构造回包里的数据
-					eRsp := &Friends.FriendChangeEventRsp{
-						Uuid:   uid,
-						Type:   Friends.FriendChangeType_Fc_RejectFriendApply, //拒绝加好友请求
-						From:   username,
-						To:     targetUsername,
-						Ps:     req.GetPs(),
-						Source: req.GetSource(),
-						TimeAt: uint64(time.Now().Unix()),
+					body := Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
+						HandledAccount: userB,
+						HandledMsg:     "",
+						Status:         1,  //TODO, 消息状态 bitset 存储
+						Text:           "", // 附带的文本 该系统消息的文本
+						To:             userA,
 					}
-
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         []byte(body.String()),                //JSON
+						FromDeviceId: deviceID,
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().Unix()),
+					}
 					data, _ = proto.Marshal(eRsp)
-					go kc.BroadcastMsgToAllDevices(data, targetUsername)
+					go kc.BroadcastMsgToAllDevices(data, userA)
 				}
+
 			}
 		}
 
@@ -536,7 +580,8 @@ COMPLETE:
 }
 
 /*
-3-5 移除好友
+3-5 移除好友,
+A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除消息，from:A，to:B,默认只支持双向删除
 */
 func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
@@ -587,12 +632,10 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		kc.logger.Debug("FriendRequest body",
 			zap.String("Username", targetUsername))
 
-		targetKey := fmt.Sprintf("userData:%s", targetUsername)
-
 		//检测目标用户是否存在及添加好友的设定
-		isExists, _ := redis.Bool(redisConn.Do("EXISTS", targetKey))
+		isExists, _ := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("userData:%s", targetUsername)))
 		if !isExists {
-			errorMsg = fmt.Sprintf("Query user error[targetUsername=%s]", targetUsername)
+			errorMsg = fmt.Sprintf("Query user error[username=%s]", targetUsername)
 			goto COMPLETE
 		}
 
@@ -661,16 +704,32 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 			"friendsAt",
 			time.Now().Unix())
 
-		//GO程，通知对方的多个端，每个端都删除这个username
+		//A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除的系统通知
 		{
 			//构造回包里的数据
-			eRsp := &Friends.DeleteFriendRsp{}
-			data, _ = proto.Marshal(eRsp)
-			go kc.BroadcastMsgToAllDevices(data, username)
-		}
-		{
-			//构造回包里的数据
-			eRsp := &Friends.DeleteFriendRsp{}
+			var newSeq uint64
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
+				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+			}
+
+			body := Msg.MessageNotificationBody{
+				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
+				HandledAccount: username,
+				HandledMsg:     "",
+				Status:         1,  //TODO, 消息状态 bitset 存储
+				Text:           "", // 附带的文本 该系统消息的文本
+				To:             targetUsername,
+			}
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+				Type:         Msg.MessageType_MsgType_Notification, //通知类型
+				Body:         []byte(body.String()),                //JSON
+				FromDeviceId: deviceID,
+				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+				Time:         uint64(time.Now().Unix()),
+			}
 			data, _ = proto.Marshal(eRsp)
 			go kc.BroadcastMsgToAllDevices(data, targetUsername)
 		}
@@ -1024,8 +1083,8 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(data []byte, toUser string) erro
 		targetMsg.SetDeviceID(curDeviceKey)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("User")
-		targetMsg.SetBusinessType(uint32(3))
-		targetMsg.SetBusinessSubType(uint32(2)) //FriendChangeEvent = 2
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 

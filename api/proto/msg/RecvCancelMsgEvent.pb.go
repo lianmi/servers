@@ -25,6 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// 撤回消息事件
 type RecvCancelMsgEventRsp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

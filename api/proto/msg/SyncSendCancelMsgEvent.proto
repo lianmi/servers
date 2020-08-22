@@ -2,7 +2,8 @@ syntax = "proto3";
 // 发送消息
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
+// 多终端同步撤回消息事件
 message SyncSendCancelMsgEventRsp {
-    string toSessionId = 1;
-    string serverMsgId = 2;
+    string toSessionId = 1; // 会话id
+    string serverMsgId = 2; // 服务端的消息的id
 }

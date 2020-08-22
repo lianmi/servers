@@ -86,148 +86,13 @@ func (FriendChangeType) EnumDescriptor() ([]byte, []int) {
 	return file_api_proto_friends_FriendChange_proto_rawDescGZIP(), []int{0}
 }
 
-//
-//好友关系变更事件
-//该接口记录好友关系变更。
-//关系类型和触发场景说明:
-//1、好友申请系统事件
-//当申请好友时对方需要验证，自己和对方会收到好友申请系统通知。
-//当申请好友时对方需要验证，自己和对方会收到好友申请系统通知，
-//对方可选择同意或者拒绝，自己不能操作，只做信息同步之用。
-//2、添加好友通过/拒绝事件
-//好友申请通过/拒绝后,自己和对方都会收到该事件。均作为信息同步只用。
-//3、删除好友系统事件
-//当自己的关系链变更，删除好友时，收到消息,系统采用双向删除方式。
-type FriendChangeEventRsp struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	//好友请求记录id
-	//是否必填-是
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	//变更类型
-	//是否必填-是
-	Type FriendChangeType `protobuf:"varint,2,opt,name=type,proto3,enum=cloud.lianmi.im.friends.FriendChangeType" json:"type,omitempty"`
-	//发起人账号
-	//是否必填-是
-	From string `protobuf:"bytes,3,opt,name=from,proto3" json:"from,omitempty"`
-	//接收人账号
-	//是否必填-是
-	To string `protobuf:"bytes,4,opt,name=to,proto3" json:"to,omitempty"`
-	//备注信息
-	//是否必填-否
-	Ps string `protobuf:"bytes,5,opt,name=ps,proto3" json:"ps,omitempty"`
-	//好友来源,申请好友该字段非空
-	//是否必填-是
-	//好友来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等
-	Source string `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
-	//最后修改时间
-	//是否必填-是
-	TimeAt uint64 `protobuf:"fixed64,7,opt,name=timeAt,proto3" json:"timeAt,omitempty"`
-}
-
-func (x *FriendChangeEventRsp) Reset() {
-	*x = FriendChangeEventRsp{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_friends_FriendChange_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *FriendChangeEventRsp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FriendChangeEventRsp) ProtoMessage() {}
-
-func (x *FriendChangeEventRsp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_friends_FriendChange_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FriendChangeEventRsp.ProtoReflect.Descriptor instead.
-func (*FriendChangeEventRsp) Descriptor() ([]byte, []int) {
-	return file_api_proto_friends_FriendChange_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *FriendChangeEventRsp) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
-func (x *FriendChangeEventRsp) GetType() FriendChangeType {
-	if x != nil {
-		return x.Type
-	}
-	return FriendChangeType_Fc_Undefined
-}
-
-func (x *FriendChangeEventRsp) GetFrom() string {
-	if x != nil {
-		return x.From
-	}
-	return ""
-}
-
-func (x *FriendChangeEventRsp) GetTo() string {
-	if x != nil {
-		return x.To
-	}
-	return ""
-}
-
-func (x *FriendChangeEventRsp) GetPs() string {
-	if x != nil {
-		return x.Ps
-	}
-	return ""
-}
-
-func (x *FriendChangeEventRsp) GetSource() string {
-	if x != nil {
-		return x.Source
-	}
-	return ""
-}
-
-func (x *FriendChangeEventRsp) GetTimeAt() uint64 {
-	if x != nil {
-		return x.TimeAt
-	}
-	return 0
-}
-
 var File_api_proto_friends_FriendChange_proto protoreflect.FileDescriptor
 
 var file_api_proto_friends_FriendChange_proto_rawDesc = []byte{
 	0x0a, 0x24, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x66, 0x72, 0x69, 0x65,
 	0x6e, 0x64, 0x73, 0x2f, 0x46, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
 	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x17, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73, 0x22,
-	0xcd, 0x01, 0x0a, 0x14, 0x46, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
-	0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x73, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x75, 0x75, 0x69, 0x64,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x75, 0x75, 0x69, 0x64, 0x12, 0x3d, 0x0a, 0x04,
-	0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x29, 0x2e, 0x63, 0x6c, 0x6f,
-	0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x66, 0x72, 0x69,
-	0x65, 0x6e, 0x64, 0x73, 0x2e, 0x46, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x43, 0x68, 0x61, 0x6e, 0x67,
-	0x65, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x66,
-	0x72, 0x6f, 0x6d, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12,
-	0x0e, 0x0a, 0x02, 0x74, 0x6f, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x74, 0x6f, 0x12,
-	0x0e, 0x0a, 0x02, 0x70, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x70, 0x73, 0x12,
-	0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x74, 0x69, 0x6d, 0x65, 0x41,
-	0x74, 0x18, 0x07, 0x20, 0x01, 0x28, 0x06, 0x52, 0x06, 0x74, 0x69, 0x6d, 0x65, 0x41, 0x74, 0x2a,
+	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73, 0x2a,
 	0x7f, 0x0a, 0x10, 0x46, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x54,
 	0x79, 0x70, 0x65, 0x12, 0x10, 0x0a, 0x0c, 0x46, 0x63, 0x5f, 0x55, 0x6e, 0x64, 0x65, 0x66, 0x69,
 	0x6e, 0x65, 0x64, 0x10, 0x00, 0x12, 0x12, 0x0a, 0x0e, 0x46, 0x63, 0x5f, 0x41, 0x70, 0x70, 0x6c,
@@ -255,18 +120,15 @@ func file_api_proto_friends_FriendChange_proto_rawDescGZIP() []byte {
 }
 
 var file_api_proto_friends_FriendChange_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_proto_friends_FriendChange_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_api_proto_friends_FriendChange_proto_goTypes = []interface{}{
-	(FriendChangeType)(0),        // 0: cloud.lianmi.im.friends.FriendChangeType
-	(*FriendChangeEventRsp)(nil), // 1: cloud.lianmi.im.friends.FriendChangeEventRsp
+	(FriendChangeType)(0), // 0: cloud.lianmi.im.friends.FriendChangeType
 }
 var file_api_proto_friends_FriendChange_proto_depIdxs = []int32{
-	0, // 0: cloud.lianmi.im.friends.FriendChangeEventRsp.type:type_name -> cloud.lianmi.im.friends.FriendChangeType
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_friends_FriendChange_proto_init() }
@@ -274,34 +136,19 @@ func file_api_proto_friends_FriendChange_proto_init() {
 	if File_api_proto_friends_FriendChange_proto != nil {
 		return
 	}
-	if !protoimpl.UnsafeEnabled {
-		file_api_proto_friends_FriendChange_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FriendChangeEventRsp); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_friends_FriendChange_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   1,
+			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_api_proto_friends_FriendChange_proto_goTypes,
 		DependencyIndexes: file_api_proto_friends_FriendChange_proto_depIdxs,
 		EnumInfos:         file_api_proto_friends_FriendChange_proto_enumTypes,
-		MessageInfos:      file_api_proto_friends_FriendChange_proto_msgTypes,
 	}.Build()
 	File_api_proto_friends_FriendChange_proto = out.File
 	file_api_proto_friends_FriendChange_proto_rawDesc = nil

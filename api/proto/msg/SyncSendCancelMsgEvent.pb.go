@@ -27,13 +27,14 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// 多终端同步撤回消息事件
 type SyncSendCancelMsgEventRsp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ToSessionId string `protobuf:"bytes,1,opt,name=toSessionId,proto3" json:"toSessionId,omitempty"`
-	ServerMsgId string `protobuf:"bytes,2,opt,name=serverMsgId,proto3" json:"serverMsgId,omitempty"`
+	ToSessionId string `protobuf:"bytes,1,opt,name=toSessionId,proto3" json:"toSessionId,omitempty"` // 会话id
+	ServerMsgId string `protobuf:"bytes,2,opt,name=serverMsgId,proto3" json:"serverMsgId,omitempty"` // 服务端的消息的id
 }
 
 func (x *SyncSendCancelMsgEventRsp) Reset() {

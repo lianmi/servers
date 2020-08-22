@@ -27,6 +27,8 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// 多终端同步 发送消息 事件
+// 内容是完整的消息
 type SyncSendMsgEventRsp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

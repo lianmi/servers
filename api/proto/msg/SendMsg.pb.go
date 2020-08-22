@@ -27,6 +27,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// 发送消息 请求包
 type SendMsgReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -38,24 +39,17 @@ type SendMsgReq struct {
 	//消息数据包的类型
 	//是否必填-是
 	Type MessageType `protobuf:"varint,2,opt,name=type,proto3,enum=cloud.lianmi.im.msg.MessageType" json:"type,omitempty"`
-	//接受方的用户账号
+	//接受方的用户C2C 的时候 是 对方账号 / C2G 是群id
 	//是否必填-是
 	To string `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
-	//客户端分配的消息ID，SDK生成的消息id,
-	//在发送消息之后会返回给开发者,
-	//开发者可以在发送消息的结果回调里面根据这个ID来判断相应消息的发送状态,
-	//到底是发送成功了还是发送失败了, 然后根据此状态来更新页面的UI。
-	//如果发送失败, 那么可以重新发送此消息，推荐UUID
-	//是否必填-是
+	// 客户端 生成 的 消息唯一id
 	Uuid string `protobuf:"bytes,4,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	//用于UI展示的文本信息
-	//是否必填-否
+	//消息体 服务端透传 ， 客户端 通过类型 拼接 对应的 数据
 	Body []byte `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
 	//客户端发送时间,Unix时间戳
 	//是否必填-是
 	SendAt uint64 `protobuf:"fixed64,6,opt,name=sendAt,proto3" json:"sendAt,omitempty"`
-	//指定该消息接收设备(to登录的任一设备)
-	//是否必填-否
+	//指定该消息接收的设备 P2P 的时候 使用
 	ToDeviceId string `protobuf:"bytes,7,opt,name=toDeviceId,proto3" json:"toDeviceId,omitempty"`
 }
 

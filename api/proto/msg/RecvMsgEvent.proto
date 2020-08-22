@@ -3,9 +3,10 @@ package cloud.lianmi.im.msg;
 
 import "api/proto/msg/MsgTypeEnum.proto";
 option go_package = "github.com/lianmi/servers/api/proto/msg";
-//私聊接收消息
-//服务器将从from端接收到的消息转发给to端
-//api类型-EVENT
+// 消息接受事件 ， 支持单聊 / 群聊 / 通知 / 订单 / 等 ...
+// 通过场景 MessageScene 确定 消息事件的传输场景
+// 通过 MessageType 类型判断 body 的数据类型
+
 message RecvMsgEventRsp {
     //传输场景，固定为 C2C或P2P
     //是否必填-是
@@ -16,60 +17,60 @@ message RecvMsgEventRsp {
     //接受消息事件的内容 , 更具 type 选择处理方式
     //是否必填-否
     bytes body = 3;
-    //消息来源,用户ID
-    //是否必填-是
+
+    //是否必填-否
+    //发送方消息设备ID 如果是S2C 的场景 不用填
     string from = 4;
-    //发消息，用户昵称
-    //是否必填-是
-    string fromNick = 5;
-    //发送方消息设备ID
-    //是否必填-是
-    string fromDeviceId = 6;
+
+    //是否必填-否 ， P2P 等端对端的时候使用
+    string fromDeviceId = 5;
     //服务器分配的消息ID
     //是否必填-是
-    string serverMsgId = 7;
+    string serverMsgId = 6;
     //消息序号，单个会话内自然递增
     //是否必填-是
-    fixed64 seq = 8;
-    //客户端分配的消息ID，SDK生成的消息id,
-    //在发送消息之后会返回给开发者, 开发者可以在发送消息
-    //的结果回调里面根据这个ID来判断相应消息的发送状态,
-    //到底是发送成功了还是发送失败了, 然后根据此状态来
-    //更新页面的UI。如果发送失败, 那么可以重新发送此消息，推荐UUID
-    //是否必填-是
-    string uuid = 9;
+    fixed64 seq = 7;
+
+    //是否必填-否 由客户端生成的 uuid , 单聊 / 群聊 等客户端产生的时候需要
+    // 服务端下发的不需要uuid
+    string uuid = 8;
     //服务器处理消息时间，Unix时间戳
     //是否必填-是
-    fixed64 time = 10;
-
+    fixed64 time = 9;
 }
 
-// 消息事件 推送是通知的时候 的数据体
-message MessageNotification {
-    // 通知的时候 body 的二进制内容
-
-    //消息来源设备类型,参考登录指令
-    //是否必填-是
-//    auth.ClientType fromClientType = 1;
-
-    //推送通知栏显示内容
-    //是否必填-否
-    string pushContent = 1;
-
-    // 通知类型 NOTE 暂定 数字不用枚举
-    int32 type = 2;
-
-    // TODO 需要完善
-
+// 通知类型
+enum MessageNotificationType {
+    MNT_UNDEFINE = 0;
+    MNT_ApplyFriend = 1; ///< 好友请求
+    MNT_PassFriendApply = 2; ///< 对方同意加你为好友
+    MNT_RejectFriendApply = 3; ///< 对方拒绝添加好友
+    MNT_DeleteFriend = 4; ///< 删除好友
+    MNT_ApplyJoinTeam = 5; ///< 申请加群请求
+    MNT_PassTeamApply = 6; ///< 管理员同意加群申请
+    MNT_RejectTeamApply = 7; ///< 管理员拒绝加群申请
+    MNT_TeamInvite = 8; ///< 邀请加群
+    MNT_PassTeamInvite = 9; ///< 用户同意群邀请
+    MNT_RejectTeamInvite = 10; ///< 用户拒绝群邀请
+    MNT_DismissTeam = 11; ///< 群被解散
+    MNT_KickOffTeam = 12; ///< 被管理员踢出群
+    MNT_QuitTeam = 13; ///< 主动退群
+    MNT_GrantManager = 14; ///< 设置管理员
+    MNT_CancelManager = 15; ///< 取消管理员
+    MNT_RevokeTeam = 16; ///< 群已被回收
+    MNT_TransferTeam = 17; ///< 转让群
+    MNT_UpdateTeam = 18; ///< 更新群资料
+    MNT_MuteTeamMember = 19; ///< 群成员禁言/解禁
+    MNT_MuteTeam = 20; ///< 设置群组禁言模式
+    MNT_UpdateTeamMember = 21; ///< 管理员/群主修改群成员信息
+    MNT_CheckTeamInvite = 22; ///< 邀请入群前询问管理员是否同意
+    MNT_Customer = 100; ///< 自定义事件消息
 }
 
-// 系统消息更新 数据体
-message MessageSystemUpdate {
-    // S2C 的时候 RecvMsgEvent 的body 的负载
-    // TODO 为定义
 
-    // 系统消息类型
-    int32 type = 1;
+message MessageNotificationBody {
+    // 当消息类型是 通知的时候 使用这个Body
+    MessageNotificationType type = 1;
     //最后处理人
     //添加好友，对方接收/拒绝后，该字段填充为对方ID
     //申请入群，管理员通过/拒绝后，该字段填充管理员ID
@@ -93,4 +94,105 @@ message MessageSystemUpdate {
     // 管理员可以看到 系统通知 所以管理员有权限修改
     // 所以推送的时候 需要 同时给 管理员推送
     string to = 6;
+
 }
+
+// 当消息事件类型是 订单的时候的
+enum MessageOrderEventType{
+    MOET_UNDEFINE = 0;
+    MOET_MakeOrder = 30; ///< 发起一个订单
+    MOET_ReceiveOrderr = 31; ///< 收到一个订单
+    MOET_CancelOrder = 32; ///< 撤销订单
+    MOET_ReceiveCancelOrder = 33; ///< 收到撤销订单
+    MOET_Deposit = 50; ///< 发起充值请求
+    MOET_WithDraw = 51; ///< 发起提现请求
+    MOET_OTCBuy = 52; ///< 发起一个OTC买单
+    MOET_OTCSell = 53; ///< 发起一个OTC卖单
+    MOET_AddProduct = 70; ///< 新增商品
+    MOET_DeleteProduct = 71; ///< 删除商品
+}
+
+enum MessageOrderStatus{
+    MOS_UDEFINE = 0 ; ///< 未定义
+    MOS_Init = 1 ; ///<  未处理状态<默认>
+    MOS_Declined = 2 ; ///<  已拒绝
+    MOS_Expired = 3 ; ///<  已过期
+    MOS_Ignored = 4 ; ///<  已忽略
+    MOS_Passed = 5 ; ///<  已通过验证
+    MOS_Taked = 6 ; ///<  已接单
+    MOS_Done = 7 ; ///<  已完成订单
+}
+
+// 订单类型
+enum MessageOrderType{
+   MOT_Undefined = 0 ; ///< 默认
+   MOT_FreshProduct = 1 ; ///< 生鲜产品
+   MOT_Meat = 2 ; ///< 肉类
+   MOT_Fruits = 3 ; ///< 水果蔬菜类
+   MOT_GrainOil = 4 ; ///< 粮油类
+   MOT_Delicatessen = 5 ; ///< 熟食类
+   MOT_Bakery = 6 ; ///< 面包糕饼类
+   MOT_HouseKeeping = 7 ; ///< 家政
+   MOT_Lottery = 8 ; ///< 彩票
+   MOT_Carry = 9 ; ///< 搬运
+   MOT_Maintenance = 10 ; ///< 维修
+}
+message MessageOrderBody{
+    // 订单事件类型
+    MessageOrderEventType type = 1 ;
+    //  订单id
+    string orderid = 2 ;
+
+    string LeaveComments = 3 ; /// 留言
+
+    MessageOrderType ordertype = 4;
+
+    //最后处理人
+    //添加好友，对方接收/拒绝后，该字段填充为对方ID
+    //申请入群，管理员通过/拒绝后，该字段填充管理员ID
+    //邀请入群，用户通过/拒绝后，该字段填充目标用户ID
+    //是否必填-否
+    string handledAccount = 5;
+    //获取处理者添加的附加信息
+    //添加好友，拒绝附言
+    //申请入群，拒绝附言
+    //邀请入群，拒绝附言
+    //是否必填-否
+    string handledMsg = 6;
+
+}
+
+// 加密消息的时候的 类型枚举
+enum MessageSecretType{
+    //
+    MST_UNDEFINE = 0 ;
+    MST_PRE_KRY = 1 ; /// 预先消息
+    MST_MESSAGE = 2 ; /// 加密消息
+}
+// 如果是加密消息的时候的Body
+message MessageSecretBody{
+    MessageSecretType type = 1 ;
+    // 消息负载
+    bytes body = 2 ;
+    // 解开 本个body 的 临时公钥
+    bytes epk_pub = 3;
+    // 其他特殊结构
+    bytes user_data = 4;
+}
+
+// 消息事件 类型为文本的时候的 body
+message MessageTextBody{
+    string text = 1 ;
+}
+
+// 消息包类型为附件类型的 body
+message MessageAttachBody{
+    AttachType type = 1 ; // 附件类型
+    bytes attach = 2 ; /// 附件主体
+}
+
+// TODO 暂定
+message MessageSystemUpdate{
+
+}
+

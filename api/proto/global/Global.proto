@@ -9,17 +9,17 @@ enum BusinessType {
     User             = 1;    //用户模块
     Auth             = 2;    //鉴权授权模块
     Friends          = 3;    //好友模块
-    Group            = 4;    //群组模块
-    Chat             = 5;    //消息模块
+    Team             = 4;    //群组模块
+    Msg              = 5;    //消息模块
     Sync             = 6;    //数据同步模块
     Article          = 7;    //文章模块
     Broadcast        = 8;    //广播模块
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
+    Product          = 11;   //商品模块
     Custom           = 99;   //自定义模块， 用于测试
 }
 
-            
 //授权模块子模块定义
 enum AuthSubType {
     Ast_undefined         = 0;    //proto3必须从0开始
@@ -37,7 +37,7 @@ enum AuthSubType {
 
 
 //用户模块子模块定义
-enum UsersSubType {
+enum UserSubType {
     Ust_undefined          = 0;    //proto3必须从0开始
     GetUsers               = 1;    /**< 根据用户标示返回用户信息*/
     UpdateUserProfile      = 2;    /**< 更新当前用户信息*/
@@ -48,10 +48,10 @@ enum UsersSubType {
 }
 
 //好友模块子模块定义
-enum FriendsSubType {
+enum FriendSubType {
     Fst_undefined         =  0;    //proto3必须从0开始
     FriendRequest         =  1;  /**< 好友请求发起与处理(直接添加/发起好友验证/拒绝/通过)*/
-    FriendChangeEvent     =  2;  /**< 好友关系变更事件*/
+    FriendChangeEvent     =  2;  /**< <已取消>好友关系变更事件*/
     SyncFriendsEvent      =  3;  /**< 好友列表同步事件*/
     SyncFriendUsersEvent  =  4;  /**< 好友资料同步事件*/
     DeleteFriend          =  5;  /**< 删除好友*/
@@ -61,7 +61,7 @@ enum FriendsSubType {
 }
 
 //群组模块子模块定义
-enum GroupSubType {
+enum TeamSubType {
     Gst_undefined         =  0;    //proto3必须从0开始
     CreateTeam            =  1;  /**< 1.  创建群组*/
     GetTeamMembers        =  2;  /**< 2.  获取群组成员*/
@@ -93,18 +93,18 @@ enum GroupSubType {
 }
 
 //消息模块子模块定义
-enum ChatMsgSubType {
+enum MsgSubType {
     Cst_undefined                = 0;    //proto3必须从0开始
-    SendMsg                      = 1;    /**< 1.  发送个人消息*/
-    RecvMsgEvent                 = 2;    /**< 2.  接收个人消息事件*/
+    SendMsg                      = 1;    /**< 1.  发送消息*/
+    RecvMsgEvent                 = 2;    /**< 2.  接收消息事件*/
     SyncOfflineSysMsgsEvent      = 3;    /**< 3.  同步系统离线消息*/
-    DeleteSessions               = 4;    /**< 4.  删除会话*/
-    SyncSendMsgEvent             = 5;    /**< 5.  发送个人消息多终端同步事件 */
+    //DeleteSessions             = 4;    /**< 4.  <已 >删除会话*/
+    SyncSendMsgEvent             = 5;    /**< 5.  发送消息多终端同步事件 */
     SendCancelMsg                = 6;    /**< 6.  发送撤销消息 */
     RecvCancelMsgEvent           = 7;    /**< 7.  接收撤销消息事件 */
     SyncSendCancelMsgEvent       = 8;    /**< 8. 同步发送撤销消息事件 */
     SyncCancelMsgEvent           = 9;    /**< 9. 同步撤销消息事件 */
-    SyncUpdateConversationEvent  = 10;   /**< 10. 同步更新会话 */
+    //SyncUpdateConversationEvent  = 10;   /**< 10. 同步更新会话 */
     UpdateConversation           = 11;   /**< 11. 更新会话 */
 }
 
@@ -134,6 +134,16 @@ enum WalletSubType {
     WithDraw         =  3;     /**< 10-4 提现*/
     Balance          =  4;     /**< 10-6 查询链上账号余额*/
     QueryCommission  =  5;     /**< 10-9 佣金收益明细*/
+}
+
+//商品模块子模块定义
+enum ProductSubType {
+    PST_undefined     =  0;    //proto3必须从0开始
+    Added             =  1;     /**< 11-1 商品上架*/
+    SoldOut           =  2;     /**< 11-2 商品下架*/
+    Updated           =  3;     /**< 11-3 商品信息更新*/
+    MutilChangeEvent  =  4;     /**< 11-4 多端商品变更事件, 上架， 下架，更新*/
+    FollowChangeEvent =  5;     /**< 11-5 客户端接收关注网点的商品变革事件*/
 }
 
 //订单状态枚举：
