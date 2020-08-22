@@ -307,6 +307,15 @@ func (pc *UsersController) SignOut(c *gin.Context) {
 
 //授权新创建的群组
 func (pc *UsersController) ApproveTeam(c *gin.Context) {
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[common.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+	pc.logger.Debug("SignOut",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
@@ -337,6 +346,25 @@ func (pc *UsersController) BlockTeam(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	} else {
 		pc.logger.Debug("BlockTeam  run FAILD")
+		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
+
+	}
+
+}
+
+//解封群组
+func (pc *UsersController) DisBlockTeam(c *gin.Context) {
+	//读取
+	teamID := c.Param("teamid")
+	if teamID == "" {
+		c.JSON(http.StatusNotFound, nil) //404
+		return
+	}
+	if err := pc.service.DisBlockTeam(teamID); err == nil {
+		pc.logger.Debug("DisBlockTeam  run ok")
+		RespOk(c, http.StatusOK, 200)
+	} else {
+		pc.logger.Debug("DisBlockTeam  run FAILD")
 		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
 
 	}

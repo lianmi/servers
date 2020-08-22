@@ -30,7 +30,6 @@ type Team struct {
 	MemberNum    int    `form:"member_num" json:"member_num,omitempty" `                           //当前成员总数
 	MuteType     int    `form:"mute_type" json:"mute_type,omitempty" `                             //禁言类型
 	Ex           string `form:"ex" json:"ex,omitempty" `                                           //JSON扩展字段,由业务方解析
-	Creator      string `form:"creator" json:"creator,omitempty" `                                 //批准创建的操作员账号id, 如： admin
 	ModifiedBy   string `form:"modified_by" json:"modified_by,omitempty"`                          //最后由哪个操作员修改
 }
 

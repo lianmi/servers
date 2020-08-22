@@ -238,7 +238,8 @@ func CreateInitControllersFn(
 			auth.POST("/chanpassword", pc.ChanPassword)          //修改用户密码
 
 			auth.GET("/approveteam/:teamid", pc.ApproveTeam) //授权新创建的群组
-			auth.GET("/blockteam/:teamid", pc.BlockTeam)     //将群组封禁
+			auth.GET("/blockteam/:teamid", pc.BlockTeam)     //封禁群组
+			auth.GET("/disblockteam/:teamid", pc.DisBlockTeam)     //解封群组
 
 		}
 

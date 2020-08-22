@@ -44,6 +44,9 @@ type UsersService interface {
 
 	//封禁群组
 	BlockTeam(teamID string) error
+
+	//解封群组
+	DisBlockTeam(teamID string) error
 }
 
 type DefaultUsersService struct {
@@ -177,4 +180,9 @@ func (s *DefaultUsersService) ApproveTeam(teamID string) error {
 //封禁群组
 func (s *DefaultUsersService) BlockTeam(teamID string) error {
 	return s.Repository.BlockTeam(teamID)
+}
+
+//解封群组
+func (s *DefaultUsersService) DisBlockTeam(teamID string) error {
+	return s.Repository.DisBlockTeam(teamID)
 }

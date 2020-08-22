@@ -177,9 +177,6 @@ message TeamInfo {
     //是否必须：否
     string introduce = 5;
 
-    //创建人id
-    //是否必须：是
-    string creator = 6;
     //群主id
     //是否必须：是
     string owner = 7;

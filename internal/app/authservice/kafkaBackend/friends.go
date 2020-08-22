@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
@@ -32,15 +33,19 @@ import (
 /*
 3-1 好友请求发起与处理
 注意：
-1. Alice加Bob, 先判断Bob是否允许加好友
-2. 服务端利用redis的哈希表，保存Alice加Bob的状态，当Bob同意或拒绝后，才进行入库及更新Alice的好友表
-3. 要考虑到多端的环境，交互的动作可以在任一端进行，结果需要同步给其他端
-4. 以有序集合存储之间的系统通知， 当已经有了最终结果后，这个有序集合就会只保留最后一个结果，
+1. Alice加Bob, 先判断Bob是否已经注册，不用判断Alice是否注册，因为在 dispatcher已经做了这个工作。
+2. Bob是否允许加好友, 如果Bob拒绝任何人添加好友，就直接返回给Alice.
+   如果Bob运行任何人加好友，就直接互加成功。
+   如果Bob的加好友设定是需要confirm，则需要发系统消息给Bob， 让Bob同意或拒绝。
+3. 服务端利用redis的哈希表，保存Alice加Bob的状态，当Bob同意或拒绝后，才进行入库及更新Alice的好友表
+4. 要考虑到多端的环境，交互的动作可以在任一端进行，结果需要同步给其他端
+5. 以有序集合存储所发生的系统通知， 当已经有了最终结果后，这个有序集合就会只保留最后一个结果，
    如果长时间离线再重新上线的其他端，会收到最后一个结果，而不会重现整个交互流程。
 */
 func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	var err error
 	var errorMsg string
+	var isExists bool
 
 	rsp := &Friends.FriendRequestRsp{}
 	var data []byte
@@ -100,13 +105,21 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 		targetKey := fmt.Sprintf("targetUsername:%s", targetUsername)
 		// targetUserData := new(models.User)
 
-		//检测目标用户是否存在及添加好友的设定
-		isExists, _ := redis.Bool(redisConn.Do("EXISTS", targetKey))
+		//检测目标用户是否注册及获取他的添加好友的设定
+		if isExists, err = redis.Bool(redisConn.Do("EXISTS", targetKey)); err != nil {
+			//redis出错
+			err = errors.Wrapf(err, "user not exists[targetUsername=%s]", targetUsername)
+			errorMsg = fmt.Sprintf("Query user error or user not exists[targetUsername=%s]", targetUsername)
+			goto COMPLETE
+		}
 		if !isExists {
-			errorMsg = fmt.Sprintf("Query user error[targetUsername=%s]", targetUsername)
+			//Bob不存在
+			err = errors.Wrapf(err, "user not exists[targetUsername=%s]", targetUsername)
+			errorMsg = fmt.Sprintf("Query user error or user not exists[targetUsername=%s]", targetUsername)
 			goto COMPLETE
 		}
 
+		//Bob的加好友设定
 		allowType, _ = redis.Int(redisConn.Do("HGET", targetKey, "AllowType"))
 
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), targetUsername); err == nil {
@@ -137,16 +150,16 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//根据操作类型OptType进行逻辑处理
 		switch Friends.OptType(req.GetType()) {
-		case Friends.OptType_Fr_ApplyFriend: //发起好友验证
+		case Friends.OptType_Fr_ApplyFriend: //发起加好友验证
 			{
 				//拒绝任何人添加好友
 				if allowType == common.DenyAny {
 
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
-					//允许人加为好友
-				} else if allowType == common.AllowAny {
+				} else if allowType == common.AllowAny { //允许人加为好友
 
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
@@ -172,6 +185,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", targetUsername), time.Now().Unix(), username); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
+
 					//增加A的好友B的信息哈希表
 					//HMSET FriendInfo:{A}:{B} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
 					nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "Nick"))
@@ -180,7 +194,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Username", targetUsername,
 						"Nick", nick,
 						"Source", req.GetSource(),
-						"Ex", "", //TODO
+						"Ex", req.GetPs(), //附言
 						"CreateAt", uint64(time.Now().UnixNano()/1e6),
 						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 					)
@@ -193,12 +207,12 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Username", username,
 						"Nick", nick,
 						"Source", req.GetSource(),
-						"Ex", "", //TODO
+						"Ex", req.GetPs(), //附言
 						"CreateAt", uint64(time.Now().UnixNano()/1e6),
 						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 					)
 
-					//写入MySQL, 需要增加两条记录
+					//写入MySQL的好友表, 需要增加两条记录
 					{
 
 						userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
@@ -271,7 +285,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"friendsAt",
 						time.Now().Unix())
 
-				} else if allowType == common.NeedConfirm {
+				} else if allowType == common.NeedConfirm { //Bob的加好友设定是需要审核
 					//redis里增加A的预审核好友列表
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", username), time.Now().Unix(), targetUsername); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
@@ -304,7 +318,6 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					}
 
 				}
-
 			}
 		case Friends.OptType_Fr_PassFriendApply: //对方同意加你为好友
 			{

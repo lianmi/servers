@@ -25,7 +25,6 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//
 //查询群请求
 type GetTeamReq struct {
 	state         protoimpl.MessageState
@@ -76,7 +75,6 @@ func (x *GetTeamReq) GetTeamId() string {
 	return ""
 }
 
-//
 //查询群响应
 type GetTeamRsp struct {
 	state         protoimpl.MessageState
