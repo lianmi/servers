@@ -8,7 +8,8 @@ services:
     ports:
       - 28080:28080
     volumes:
-      - ${LOG_DIR}/authservice.log:/tmp/authservice.log
+      # - ${LOG_DIR}/authservice.log:/tmp/authservice.log
+      - /root/developments/lianmi/work/logs/authservice.log:/tmp/authservice.log
     logging:
       driver: fluentd
       options:
@@ -24,7 +25,8 @@ services:
     container_name: lianmi-dispatcher
     restart: unless-stopped
     volumes:
-      - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
+      # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
+      - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
     logging:
       driver: fluentd
       options:
@@ -39,7 +41,8 @@ services:
     container_name: lianmi-chatservice
     restart: unless-stopped
     volumes:
-      - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
+      # - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
+      - /root/developments/lianmi/work/logs/chatservice.log:/tmp/chatservice.log
     logging:
       driver: fluentd
       options:
@@ -54,7 +57,8 @@ services:
     container_name: lianmi-orderservice
     restart: unless-stopped
     volumes:
-      - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
+      # - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
+      - /root/developments/lianmi/work/logs/orderservice.log:/tmp/orderservice.log
     logging:
       driver: fluentd
       options:
@@ -69,7 +73,8 @@ services:
     container_name: lianmi-walletservice
     restart: unless-stopped
     volumes:
-      - ${LOG_DIR}/walletservice.log:/tmp/walletservice.log
+      # - ${LOG_DIR}/walletservice.log:/tmp/walletservice.log
+      - /root/developments/lianmi/work/logs/walletservice.log:/tmp/walletservice.log
     logging:
       driver: fluentd
       options:

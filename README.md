@@ -200,3 +200,46 @@ http -v --json GET localhost:28080/v1/user/2 "Authorization:Bearer eyJhbGciOiJIU
 ```
 mosquitto-1.6.10/test/random/auth_plugin.c
 ```
+
+# 服务器的日志目录
+部署在腾讯云服务器后，日志输出需要在 /root/developments/lianmi/lm-cloud/servers/deployments 建立.env文件
+内容是：
+```
+LOG_DIR=/root/developments/lianmi/work/logs
+``` 
+
+export env_file=./aa/deployments/.env
+mkdir -p "${env_file%/*}" && echo "LOG_DIR=/root/developments/lianmi/work/logs" > $env_file
+
+export env_file=/root/developments/lianmi/lm-cloud/servers/deployments/.env
+mkdir -p "${env_file%/*}" && echo "LOG_DIR=/root/developments/lianmi/work/logs" > $env_file
+
+
+# 服务器的MySQL命令行 
+~/.zshrc
+```
+#mysql
+alias mysql="docker-compose exec db mysql -ulianmidba -p12345678 lianmicloud"
+
+```
+
+因此可以这样：
+```
+$  cd /root/developments/lianmi/work/basic
+$  mysql
+```
+
+# 服务器的rdis命令行 
+~/.zshrc
+```
+#redis
+alias redis-cli="docker exec -it redis redis-cli"
+
+```
+
+因此可以这样：
+```
+$  cd /root/developments/lianmi/work/basic
+$  redis-cli
+```
+就能进入redis-cli

@@ -111,5 +111,7 @@ docker-compose: build dash rules
 	do \
 		cp -f dist/$$app-linux-amd64 ./deployments/$$app/; \
 	done
+	export env_file=/root/developments/lianmi/lm-cloud/servers/deployments/.env
+	echo "LOG_DIR=/root/developments/lianmi/work/logs" > $env_file
 	docker-compose -f deployments/docker-compose.yml up --build -d
 all: lint cover docker

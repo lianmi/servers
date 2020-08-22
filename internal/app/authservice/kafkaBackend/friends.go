@@ -23,6 +23,7 @@ import (
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
+	Msg "github.com/lianmi/servers/api/proto/msg"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -294,16 +295,33 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					rsp.Status = Friends.OpStatusType_Ost_WaitConfirm
 
 					//构造回包里的数据
-					eRsp := &Friends.FriendChangeEventRsp{
-						Uuid:   uid,
-						Type:   Friends.FriendChangeType_Fc_ApplyFriend,
-						From:   username,
-						To:     targetUsername,
-						Ps:     req.GetPs(),
-						Source: req.GetSource(),
-						TimeAt: uint64(time.Now().Unix()),
-					}
+					// eRsp := &Friends.FriendChangeEventRsp{
+					// 	Uuid:   uid,
+					// 	Type:   Friends.FriendChangeType_Fc_ApplyFriend,
+					// 	From:   username,
+					// 	To:     targetUsername,
+					// 	Ps:     req.GetPs(),
+					// 	Source: req.GetSource(),
+					// 	TimeAt: uint64(time.Now().Unix()),
+					// }
+					var newSeq uint64
 
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
+						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+
+					}
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         []byte(""),                           //JSON
+						From:         "system",                             //system
+						FromNick:     "system",
+						FromDeviceId: deviceID,
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().Unix()),
+					}
 					data, _ = proto.Marshal(eRsp)
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
