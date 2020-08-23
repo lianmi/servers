@@ -44,9 +44,23 @@ func (kc *KafkaClient) SaveCreateTeam(pTeam *models.Team) error {
 		kc.logger.Error("更新群team表失败", zap.Error(err))
 		tx.Rollback()
 	}
-	
+
 	//提交
 	tx.Commit()
 
+	return nil
+}
+
+//删除群成员
+func (kc *KafkaClient) DeleteTeamUser(teamID, username string) error {
+	where := models.TeamUser{TeamID: teamID, Username: username}
+	db := kc.db.Where(&where).Delete(models.TeamUser{})
+	err := db.Error
+	if err != nil {
+		kc.logger.Error("DeleteTeamUser", zap.Error(err))
+		return err
+	}
+	count := db.RowsAffected
+	kc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }

@@ -17,6 +17,7 @@ import (
 	// "encoding/hex"
 	"fmt"
 	// "strings"
+	"net/http"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -331,6 +332,8 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 */
 func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	var err error
+
+	errorCode := 200
 	var errorMsg string
 
 	redisConn := kc.redisPool.Get()
@@ -364,6 +367,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	//解包body
 	var req Sync.SyncEventReq
 	if err := proto.Unmarshal(body, &req); err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
@@ -404,13 +408,12 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//只需返回200
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
 	}
 
 	//处理完成，向dispatcher发送

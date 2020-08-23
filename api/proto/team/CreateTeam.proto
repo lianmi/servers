@@ -29,9 +29,7 @@ message CreateTeamRsp {
     //群组信息
     //是否必须：是
     TeamInfo teamInfo = 1;
-    //邀请失败列表
-    //是否必须：否
-    repeated string failedAccidList = 2;
+ 
 }
 
 //
@@ -75,6 +73,7 @@ message Tmember {
     //是否必须-是
     fixed64 updateTime = 11;
 }
+
 enum MemberStatus {
     MemStatus_Undefined = 0;
     //启用

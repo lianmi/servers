@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"net/http"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/proto"
@@ -232,7 +234,10 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 */
 func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 	var err error
+	kickRsp := &Auth.KickRsp{}
+	errorCode := 200 //错误码， 200是正常，其它是错误
 	var errorMsg string
+	var data []byte
 
 	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
 	redisConn := kc.redisPool.Get()
@@ -272,7 +277,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 		var kickReq Auth.KickReq
 		if err := proto.Unmarshal(body, &kickReq); err != nil {
 			kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-			// return err
+			errorCode = http.StatusInternalServerError //500
 			errorMsg = "Protobuf Unmarshal Error"
 			goto COMPLETE
 		} else {
@@ -391,18 +396,12 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 			}
 
 			//响应客户端的OnKick
-			kickRsp := &Auth.KickRsp{
-				DeviceIds: deviceiIDs,
-			}
-			data, _ := proto.Marshal(kickRsp)
-			rspHex := strings.ToUpper(hex.EncodeToString(data))
+			kickRsp.DeviceIds = deviceiIDs
 
 			kc.logger.Info("Kick Succeed",
 				zap.String("Username:", username),
-				zap.Int("length", len(data)),
-				zap.String("rspHex", rspHex))
+				zap.Int("length", len(data)))
 
-			msg.FillBody(data) //网络包的body，承载真正的业务数据
 		}
 
 	} else {
@@ -412,13 +411,13 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(kickRsp)
+		msg.FillBody(data) //网络包的body，承载真正的业务数据
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
 	}
 
 	//处理完成，向dispatcher发送
@@ -471,7 +470,7 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
-	for index, eDeviceID := range deviceIDSliceNew {		
+	for index, eDeviceID := range deviceIDSliceNew {
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
@@ -553,6 +552,7 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 */
 func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 	var err error
+	errorCode := 200 //错误码， 200是正常，其它是错误
 	var errorMsg string
 
 	username := msg.GetUserName() //主设备用户账号
@@ -583,6 +583,7 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 	slaveDeviceID, err := redis.String(redisConn.Do("GET", tempKey))
 	if err != nil {
 		kc.logger.Error("Failed to GET slaveDeviceID", zap.Error(err))
+		errorCode = http.StatusInternalServerError //500
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -606,6 +607,7 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 		//一次性写入到Redis
 		if err := redisConn.Flush(); err != nil {
 			kc.logger.Error("写入redis失败", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("写入redis失败: %s", err.Error())
 			goto COMPLETE
 		}
@@ -635,8 +637,8 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 				Smscode:  "123456", //暂时
 			}
 
-			data, _ := proto.Marshal(resp)
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+			targetData, _ := proto.Marshal(resp)
+			targetMsg.FillBody(targetData) //网络包的body，承载真正的业务数据
 
 			targetMsg.SetCode(200) //成功的状态码
 			//构建数据完成，向dispatcher发送
@@ -655,13 +657,12 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//这里不需要发送body，直接向主设备发送200即可
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
 	}
 
 	//处理完成，向dispatcher发送
@@ -681,7 +682,10 @@ COMPLETE:
 */
 func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
 	var err error
+	rsp := &Auth.AuthorizeCodeRsp{}
+	errorCode := 200
 	var errorMsg string
+	var data []byte
 
 	kc.logger.Info("HandleAuthorizeCode start...", zap.String("DeviceId", msg.GetDeviceID()))
 
@@ -695,6 +699,7 @@ func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
 	var req Auth.AuthorizeCodeReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = "Protobuf Unmarshal Error"
 		goto COMPLETE
 	} else {
@@ -714,6 +719,7 @@ func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
 		_, err = redisConn.Do("SET", tempKey, deviceID)
 		if err != nil {
 			kc.logger.Error("Failed to SET ", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Failed to SET: %s", err.Error())
 			goto COMPLETE
 		}
@@ -725,36 +731,27 @@ func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
 		_, err = redisConn.Do("EXPIRE", tempKey, 120)
 		if err != nil {
 			kc.logger.Error("Failed to EXPIRE ", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Failed to EXPIRE: %s", err.Error())
 			goto COMPLETE
 		}
 
-		resp := &Auth.AuthorizeCodeRsp{
-			Code: fmt.Sprintf("%d", tId),
-		}
-
-		data, _ := proto.Marshal(resp)
-		rspHex := strings.ToUpper(hex.EncodeToString(data))
+		rsp.Code = fmt.Sprintf("%d", tId)
 
 		kc.logger.Info("AuthorizeCode Succeed",
 			zap.String("deviceID:", deviceID),
-			zap.String("Code", fmt.Sprintf("%d", tId)),
-			zap.Int("length", len(data)),
-			zap.String("rspHex", rspHex))
+			zap.String("Code", fmt.Sprintf("%d", tId)))
 
-		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		kc.logger.Info("MarkTag Succeed",
-			zap.String("deviceID:", deviceID))
 	}
 
 	//处理完成，向dispatcher发送

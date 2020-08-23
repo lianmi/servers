@@ -114,10 +114,18 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 6)] = kClient.HandleUpdateFriend  //3-6 刷新好友资料
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 8)] = kClient.HandleGetFriends    //3-8 增量同步好友列表
 
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 1)] = kClient.HandleCreateTeam     //4-1 创建群组
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 2)] = kClient.HandleGetTeamMembers //4-2 获取群组成员
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 3)] = kClient.HandleGetTeam        //4-3 查询群信息
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 4)] = kClient.HandleInviteTeamMembers       //4-4 邀请用户加群
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 1)] = kClient.HandleCreateTeam        //4-1 创建群组
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 2)] = kClient.HandleGetTeamMembers    //4-2 获取群组成员
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 3)] = kClient.HandleGetTeam           //4-3 查询群信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 4)] = kClient.HandleInviteTeamMembers //4-4 邀请用户加群
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 5)] = kClient.HandleRemoveTeamMembers //4-5 删除群组成员
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 6)] = kClient.HandleAcceptTeamInvite  //4-6 接受群邀请
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 7)] = kClient.HandleRejectTeamInvitee //4-7 拒绝群邀请
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 8)] = kClient.HandleApplyTeam         //4-8 主动申请加群
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 9)] = kClient.HandlePassTeamApply     //4-9 批准加群申请
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 10)] = kClient.HandleRejectTeamApply  //4-10 否决加群申请
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 11)] = kClient.HandleUpdateTeam       //4-11 更新群组信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 13)] = kClient.HandleLeaveTeam       //4-13 退群
 
 	return kClient
 }

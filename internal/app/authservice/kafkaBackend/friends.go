@@ -15,7 +15,7 @@ import (
 	"time"
 	// "encoding/hex"
 	"fmt"
-	// "strings"
+	"net/http"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -45,6 +45,7 @@ import (
 */
 func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
 	var isExists bool
 
@@ -91,6 +92,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	req := &Friends.FriendRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -109,12 +111,14 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 		if isExists, err = redis.Bool(redisConn.Do("EXISTS", targetKey)); err != nil {
 			//redis出错
 			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
 			goto COMPLETE
 		}
 		if !isExists {
 			//B不存在
 			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
 			goto COMPLETE
 		}
@@ -144,9 +148,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 		//如果已经互为好友，就直接回复
 		if isAhaveB && isBhaveA {
 			err = nil
-
 			rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
-
 			goto COMPLETE
 		}
 
@@ -227,6 +229,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.FriendUsername = userB
 						if err := kc.SaveAddFriend(pFriendA); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
 						}
@@ -237,6 +240,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.FriendUsername = userA
 						if err := kc.SaveAddFriend(pFriendB); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
 						}
@@ -248,6 +252,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
 							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法INCR"
 							goto COMPLETE
 						}
@@ -269,8 +274,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().Unix()),
 						}
-						data, _ = proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(data, userA)
+						notifyData, _ := proto.Marshal(eRsp)
+						go kc.BroadcastMsgToAllDevices(notifyData, userA)
 					}
 
 					//下发通知给B所有端
@@ -279,6 +284,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
 							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法INCR"
 							goto COMPLETE
 						}
@@ -301,8 +307,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().Unix()),
 						}
-						data, _ = proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(data, userB)
+						notifyData, _ := proto.Marshal(eRsp)
+						go kc.BroadcastMsgToAllDevices(notifyData, userB)
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
@@ -351,24 +357,24 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					data, _ = proto.Marshal(eRsp)
+					notifyData, _ := proto.Marshal(eRsp)
 
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						go kc.BroadcastMsgToAllDevices(data, userB)
+						go kc.BroadcastMsgToAllDevices(notifyData, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						go kc.BroadcastMsgToAllDevices(data, userB)
+						go kc.BroadcastMsgToAllDevices(notifyData, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
-						go kc.BroadcastMsgToAllDevices(data, userA)
+						go kc.BroadcastMsgToAllDevices(notifyData, userA)
 					}
 
 				}
@@ -441,6 +447,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.FriendUsername = userB
 					if err := kc.SaveAddFriend(pFriendA); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
 					}
@@ -451,6 +458,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.FriendUsername = userA
 					if err := kc.SaveAddFriend(pFriendB); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
 					}
@@ -493,7 +501,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					data, _ = proto.Marshal(eRsp)
+					notifyData, _ := proto.Marshal(eRsp)
 					isSend := false
 
 					if !isAhaveB && !isBhaveA { //A和B互相不是好友，B通过/拒绝申请后,A所有终端会收到该系统通知。
@@ -504,7 +512,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						isSend = true
 					}
 					if isSend {
-						go kc.BroadcastMsgToAllDevices(data, userA)
+						go kc.BroadcastMsgToAllDevices(notifyData, userA)
 					}
 				}
 
@@ -546,8 +554,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					data, _ = proto.Marshal(eRsp)
-					go kc.BroadcastMsgToAllDevices(data, userA)
+					notifyData, _ := proto.Marshal(eRsp)
+					go kc.BroadcastMsgToAllDevices(notifyData, userA)
 				}
 
 			}
@@ -556,15 +564,13 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data) //网络包的body，承载真正的业务数据
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		data, _ = proto.Marshal(rsp)
-		msg.FillBody(data)
 	}
 
 	//处理完成，向dispatcher发送
@@ -585,9 +591,10 @@ A和B互为好友，A发起双向删除，则B所有在线终端会收到好友�
 */
 func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
-	rsp := &Friends.DeleteFriendRsp{}
-	var data []byte
+	// rsp := &Friends.DeleteFriendRsp{}
+	// var data []byte
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
 
@@ -624,6 +631,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 	req := &Friends.DeleteFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -635,6 +643,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		//检测目标用户是否存在及添加好友的设定
 		isExists, _ := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("userData:%s", targetUsername)))
 		if !isExists {
+			errorCode = http.StatusInternalServerError
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", targetUsername)
 			goto COMPLETE
 		}
@@ -730,21 +739,18 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().Unix()),
 			}
-			data, _ = proto.Marshal(eRsp)
-			go kc.BroadcastMsgToAllDevices(data, targetUsername)
+			notifyData, _ := proto.Marshal(eRsp)
+			go kc.BroadcastMsgToAllDevices(notifyData, targetUsername)
 		}
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//只需返回200即可
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		data, _ = proto.Marshal(rsp)
-		msg.FillBody(data)
 	}
 
 	//处理完成，向dispatcher发送
@@ -764,8 +770,10 @@ COMPLETE:
 */
 func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
 	var data []byte
+	rsp := &Friends.UpdateFriendRsp{}
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -800,6 +808,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 	req := &Friends.UpdateFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -817,6 +826,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 
 		isExists, _ := redis.Bool(redisConn.Do("EXISTS", targetKey))
 		if !isExists {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[targetUsername=%s]", targetUsername)
 			goto COMPLETE
 		}
@@ -827,6 +837,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 		where := models.Friend{UserID: userID, FriendUsername: targetUsername}
 		if err = kc.db.Model(pFriend).Where(&where).First(pFriend).Error; err != nil {
 			kc.logger.Error("Query friend Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query friend Error: %s", err.Error())
 			goto COMPLETE
 		}
@@ -839,6 +850,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 			if err := tx.Save(pFriend).Error; err != nil {
 				kc.logger.Error("更新好友 alias 失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新好友 alias 失败[alias=%s]", alias)
 				goto COMPLETE
 			}
@@ -850,6 +862,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 			if err := tx.Save(pFriend).Error; err != nil {
 				kc.logger.Error("更新好友 Extend 失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新好友 Extend 失败[Extend=%s]", ex)
 				goto COMPLETE
 			}
@@ -858,10 +871,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 		//提交
 		tx.Commit()
 
-		rsp := &Friends.UpdateFriendRsp{
-			TimeTag: uint64(time.Now().Unix()),
-		}
-		data, _ = proto.Marshal(rsp)
+		rsp.TimeTag = uint64(time.Now().Unix())
 
 		// 同步到用户的其它端
 		{
@@ -927,14 +937,13 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		msg.FillBody(data)
 	}
 
 	//处理完成，向dispatcher发送
@@ -954,7 +963,9 @@ COMPLETE:
 */
 func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
+	rsp := &Friends.GetFriendsRsp{}
 	var data []byte
 
 	redisConn := kc.redisPool.Get()
@@ -990,6 +1001,7 @@ func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 	req := &Friends.GetFriendsReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -997,7 +1009,7 @@ func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 		kc.logger.Debug("GetFriends body",
 			zap.Uint64("timeTag", req.GetTimeTag()))
 
-		rsp := &Friends.GetFriendsRsp{
+		rsp = &Friends.GetFriendsRsp{
 			TimeTag:      uint64(time.Now().Unix()),
 			Friends:      make([]*Friends.Friend, 0),
 			RemovedUsers: make([]string, 0),
@@ -1028,19 +1040,17 @@ func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 			rsp.RemovedUsers = append(rsp.RemovedUsers, friendUsername)
 		}
 
-		data, _ = proto.Marshal(rsp)
-
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		msg.FillBody(data)
 	}
 
 	//处理完成，向dispatcher发送
@@ -1056,7 +1066,9 @@ COMPLETE:
 }
 
 /*
-好友请求，向目标好友 用户账号的所有端推送系统通知
+向目标用户账号的所有端推送系统通知
+业务号： BusinessType_Msg(5)
+业务子号： MsgSubType_RecvMsgEvent(2)
 */
 func (kc *KafkaClient) BroadcastMsgToAllDevices(data []byte, toUser string) error {
 

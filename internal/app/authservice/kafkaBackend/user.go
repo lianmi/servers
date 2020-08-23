@@ -10,10 +10,12 @@
 package kafkaBackend
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"fmt"
+	"net/http"
 	"strconv"
-	"strings"
+
+	// "strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -30,7 +32,13 @@ import (
 */
 func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
+	var data []byte
+
+	rsp := &User.GetUsersResp{
+		Users: make([]*User.User, 0),
+	}
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -63,14 +71,12 @@ func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 	//解包body
 	var getUsersReq User.GetUsersReq
 	if err := proto.Unmarshal(body, &getUsersReq); err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
-		getUsersResp := &User.GetUsersResp{
-			Users: make([]*User.User, 0),
-		}
 
 		for _, username := range getUsersReq.GetUsernames() {
 			kc.logger.Debug("for .. range ...", zap.String("username", username))
@@ -94,6 +100,7 @@ func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 
 				if err = kc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
 					kc.logger.Error("MySQL里读取错误", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
 					goto COMPLETE
 				}
@@ -120,29 +127,23 @@ func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 				LegalIdentityCard: userData.LegalIdentityCard,
 			}
 
-			getUsersResp.Users = append(getUsersResp.Users, user)
+			rsp.Users = append(rsp.Users, user)
 
 		}
-		data, _ := proto.Marshal(getUsersResp)
-		rspHex := strings.ToUpper(hex.EncodeToString(data))
 
 		kc.logger.Info("GetUsers Succeed",
-			zap.String("Username:", username),
-			zap.Int("length", len(data)),
-			zap.String("rspHex", rspHex))
-
-		msg.FillBody(data) //网络包的body，承载真正的业务数据
+			zap.String("Username:", username))
 
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
 	}
 
 	//处理完成，向dispatcher发送
@@ -164,8 +165,9 @@ COMPLETE:
 */
 func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
-
+	rsp := &User.UpdateProfileRsp{}
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -199,6 +201,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var req User.UpdateUserProfileReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
@@ -207,6 +210,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 		pUser := new(models.User)
 		if err = kc.db.Model(pUser).Where("username = ?", username).First(pUser).Error; err != nil {
 			kc.logger.Error("Query user Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user Error: %s", err.Error())
 			goto COMPLETE
 		}
@@ -220,6 +224,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Nick失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Nick失败[nick=%s]", nick)
 				goto COMPLETE
 			}
@@ -231,6 +236,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Gender失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Gender失败[gender=%d]", gender)
 				goto COMPLETE
 			}
@@ -242,6 +248,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Avatar失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Avatar失败[avatar=%s]", avatar)
 				goto COMPLETE
 			}
@@ -253,6 +260,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Label失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Label失败[label=%s]", label)
 				goto COMPLETE
 			}
@@ -264,6 +272,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Email失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Email失败[label=%s]", email)
 				goto COMPLETE
 			}
@@ -275,6 +284,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Extend失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Extend失败[extend=%s]", extend)
 				goto COMPLETE
 			}
@@ -286,6 +296,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户AllowType失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户AllowType失败[allowType=%d]", allowType)
 				goto COMPLETE
 			}
@@ -296,6 +307,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户province失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户province失败[province=%s]", province)
 				goto COMPLETE
 			}
@@ -306,6 +318,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户city失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户city失败[city=%s]", city)
 				goto COMPLETE
 			}
@@ -316,6 +329,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户county失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户county失败[county=%s]", county)
 				goto COMPLETE
 			}
@@ -326,6 +340,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户street失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户street失败[street=%s]", street)
 				goto COMPLETE
 			}
@@ -336,6 +351,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户address失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户address失败[address=%s]", address)
 				goto COMPLETE
 			}
@@ -346,6 +362,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户Branchesname失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户Branchesname失败[Branchesname=%s]", branches_name)
 				goto COMPLETE
 			}
@@ -356,6 +373,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户LegalPerson失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户LegalPerson失败[LegalPerson=%s]", legal_person)
 				goto COMPLETE
 			}
@@ -366,6 +384,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("更新用户LegalIdentityCard失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新用户LegalIdentityCard失败[LegalIdentityCard=%s]", legal_identity_card)
 				goto COMPLETE
 			}
@@ -376,6 +395,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 		if err := tx.Save(pUser).Error; err != nil {
 			kc.logger.Error("更新用户UpdatedAt失败", zap.Error(err))
 			tx.Rollback()
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("更新用户UpdatedAt失败[UpdatedAt=%d]", pUser.UpdatedAt)
 			goto COMPLETE
 		}
@@ -390,6 +410,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if err = kc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
 			kc.logger.Error("MySQL里读取错误", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", username)
 			goto COMPLETE
 		}
@@ -416,29 +437,26 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 				time.Now().Unix())
 		}
 
-		rsp := &User.UpdateProfileRsp{
+		rsp = &User.UpdateProfileRsp{
 			TimeTag: uint64(time.Now().UnixNano() / 1e6),
 		}
-		data, _ := proto.Marshal(rsp)
-		rspHex := strings.ToUpper(hex.EncodeToString(data))
 
 		kc.logger.Info("UpdateUserProfile Succeed",
-			zap.String("Username:", username),
-			zap.Int("length", len(data)),
-			zap.String("rspHex", rspHex))
+			zap.String("Username:", username))
 
-		msg.FillBody(data) //网络包的body，承载真正的业务数据
+
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
 	}
+
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	if err := kc.Produce(topic, msg); err == nil {
@@ -538,6 +556,7 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 
 func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 	var err error
+	errorCode := 200
 	var errorMsg string
 
 	redisConn := kc.redisPool.Get()
@@ -573,6 +592,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 	var req User.MarkTagReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = "Protobuf Unmarshal Error"
 		goto COMPLETE
 	} else {
@@ -581,11 +601,13 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 		account := req.GetUsername()
 
 		if account == username {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Can't mark yourself.[username=%s]", account)
 			goto COMPLETE
 		}
 
 		if err = kc.db.Model(pUser).Where("username = ?", account).First(pUser).Error; err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", account)
 			goto COMPLETE
 		}
@@ -602,6 +624,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			err = db.Error
 			if err != nil {
 				kc.logger.Error("删除实体出错", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", pUser.ID)
 				goto COMPLETE
 			}
@@ -614,6 +637,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			if err := tx.Save(pUser).Error; err != nil {
 				kc.logger.Error("MarkTag增加失败", zap.Error(err))
 				tx.Rollback()
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "MarkTag增加失败"
 				goto COMPLETE
 			}
@@ -628,6 +652,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			err = db.Error
 			if err != nil {
 				kc.logger.Error("删除实体出错", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", pUser.ID)
 				goto COMPLETE
 			}
@@ -672,8 +697,8 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 					Type:    req.GetType(),
 				}
 
-				data, _ := proto.Marshal(resp)
-				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+				targetData, _ := proto.Marshal(resp)
+				targetMsg.FillBody(targetData) //网络包的body，承载真正的业务数据
 
 				targetMsg.SetCode(200) //成功的状态码
 				//构建数据完成，向dispatcher发送
@@ -689,16 +714,12 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 	}
 
 COMPLETE:
-	if err != nil {
-		msg.SetCode(400)                  //状态码
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//只需返回200
+	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
-
-	} else {
-		msg.SetCode(200) //状态码
-		kc.logger.Info("MarkTag Succeed",
-			zap.String("Username:", username))
-
 	}
 
 	//处理完成，向dispatcher发送

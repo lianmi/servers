@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -23,9 +24,9 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
 
-	//Zcount 用于计算有序集合中指定分数区间的成员数量。
-	if count, err := redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("Team:%s", p.Owner), "-inf", "+inf")); err != nil {
-		s.logger.Error("ZCOUNT Error", zap.Error(err))
+	//用户拥有的群的总数量
+	if count, err := redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("Team:%s", p.Owner))); err != nil {
+		s.logger.Error("ZCARD Error", zap.Error(err))
 	} else {
 		if count >= common.MaxTeamLimit {
 			return errors.Wrapf(err, "Reach team max limit[count=%d]", count)
@@ -33,7 +34,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 
 	}
 
-	p.Status = 2        //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+	p.Status = 2 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
 
 	//存储群成员信息 TeamUser
 	memberNick, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Nick"))
@@ -50,19 +51,19 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	teamUser.JoinAt = time.Now().Unix()
 	teamUser.Teamname = p.Teamname
 	teamUser.Username = p.Owner
-	teamUser.Nick = memberNick         //群成员呢称
-	teamUser.Avatar = memberAvatar     //群成员头像
-	teamUser.Label = memberLabel       //群成员标签
-	teamUser.Source = ""               //群成员来源  TODO
-	teamUser.Extend = memberExtend     //群成员扩展字段
-	teamUser.TeamMemberType = 4        //群成员类型 Owner(4) - 创建者
-	teamUser.IsMute = false            //是否被禁言
-	teamUser.NotifyType = 1            //群消息通知方式 All(1) - 群全部消息提醒
-	teamUser.Province = memberProvince //省份, 如广东省
-	teamUser.City = memberCity         //城市，如广州市
-	teamUser.County = memberCounty     //区，如天河区
-	teamUser.Street = memberStreet     //街道
-	teamUser.Address = memberAddress   //地址
+	teamUser.Nick = memberNick                              //群成员呢称
+	teamUser.Avatar = memberAvatar                          //群成员头像
+	teamUser.Label = memberLabel                            //群成员标签
+	teamUser.Source = ""                                    //群成员来源  TODO
+	teamUser.Extend = memberExtend                          //群成员扩展字段
+	teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
+	teamUser.IsMute = false                                //是否被禁言
+	teamUser.NotifyType = 1                                 //群消息通知方式 All(1) - 群全部消息提醒
+	teamUser.Province = memberProvince                      //省份, 如广东省
+	teamUser.City = memberCity                              //城市，如广州市
+	teamUser.County = memberCounty                          //区，如天河区
+	teamUser.Street = memberStreet                          //街道
+	teamUser.Address = memberAddress                        //地址
 
 	tx := s.base.GetTransaction()
 

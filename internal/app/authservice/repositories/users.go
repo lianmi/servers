@@ -495,8 +495,8 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		_ = err
 	}
 
-	//当前所有主从设备数量 ZCOUNT devices:lsj001 -inf +inf
-	count, _ := redis.Int(redisConn.Do("ZCOUNT", deviceListKey, "-inf", "+inf"))
+	//当前所有主从设备数量
+	count, _ := redis.Int(redisConn.Do("ZCARD", deviceListKey))
 	s.logger.Debug("当前所有主从设备数量", zap.Int("count", count))
 
 	return true
