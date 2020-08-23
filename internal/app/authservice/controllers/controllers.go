@@ -34,7 +34,7 @@ type Login struct {
 	Os              string `form:"os" json:"os" binding:"required"`
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
 	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`
-	IsMaster        bool   `form:"ismaster" json:"ismaster" binding:"required"`
+	IsMaster        bool   `form:"ismaster" json:"ismaster"`
 }
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
@@ -237,9 +237,9 @@ func CreateInitControllersFn(
 			auth.GET("/disblockuser/:username", pc.DisBlockUser) //根据用户账号，将此用户解封
 			auth.POST("/chanpassword", pc.ChanPassword)          //修改用户密码
 
-			auth.GET("/approveteam/:teamid", pc.ApproveTeam) //授权新创建的群组
-			auth.GET("/blockteam/:teamid", pc.BlockTeam)     //封禁群组
-			auth.GET("/disblockteam/:teamid", pc.DisBlockTeam)     //解封群组
+			auth.GET("/approveteam/:teamid", pc.ApproveTeam)   //授权新创建的群组
+			auth.GET("/blockteam/:teamid", pc.BlockTeam)       //封禁群组
+			auth.GET("/disblockteam/:teamid", pc.DisBlockTeam) //解封群组
 
 		}
 

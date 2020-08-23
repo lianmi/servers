@@ -1452,18 +1452,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.Street = userData.Street                            //街道
 				teamUser.Address = userData.Address                          //地址
 
-				tx := kc.GetTransaction()
-
-				if err := tx.Save(teamUser).Error; err != nil {
-					kc.logger.Error("更新teamUser失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新teamUser失败[Username=%s]", targetUsername)
-					goto COMPLETE
-
-				}
-				//提交
-				tx.Commit()
+				kc.SaveTeamUser(teamUser)
 
 				//向群推送此用户的入群通知
 
@@ -1740,18 +1729,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.Street = userData.Street                            //街道
 			teamUser.Address = userData.Address                          //地址
 
-			tx := kc.GetTransaction()
-
-			if err := tx.Save(teamUser).Error; err != nil {
-				kc.logger.Error("更新teamUser失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新teamUser失败[Username=%s]", targetUsername)
-				goto COMPLETE
-
-			}
-			//提交
-			tx.Commit()
+			kc.SaveTeamUser(teamUser)
 
 			//向群推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -2102,52 +2080,24 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//使用事务同时更新用户数据和角色数据
-			tx := kc.GetTransaction()
-
 			if nick, ok := req.Fields[1]; ok {
 				//修改群组呢称
 				teamInfo.Nick = nick
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组Nick失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组Nick失败[nick=%s]", nick)
-					goto COMPLETE
-				}
+
 			}
 			if icon, ok := req.Fields[2]; ok {
 				//修改群组Icon
 				teamInfo.Icon = icon
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组icon失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组icon失败[nick=%s]", icon)
-					goto COMPLETE
-				}
+
 			}
 			if announcement, ok := req.Fields[3]; ok {
 				//修改群组Announcement
 				teamInfo.Announcement = announcement
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组Announcement失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组Announcement失败[Announcement=%s]", announcement)
-					goto COMPLETE
-				}
+
 			}
 			if introduce, ok := req.Fields[4]; ok {
 				//修改群组Introductory
 				teamInfo.Introductory = introduce
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组Introductory失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组Introductory失败[Introductory=%s]", introduce)
-					goto COMPLETE
-				}
 			}
 
 			if verifyTypeStr, ok := req.Fields[5]; ok {
@@ -2159,13 +2109,6 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 				}
 				//修改群组VerifyType
 				teamInfo.VerifyType = verifyType
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组VerifyType失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组VerifyType失败[VerifyType=%s]", verifyType)
-					goto COMPLETE
-				}
 			}
 
 			if inviteModeStr, ok := req.Fields[6]; ok {
@@ -2175,19 +2118,11 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 						inviteMode = int(n)
 					}
 				}
-				//修改群组VerifyType
+				//修改群组InviteMode
 				teamInfo.InviteMode = inviteMode
-				if err := tx.Save(teamInfo).Error; err != nil {
-					kc.logger.Error("更新群组InviteMode失败", zap.Error(err))
-					tx.Rollback()
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("更新群组InviteMode失败[InviteMode=%s]", inviteMode)
-					goto COMPLETE
-				}
 			}
 
-			//提交
-			tx.Commit()
+			kc.SaveTeam(teamInfo)
 
 			rsp.TeamId = teamID
 			rsp.TimeAt = uint64(time.Now().Unix())
@@ -3080,6 +3015,659 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//200
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-20 用户设置群消息通知方式
+群成员设置接收群消息的通知方式
+*/
+
+func (kc *KafkaClient) HandleSetNotifyType(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+
+	// var data []byte
+	// var newSeq uint64
+	// var count int
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleSetNotifyType start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("SetNotifyType ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.SetNotifyTypeReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("SetNotifyType  payload",
+			zap.String("teamId", req.GetTeamId()),
+		)
+
+		teamID := req.GetTeamId()
+		// notifyType := req.GetNotifyType()
+
+		//判断 teamID 是否存在
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
+			kc.logger.Error("EXISTS Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			goto COMPLETE
+
+		} else {
+			if !isExists {
+				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+
+			//获取到群信息
+			key := fmt.Sprintf("TeamInfo:%s", teamID)
+			teamInfo := new(models.Team)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					goto COMPLETE
+				}
+			}
+			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+			teamUser := new(models.TeamUser)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamUser); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+					goto COMPLETE
+				}
+			}
+
+			teamUser.NotifyType = int(req.GetNotifyType())
+			//写入MySQL
+			if err = kc.SaveTeamUser(teamUser); err != nil {
+				kc.logger.Error("Save teamUser Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "无法保存到teamUser"
+				goto COMPLETE
+			}
+
+			//刷新redis
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
+				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+			}
+		}
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//200
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-21 用户设置其在群里的资料
+群成员设置自己群里的个人资料
+*/
+
+func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+
+	// var data []byte
+	// var newSeq uint64
+	// var count int
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleUpdateMyInfo start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("UpdateMyInfo ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.UpdateMyInfoReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("UpdateMyInfo  payload",
+			zap.String("teamId", req.GetTeamId()),
+		)
+
+		teamID := req.GetTeamId()
+
+		//判断 teamID 是否存在
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
+			kc.logger.Error("EXISTS Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			goto COMPLETE
+
+		} else {
+			if !isExists {
+				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+
+			//获取到群信息
+			key := fmt.Sprintf("TeamInfo:%s", teamID)
+			teamInfo := new(models.Team)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					goto COMPLETE
+				}
+			}
+			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+			teamUser := new(models.TeamUser)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamUser); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+					goto COMPLETE
+				}
+			}
+
+			if nick, ok := req.Fields[1]; ok {
+				//修改群组呢称
+				teamUser.Nick = nick
+
+			}
+			if ex, ok := req.Fields[2]; ok {
+				//修改群组呢称
+				teamUser.Extend = ex
+
+			}
+
+			//写入MySQL
+			if err = kc.SaveTeamUser(teamUser); err != nil {
+				kc.logger.Error("Save teamUser Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "无法保存到teamUser"
+				goto COMPLETE
+			}
+
+			//刷新redis
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
+				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+			}
+		}
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//200
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-22 管理员设置群成员资料
+
+管理员设置群成员资料
+*/
+
+func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+
+	// var data []byte
+	// var newSeq uint64
+	// var count int
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleUpdateMemberInfo start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("UpdateMemberInfo ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.UpdateMemberInfoReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("UpdateMemberInfo  payload",
+			zap.String("teamId", req.GetTeamId()),
+			zap.String("username", req.GetUsername()),
+		)
+
+		teamID := req.GetTeamId()
+
+		//判断 teamID 是否存在
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
+			kc.logger.Error("EXISTS Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			goto COMPLETE
+
+		} else {
+			if !isExists {
+				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+
+			//获取到群信息
+			key := fmt.Sprintf("TeamInfo:%s", teamID)
+			teamInfo := new(models.Team)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					goto COMPLETE
+				}
+			}
+			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
+			teamUser := new(models.TeamUser)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamUser); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
+					goto COMPLETE
+				}
+			}
+
+			//判断操作者是群主还是管理员
+			teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
+			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+				// teamUser.IsMute = req.GetMute()
+				// teamUser.Mutedays = int(req.GetMutedays())
+				if nick, ok := req.Fields[1]; ok {
+					//修改群组呢称
+					teamUser.Nick = nick
+
+				}
+				if ex, ok := req.Fields[2]; ok {
+					//修改群组呢称
+					teamUser.Extend = ex
+
+				}
+
+			} else {
+				//其它成员无权设置
+				kc.logger.Warn("其它成员无权设置群成员资料")
+				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("其它成员无权设置群成员资料[username=%s]", req.GetUsername())
+				goto COMPLETE
+			}
+
+			//写入MySQL
+			if err = kc.SaveTeamUser(teamUser); err != nil {
+				kc.logger.Error("Save teamUser Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "无法保存到teamUser"
+				goto COMPLETE
+			}
+
+			//刷新redis
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
+				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+			}
+		}
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//200
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-24 获取指定群组成员
+
+根据群组用户ID获取最新群成员信息
+*/
+
+func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	rsp := &Team.PullTeamMembersRsp{
+		Tmembers: make([]*Team.Tmember, 0),
+	}
+	var data []byte
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandlePullTeamMembers start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("PullTeamMembers ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.PullTeamMembersReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("PullTeamMembers  payload",
+			zap.String("teamId", req.GetTeamId()),
+			zap.Strings("usernames", req.GetAccounts()),
+		)
+
+		teamID := req.GetTeamId()
+
+		//判断 teamID 是否存在
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
+			kc.logger.Error("EXISTS Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			goto COMPLETE
+
+		} else {
+			if !isExists {
+				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+
+			//获取到群信息
+			key := fmt.Sprintf("TeamInfo:%s", teamID)
+			teamInfo := new(models.Team)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					goto COMPLETE
+				}
+			}
+
+			for _, account := range req.GetAccounts() {
+
+				key = fmt.Sprintf("TeamUser:%s:%s", teamID, account)
+				teamUser := new(models.TeamUser)
+				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+					if err := redis.ScanStruct(result, teamUser); err != nil {
+						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", account)
+						goto COMPLETE
+					}
+				}
+
+				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
+					TeamId:     teamUser.TeamID,
+					Username:   teamUser.Username,
+					Nick:       teamUser.Nick,
+					Avatar:     teamUser.Avatar,
+					Source:     teamUser.Source,
+					Type:       Team.TeamMemberType(teamUser.TeamMemberType),
+					NotifyType: Team.NotifyType(teamUser.NotifyType),
+					Mute:       teamUser.IsMute,
+					Ex:         teamUser.Extend,
+					JoinTime:   uint64(teamUser.JoinAt),
+					UpdateTime: uint64(teamUser.UpdatedAt),
+				})
+			}
+		}
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-25 增量同步群组信息
+
+根据群组用户ID获取最新群成员信息
+*/
+
+func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	rsp := &Team.PullTeamMembersRsp{
+		Tmembers: make([]*Team.Tmember, 0),
+	}
+	var data []byte
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleGetMyTeams start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetMyTeams ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.GetMyTeamsReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("GetMyTeams  payload",
+			zap.Uint64("timeAt", req.GetTimeAt()),
+			zap.Strings("usernames", req.GetUsernames()),
+		)
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

@@ -130,6 +130,11 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 15)] = kClient.HandleRemoveTeamManagers //4-15 撤销群管理员
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 18)] = kClient.HandleMuteTeam           //4-18 设置群禁言模式
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 19)] = kClient.HandleMuteTeamMember     //4-19 设置群成员禁言
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 20)] = kClient.HandleSetNotifyType      //4-20 用户设置群消息通知方式
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 21)] = kClient.HandleUpdateMyInfo       //4-21 用户设置其在群里的资料
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 22)] = kClient.HandleUpdateMemberInfo   //4-22 管理员设置群成员资料
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 24)] = kClient.HandlePullTeamMembers   //4-24 获取指定群组成员
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 25)] = kClient.HandleGetMyTeams   //4-25 增量同步群组信息
 
 	return kClient
 }
