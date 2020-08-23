@@ -566,6 +566,12 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 		//查询出主设备的手机号
 		userKey := fmt.Sprintf("userData:%s", username)
 		mobile, _ := redis.String(redisConn.Do("HGET", userKey, "Mobile"))
+		if mobile == "" {
+			kc.logger.Error("获取手机失败", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Get Mobile from redis error")
+			goto COMPLETE
+		}
 
 		//生成 smscode
 		key := fmt.Sprintf("smscode:%s", mobile)
