@@ -99,10 +99,11 @@ func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
 				kc.logger.Debug("尝试从 MySQL里读取")
 
 				if err = kc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
-					kc.logger.Error("MySQL里读取错误", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
-					goto COMPLETE
+					kc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
+					// errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					// errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
+					// goto COMPLETE
+					continue
 				}
 
 				//将数据写入redis，以防下次再从MySQL里读取, 如果错误也不会终止
@@ -443,7 +444,6 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		kc.logger.Info("UpdateUserProfile Succeed",
 			zap.String("Username:", username))
-
 
 	}
 

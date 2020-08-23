@@ -43,6 +43,24 @@ func (kc *KafkaClient) SaveCreateTeam(pTeam *models.Team) error {
 	if err := tx.Save(pTeam).Error; err != nil {
 		kc.logger.Error("更新群team表失败", zap.Error(err))
 		tx.Rollback()
+		return err
+	}
+
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
+//增加群成员
+func (kc *KafkaClient) SaveTeamUser(pTeamUser *models.TeamUser) error {
+	//使用事务同时更新增加群成员
+	tx := kc.GetTransaction()
+
+	if err := tx.Save(pTeamUser).Error; err != nil {
+		kc.logger.Error("更新TeamUser表失败", zap.Error(err))
+		tx.Rollback()
+		return err
 	}
 
 	//提交
@@ -55,6 +73,20 @@ func (kc *KafkaClient) SaveCreateTeam(pTeam *models.Team) error {
 func (kc *KafkaClient) DeleteTeamUser(teamID, username string) error {
 	where := models.TeamUser{TeamID: teamID, Username: username}
 	db := kc.db.Where(&where).Delete(models.TeamUser{})
+	err := db.Error
+	if err != nil {
+		kc.logger.Error("DeleteTeamUser", zap.Error(err))
+		return err
+	}
+	count := db.RowsAffected
+	kc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	return nil
+}
+
+//设置群管理员
+func (kc *KafkaClient) SetTeamManager(teamID, username string) error {
+	where := models.TeamUser{TeamID: teamID, Username: username}
+	db := kc.db.Where(&where).Save(models.TeamUser{})
 	err := db.Error
 	if err != nil {
 		kc.logger.Error("DeleteTeamUser", zap.Error(err))
