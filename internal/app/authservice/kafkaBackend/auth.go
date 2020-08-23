@@ -467,12 +467,11 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 	rsp := &Auth.GetAllDevicesRsp{}
 	rsp.OnlineDevices = make([]*Auth.DeviceInfo, 0)
 	rsp.OfflineDevices = make([]*Auth.DeviceInfo, 0)
-	
 
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for index, eDeviceID := range deviceIDSliceNew {
-		
+
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
@@ -494,7 +493,7 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 		}
 
 		rsp.OnlineDevices = append(rsp.OnlineDevices, deviceInfo)
-	
+
 	}
 
 	//响应客户端
@@ -720,6 +719,7 @@ func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
 	}
 
 COMPLETE:
+	msg.SetJwtToken("*")          //为了欺骗map
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		data, _ = proto.Marshal(rsp)
