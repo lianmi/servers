@@ -128,7 +128,8 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 13)] = kClient.HandleLeaveTeam          //4-13 退群
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 14)] = kClient.HandleAddTeamManagers    //4-14 设置群管理员
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 15)] = kClient.HandleRemoveTeamManagers //4-15 撤销群管理员
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 18)] = kClient.HandleRemoveTeamManagers //4-18 设置群禁言模式
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 18)] = kClient.HandleMuteTeam           //4-18 设置群禁言模式
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 19)] = kClient.HandleMuteTeamMember     //4-19 设置群成员禁言
 
 	return kClient
 }

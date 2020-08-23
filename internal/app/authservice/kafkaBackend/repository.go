@@ -36,7 +36,7 @@ func (kc *KafkaClient) DeleteFriend(userID, friendUserID uint64) error {
 }
 
 //创建群
-func (kc *KafkaClient) SaveCreateTeam(pTeam *models.Team) error {
+func (kc *KafkaClient) SaveTeam(pTeam *models.Team) error {
 	//使用事务同时更新创建群数据
 	tx := kc.GetTransaction()
 

@@ -26,6 +26,7 @@ type TeamUser struct {
 	Extend         string `form:"extend" json:"extend,omitempty" `                     //群成员扩展字段
 	TeamMemberType int    `form:"team_member_type" json:"team_member_type,omitempty" ` //群成员类型, 1-待审核的申请加入用户, 2-管理员, 3-普通成员, 4-Owner(群主)
 	IsMute         bool   `form:"is_mute" json:"is_mute,omitempty" `                   //是否被禁言
+	Mutedays       int    `form:"mute_days" json:"mute_days,omitempty" `               //禁言时长，0表示永久， 以天为单位
 	NotifyType     int    `form:"notify_type" json:"notify_type,omitempty" `           //通知类型
 	Province       string `form:"province" json:"province,omitempty" `                 //省份, 如广东省
 	City           string `form:"city" json:"city,omitempty" `                         //城市，如广州市
