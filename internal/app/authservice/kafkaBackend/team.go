@@ -3606,15 +3606,15 @@ COMPLETE:
 /*
 4-25 增量同步群组信息
 
-根据群组用户ID获取最新群成员信息
+增量同步群组信息
 */
 
 func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	rsp := &Team.PullTeamMembersRsp{
-		Tmembers: make([]*Team.Tmember, 0),
+	rsp := &Team.GetMyTeamsRsp{
+		Teams: make([]*Team.TeamInfo, 0),
 	}
 	var data []byte
 
@@ -3661,6 +3661,50 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 			zap.Strings("usernames", req.GetUsernames()),
 		)
 
+		//查出此用户的所有群组
+		teamIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Team:%s", username), "-inf", "+inf"))
+		for _, teamID := range teamIDs {
+			//获取到群信息
+			key := fmt.Sprintf("TeamInfo:%s", teamID)
+			teamInfo := new(models.Team)
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					goto COMPLETE
+				}
+			}
+
+			//计算群成员数量。
+			var count int
+			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
+				kc.logger.Error("ZCARD Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+
+			rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
+				TeamId:       teamInfo.TeamID,
+				Name:         teamInfo.Teamname,
+				Icon:         teamInfo.Icon,
+				Announcement: teamInfo.Announcement,
+				Introduce:    teamInfo.Introductory,
+				Owner:        teamInfo.Owner,
+				Type:         Team.TeamType(teamInfo.Type),
+				VerifyType:   Team.VerifyType(teamInfo.VerifyType),
+				MemberLimit:  int32(common.PerTeamMembersLimit),
+				MemberNum:    int32(count),
+				Status:       Team.Status(teamInfo.Status),
+				MuteType:     Team.MuteMode(teamInfo.MuteType),
+				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
+				Ex:           teamInfo.Extend,
+				CreateAt:     uint64(teamInfo.CreatedAt),
+				UpdateAt:     uint64(time.Now().Unix()), //更新时间
+			})
+		}
+
 	}
 
 COMPLETE:
@@ -3668,6 +3712,315 @@ COMPLETE:
 	if errorCode == 200 {
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-26 管理员审核用户入群申请
+
+管理员收到询问是否同意邀请用户入群的系统通知事件， 处理：同意或拒绝
+*/
+
+func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var newSeq uint64
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleCheckTeamInvite start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("CheckTeamInvite ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.CheckTeamInviteReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("CheckTeamInvite  payload",
+			zap.String("TeamId", req.GetTeamId()),
+			zap.String("Inviter", req.GetInviter()),
+			zap.String("Invitee", req.GetInvitee()),
+			zap.Bool("IsAgree", req.GetIsAgree()),
+			zap.String("Ps", req.GetPs()),
+		)
+		teamID := req.GetTeamId()
+
+		//获取到群信息
+		key := fmt.Sprintf("TeamInfo:%s", teamID)
+		teamInfo := new(models.Team)
+		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+			if err := redis.ScanStruct(result, teamInfo); err != nil {
+				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+		}
+		key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+		teamUser := new(models.TeamUser)
+		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+			if err := redis.ScanStruct(result, teamUser); err != nil {
+				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+				goto COMPLETE
+			}
+		}
+		//判断操作者是群主还是管理员
+		teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
+		if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+
+			userData := new(models.User)
+			userKey := fmt.Sprintf("userData:%s", req.GetInvitee())
+			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+				if err := redis.ScanStruct(result, userData); err != nil {
+
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetInvitee())
+					goto COMPLETE
+
+				}
+			}
+			//存储群成员信息 TeamUser
+			teamUser := new(models.TeamUser)
+			teamUser.JoinAt = time.Now().Unix()
+			teamUser.Teamname = teamInfo.Teamname
+			teamUser.Username = userData.Username
+			teamUser.Nick = userData.Nick                                //群成员呢称
+			teamUser.Avatar = userData.Avatar                            //群成员头像
+			teamUser.Label = userData.Label                              //群成员标签
+			teamUser.Source = ""                                         //群成员来源  TODO
+			teamUser.Extend = userData.Extend                            //群成员扩展字段
+			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
+			teamUser.IsMute = false                                      //是否被禁言
+			teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
+			teamUser.Province = userData.Province                        //省份, 如广东省
+			teamUser.City = userData.City                                //城市，如广州市
+			teamUser.County = userData.County                            //区，如天河区
+			teamUser.Street = userData.Street                            //街道
+			teamUser.Address = userData.Address                          //地址
+
+			kc.SaveTeamUser(teamUser)
+
+			//向群推送此用户的入群通知
+
+			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+			for _, teamMember := range teamMembers {
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInvitee()))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+					goto COMPLETE
+				}
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
+					HandledAccount: username,                                       //当前用户
+					HandledMsg:     "",                                             //TODO
+					Status:         1,                                              //TODO, 消息状态 bitset 存储
+					Text:           "",                                             // 附带的文本 该系统消息的文本
+					To:             teamID,                                         //群组id
+				}
+				inviteEventRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         []byte(body.String()),                //JSON
+					From:         req.GetInvitee(),                     //被邀请人
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().Unix()),
+				}
+				notifyData, _ := proto.Marshal(inviteEventRsp)
+				go kc.BroadcastMsgToAllDevices(notifyData, teamMember) //向群成员广播
+			}
+			/*
+				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
+				2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
+				3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
+				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
+			*/
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", req.GetInvitee()), time.Now().Unix(), teamInfo.TeamID); err != nil {
+				kc.logger.Error("ZADD Error", zap.Error(err))
+			}
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
+				kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			}
+
+			//add群成员
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().Unix(), req.GetInvitee()); err != nil {
+				kc.logger.Error("ZADD Error", zap.Error(err))
+			}
+
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetInvitee())).AddFlat(teamUser)...); err != nil {
+				kc.logger.Error("错误：HMSET TeamUser", zap.Error(err))
+			}
+
+		} else {
+			//其它成员无权设置
+			kc.logger.Warn("其它成员无权审核用户入群申请")
+			errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("其它成员无权审核用户入群申请[username=%s]", username)
+			goto COMPLETE
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+4-27 分页获取群成员信息
+分页方式获取群成员信息，该接口仅支持在线获取，SDK不进行缓存
+*/
+
+func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	// var newSeq uint64
+
+	rsp := &Team.GetTribeMembersRsp{
+		Members: make([]*Team.Tmember, 0),
+	}
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleGetTribeMembers start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetTribeMembers ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Team.GetTribeMembersReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("GetTribeMembers  payload",
+			zap.String("TeamId", req.GetTeamId()),
+		)
+		teamID := req.GetTeamId()
+
+		//获取到群信息
+		key := fmt.Sprintf("TeamInfo:%s", teamID)
+		teamInfo := new(models.Team)
+		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+			if err := redis.ScanStruct(result, teamInfo); err != nil {
+				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				goto COMPLETE
+			}
+		}
+		key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+		teamUser := new(models.TeamUser)
+		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+			if err := redis.ScanStruct(result, teamUser); err != nil {
+				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+				goto COMPLETE
+			}
+		}
+
+		//TODO  GetPages 分页返回数据
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
