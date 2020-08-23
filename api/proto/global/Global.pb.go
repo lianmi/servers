@@ -443,7 +443,7 @@ const (
 	MsgSubType_SendMsg                 MsgSubType = 1 //*< 1.  发送消息
 	MsgSubType_RecvMsgEvent            MsgSubType = 2 //*< 2.  接收消息事件
 	MsgSubType_SyncOfflineSysMsgsEvent MsgSubType = 3 //*< 3.  同步系统离线消息
-	//DeleteSessions               = 4;    /**< 4.  <已 >删除会话*/
+	//DeleteSessions             = 4;    /**< 4.  <已 >删除会话*/
 	MsgSubType_SyncSendMsgEvent       MsgSubType = 5 //*< 5.  发送消息多终端同步事件
 	MsgSubType_SendCancelMsg          MsgSubType = 6 //*< 6.  发送撤销消息
 	MsgSubType_RecvCancelMsgEvent     MsgSubType = 7 //*< 7.  接收撤销消息事件

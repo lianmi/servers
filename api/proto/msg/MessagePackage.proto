@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "api/proto/msg/MsgTypeEnum.proto";
+
 package cloud.lianmi.im.msg;
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 // 应用层使用消息数据包 处理生成应用层的 数据包
@@ -15,10 +16,8 @@ message MessagePackage {
     string uuid = 4;
     // 消息序号
     fixed64 seq = 5;
-    // 消息状态 bitset 方式储存
-    // 第一位是 已读未读 状态
-    // 第二位是 撤销 状态(即让不让 ui 显示 , 且改消息 撤回状态 为1 ,body 清空 客户端不让显示 )
-    int32 status = 6;
+    // 消息状态 
+    MessageStatus status = 6;
     // 消息的发送方
     string from = 7;
     // 消息的接受方
