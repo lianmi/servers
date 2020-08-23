@@ -13,9 +13,9 @@
 package kafkaBackend
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"fmt"
-	"strings"
+	// "strings"
 	"time"
 
 	"net/http"
@@ -464,32 +464,18 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)
-	resp := &Auth.GetAllDevicesRsp{}
-	resp.OnlineDevices = make([]*Auth.DeviceInfo, 0)
-	resp.OfflineDevices = make([]*Auth.DeviceInfo, 0)
+	rsp := &Auth.GetAllDevicesRsp{}
+	rsp.OnlineDevices = make([]*Auth.DeviceInfo, 0)
+	rsp.OfflineDevices = make([]*Auth.DeviceInfo, 0)
+	
 
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for index, eDeviceID := range deviceIDSliceNew {
-		targetMsg := &models.Message{}
+		
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-		now := time.Now().UnixNano() / 1e6
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(username)
-		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Auth")
-		targetMsg.SetBusinessType(uint32(2))
-		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
-
-		targetMsg.BuildHeader("AuthService", now)
 
 		curIsMaster := isMaster
 		if eDeviceID != deviceID {
@@ -507,31 +493,20 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 			LogonAt:      curLogonAt,
 		}
 
-		resp.OnlineDevices = append(resp.OnlineDevices, deviceInfo)
-		data, _ := proto.Marshal(resp)
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
-		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-		}
+		rsp.OnlineDevices = append(rsp.OnlineDevices, deviceInfo)
+	
 	}
 
 	//响应客户端
 
 	msg.SetCode(200) //状态码
 
-	data, _ := proto.Marshal(resp)
-	rspHex := strings.ToUpper(hex.EncodeToString(data))
+	data, _ := proto.Marshal(rsp)
 
 	kc.logger.Info("GetAllDevices Succeed",
 		zap.String("Username:", username),
 		zap.Int("length", len(data)),
-		zap.String("rspHex", rspHex))
+	)
 
 	msg.FillBody(data) //网络包的body，承载真正的业务数据
 
