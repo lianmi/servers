@@ -261,7 +261,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							errorMsg = "无法INCR"
 							goto COMPLETE
 						}
-						body := Msg.MessageNotificationBody{
+						body := &Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userA,
 							HandledMsg:     "",
@@ -269,10 +269,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Text:           "", // 附带的文本 该系统消息的文本
 							To:             userA,
 						}
+						bodyData, _ := proto.Marshal(body)
 						eRsp := &Msg.RecvMsgEventRsp{
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
-							Body:         []byte(body.String()),                //JSON
+							Body:         bodyData,
 							FromDeviceId: deviceID,
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -294,7 +295,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							goto COMPLETE
 						}
 
-						body := Msg.MessageNotificationBody{
+						body := &Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userB,
 							HandledMsg:     "",
@@ -302,10 +303,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Text:           "", // 附带的文本 该系统消息的文本
 							To:             userB,
 						}
+						bodyData, _ := proto.Marshal(body)
 						eRsp := &Msg.RecvMsgEventRsp{
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
-							Body:         []byte(body.String()),                //JSON
+							Body:         bodyData,
 							FromDeviceId: deviceID,
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -345,7 +347,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					//添加好友，对方接收/拒绝后，该字段填充为对方ID
 					//申请入群，管理员通过/拒绝后，该字段填充管理员ID
 					//邀请入群，用户通过/拒绝后，该字段填充目标用户ID
-					body := Msg.MessageNotificationBody{
+					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
 						HandledMsg:     "",
@@ -353,10 +355,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userB,
 					}
+					bodyData, _ := proto.Marshal(body)
 					eRsp := &Msg.RecvMsgEventRsp{
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
-						Body:         []byte(body.String()),                //JSON
+						Body:         bodyData,
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -493,7 +496,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
-					body := Msg.MessageNotificationBody{
+					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
 						HandledMsg:     "",
@@ -501,10 +504,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userA,
 					}
+					bodyData, _ := proto.Marshal(body)
 					eRsp := &Msg.RecvMsgEventRsp{
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
-						Body:         []byte(body.String()),                //JSON
+						Body:         bodyData,
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -550,7 +554,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
-					body := Msg.MessageNotificationBody{
+					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
 						HandledAccount: userB,
 						HandledMsg:     "",
@@ -558,10 +562,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userA,
 					}
+					bodyData, _ := proto.Marshal(body)
 					eRsp := &Msg.RecvMsgEventRsp{
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
-						Body:         []byte(body.String()),                //JSON
+						Body:         bodyData,
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -736,7 +741,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 			}
 
-			body := Msg.MessageNotificationBody{
+			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
 				HandledAccount: username,
 				HandledMsg:     "",
@@ -744,10 +749,11 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Text:           "", // 附带的文本 该系统消息的文本
 				To:             targetUsername,
 			}
+			bodyData, _ := proto.Marshal(body)
 			eRsp := &Msg.RecvMsgEventRsp{
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         []byte(body.String()),                //JSON
+				Body:         bodyData,
 				FromDeviceId: deviceID,
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
