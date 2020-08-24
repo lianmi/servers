@@ -36,5 +36,8 @@ message GetTeamMembersPageRsp {
     //是否必填-是
     repeated Tmember members = 1;
 
+    //总页数，按pageSize计算而来
+    int32 total = 2; 
+
 }
 

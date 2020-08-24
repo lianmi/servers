@@ -4136,14 +4136,15 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		var maps string
 		switch req.GetQueryType() {
 		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All:
-			maps = "TeamMemberType !=0 "
+			maps = "team_member_type != 0 "
 		case Team.QueryType_Tmqt_Manager: //管理员
-			maps = "TeamMemberType =2 "
+			maps = "team_member_type = 2 "
 		case Team.QueryType_Tmqt_Muted:
 			maps = "is_mute = true " //禁言
 		}
 		var total uint64
 		teamUsers := kc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {
 			rsp.Members = append(rsp.Members, &Team.Tmember{
 				TeamId:     teamUser.TeamID,
