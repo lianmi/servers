@@ -1,0 +1,24 @@
+syntax = "proto3";
+import "api/proto/msg/MsgTypeEnum.proto";
+
+package cloud.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+//向服务端发送确认消息送达的请求
+message MsgAckReq {
+    // 消息的传输场景
+    MessageScene scene = 1;
+    // 消息类型
+    MessageType type = 2;
+    // 消息id 服务器生成 全局唯一
+    string serverMsgId = 3;
+    // 消息序号
+    fixed64 seq = 4;
+    //系统消息收到时间，Unix时间戳，更新本地timetag表的systemMsgAt字段
+    //是否必填-是
+    fixed64 timeTag = 5;
+}
+
+//code=200
+message MsgAckRsp {
+}
