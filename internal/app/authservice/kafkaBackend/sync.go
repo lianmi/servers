@@ -1,14 +1,12 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt,  systemMsgAt
+    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt
 
 6-2 同步请求完成
 
 客户端触发:
 1-3 同步当前用户资料事件
-
-
 
 */
 package kafkaBackend
@@ -23,6 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Friends "github.com/lianmi/servers/api/proto/friends"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Sync "github.com/lianmi/servers/api/proto/syn"
 	Team "github.com/lianmi/servers/api/proto/team"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -395,7 +394,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		for _, removeTeamID := range removeTeamIDs {
 			rsp.RemovedTeams = append(rsp.RemovedTeams, removeTeamID)
 		}
-		
+
 		data, _ := proto.Marshal(rsp)
 
 		//向客户端响应 SyncFriendUsersEvent 事件
@@ -411,8 +410,8 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("User")
-		targetMsg.SetBusinessType(uint32(3))
-		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
+		targetMsg.SetBusinessType(uint32(4))
+		targetMsg.SetBusinessSubType(uint32(17)) //SyncMyTeamsEvent = 17
 
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
@@ -428,11 +427,88 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("Sync FriendUsers Event Succeed",
+		kc.logger.Info("SyncMyTeamsEvent  Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().Unix()))
 	}
+	//完成
+	ch <- 1
+
+	return nil
+}
+
+//处理 systemMsgAt
+func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	var err error
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	systemMsgAt := req.GetSystemMsgAt()
+	systemMsgAtKey := fmt.Sprintf("sync:%s", username)
+
+	cur_systemMsgAt, _ := redis.Uint64(redisConn.Do("HGET", systemMsgAtKey, "systemMsgAt"))
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_systemMsgAt > systemMsgAt {
+		nTime := time.Now()
+		yesTime := nTime.AddDate(0, 0, -7).Unix()
+		seqs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
+		for _, seq := range seqs {
+			key := fmt.Sprintf("systemMsg:%s:%d", username, seq)
+			toUser, _ := redis.String(redisConn.Do("HGET", key, "Username"))
+			// msgID, _ := redis.String(redisConn.Do("HGET", key, "MsgID"))
+			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+
+			targetMsg := &models.Message{}
+			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+			targetMsg.UpdateID()
+
+			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+			targetMsg.SetJwtToken(curJwtToken)
+			targetMsg.SetUserName(toUser)
+			targetMsg.SetDeviceID(deviceID)
+			// kickMsg.SetTaskID(uint32(taskId))
+			targetMsg.SetBusinessTypeName("User")
+			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+
+			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+			targetMsg.SetCode(200) //成功的状态码
+
+			//构建数据完成，向dispatcher发送
+			topic := "Auth.Frontend"
+			go kc.Produce(topic, targetMsg)
+			// if err := kc.Produce(topic, targetMsg); err == nil {
+			// 	kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			// } else {
+			// 	kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			// }
+
+			kc.logger.Info("BroadcastMsgToAllDevices Succeed",
+				zap.String("Username:", toUser),
+				zap.String("DeviceID:", deviceID),
+				zap.Int64("Now", time.Now().Unix()))
+
+			_ = err
+
+		}
+
+		kc.logger.Info("Sync systemMsg Event Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().Unix()))
+	}
+
 	//完成
 	ch <- 1
 
@@ -489,7 +565,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		//异步
 		go func() {
 
-			syncCount := 4 //最终是5, 每增加一个处理，就加1
+			syncCount := 5
 			chs := make([]chan int, syncCount)
 
 			i := 0
@@ -515,6 +591,12 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			chs[i] = make(chan int)
 			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[i]); err == nil {
 				kc.logger.Debug("teamsAt is done")
+			}
+
+			i++
+			chs[i] = make(chan int)
+			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[i]); err == nil {
+				kc.logger.Debug("systemMsgAt is done")
 			}
 
 			for _, ch := range chs {

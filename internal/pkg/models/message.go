@@ -68,6 +68,11 @@ func (msg *Message) GetID() string {
 	return msg.Header.ID
 }
 
+//SetID set message ID
+func (msg *Message) SetID(id string) {
+	msg.Header.ID = id
+}
+
 //BuildRouter sets route and resource operation in message
 func (msg *Message) BuildRouter(source, group, target string) *Message {
 	msg.SetRoute(source, group, target)

@@ -258,7 +258,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
 							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "无法INCR"
+							errorMsg = "INCR Error"
 							goto COMPLETE
 						}
 						body := &Msg.MessageNotificationBody{
@@ -280,8 +280,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().Unix()),
 						}
-						notifyData, _ := proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(notifyData, userA)
+
+						go kc.BroadcastMsgToAllDevices(eRsp, userA)
 					}
 
 					//下发通知给B所有端
@@ -291,7 +291,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
 							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "无法INCR"
+							errorMsg = "INCR Error"
 							goto COMPLETE
 						}
 
@@ -314,8 +314,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().Unix()),
 						}
-						notifyData, _ := proto.Marshal(eRsp)
-						go kc.BroadcastMsgToAllDevices(notifyData, userB)
+						go kc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
@@ -366,27 +365,26 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					notifyData, _ := proto.Marshal(eRsp)
 
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						kc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
-						go kc.BroadcastMsgToAllDevices(notifyData, userB)
+						go kc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						kc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
-						go kc.BroadcastMsgToAllDevices(notifyData, userB)
+						go kc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
 						kc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
-						go kc.BroadcastMsgToAllDevices(notifyData, userA)
+						go kc.BroadcastMsgToAllDevices(eRsp, userA)
 					}
 
 				}
@@ -515,7 +513,6 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					notifyData, _ := proto.Marshal(eRsp)
 					isSend := false
 
 					if !isAhaveB && !isBhaveA { //A和B互相不是好友，B通过/拒绝申请后,A所有终端会收到该系统通知。
@@ -527,7 +524,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					}
 					if isSend {
 						kc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
-						go kc.BroadcastMsgToAllDevices(notifyData, userA)
+						go kc.BroadcastMsgToAllDevices(eRsp, userA)
 					} else {
 						kc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
 					}
@@ -573,9 +570,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					notifyData, _ := proto.Marshal(eRsp)
 					kc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
-					go kc.BroadcastMsgToAllDevices(notifyData, userA)
+					go kc.BroadcastMsgToAllDevices(eRsp, userA)
 				}
 
 			}
@@ -760,8 +756,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().Unix()),
 			}
-			notifyData, _ := proto.Marshal(eRsp)
-			go kc.BroadcastMsgToAllDevices(notifyData, targetUsername)
+			go kc.BroadcastMsgToAllDevices(eRsp, targetUsername)
 		}
 	}
 
@@ -1091,10 +1086,35 @@ COMPLETE:
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
 */
-func (kc *KafkaClient) BroadcastMsgToAllDevices(data []byte, toUser string) error {
+func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+	data, _ := proto.Marshal(rsp)
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
+
+	//删除7天前的缓存系统消息
+	nTime := time.Now()
+	yesTime := nTime.AddDate(0, 0, -7).Unix()
+	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
+
+	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
+	systemMsgAt := time.Now().Unix()
+	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.Seq); err != nil {
+		kc.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	//系统消息具体内容
+	key := fmt.Sprintf("systemMsg:%s:%d", toUser, rsp.Seq)
+
+	_, err = redisConn.Do("HMSET",
+		key,
+		"Username", toUser,
+		"SystemMsgAt", systemMsgAt,
+		"MsgID", rsp.GetServerMsgId(),
+		"Data", data,
+	)
+
+	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
 
 	//向toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUser)
@@ -1137,6 +1157,8 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(data []byte, toUser string) erro
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().Unix()))
+
+		_ = err
 
 	}
 

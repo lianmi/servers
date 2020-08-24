@@ -640,8 +640,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().Unix()),
 						}
-						notifyData, _ := proto.Marshal(inviteEventRsp)
-						go kc.BroadcastMsgToAllDevices(notifyData, inviteUsername)
+						go kc.BroadcastMsgToAllDevices(inviteEventRsp, inviteUsername)
 					}
 				}
 			}
@@ -859,8 +858,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 								Time:         uint64(time.Now().Unix()),
 							}
-							notifyData, _ := proto.Marshal(mrsp)
-							go kc.BroadcastMsgToAllDevices(notifyData, removedUsername)
+							go kc.BroadcastMsgToAllDevices(mrsp, removedUsername)
 
 						}
 
@@ -1094,8 +1092,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Time:         uint64(time.Now().Unix()),
 				}
 
-				notifyData, _ := proto.Marshal(inviteEventRsp)
-				go kc.BroadcastMsgToAllDevices(notifyData, teamMember) //向群成员广播
+				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 			/*
 				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -1292,8 +1289,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().Unix()),
 			}
-			notifyData, _ := proto.Marshal(inviteEventRsp)
-			go kc.BroadcastMsgToAllDevices(notifyData, teamInfo.Owner) //群主
+			go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 
 		}
 	}
@@ -1508,8 +1504,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().Unix()),
 					}
-					notifyData, _ := proto.Marshal(inviteEventRsp)
-					go kc.BroadcastMsgToAllDevices(notifyData, teamMember) //向群成员广播
+					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				}
 				/*
 					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -1560,8 +1555,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().Unix()),
 				}
-				notifyData, _ := proto.Marshal(inviteEventRsp)
-				go kc.BroadcastMsgToAllDevices(notifyData, teamInfo.Owner) //群主
+				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 			}
 
 		}
@@ -1787,8 +1781,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().Unix()),
 				}
-				notifyData, _ := proto.Marshal(inviteEventRsp)
-				go kc.BroadcastMsgToAllDevices(notifyData, teamMember) //向群成员广播
+				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 			/*
 				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -1990,8 +1983,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().Unix()),
 			}
-			notifyData, _ := proto.Marshal(inviteEventRsp)
-			go kc.BroadcastMsgToAllDevices(notifyData, targetUsername)
+			go kc.BroadcastMsgToAllDevices(inviteEventRsp, targetUsername)
 		}
 	}
 
@@ -2357,8 +2349,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 								Time:         uint64(time.Now().Unix()),
 							}
-							notifyData, _ := proto.Marshal(mrsp)
-							go kc.BroadcastMsgToAllDevices(notifyData, teamInfo.Owner)
+							go kc.BroadcastMsgToAllDevices(mrsp, teamInfo.Owner)
 						}
 
 					}
@@ -3992,8 +3983,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().Unix()),
 				}
-				notifyData, _ := proto.Marshal(inviteEventRsp)
-				go kc.BroadcastMsgToAllDevices(notifyData, teamMember) //向群成员广播
+				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 			/*
 				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
