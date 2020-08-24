@@ -147,6 +147,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 		//如果已经互为好友，就直接回复
 		if isAhaveB && isBhaveA {
+			kc.logger.Debug(fmt.Sprintf("已经互为好友，就直接回复, userA: %s, userB: %s", username, req.GetUsername()))
+
 			err = nil
 			rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 			goto COMPLETE
@@ -158,13 +160,16 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			{
 				userA := username          //此时username是被加的人
 				userB := req.GetUsername() //发起方
+				kc.logger.Debug(fmt.Sprintf("OptType_Fr_ApplyFriend, userA: %s, userB: %s", userA, userB))
 
 				//拒绝任何人添加好友
 				if allowType == common.DenyAny {
-
+					kc.logger.Debug("拒绝任何人添加好友")
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 				} else if allowType == common.AllowAny { //允许人加为好友
+
+					kc.logger.Debug("允许人加为好友")
 
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
@@ -260,7 +265,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userA,
 							HandledMsg:     "",
-							Status:         1,  //TODO, 消息状态 bitset 存储
+							Status:         1,  //TODO, 消息状态  存储
 							Text:           "", // 附带的文本 该系统消息的文本
 							To:             userA,
 						}
@@ -293,7 +298,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userB,
 							HandledMsg:     "",
-							Status:         1,  //TODO, 消息状态 bitset 存储
+							Status:         1,  //TODO, 消息状态  存储
 							Text:           "", // 附带的文本 该系统消息的文本
 							To:             userB,
 						}
@@ -323,6 +328,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						time.Now().Unix())
 
 				} else if allowType == common.NeedConfirm { //加好友设定是需要审核
+					kc.logger.Debug("加好友设定是需要审核")
 					//redis里增加A的预审核好友列表
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().Unix(), userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
@@ -343,7 +349,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态 bitset 存储
+						Status:         1,  //TODO, 消息状态  存储
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userB,
 					}
@@ -362,18 +368,21 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
+						kc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
 						go kc.BroadcastMsgToAllDevices(notifyData, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
+						kc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
 						go kc.BroadcastMsgToAllDevices(notifyData, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
+						kc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
 						go kc.BroadcastMsgToAllDevices(notifyData, userA)
 					}
 
@@ -383,6 +392,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			{
 				userA := req.GetUsername() //发起方
 				userB := username          //此时username是被加的人
+				kc.logger.Debug(fmt.Sprintf("对方同意加你为好友, OptType_Fr_PassFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
@@ -487,7 +497,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态 bitset 存储
+						Status:         1,  //TODO, 消息状态  存储
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userA,
 					}
@@ -512,7 +522,10 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						isSend = true
 					}
 					if isSend {
+						kc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
 						go kc.BroadcastMsgToAllDevices(notifyData, userA)
+					} else {
+						kc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
 					}
 				}
 
@@ -521,6 +534,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			{
 				userA := req.GetUsername() //发起方
 				userB := username          //此时username是被加的人
+				kc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
@@ -540,7 +554,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
 						HandledAccount: userB,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态 bitset 存储
+						Status:         1,  //TODO, 消息状态  存储
 						Text:           "", // 附带的文本 该系统消息的文本
 						To:             userA,
 					}
@@ -555,6 +569,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Time:         uint64(time.Now().Unix()),
 					}
 					notifyData, _ := proto.Marshal(eRsp)
+					kc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
 					go kc.BroadcastMsgToAllDevices(notifyData, userA)
 				}
 
@@ -725,7 +740,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
 				HandledAccount: username,
 				HandledMsg:     "",
-				Status:         1,  //TODO, 消息状态 bitset 存储
+				Status:         1,  //TODO, 消息状态  存储
 				Text:           "", // 附带的文本 该系统消息的文本
 				To:             targetUsername,
 			}

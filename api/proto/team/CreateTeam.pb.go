@@ -226,7 +226,7 @@ func (x *CreateTeamRsp) GetTeamInfo() *TeamInfo {
 //获取群成员信息-响应
 //权限说明
 //普通群/高级群时： 根据timetag增量返回所有群成员
-//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+//群组：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
 type Tmember struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

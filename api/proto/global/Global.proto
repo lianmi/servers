@@ -89,7 +89,7 @@ enum TeamSubType {
     PullTeamMembers       =  24; /**< 24. 根据群成员ID获取群成员信息 */
     GetMyTeams            =  25; /**< 25. 增量群组信息 */
     CheckTeamInvite       =  26; /**< 26. 管理员审核邀请入群 */
-    GetTribeMembers       =  27; /**< 27. 分页获取部落成员信息*/
+    GetMembersPage        =  27; /**< 27. 分页获取群组成员信息*/
 }
 
 //消息模块子模块定义

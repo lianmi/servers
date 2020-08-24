@@ -626,7 +626,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_TeamInvite, //对方同意加你为好友
 							HandledAccount: username,
 							HandledMsg:     req.GetPs(),
-							Status:         1,  //TODO, 消息状态 bitset 存储
+							Status:         1,  //TODO, 消息状态  存储
 							Text:           "", // 附带的文本 该系统消息的文本
 							To:             inviteUsername,
 						}
@@ -835,7 +835,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
 								HandledAccount: username,
 								HandledMsg:     "",
-								Status:         1,  //TODO, 消息状态 bitset 存储
+								Status:         1,  //TODO, 消息状态  存储
 								Text:           "", // 附带的文本 该系统消息的文本
 								To:             removedUsername,
 							}
@@ -1064,7 +1064,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: targetUsername,
 					HandledMsg:     "",     //TODO
-					Status:         1,      //TODO, 消息状态 bitset 存储
+					Status:         1,      //TODO, 消息状态  存储
 					Text:           "",     // 附带的文本 该系统消息的文本
 					To:             teamID, //群组id
 				}
@@ -1257,7 +1257,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 				HandledAccount: targetUsername,
 				HandledMsg:     req.GetPs(), //TODO
-				Status:         1,           //TODO, 消息状态 bitset 存储
+				Status:         1,           //TODO, 消息状态  存储
 				Text:           "",          // 附带的文本 该系统消息的文本
 				To:             teamInfo.Owner,
 			}
@@ -1469,7 +1469,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 						HandledAccount: targetUsername,
 						HandledMsg:     "",     //TODO
-						Status:         1,      //TODO, 消息状态 bitset 存储
+						Status:         1,      //TODO, 消息状态  存储
 						Text:           "",     // 附带的文本 该系统消息的文本
 						To:             teamID, //群组id
 					}
@@ -1521,7 +1521,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: targetUsername,
 					HandledMsg:     "", //TODO
-					Status:         1,  //TODO, 消息状态 bitset 存储
+					Status:         1,  //TODO, 消息状态  存储
 					Text:           "", // 附带的文本 该系统消息的文本
 					To:             teamInfo.Owner,
 				}
@@ -1745,7 +1745,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: targetUsername,
 					HandledMsg:     "",     //TODO
-					Status:         1,      //TODO, 消息状态 bitset 存储
+					Status:         1,      //TODO, 消息状态  存储
 					Text:           "",     // 附带的文本 该系统消息的文本
 					To:             teamID, //群组id
 				}
@@ -1943,7 +1943,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 				HandledAccount: targetUsername,
 				HandledMsg:     "",     //TODO
-				Status:         1,      //TODO, 消息状态 bitset 存储
+				Status:         1,      //TODO, 消息状态  存储
 				Text:           "",     // 附带的文本 该系统消息的文本
 				To:             teamID, //群组id
 			}
@@ -2293,7 +2293,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
 								HandledAccount: username,
 								HandledMsg:     "",
-								Status:         1,  //TODO, 消息状态 bitset 存储
+								Status:         1,  //TODO, 消息状态  存储
 								Text:           "", // 附带的文本 该系统消息的文本
 								To:             teamInfo.Owner,
 							}
@@ -3861,7 +3861,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: username,                                       //当前用户
 					HandledMsg:     "",                                             //TODO
-					Status:         1,                                              //TODO, 消息状态 bitset 存储
+					Status:         1,                                              //TODO, 消息状态  存储
 					Text:           "",                                             // 附带的文本 该系统消息的文本
 					To:             teamID,                                         //群组id
 				}
@@ -3938,13 +3938,14 @@ COMPLETE:
 分页方式获取群成员信息，该接口仅支持在线获取，SDK不进行缓存
 */
 
-func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
+func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var data []byte
 	// var newSeq uint64
 
-	rsp := &Team.GetTribeMembersRsp{
+	rsp := &Team.GetTeamMembersPageRsp{
 		Members: make([]*Team.Tmember, 0),
 	}
 
@@ -3955,7 +3956,7 @@ func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetTribeMembers start...",
+	kc.logger.Info("HandleGetTeamMembersPage start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3966,7 +3967,7 @@ func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetTribeMembers ",
+	kc.logger.Debug("GetTeamMembersPage ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3978,7 +3979,7 @@ func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
 	body := msg.GetContent()
 
 	//解包body
-	req := &Team.GetTribeMembersReq{}
+	req := &Team.GetTeamMembersPageReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -3986,8 +3987,11 @@ func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetTribeMembers  payload",
+		kc.logger.Debug("GetTeamMembersPage  payload",
 			zap.String("TeamId", req.GetTeamId()),
+			// zap.Int32("QueryType", req.GetQueryType()),
+			zap.Int32("Page", req.GetPage()),
+			zap.Int32("PageSize", req.GetPageSize()),
 		)
 		teamID := req.GetTeamId()
 
@@ -4014,13 +4018,40 @@ func (kc *KafkaClient) HandleGetTribeMembers(msg *models.Message) error {
 		}
 
 		//TODO  GetPages 分页返回数据
+		var maps string
+		switch req.GetQueryType() {
+		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All:
+			maps = "TeamMemberType !=0 "
+		case Team.QueryType_Tmqt_Manager: //管理员
+			maps = "TeamMemberType =2 "
+		case Team.QueryType_Tmqt_Muted:
+			maps = "is_mute = true " //禁言
+		}
+		var total uint64
+		teamUsers := kc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		for _, teamUser := range teamUsers {
+			rsp.Members = append(rsp.Members, &Team.Tmember{
+				TeamId:     teamUser.TeamID,
+				Username:   teamUser.Username,
+				Nick:       teamUser.Nick,
+				Avatar:     teamUser.Avatar,
+				Source:     teamUser.Source,
+				Type:       Team.TeamMemberType(teamUser.TeamMemberType),
+				NotifyType: Team.NotifyType(teamUser.NotifyType),
+				Mute:       teamUser.IsMute,
+				Ex:         teamUser.Extend,
+				JoinTime:   uint64(teamUser.JoinAt),
+				UpdateTime: uint64(teamUser.UpdatedAt),
+			})
+		}
 
 	}
 
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

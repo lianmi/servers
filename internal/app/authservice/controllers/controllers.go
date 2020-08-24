@@ -34,7 +34,7 @@ type Login struct {
 	Os              string `form:"os" json:"os" binding:"required"`
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
 	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`
-	IsMaster        bool   `form:"ismaster" json:"ismaster"`
+	IsMaster        bool   `form:"ismaster" json:"ismaster" binding:"required"`
 }
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {

@@ -96,3 +96,34 @@ func (kc *KafkaClient) SetTeamManager(teamID, username string) error {
 	kc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }
+
+
+
+// GetPages 分页返回数据
+func (kc *KafkaClient) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+	db := kc.db.Model(model).Where(model)
+	db = db.Where(where)
+	if len(orders) > 0 {
+		for _, order := range orders {
+			db = db.Order(order)
+		}
+	}
+	err := db.Count(totalCount).Error
+	if err != nil {
+		kc.logger.Error("查询总数出错", zap.Error(err))
+		return err
+	}
+	if *totalCount == 0 {
+		return nil
+	}
+	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+}
+
+//分页获取群成员
+func (kc *KafkaClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+	var teamUsers []*models.TeamUser
+	if err :=kc.GetPages(&models.User{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+		kc.logger.Error("获取用户信息失败", zap.Error(err))
+	}
+	return teamUsers
+}

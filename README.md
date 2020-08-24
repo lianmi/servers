@@ -243,3 +243,10 @@ $  cd /root/developments/lianmi/work/basic
 $  redis-cli
 ```
 就能进入redis-cli
+
+# 文档 
+```
+https://github.com/lianmi/docs
+```
+gitbook插件
+https://www.jianshu.com/p/427b8bb066e6

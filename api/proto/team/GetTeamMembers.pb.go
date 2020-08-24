@@ -29,7 +29,7 @@ const _ = proto.ProtoPackageIsVersion4
 //获取群成员信息-请求
 //权限说明
 //普通群/高级群时： 根据timetag增量返回所有群成员
-//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+//群组：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
 type GetTeamMembersReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -93,7 +93,7 @@ func (x *GetTeamMembersReq) GetTimeAt() uint64 {
 //获取群成员信息-响应
 //权限说明
 //普通群/高级群时： 根据timetag增量返回所有群成员
-//部落：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
+//群组：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
 type GetTeamMembersRsp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -102,7 +102,7 @@ type GetTeamMembersRsp struct {
 	//群成员列表
 	//是否必须-是
 	Tmembers []*Tmember `protobuf:"bytes,1,rep,name=tmembers,proto3" json:"tmembers,omitempty"`
-	//该群退出或者被踢出群群成员id，该字段普通群、普通群有效，部落该字段不传输
+	//该群退出或者被踢出群群成员id，该字段普通群、普通群有效，群组该字段不传输
 	//是否必须-否
 	RemovedUsers []string `protobuf:"bytes,2,rep,name=removedUsers,proto3" json:"removedUsers,omitempty"`
 	//本次同步后，服务器时间
