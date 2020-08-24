@@ -24,7 +24,7 @@ type Team struct {
 	Extend       string `form:"extend" json:"extend,omitempty" `                                   //扩展字段
 	Owner        string `form:"owner" json:"owner,omitempty" `                                     //群主账号id
 	Type         int    `form:"type" json:"type ,omitempty" `                                      //Normal(1) - 普通群 Advanced(2) - vip群
-	VerifyType   int    `form:"verify_type" json:"verify_type,omitempty" `                         //如果普通群，只能选4，如果vip群，可以选其它
+	VerifyType   int    `form:"verify_type" json:"verify_type,omitempty" `                         //1-所有人可加入 2- 需要审核加入 3-仅限邀请加入 4-关注网点后即可入群
 	InviteMode   int    `form:"invite_mode" json:"invite_mode,omitempty" `                         //邀请模式 All(1)  Manager(2) Confirm(3)
 	MemberLimit  int    `form:"member_limit" json:"member_limit,omitempty" `                       //人数上限
 	MemberNum    int    `form:"member_num" json:"member_num,omitempty" `                           //当前成员总数

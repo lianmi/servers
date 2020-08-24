@@ -37,6 +37,7 @@ type Login struct {
 	IsMaster        bool   `form:"ismaster" json:"ismaster" binding:"required"`
 }
 
+
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token
 	token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {

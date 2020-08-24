@@ -216,6 +216,44 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 	myInfoAtKey := fmt.Sprintf("sync:%s", user.Username)
 	redisConn.Do("HSET", myInfoAtKey, "myInfoAt", time.Now().Unix())
 
+	//网点商户自动建群
+	if user.GetUserType() == pb.UserType_Ut_Business {
+
+		var newTeamIndex uint64
+		if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
+			s.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
+			return err
+		}
+		pTeam := new(models.Team)
+		pTeam.CreatedAt = time.Now().Unix()
+		pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
+		pTeam.Teamname = fmt.Sprintf("team%d", newTeamIndex)
+		pTeam.Nick = fmt.Sprintf("%s的群", user.Nick)
+		pTeam.Owner = user.Username
+		pTeam.Type = 1
+		pTeam.VerifyType = 1
+		pTeam.InviteMode = 1
+
+		//默认的设置
+		pTeam.Status = 1 //Init(1) - 初始状态,审核中 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+		pTeam.MemberLimit = common.PerTeamMembersLimit
+		pTeam.MemberNum = 1  //刚刚建群是只有群主1人
+		pTeam.MuteType = 1   //None(1) - 所有人可发言
+		pTeam.InviteMode = 1 //邀请模式,初始为1
+
+		//使用事务同时更新创建群数据
+		tx := s.base.GetTransaction()
+
+		if err := tx.Save(pTeam).Error; err != nil {
+			s.logger.Error("更新群team表失败", zap.Error(err))
+			tx.Rollback()
+			return err
+		}
+
+		//提交
+		tx.Commit()
+	}
+
 	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 	return nil
 

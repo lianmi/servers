@@ -51,19 +51,19 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	teamUser.JoinAt = time.Now().Unix()
 	teamUser.Teamname = p.Teamname
 	teamUser.Username = p.Owner
-	teamUser.Nick = memberNick                              //群成员呢称
-	teamUser.Avatar = memberAvatar                          //群成员头像
-	teamUser.Label = memberLabel                            //群成员标签
-	teamUser.Source = ""                                    //群成员来源  TODO
-	teamUser.Extend = memberExtend                          //群成员扩展字段
+	teamUser.Nick = memberNick                                   //群成员呢称
+	teamUser.Avatar = memberAvatar                               //群成员头像
+	teamUser.Label = memberLabel                                 //群成员标签
+	teamUser.Source = ""                                         //群成员来源  TODO
+	teamUser.Extend = memberExtend                               //群成员扩展字段
 	teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
-	teamUser.IsMute = false                                //是否被禁言
-	teamUser.NotifyType = 1                                 //群消息通知方式 All(1) - 群全部消息提醒
-	teamUser.Province = memberProvince                      //省份, 如广东省
-	teamUser.City = memberCity                              //城市，如广州市
-	teamUser.County = memberCounty                          //区，如天河区
-	teamUser.Street = memberStreet                          //街道
-	teamUser.Address = memberAddress                        //地址
+	teamUser.IsMute = false                                      //是否被禁言
+	teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
+	teamUser.Province = memberProvince                           //省份, 如广东省
+	teamUser.City = memberCity                                   //城市，如广州市
+	teamUser.County = memberCounty                               //区，如天河区
+	teamUser.Street = memberStreet                               //街道
+	teamUser.Address = memberAddress                             //地址
 
 	tx := s.base.GetTransaction()
 
@@ -104,7 +104,11 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser)...); err != nil {
 		s.logger.Error("错误：HMSET TeamUser", zap.Error(err))
 	}
-
+	//更新redis的sync:{用户账号} teamsAt 时间戳
+	redisConn.Do("HSET",
+		fmt.Sprintf("sync:%s", p.Owner),
+		"teamsAt",
+		time.Now().Unix())
 	return nil
 
 }

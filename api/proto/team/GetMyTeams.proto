@@ -22,7 +22,7 @@ message GetMyTeamsRsp {
     //个人加入的群组列表
     //是否必填-是
     repeated TeamInfo teams = 2;
-    //   //退出\被踢出\解散群组列表
-    //   //是否必填-否
-    //   repeated string removedTeams=3;
+    //退出\被踢出\解散群组列表
+    //是否必填-否
+    repeated string removedTeams = 3 ;
 }

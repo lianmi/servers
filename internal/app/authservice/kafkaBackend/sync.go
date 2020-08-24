@@ -26,6 +26,7 @@ import (
 	Sync "github.com/lianmi/servers/api/proto/syn"
 	Team "github.com/lianmi/servers/api/proto/team"
 	User "github.com/lianmi/servers/api/proto/user"
+	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
@@ -350,21 +351,51 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 
 		//从redis里读取username的群列表
 		teamIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Team:%s", username), "-inf", "+inf"))
+
 		for _, teamID := range teamIDs {
 
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamInfo:%s", teamID))); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-
 					kc.logger.Error("错误：ScanStruct", zap.Error(err))
-
+					continue
 				} else {
-					
+					//计算群成员数量。
+					var count int
+					if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
+						kc.logger.Error("ZCARD Error", zap.Error(err))
+						continue
+					}
+
+					rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
+						TeamId:       teamInfo.TeamID,
+						Name:         teamInfo.Teamname,
+						Icon:         teamInfo.Icon,
+						Announcement: teamInfo.Announcement,
+						Introduce:    teamInfo.Introductory,
+						Owner:        teamInfo.Owner,
+						Type:         Team.TeamType(teamInfo.Type),
+						VerifyType:   Team.VerifyType(teamInfo.VerifyType),
+						MemberLimit:  int32(common.PerTeamMembersLimit),
+						MemberNum:    int32(count),
+						Status:       Team.Status(teamInfo.Status),
+						MuteType:     Team.MuteMode(teamInfo.MuteType),
+						InviteMode:   Team.InviteMode(teamInfo.InviteMode),
+						Ex:           teamInfo.Extend,
+						CreateAt:     uint64(teamInfo.CreatedAt),
+						UpdateAt:     uint64(teamInfo.UpdatedAt),
+					})
 				}
 			}
 
 		}
 
+		//用户自己的退群列表
+		removeTeamIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveTeam:%s", username), "-inf", "+inf"))
+		for _, removeTeamID := range removeTeamIDs {
+			rsp.RemovedTeams = append(rsp.RemovedTeams, removeTeamID)
+		}
+		
 		data, _ := proto.Marshal(rsp)
 
 		//向客户端响应 SyncFriendUsersEvent 事件
@@ -483,7 +514,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			i++
 			chs[i] = make(chan int)
 			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("myInfoAt is done")
+				kc.logger.Debug("teamsAt is done")
 			}
 
 			for _, ch := range chs {

@@ -13,7 +13,6 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -100,7 +99,6 @@ func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Owner is not exists[teamOwner=%s]", teamOwner)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Owner is not exists[teamOwner=%s]", teamOwner)
 				goto COMPLETE
@@ -109,7 +107,6 @@ func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
 			//判断群主是否已经注册为网点用户类型
 			userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", teamOwner), "UserType"))
 			if User.UserType(userType) != User.UserType_Ut_Business {
-				err = errors.Wrapf(err, "userType is not business type [userType=%d]", userType)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("serType is not business type [userType=%d]", userType)
 				goto COMPLETE
@@ -123,7 +120,6 @@ func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
 				goto COMPLETE
 			} else {
 				if count >= common.MaxTeamLimit {
-					err = errors.Wrapf(err, "Reach team max limit[count=%d]", count)
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Reach team max limit[count=%d]", count)
 					goto COMPLETE
@@ -282,7 +278,6 @@ func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -414,7 +409,6 @@ func (kc *KafkaClient) HandleGetTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -565,7 +559,6 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -582,6 +575,13 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//一天最多只能邀请50人入群，在服务端控制
 			nTime := time.Now()
@@ -595,7 +595,6 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 			}
 
 			if count > common.OnedayInvitedLimit {
-				err = errors.Wrapf(err, "Reach one day invite limit[count=%d]", count)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Reach one day invite limit[count=%d]", count)
 				goto COMPLETE
@@ -745,7 +744,6 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -762,6 +760,13 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断usename是不是管理员身份或群主，如果不是，则返回
 			teamUser := new(models.TeamUser)
@@ -777,7 +782,6 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				//管理员或群主
 			} else {
-				err = errors.Wrapf(err, "User is not owner or manager[username=%s]", username)
 				kc.logger.Error("无权删除群成员", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not owner or manager[username=%s]", username)
@@ -830,6 +834,11 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								rsp.AbortedUsers = append(rsp.AbortedUsers, removedUsername)
 								continue
 							}
+							//增加到此用户自己的退群列表
+							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().Unix(), teamID); err != nil {
+								kc.logger.Error("ZADD Error", zap.Error(err))
+							}
+
 							//向用户removedUsername发出移除出群通知
 							body := Msg.MessageNotificationBody{
 								Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
@@ -965,7 +974,6 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -982,17 +990,23 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				kc.logger.Error("redisConn HGET Error", zap.Error(err))
-				err = errors.Wrapf(err, "User is not exists[Username=%s]", targetUsername)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
 					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
-					err = errors.Wrapf(err, "User is blocked[Username=%s]", targetUsername)
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -1228,7 +1242,6 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -1244,6 +1257,13 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
 				}
+			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
 			}
 
 			//向群主推送此用户的拒绝入群通知
@@ -1373,7 +1393,6 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -1390,18 +1409,23 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				kc.logger.Error("redisConn HGET Error", zap.Error(err))
-				err = errors.Wrapf(err, "User is not exists[Username=%s]", targetUsername)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
 					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
-					err = errors.Wrapf(err, "User is blocked[Username=%s]", targetUsername)
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -1633,7 +1657,6 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -1650,18 +1673,23 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				kc.logger.Error("redisConn HGET Error", zap.Error(err))
-				err = errors.Wrapf(err, "User is not exists[Username=%s]", targetUsername)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
 					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
-					err = errors.Wrapf(err, "User is blocked[Username=%s]", targetUsername)
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -1692,7 +1720,6 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			teamMemberType := Team.TeamMemberType(opUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
-				err = errors.Wrapf(err, "User is not team owner[Username=%s]", username)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -1880,7 +1907,6 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -1897,11 +1923,17 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				kc.logger.Error("redisConn HGET Error", zap.Error(err))
-				err = errors.Wrapf(err, "User is not exists[Username=%s]", targetUsername)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
@@ -2053,7 +2085,6 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2070,11 +2101,17 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断操作者是不是群主或管理员
 			if username != teamInfo.Owner {
 				kc.logger.Warn("User is not team owner", zap.String("Username", username))
-				err = errors.Wrapf(err, "User is not team owner[Username=%s]", username)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2221,7 +2258,6 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2237,6 +2273,13 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
 				}
+			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
 			}
 
 			//如果是普通群，不能自主退群，必须由群主移除出群
@@ -2288,6 +2331,12 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, teamInfo.Owner)
 								goto COMPLETE
 							}
+
+							//增加到用户自己的退群列表
+							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().Unix(), teamID); err != nil {
+								kc.logger.Error("ZADD Error", zap.Error(err))
+							}
+
 							//向群主发出用户退群通知
 							body := Msg.MessageNotificationBody{
 								Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
@@ -2415,7 +2464,6 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2432,11 +2480,17 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
 
 			//判断操作者是不是群主
 			if username != teamInfo.Owner {
 				kc.logger.Warn("User is not team owner", zap.String("Username", username))
-				err = errors.Wrapf(err, "User is not team owner[Username=%s]", username)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2610,7 +2664,6 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2627,10 +2680,17 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			//判断操作者是不是群主
 			if username != teamInfo.Owner {
 				kc.logger.Warn("User is not team owner", zap.String("Username", username))
-				err = errors.Wrapf(err, "User is not team owner[Username=%s]", username)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2799,7 +2859,6 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2816,6 +2875,14 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -2956,7 +3023,6 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -2973,6 +3039,15 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -3100,7 +3175,6 @@ func (kc *KafkaClient) HandleSetNotifyType(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -3117,6 +3191,14 @@ func (kc *KafkaClient) HandleSetNotifyType(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -3232,7 +3314,6 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -3249,6 +3330,14 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -3376,7 +3465,6 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -3393,6 +3481,14 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
+			}
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -3533,7 +3629,6 @@ func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
 
 		} else {
 			if !isExists {
-				err = errors.Wrapf(err, "Team is not exists[teamID=%s]", teamID)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -3549,6 +3644,13 @@ func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
 				}
+			}
+			//此群是否是正常的
+			if teamInfo.Status != 2 {
+				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Team status is not normal")
+				goto COMPLETE
 			}
 
 			for _, account := range req.GetAccounts() {
@@ -3614,7 +3716,8 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	rsp := &Team.GetMyTeamsRsp{
-		Teams: make([]*Team.TeamInfo, 0),
+		Teams:        make([]*Team.TeamInfo, 0),
+		RemovedTeams: make([]string, 0),
 	}
 	var data []byte
 
@@ -3703,6 +3806,11 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 				CreateAt:     uint64(teamInfo.CreatedAt),
 				UpdateAt:     uint64(time.Now().Unix()), //更新时间
 			})
+		}
+		//用户自己的退群列表
+		removeTeamIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveTeam:%s", username), "-inf", "+inf"))
+		for _, removeTeamID := range removeTeamIDs {
+			rsp.RemovedTeams = append(rsp.RemovedTeams, removeTeamID)
 		}
 
 	}
@@ -3799,6 +3907,14 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				goto COMPLETE
 			}
 		}
+		//此群是否是正常的
+		if teamInfo.Status != 2 {
+			kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Team status is not normal")
+			goto COMPLETE
+		}
+
 		key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 		teamUser := new(models.TeamUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -4006,6 +4122,15 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 				goto COMPLETE
 			}
 		}
+
+		//此群是否是正常的
+		if teamInfo.Status != 2 {
+			kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Team status is not normal")
+			goto COMPLETE
+		}
+
 		key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 		teamUser := new(models.TeamUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
