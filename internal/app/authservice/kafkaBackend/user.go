@@ -523,7 +523,7 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(username)
-		targetMsg.SetDeviceID(curDeviceKey)
+		targetMsg.SetDeviceID(eDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(1))

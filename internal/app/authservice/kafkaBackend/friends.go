@@ -919,7 +919,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 
 				targetMsg.SetJwtToken(curJwtToken)
 				targetMsg.SetUserName(username)
-				targetMsg.SetDeviceID(curDeviceKey)
+				targetMsg.SetDeviceID(eDeviceID)
 				// kickMsg.SetTaskID(uint32(taskId))
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(3))
@@ -1107,7 +1107,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(data []byte, toUser string) erro
 
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
-		targetMsg.SetDeviceID(curDeviceKey)
+		targetMsg.SetDeviceID(eDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
