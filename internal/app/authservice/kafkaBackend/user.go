@@ -609,6 +609,16 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//判断account是否为好友
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), account); err == nil {
+			if reply == nil {
+				//A好友列表中没有B
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Can't mark none friend user.[username=%s]", account)
+				goto COMPLETE
+			}
+		}
+
 		if err = kc.db.Model(pUser).Where("username = ?", account).First(pUser).Error; err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", account)
