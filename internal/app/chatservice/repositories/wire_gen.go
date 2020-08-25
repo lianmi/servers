@@ -45,12 +45,7 @@ func CreateChatRepository(f string) (ChatRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
-	chatRepository := NewMysqlChatRepository(logger, db, pool, kafkaClient)
+	chatRepository := NewMysqlChatRepository(logger, db, pool)
 	return chatRepository, nil
 }
 
