@@ -1,23 +1,16 @@
 package kafkaBackend
 
 import (
-	// "bytes"
-	// "encoding/binary"
-	// "encoding/hex"
-
-	"time"
-
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"google.golang.org/protobuf/proto"
-
-	// uuid "github.com/satori/go.uuid"
-
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
+	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"google.golang.org/protobuf/proto"
 
 	"go.uber.org/zap"
 )
@@ -108,7 +101,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//查出接收人对此用不消息接收的设定，黑名单，屏蔽等
+			//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", toUser), username); err == nil {
 				if reply != nil {
 					kc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
@@ -186,7 +179,22 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				}
 
 				//查出此用户对此群消息接收的设定，如果允许接收，就发
-				//TODO
+				toUserKey := fmt.Sprintf("TeamUser:%s:%s", teamID, toUser)
+				notifyType, _ := redis.Int(redisConn.Do("HGET", toUserKey, "NotifyType"))
+				switch notifyType {
+				case 1: //群全部消息提醒
+				case 2: //管理员消息提醒
+					if teamInfo.GetType() == Team.TeamMemberType_Tmt_Manager || teamInfo.GetType() == Team.TeamMemberType_Tmt_Owner {
+						//pass
+					} else {
+						kc.logger.Warn("此用户设置了管理员信息提醒", zap.String("toUser", req.GetTo()))
+						continue
+					}
+				case 3: //联系人提醒
+				case 4: //所有消息均不提醒
+					kc.logger.Warn("此用户设置了所有消息均不提醒", zap.String("toUser", req.GetTo()))
+					continue
+				}
 
 				//构造转发消息数据
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
@@ -226,7 +234,6 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			userKey := fmt.Sprintf("userData:%s", toUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 				if err := redis.ScanStruct(result, userData); err != nil {
-
 					kc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", toUser)
@@ -271,7 +278,6 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			targetMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 			targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
-
 			targetMsg.SetJwtToken(curJwtToken)
 			targetMsg.SetUserName(toUser) //发给自己
 			targetMsg.SetDeviceID(toDeviceID)
@@ -279,12 +285,9 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			targetMsg.SetBusinessTypeName("Msg")
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
 			targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
-
 			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
+			targetMsg.SetCode(200)   //成功的状态码
 
 			//构建数据完成，向dispatcher发送
 			topic := "Msg.Frontend"
@@ -293,7 +296,6 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			kc.logger.Info("HandleRecvMsg Succeed",
 				zap.String("Username:", username))
 		}
-
 	}
 
 COMPLETE:
@@ -383,7 +385,6 @@ func (kc *KafkaClient) HandleMsgAck(msg *models.Message) error {
 				_, err = redisConn.Do("DEL", key)
 			}
 		}
-
 	}
 
 COMPLETE:
@@ -540,12 +541,9 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 			targetMsg := &models.Message{}
 			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", selfDeviceID)
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey)) //每个设备都有自己的token
-			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
 			targetMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 			targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
-
 			targetMsg.SetJwtToken(curJwtToken)
 			targetMsg.SetUserName(username) //发给自己
 			targetMsg.SetDeviceID(selfDeviceID)
@@ -553,16 +551,12 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 			targetMsg.SetBusinessTypeName("Msg")
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                     //消息模块
 			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncSendCancelMsgEvent)) //自己的设备同步发送撤销消息事件
-
 			targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
-
 			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
+			targetMsg.SetCode(200)   //成功的状态码
 
 			//构建数据完成，向dispatcher发送
 			topic := "Msg.Frontend"
-
 			go kc.Produce(topic, targetMsg)
 
 			kc.logger.Info("Msg message send to ProduceChannel",
@@ -572,9 +566,7 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 				zap.String("msgID:", targetMsg.GetID()),
 				zap.Uint64("seq", newSeq),
 			)
-
 		}
-
 	}
 
 COMPLETE:
@@ -595,7 +587,6 @@ COMPLETE:
 	}
 	_ = err
 	return nil
-
 }
 
 func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDeviceID, toUser string) error {
@@ -615,6 +606,8 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 
 	_, err := redisConn.Do("HMSET",
 		key,
+		"Scene", rsp.GetScene(),
+		"Type", rsp.GetType(),
 		"Username", toUser,
 		"MsgAt", msgAt,
 		"Seq", rsp.Seq,
@@ -638,16 +631,12 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		if selfDeviceID == fromDeviceID {
 			continue
 		}
-
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", selfDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey)) //每个设备都有自己的token
-		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
-
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(fromUser) //发给自己
 		targetMsg.SetDeviceID(selfDeviceID)
@@ -655,12 +644,9 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		targetMsg.SetBusinessTypeName("Msg")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
 		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
-
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
+		targetMsg.SetCode(200)   //成功的状态码
 
 		//构建数据完成，向dispatcher发送
 		topic := "Msg.Frontend"
@@ -690,16 +676,12 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 
 	//查询出toUser当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
-
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
-
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
@@ -707,12 +689,9 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		targetMsg.SetBusinessTypeName("Msg")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
 		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
-
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
+		targetMsg.SetCode(200)   //成功的状态码
 
 		//构建数据完成，向dispatcher发送
 		topic := "Msg.Frontend"
@@ -734,7 +713,6 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 				zap.Error(err),
 			)
 		}
-
 	}
 	_ = err
 	return nil

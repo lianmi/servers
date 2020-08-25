@@ -232,7 +232,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.UserID = userID_A
 						pFriendA.FriendUserID = userID_B
 						pFriendA.FriendUsername = userB
-						if err := kc.SaveAddFriend(pFriendA); err != nil {
+						if err := kc.SaveFriend(pFriendA); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
@@ -243,7 +243,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.UserID = userID_B
 						pFriendB.FriendUserID = userID_A
 						pFriendB.FriendUsername = userA
-						if err := kc.SaveAddFriend(pFriendB); err != nil {
+						if err := kc.SaveFriend(pFriendB); err != nil {
 							kc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
@@ -456,7 +456,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.UserID = userIDA
 					pFriendA.FriendUserID = userIDB
 					pFriendA.FriendUsername = userB
-					if err := kc.SaveAddFriend(pFriendA); err != nil {
+					if err := kc.SaveFriend(pFriendA); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
@@ -467,7 +467,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.UserID = userIDB
 					pFriendB.FriendUserID = userIDA
 					pFriendB.FriendUsername = userA
-					if err := kc.SaveAddFriend(pFriendB); err != nil {
+					if err := kc.SaveFriend(pFriendB); err != nil {
 						kc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
@@ -857,35 +857,24 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("Query friend Error: %s", err.Error())
 			goto COMPLETE
 		}
-		//使用事务同时更新用户数据和角色数据
-		tx := kc.GetTransaction()
 
 		if alias, ok := req.Fields[1]; ok {
 			//修改呢称
 			pFriend.Alias = alias
-			if err := tx.Save(pFriend).Error; err != nil {
-				kc.logger.Error("更新好友 alias 失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新好友 alias 失败[alias=%s]", alias)
-				goto COMPLETE
-			}
 		}
 
 		if ex, ok := req.Fields[2]; ok {
 			//修改呢称
 			pFriend.Extend = ex
-			if err := tx.Save(pFriend).Error; err != nil {
-				kc.logger.Error("更新好友 Extend 失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新好友 Extend 失败[Extend=%s]", ex)
-				goto COMPLETE
-			}
+
 		}
 
-		//提交
-		tx.Commit()
+		if err := kc.SaveFriend(pFriend); err != nil {
+			kc.logger.Error("更新好友 失败", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("更新好友 失败[username=%s]", targetUsername)
+			goto COMPLETE
+		}
 
 		rsp.TimeTag = uint64(time.Now().Unix())
 

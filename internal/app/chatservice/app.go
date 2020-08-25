@@ -5,7 +5,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/lianmi/servers/internal/pkg/app"
 	chatKafka "github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
-	// "github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )

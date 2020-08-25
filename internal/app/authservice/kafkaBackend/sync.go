@@ -521,6 +521,8 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 					)
 					key := fmt.Sprintf("offLineMsg:%s:%s", username, string(msgID))
 					data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+
+					
 					err = kc.SendOffLineMsg(username, token, deviceID, data)
 					if err == nil {
 						kc.logger.Debug("成功发送离线消息",

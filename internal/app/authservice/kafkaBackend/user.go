@@ -216,193 +216,81 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//使用事务同时更新用户数据和角色数据
-		tx := kc.GetTransaction()
-
 		if nick, ok := req.Fields[1]; ok {
 			//修改呢称
 			pUser.Nick = nick
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Nick失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Nick失败[nick=%s]", nick)
-				goto COMPLETE
-			}
 		}
 
 		if gender, ok := req.Fields[2]; ok {
 			//修改 性别
 			pUser.Gender, _ = strconv.Atoi(gender)
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Gender失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Gender失败[gender=%d]", gender)
-				goto COMPLETE
-			}
 		}
 
 		if avatar, ok := req.Fields[3]; ok {
 			//修改 头像
 			pUser.Avatar = avatar
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Avatar失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Avatar失败[avatar=%s]", avatar)
-				goto COMPLETE
-			}
 		}
 
 		if label, ok := req.Fields[4]; ok {
 			//修改 签名
 			pUser.Label = label
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Label失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Label失败[label=%s]", label)
-				goto COMPLETE
-			}
 		}
 
 		if email, ok := req.Fields[5]; ok {
 			//修改 Email
 			pUser.Email = email
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Email失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Email失败[label=%s]", email)
-				goto COMPLETE
-			}
 		}
 
 		if extend, ok := req.Fields[6]; ok {
 			//修改 Extend
 			pUser.Extend = extend
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Extend失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Extend失败[extend=%s]", extend)
-				goto COMPLETE
-			}
 		}
 
 		if allowType, ok := req.Fields[7]; ok {
 			//修改 AllowType
 			pUser.AllowType, _ = strconv.Atoi(allowType)
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户AllowType失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户AllowType失败[allowType=%d]", allowType)
-				goto COMPLETE
-			}
 		}
 
 		if province, ok := req.Fields[8]; ok {
 			pUser.Province = province
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户province失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户province失败[province=%s]", province)
-				goto COMPLETE
-			}
 		}
 
 		if city, ok := req.Fields[9]; ok {
 			pUser.City = city
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户city失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户city失败[city=%s]", city)
-				goto COMPLETE
-			}
 		}
 
 		if county, ok := req.Fields[10]; ok {
 			pUser.County = county
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户county失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户county失败[county=%s]", county)
-				goto COMPLETE
-			}
 		}
 
 		if street, ok := req.Fields[10]; ok {
 			pUser.Street = street
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户street失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户street失败[street=%s]", street)
-				goto COMPLETE
-			}
 		}
 
 		if address, ok := req.Fields[10]; ok {
 			pUser.Address = address
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户address失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户address失败[address=%s]", address)
-				goto COMPLETE
-			}
 		}
 
 		if branches_name, ok := req.Fields[11]; ok {
 			pUser.Branchesname = branches_name
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户Branchesname失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户Branchesname失败[Branchesname=%s]", branches_name)
-				goto COMPLETE
-			}
 		}
 
 		if legal_person, ok := req.Fields[11]; ok {
 			pUser.LegalPerson = legal_person
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户LegalPerson失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户LegalPerson失败[LegalPerson=%s]", legal_person)
-				goto COMPLETE
-			}
 		}
 
 		if legal_identity_card, ok := req.Fields[11]; ok {
 			pUser.LegalPerson = legal_identity_card
-			if err := tx.Save(pUser).Error; err != nil {
-				kc.logger.Error("更新用户LegalIdentityCard失败", zap.Error(err))
-				tx.Rollback()
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新用户LegalIdentityCard失败[LegalIdentityCard=%s]", legal_identity_card)
-				goto COMPLETE
-			}
 		}
 
-		//修改UpdateAt
 		pUser.UpdatedAt = time.Now().Unix()
-		if err := tx.Save(pUser).Error; err != nil {
-			kc.logger.Error("更新用户UpdatedAt失败", zap.Error(err))
-			tx.Rollback()
+
+		if err := kc.SaveUser(pUser); err != nil {
+			kc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("更新用户UpdatedAt失败[UpdatedAt=%d]", pUser.UpdatedAt)
+			errorMsg = fmt.Sprintf("Update user error[username=%d]", username)
 			goto COMPLETE
 		}
-
-		//提交
-		tx.Commit()
 
 		//修改redis里的userData:{username}哈希表，以便GetUsers的时候可以获取最新的数据
 
@@ -645,19 +533,14 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			kc.logger.Debug("删除实体成功", zap.Int64("count", count))
 
 			//使用事务同时更新用户数据和角色数据
-			tx := kc.GetTransaction()
 
-			if err := tx.Save(pUser).Error; err != nil {
+			if err := kc.SaveUser(pUser); err != nil {
 				kc.logger.Error("MarkTag增加失败", zap.Error(err))
-				tx.Rollback()
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "MarkTag增加失败"
+				errorMsg = "MarkTag error"
 				goto COMPLETE
 			}
 			kc.logger.Debug("增加标签成功")
-
-			//提交
-			tx.Commit()
 
 			//Redis缓存黑名单
 			if req.GetType() == User.MarkTagType_Mtt_Blocked {
