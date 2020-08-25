@@ -1,21 +1,17 @@
 syntax = "proto3";
 package cloud.lianmi.im.msg;
 
+import "api/proto/msg/MsgTypeEnum.proto";
 option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 // 撤回消息事件
 message RecvCancelMsgEventRsp {
-    //被撤销的消息发送方对应的sessionId
-    //完整格式 联系人ID.Scene.设备ID
-    //如 fromAccountId.C2C
-    //如 fromAccountId.P2P.fromDeviceId
+    //传输场景
     //是否必填-是
-    string fromSessionId = 1;
-    //被撤销的消息接收方对应的sessionId
-    //完整格式 联系人ID.Scene.设备ID
-    //如 toTeamId.C2G
-    //是否必填-否
-    string toSessionId = 2;
+    MessageScene scene = 1;
+    //消息数据包的类型
+    //是否必填-是
+    MessageType type = 2;
     //要撤销的消息的由服务器分配的消息id
     //是否必填-是
     string serverMsgId = 3;

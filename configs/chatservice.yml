@@ -9,7 +9,7 @@ db:
 kafka:
   broker: 127.0.0.1
   group: im
-  Topics: Chat.Backend
+  Topics: Msg.Backend
 redis:
   addr: 127.0.0.1:6379
   password: 

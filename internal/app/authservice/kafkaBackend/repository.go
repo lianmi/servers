@@ -1,9 +1,15 @@
 package kafkaBackend
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
+
+//GetTransaction 获取事务
+func (kc *KafkaClient) GetTransaction() *gorm.DB {
+	return kc.db.Begin()
+}
 
 //更新好友
 func (kc *KafkaClient) SaveAddFriend(pFriend *models.Friend) error {
@@ -97,8 +103,6 @@ func (kc *KafkaClient) SetTeamManager(teamID, username string) error {
 	return nil
 }
 
-
-
 // GetPages 分页返回数据
 func (kc *KafkaClient) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
 	db := kc.db.Model(model).Where(model)
@@ -122,7 +126,7 @@ func (kc *KafkaClient) GetPages(model interface{}, out interface{}, pageIndex, p
 //分页获取群成员
 func (kc *KafkaClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
-	if err :=kc.GetPages(&models.User{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+	if err := kc.GetPages(&models.User{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
 		kc.logger.Error("获取用户信息失败", zap.Error(err))
 	}
 	return teamUsers

@@ -260,11 +260,6 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 	}
 }
 
-//GetTransaction 获取事务
-func (kc *KafkaClient) GetTransaction() *gorm.DB {
-	return kc.db.Begin()
-}
-
 //Produce
 func (kc *KafkaClient) Produce(topic string, msg *models.Message) error {
 	if msg == nil {

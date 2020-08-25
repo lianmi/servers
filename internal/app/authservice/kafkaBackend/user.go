@@ -554,6 +554,9 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 
 }
 
+/*
+1-5 打标签 MarkTag
+*/
 func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -646,6 +649,13 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			//提交
 			tx.Commit()
 
+			//Redis缓存黑名单
+			if req.GetType() == User.MarkTagType_Mtt_Blocked {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+					kc.logger.Error("ZADD Error", zap.Error(err))
+				}
+			}
+
 		} else { //删除
 			where := models.Tag{UserID: pUser.ID, TagType: int(req.GetType())}
 			db := kc.db.Where(&where).Delete(models.Tag{})
@@ -657,6 +667,14 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				goto COMPLETE
 			}
 			count := db.RowsAffected
+
+			//删除黑名单，Redis缓存
+			if req.GetType() == User.MarkTagType_Mtt_Blocked {
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("BlackList:%s", username), req.GetUsername()); err != nil {
+					kc.logger.Error("ZADD Error", zap.Error(err))
+				}
+			}
+
 			kc.logger.Debug("删除标签成功", zap.Int64("count", count))
 		}
 

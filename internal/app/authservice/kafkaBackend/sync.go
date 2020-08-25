@@ -27,6 +27,7 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/array"
 	"go.uber.org/zap"
 )
 
@@ -438,6 +439,41 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	return nil
 }
 
+func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
+
+	targetMsg := &models.Message{}
+
+	targetMsg.UpdateID()
+
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+	targetMsg.SetJwtToken(token)
+	targetMsg.SetUserName(toUser)
+	targetMsg.SetDeviceID(deviceID)
+	// kickMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("User")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
+	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
+
+	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	targetMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Auth.Frontend"
+	go kc.Produce(topic, targetMsg)
+
+	kc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
+		zap.String("Username:", toUser),
+		zap.String("DeviceID:", deviceID),
+		zap.Int64("Now", time.Now().Unix()))
+
+	return nil
+}
+
 //处理 systemMsgAt
 func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
@@ -454,64 +490,61 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	if cur_systemMsgAt > systemMsgAt {
 		nTime := time.Now()
 		yesTime := nTime.AddDate(0, 0, -7).Unix()
-		seqs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
-		for _, seq := range seqs {
-			key := fmt.Sprintf("systemMsg:%s:%d", username, seq)
-			toUser, _ := redis.String(redisConn.Do("HGET", key, "Username"))
-			// msgID, _ := redis.String(redisConn.Do("HGET", key, "MsgID"))
+		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, nTime))
+		for _, msgID := range msgIDs {
+			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
 			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-
-			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
-			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-			targetMsg.UpdateID()
-
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(curJwtToken)
-			targetMsg.SetUserName(toUser)
-			targetMsg.SetDeviceID(deviceID)
-			// kickMsg.SetTaskID(uint32(taskId))
-			targetMsg.SetBusinessTypeName("User")
-			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
-			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			go kc.Produce(topic, targetMsg)
-			// if err := kc.Produce(topic, targetMsg); err == nil {
-			// 	kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			// } else {
-			// 	kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			// }
-
-			kc.logger.Info("BroadcastMsgToAllDevices Succeed",
-				zap.String("Username:", toUser),
-				zap.String("DeviceID:", deviceID),
-				zap.Int64("Now", time.Now().Unix()))
-
-			_ = err
-
+			err = kc.SendOffLineMsg(username, token, deviceID, data)
 		}
 
-		kc.logger.Info("Sync systemMsg Event Succeed",
-			zap.String("Username:", username),
-			zap.String("DeviceID:", deviceID),
-			zap.Int64("Now", time.Now().Unix()))
+		//移除时间少于nTime离线通知
+		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", nTime)
+
+		//TODO 同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条，而且只能缓存7天
+
+		//从大到小递减获取, 只获取最大的10条
+		msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "+inf", "-inf", "LIMIT", 0, 10))
+		if err != nil {
+			kc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
+		} else {
+			if len(msgIDArray) > 0 {
+				//反转，数组变为从小到大排序
+				array.ReverseBytes(msgIDArray)
+				var maxSeq int
+				for seq, msgID := range msgIDArray {
+					if seq > maxSeq {
+						maxSeq = seq
+					}
+					kc.logger.Debug("同步离线期间最大的10条离线消息",
+						zap.Int("seq", seq),
+						zap.String("msgID", string(msgID)),
+					)
+					key := fmt.Sprintf("offLineMsg:%s:%s", username, string(msgID))
+					data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+					err = kc.SendOffLineMsg(username, token, deviceID, data)
+					if err == nil {
+						kc.logger.Debug("成功发送离线消息",
+							zap.Int("seq", seq),
+							zap.String("msgID", string(msgID)),
+							zap.String("username", username),
+						)
+					} else {
+						kc.logger.Error("发送离线消息失败，Error", zap.Error(err))
+					}
+
+				}
+
+				//移除序号大于maxSeq的离线消息
+				_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "-inf", maxSeq)
+
+			}
+		}
+
 	}
 
 	//完成
 	ch <- 1
-
+	_ = err
 	return nil
 }
 

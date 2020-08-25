@@ -1099,18 +1099,18 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
 	systemMsgAt := time.Now().Unix()
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.Seq); err != nil {
+	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
 
 	//系统消息具体内容
-	key := fmt.Sprintf("systemMsg:%s:%d", toUser, rsp.Seq)
+	key := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
 
 	_, err = redisConn.Do("HMSET",
 		key,
 		"Username", toUser,
 		"SystemMsgAt", systemMsgAt,
-		"MsgID", rsp.GetServerMsgId(),
+		"Seq", rsp.Seq,
 		"Data", data,
 	)
 
@@ -1150,7 +1150,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		if err := kc.Produce(topic, targetMsg); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
 		kc.logger.Info("BroadcastMsgToAllDevices Succeed",
