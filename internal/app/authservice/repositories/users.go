@@ -774,13 +774,13 @@ func (s *MysqlUsersRepository) SaveUserToken(username, deviceID string, token st
 
 	//重新读出token，看看是否可以读出
 
-	if tokenInRedis, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
-		s.logger.Error("重新读出token失败", zap.Error(err))
-		return false
-	} else {
-		isEqueal := tokenInRedis == token
-		s.logger.Debug("重新读出token成功", zap.String("tokenInRedis", tokenInRedis), zap.Bool("isEqueal", isEqueal))
-	}
+	// if tokenInRedis, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
+	// 	s.logger.Error("重新读出token失败", zap.Error(err))
+	// 	return false
+	// } else {
+	// 	isEqueal := tokenInRedis == token
+	// 	s.logger.Debug("重新读出token成功", zap.String("tokenInRedis", tokenInRedis), zap.Bool("isEqueal", isEqueal))
+	// }
 	_ = err
 	return true
 }

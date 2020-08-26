@@ -90,7 +90,6 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.UpdateID()
 				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
 				targetMsg.SetJwtToken(token)
 				targetMsg.SetUserName(username)
 				targetMsg.SetDeviceID(deviceID)
@@ -98,11 +97,8 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(1))
 				targetMsg.SetBusinessSubType(uint32(3)) //SyncUserProfileEvent = 3
-
 				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
 				targetMsg.SetCode(200) //成功的状态码
 
 				//构建数据完成，向dispatcher发送
@@ -196,7 +192,6 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
 		targetMsg.SetJwtToken(token)
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(deviceID)
@@ -204,11 +199,8 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(1))
 		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
-
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
@@ -295,7 +287,6 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
 		targetMsg.SetJwtToken(token)
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(deviceID)
@@ -303,11 +294,8 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(3))
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
-
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
@@ -387,7 +375,6 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 					})
 				}
 			}
-
 		}
 
 		//用户自己的退群列表
@@ -522,7 +509,6 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 					key := fmt.Sprintf("offLineMsg:%s:%s", username, string(msgID))
 					data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
 
-					
 					err = kc.SendOffLineMsg(username, token, deviceID, data)
 					if err == nil {
 						kc.logger.Debug("成功发送离线消息",
@@ -536,7 +522,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 
 				}
 
-				//移除序号大于maxSeq的离线消息
+				//移除序号小于maxSeq的离线消息
 				_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "-inf", maxSeq)
 
 			}

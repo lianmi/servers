@@ -2540,9 +2540,7 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 							//刷新redis
 							if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
 								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
-
 							}
-
 						}
 
 					} else {
@@ -2740,7 +2738,6 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							//刷新redis
 							if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
 								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
-
 							}
 
 						}

@@ -136,7 +136,7 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 24)] = kClient.HandlePullTeamMembers    //4-24 获取指定群组成员
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 25)] = kClient.HandleGetMyTeams         //4-25 增量同步群组信息
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 26)] = kClient.HandleCheckTeamInvite    //4-26 管理员审核用户入群申请
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 27)] = kClient.HandleGetTeamMembersPage    //4-27 分页获取群成员信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 27)] = kClient.HandleGetTeamMembersPage //4-27 分页获取群成员信息
 
 	return kClient
 }
@@ -223,7 +223,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			_ = sig
 			run = false
 		case msg := <-kc.recvFromFrontChan: //读取来着dispatcher的数据
-			taskId := msg.GetTaskID()
+			taskID := msg.GetTaskID()
 			businessType := uint16(msg.GetBusinessType())
 			businessSubType := uint16(msg.GetBusinessSubType())
 			businessTypeName := msg.GetBusinessTypeName()
@@ -231,7 +231,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			//根据目标target,  组装数据包， 写入processChan
 			kc.logger.Info("kfaPayload",
 				// zap.String("Topic:", payload.Topic),
-				zap.Uint32("taskId:", taskId),                     //taskId
+				zap.Uint32("taskId:", taskID),                     //SDK的任务ID
 				zap.String("BusinessTypeName:", businessTypeName), //业务名称
 				zap.Uint16("businessType:", businessType),         // 业务类型
 				zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
@@ -240,19 +240,19 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			)
 
 			//根据businessType以及businessSubType进行处理, func
-			// var ok bool
 			if handleFunc, ok := kc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue
 			} else {
-				if err := handleFunc(msg); err != nil {
-
-					msg.SetCode(500) //异常出错
-					msg.SetErrorMsg([]byte("Internal Server Error"))
-
-					//处理完成，向dispatcher发送
-					topic := msg.GetSource() + ".Frontend"
-					kc.Produce(topic, msg)
+				if err := handleFunc(msg); err == nil {
+					kc.logger.Debug("handleFunc succeed",
+						zap.Uint32("taskId:", taskID),                     //SDK的任务ID
+						zap.String("BusinessTypeName:", businessTypeName), //业务名称
+						zap.Uint16("businessType:", businessType),         // 业务类型
+						zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
+						zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
+						zap.String("Target:", msg.GetTarget()),            // 接收者, 这里是自己，authService
+					)
 				}
 			}
 

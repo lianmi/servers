@@ -106,7 +106,14 @@ https://blog.csdn.net/mirage003/article/details/87865582
 ```
 USE mysql;
 set global validate_password.policy=0;
+set global validate_password.length=1;
+
 CREATE USER lianmidba IDENTIFIED BY '12345678';
+
+CREATE USER lianmidba IDENTIFIED BY 'lianmicloud!@#$1234';
+
+set password for 'lianmidba'@'localhost'=password('lianmicloud!@#$1234');
+
 //让lianmidba拥有lianmicloud数据库的所有权限
 GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'%';
 FLUSH PRIVILEGES;
