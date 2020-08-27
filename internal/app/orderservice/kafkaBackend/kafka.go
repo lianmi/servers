@@ -1,8 +1,8 @@
 package kafkaBackend
 
 import (
-	"bytes"
-	"encoding/binary"
+	// "bytes"
+	// "encoding/binary"
 	// "encoding/hex"
 	"encoding/json"
 	// "fmt"
@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	// uuid "github.com/satori/go.uuid"
+	"github.com/lianmi/servers/util/randtool"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -105,7 +106,9 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	}
 
 	//注册每个业务子类型的处理方法
-	// kClient.handleFuncMap[UnionUint16ToUint32(2, 2)] = kClient.HandleSignOut        //登出处理程序
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = kClient.HandleRecvMsg //5-1 收到消息的处理程序
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 4)] = kClient.HandleMsgAck  //5-4 确认消息送达
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 9)] = kClient.HandleSendCancelMsg  //5-9 发送撤销消息
 
 	return kClient
 }
@@ -219,7 +222,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 
 			//根据businessType以及businessSubType进行处理, func
 			// var ok bool
-			if handleFunc, ok := kc.handleFuncMap[UnionUint16ToUint32(businessType, businessSubType)]; !ok {
+			if handleFunc, ok := kc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue
 			} else {
@@ -260,29 +263,6 @@ func (kc *KafkaClient) Stop() error {
 	kc.producer.Close()
 	kc.consumer.Close()
 	return nil
-}
-
-func Uint16ToBytes(n uint16) []byte {
-	return []byte{
-		byte(n),
-		byte(n >> 8),
-	}
-}
-
-func BytesToUint32(buf []byte) uint32 {
-	b_buf := bytes.NewBuffer(buf)
-	var x uint32
-	binary.Read(b_buf, binary.BigEndian, &x)
-	return x
-}
-
-//将两个uint16的数字合并为一个uint32
-func UnionUint16ToUint32(a uint16, b uint16) uint32 {
-	a_buf := Uint16ToBytes(a)
-	b_buf := Uint16ToBytes(b)
-
-	a_buf = append(a_buf, b_buf[:]...)
-	return BytesToUint32(a_buf)
 }
 
 var ProviderSet = wire.NewSet(NewKafkaOptions, NewKafkaClient)

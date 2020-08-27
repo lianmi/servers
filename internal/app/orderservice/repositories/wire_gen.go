@@ -7,6 +7,7 @@ package repositories
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -50,4 +51,4 @@ func CreateOrderRepository(f string) (OrderRepository, error) {
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, kafkaBackend.ProviderSet, ProviderSet)
