@@ -144,7 +144,14 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			}
 
 		}
-
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", req.GetUsername()), username); err == nil {
+			if reply != nil {
+				kc.logger.Warn("用户已被对方拉黑， 不能加好友", zap.String("Username", req.GetUsername()))
+				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
+				goto COMPLETE
+			}
+		}
 		//如果已经互为好友，就直接回复
 		if isAhaveB && isBhaveA {
 			kc.logger.Debug(fmt.Sprintf("已经互为好友，就直接回复, userA: %s, userB: %s", username, req.GetUsername()))
@@ -1133,6 +1140,16 @@ func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
 				kc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+				goto COMPLETE
+			}
+		}
+
+		//判断是否被对方拉黑
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", req.GetUsername()), username); err == nil {
+			if reply != nil {
+				kc.logger.Warn("用户已被对方拉黑， 不能关注", zap.String("Username", req.GetUsername()))
+				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
 				goto COMPLETE
 			}
 		}

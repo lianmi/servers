@@ -524,13 +524,13 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			db := kc.db.Where(&where).Delete(models.Tag{})
 			err = db.Error
 			if err != nil {
-				kc.logger.Error("删除实体出错", zap.Error(err))
+				kc.logger.Error("删除Tag出错", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", pUser.ID)
+				errorMsg = fmt.Sprintf("删除Tag出错[userID=%d]", pUser.ID)
 				goto COMPLETE
 			}
 			count := db.RowsAffected
-			kc.logger.Debug("删除实体成功", zap.Int64("count", count))
+			kc.logger.Debug("删除Tag成功", zap.Int64("count", count))
 
 			//使用事务同时更新用户数据和角色数据
 
@@ -540,12 +540,17 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				errorMsg = "MarkTag error"
 				goto COMPLETE
 			}
+
 			kc.logger.Debug("增加标签成功")
 
 			//Redis缓存黑名单
 			if req.GetType() == User.MarkTagType_Mtt_Blocked {
 				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
+				}
+				//在自己的关注有序列表里移除此用户
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", username), req.GetUsername()); err != nil {
+					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 			}
 
@@ -564,6 +569,10 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			//删除黑名单，Redis缓存
 			if req.GetType() == User.MarkTagType_Mtt_Blocked {
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("BlackList:%s", username), req.GetUsername()); err != nil {
+					kc.logger.Error("ZADD Error", zap.Error(err))
+				}
+				//在自己的关注有序列表里重新加回此用户
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 			}
