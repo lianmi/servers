@@ -35,7 +35,6 @@ type UpdateFriendReq struct {
 	unknownFields protoimpl.UnknownFields
 
 	//好友账号
-	//例子-17782722078
 	//是否必填-是
 	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	//采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围：

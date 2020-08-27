@@ -9,7 +9,6 @@ option go_package = "github.com/lianmi/servers/api/proto/friends";
 //API类型-API
 message UpdateFriendReq {
     //好友账号
-    //例子-17782722078
     //是否必填-是
     string username = 1;
     //采用字典表方式提交更新内容 key定义成枚举(FriendFieldEnum)取值范围：

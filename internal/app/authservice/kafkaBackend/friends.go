@@ -1071,6 +1071,190 @@ COMPLETE:
 }
 
 /*
+3-9 关注商户
+*/
+func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleWatchRequest start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("WatchRequest",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Friends.WatchRequestReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("WatchRequest body",
+			zap.String("username", req.GetUsername()),
+			zap.String("ps", req.GetPs()),
+			zap.String("source", req.GetSource()),
+		)
+
+		//判断是否封号，是否存在
+		if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetUsername()), "State")); err != nil {
+			kc.logger.Error("redisConn HGET Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+			goto COMPLETE
+		} else {
+			if state == common.UserBlocked {
+				kc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+				goto COMPLETE
+			}
+		}
+
+		//在用户的关注有序列表里增加此商户
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+			kc.logger.Error("ZADD Error", zap.Error(err))
+		}
+
+		//在商户的被关注有序列表里增加此用户
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().Unix(), username); err != nil {
+			kc.logger.Error("ZADD Error", zap.Error(err))
+		}
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+3-10 取消关注商户
+*/
+func (kc *KafkaClient) HandleCancelWatchRequest(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleCancelWatchRequest start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("CancelWatchRequest",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Friends.WatchRequestReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("CancelWatchRequest body",
+			zap.String("username", req.GetUsername()),
+			zap.String("ps", req.GetPs()),
+			zap.String("source", req.GetSource()),
+		)
+
+		//在用户的关注有序列表里移除此商户
+		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), req.GetUsername()); err != nil {
+			kc.logger.Error("ZREM Error", zap.Error(err))
+		}
+
+		//在商户的关注有序列表里移除此用户
+		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
+			kc.logger.Error("ZREM Error", zap.Error(err))
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
 向目标用户账号的所有端推送系统通知
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
