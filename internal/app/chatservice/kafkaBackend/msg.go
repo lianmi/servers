@@ -10,9 +10,17 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/sts"
 	"google.golang.org/protobuf/proto"
 
 	"go.uber.org/zap"
+	simpleJson "github.com/bitly/go-simplejson"
+)
+
+var (
+	TempKey    = "LTAI4G3o4sECdSBsD7rGLmCs"
+	TempSecret = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
+	RoleAcs    = "acs:ram::1230446857465673:role/ipfsuploader"
 )
 
 /*
@@ -573,6 +581,142 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("SendCancelMsg message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send SendCancelMsg message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+//5-12 获取阿里云OSS上传Token
+func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	rsp := &Msg.GetOssTokenRsp{}
+	// var isExists bool
+	// var newSeq uint64
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleGetOssToken start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetOssToken",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Msg.GetOssTokenReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("GetOssToken payload")
+
+		//生成阿里云oss临时sts
+		client := sts.NewStsClient(TempKey, TempSecret, RoleAcs)
+
+		//阿里云规定，最低expire为1500秒  
+		url, err := client.GenerateSignatureUrl("client", "1500") 
+		if err != nil {
+			kc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
+			goto COMPLETE
+		}
+
+		data, err := client.GetStsResponse(url)
+		if err != nil {
+			kc.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("GetOssToken Error: %s", err.Error())
+			goto COMPLETE
+		}
+
+		/*
+			{
+				"RequestId": "1468D6F6-DA5D-4DAB-8B6C-383C22524E32",
+				"AssumedRoleUser": {
+					"Arn": "acs:ram::1230446857465673:role/ipfsuploader/client",
+					"AssumedRoleId": "359775758821401491:client"
+				},
+				"Credentials": {
+					"SecurityToken": "CAIS8QF1q6Ft5B2yfSjIr5bBGYnNhK5Aw4S9W3bUoGgeOc5Pi/39hDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CchGnlLT8Ro22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABp6cWPupoRAUG7ohyuVM1+vZlTObY1ZRkp40wHpvxFLs6i2UZILNQ7+Myf0ZDGcc2MMpxIu+Vl5Kdy4YEMBDokmzzRCZGXqAQzzkSm+9jvbaIKwjj90wjmellGbwIQ4zZ4NbZ4HeYDIyUgBuQ1bwdn6UHZvtG7NC2g9sawbPtKZ0=",
+					"AccessKeyId": "STS.NUtR3yiqatFVYPeDhK5Acd8Vf",
+					"AccessKeySecret": "9baJcUJEHbmC1rdEzRg8DviWrSMuSPzM1QRBMt12Y3cC",
+					"Expiration": "2020-08-28T14:36:15Z"
+				}
+			}
+		*/
+
+		// log.Println("result:", string(data))
+		sjson, err := simpleJson.NewJson(msg)
+		if err != nil {
+			kc.logger.Warn("simplejson.NewJson Error", zap.Error(err)))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("GetOssToken Error: %s", err.Error())
+			goto COMPLETE
+		}
+
+		kc.logger.Debug("收到阿里云OSS服务端的消息", 
+			zap.String("RequestId", sjson.Get("RequestId").MustString()),
+			zap.String("AccessKeyId", sjson.Get("Credentials").Get("AccessKeyId").MustString()),
+			zap.String("AccessKeySecret", sjson.Get("Credentials").Get("AccessKeySecret").MustString()),
+			zap.String("SecurityToken", sjson.Get("Credentials").Get("SecurityToken").MustString()),
+			zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
+		)
+		rsp = &Msg.GetOssTokenRsp{
+			EndPoint: "https://oss-cn-hangzhou.aliyuncs.com",
+			BucketName: "lianmi-ipfs",
+			AccessKeyId: sjson.Get("Credentials").Get("AccessKeyId").MustString(),
+			AccessKeySecret: sjson.Get("Credentials").Get("AccessKeySecret").MustString(),
+			SecurityToken: sjson.Get("Credentials").Get("SecurityToken").MustString(),
+			Directory: time.Now().Format("2006/01/02/"),
+			Expire: 1500, //阿里云规定，最低为1500秒
+			Callback: "", //不填
+
+		}
+
+		// if sjson.Get("head").Get("method").MustString() == "price.subscribe" {
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

@@ -457,7 +457,6 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 				} else {
 					mc.logger.Warn("警告, 令牌里的设备id和消息携带的设备id不相同，需要重新登录授权", zap.String("deviceID", deviceID), zap.String("jwtDeviceID", jwtDeviceID))
 				}
-
 			}
 		}
 	}

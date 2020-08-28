@@ -48,6 +48,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Friend{})   // 好友表
 	db.AutoMigrate(&models.Team{})     // 群组表
 	db.AutoMigrate(&models.TeamUser{}) // 群成员表
+	db.AutoMigrate(&models.Prekey{})   // OPK表, 商户上传
 
 	return db, nil
 }
