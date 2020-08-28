@@ -9,7 +9,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
-	Order "github.com/lianmi/servers/api/proto/order"
+	// Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"google.golang.org/protobuf/proto"
 

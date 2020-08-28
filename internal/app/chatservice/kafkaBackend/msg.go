@@ -682,9 +682,9 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 		*/
 
 		// log.Println("result:", string(data))
-		sjson, err := simpleJson.NewJson(msg)
+		sjson, err := simpleJson.NewJson(data)
 		if err != nil {
-			kc.logger.Warn("simplejson.NewJson Error", zap.Error(err)))
+			kc.logger.Warn("simplejson.NewJson Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("GetOssToken Error: %s", err.Error())
 			goto COMPLETE
@@ -715,7 +715,7 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		data, _ = proto.Marshal(rsp)
+		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
