@@ -2,19 +2,18 @@ package walletservice
 
 import (
 	"github.com/google/wire"
-	"github.com/pkg/errors"
-	"github.com/lianmi/servers/internal/pkg/app"
 	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
-	// "github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 type Options struct {
-	Name string
-	Addr   string `yaml:"addr"` //127.0.0.1:9092
-	Password   string `yaml:"password"` 
-	Db   int `yaml:"db"`	
+	Name     string
+	Addr     string `yaml:"addr"` //127.0.0.1:9092
+	Password string `yaml:"password"`
+	Db       int    `yaml:"db"`
 }
 
 func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
@@ -29,9 +28,9 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, kc *walletKafka.KafkaClient) (*app.Application, error) { 
+func NewApp(o *Options, logger *zap.Logger, kc *walletKafka.KafkaClient) (*app.Application, error) {
 
-	a, err := app.New(o.Name, logger, app.WalletKafkaOption(kc)) 
+	a, err := app.New(o.Name, logger, app.WalletKafkaOption(kc))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "new app error")

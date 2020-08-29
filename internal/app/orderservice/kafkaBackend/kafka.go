@@ -1,3 +1,6 @@
+/*
+处理商品及订单的业务
+*/
 package kafkaBackend
 
 import (
@@ -106,9 +109,9 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	}
 
 	//注册每个业务子类型的处理方法
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = kClient.HandleRecvMsg //5-1 收到消息的处理程序
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 4)] = kClient.HandleMsgAck  //5-4 确认消息送达
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 9)] = kClient.HandleSendCancelMsg  //5-9 发送撤销消息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = kClient.HandleRecvMsg       //5-1 收到消息的处理程序
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 4)] = kClient.HandleMsgAck        //5-4 确认消息送达
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 9)] = kClient.HandleSendCancelMsg //5-9 发送撤销消息
 
 	return kClient
 }
@@ -127,15 +130,6 @@ func (kc *KafkaClient) Start() error {
 		kc.logger.Error("Failed to SubscribeTopics: ", zap.Error(err))
 		return err
 	}
-
-	//尝试读取redis
-	// redisConn := kc.redisPool.Get()
-	// defer redisConn.Close()
-	// vkey := fmt.Sprintf("verificationCode:%s", email)
-
-	// if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
-	// 	kc.logger.Info("redisConn GET ", zap.String("bar", bar))
-	// }
 
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()

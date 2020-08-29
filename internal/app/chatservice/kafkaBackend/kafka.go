@@ -129,15 +129,6 @@ func (kc *KafkaClient) Start() error {
 		return err
 	}
 
-	//尝试读取redis
-	// redisConn := kc.redisPool.Get()
-	// defer redisConn.Close()
-	// vkey := fmt.Sprintf("verificationCode:%s", email)
-
-	// if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
-	// 	kc.logger.Info("redisConn GET ", zap.String("bar", bar))
-	// }
-
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
 
@@ -222,7 +213,6 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			)
 
 			//根据businessType以及businessSubType进行处理, func
-			// var ok bool
 			if handleFunc, ok := kc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue

@@ -7,6 +7,7 @@ package repositories
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -44,10 +45,10 @@ func CreateWalletRepository(f string) (WalletRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	orderRepository := NewMysqlWalletRepository(logger, db, pool)
-	return orderRepository, nil
+	walletRepository := NewMysqlWalletRepository(logger, db, pool)
+	return walletRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, kafkaBackend.ProviderSet, ProviderSet)

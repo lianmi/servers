@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	// "fmt"
-	// "errors"
 	"encoding/json"
 	"log"
 	"net/http"
