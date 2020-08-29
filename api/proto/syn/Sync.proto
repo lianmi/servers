@@ -30,7 +30,7 @@ message SyncEventReq{
    fixed64 systemMsgAt=6;
    //商品最后同步时间戳，触发商品信息同步事件
    //是否必填-是 
-   fixed64 productAt=6;
+   fixed64 productAt=7;
 }
 //只包含状态码，无内容载体
 message SyncEventRsp{

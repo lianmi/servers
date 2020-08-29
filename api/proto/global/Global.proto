@@ -16,7 +16,6 @@ enum BusinessType {
     Broadcast        = 8;    //广播模块
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
-    Product          = 11;   //商品模块
     Custom           = 99;   //自定义模块， 用于测试
 }
 
@@ -149,15 +148,6 @@ enum WalletSubType {
     QueryCommission  =  5;     /**< 10-9 佣金收益明细*/
 }
 
-//商品模块子模块定义
-enum ProductSubType {
-    PST_undefined     =  0;    //proto3必须从0开始
-    Added             =  1;     /**< 11-1 商品上架*/
-    SoldOut           =  2;     /**< 11-2 商品下架*/
-    Updated           =  3;     /**< 11-3 商品信息更新*/
-    MutilChangeEvent  =  4;     /**< 11-4 多端商品变更事件, 上架， 下架，更新*/
-    FollowChangeEvent =  5;     /**< 11-5 客户端接收关注网点的商品变革事件*/
-}
 
 //订单状态枚举：
 enum OrderState {

@@ -13,9 +13,11 @@ message SendCancelMsgReq{
   //消息数据包的类型
   //是否必填-是
   MessageType type = 2;
+  //客户端分配的uuid
+  string uuid =3;
   //要撤销的消息的由服务器分配的消息id
   //是否必填-是
-  string serverMsgId=3;
+  string serverMsgId=4;
  
 }
 message SendCancelMsgRsp{
