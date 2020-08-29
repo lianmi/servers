@@ -39,3 +39,8 @@ const (
 	//一天最多拉多少人入群
 	OnedayInvitedLimit = 50
 )
+
+const (
+	//阿里云OSS临时token的过期时间, 默认是3600秒
+	EXPIRESECONDS = 3600
+)

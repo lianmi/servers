@@ -9,12 +9,13 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
+	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/sts"
 	"google.golang.org/protobuf/proto"
 
-	"go.uber.org/zap"
 	simpleJson "github.com/bitly/go-simplejson"
+	"go.uber.org/zap"
 )
 
 var (
@@ -648,8 +649,8 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 		//生成阿里云oss临时sts
 		client := sts.NewStsClient(TempKey, TempSecret, RoleAcs)
 
-		//阿里云规定，最低expire为1500秒  
-		url, err := client.GenerateSignatureUrl("client", "1500") 
+		//阿里云规定，最低expire为1500秒
+		url, err := client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.EXPIRESECONDS))
 		if err != nil {
 			kc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -665,21 +666,6 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		/*
-			{
-				"RequestId": "1468D6F6-DA5D-4DAB-8B6C-383C22524E32",
-				"AssumedRoleUser": {
-					"Arn": "acs:ram::1230446857465673:role/ipfsuploader/client",
-					"AssumedRoleId": "359775758821401491:client"
-				},
-				"Credentials": {
-					"SecurityToken": "CAIS8QF1q6Ft5B2yfSjIr5bBGYnNhK5Aw4S9W3bUoGgeOc5Pi/39hDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CchGnlLT8Ro22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABp6cWPupoRAUG7ohyuVM1+vZlTObY1ZRkp40wHpvxFLs6i2UZILNQ7+Myf0ZDGcc2MMpxIu+Vl5Kdy4YEMBDokmzzRCZGXqAQzzkSm+9jvbaIKwjj90wjmellGbwIQ4zZ4NbZ4HeYDIyUgBuQ1bwdn6UHZvtG7NC2g9sawbPtKZ0=",
-					"AccessKeyId": "STS.NUtR3yiqatFVYPeDhK5Acd8Vf",
-					"AccessKeySecret": "9baJcUJEHbmC1rdEzRg8DviWrSMuSPzM1QRBMt12Y3cC",
-					"Expiration": "2020-08-28T14:36:15Z"
-				}
-			}
-		*/
 
 		// log.Println("result:", string(data))
 		sjson, err := simpleJson.NewJson(data)
@@ -690,26 +676,31 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		kc.logger.Debug("收到阿里云OSS服务端的消息", 
+		kc.logger.Debug("收到阿里云OSS服务端的消息",
 			zap.String("RequestId", sjson.Get("RequestId").MustString()),
 			zap.String("AccessKeyId", sjson.Get("Credentials").Get("AccessKeyId").MustString()),
 			zap.String("AccessKeySecret", sjson.Get("Credentials").Get("AccessKeySecret").MustString()),
 			zap.String("SecurityToken", sjson.Get("Credentials").Get("SecurityToken").MustString()),
 			zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
 		)
+		/*
+		//计算出Expire
+		dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
+		format := "2006-01-02T15:04:05Z"
+		now, _ := time.Parse(format, time.Now().Format(format))
+		expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
+		*/
+
 		rsp = &Msg.GetOssTokenRsp{
-			EndPoint: "https://oss-cn-hangzhou.aliyuncs.com",
-			BucketName: "lianmi-ipfs",
-			AccessKeyId: sjson.Get("Credentials").Get("AccessKeyId").MustString(),
+			EndPoint:        "https://oss-cn-hangzhou.aliyuncs.com",
+			BucketName:      "lianmi-ipfs",
+			AccessKeyId:     sjson.Get("Credentials").Get("AccessKeyId").MustString(),
 			AccessKeySecret: sjson.Get("Credentials").Get("AccessKeySecret").MustString(),
-			SecurityToken: sjson.Get("Credentials").Get("SecurityToken").MustString(),
-			Directory: time.Now().Format("2006/01/02/"),
-			Expire: 1500, //阿里云规定，最低为1500秒
-			Callback: "", //不填
-
+			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),
+			Directory:       time.Now().Format("2006/01/02/"),
+			Expire:          common.EXPIRESECONDS, //默认3600s
+			Callback:        "", //不填
 		}
-
-		// if sjson.Get("head").Get("method").MustString() == "price.subscribe" {
 	}
 
 COMPLETE:
