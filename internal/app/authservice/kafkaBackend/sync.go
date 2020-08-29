@@ -99,7 +99,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.SetBusinessSubType(uint32(3)) //SyncUserProfileEvent = 3
 				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-				targetMsg.SetCode(200) //成功的状态码
+				targetMsg.SetCode(200)   //成功的状态码
 
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
@@ -201,7 +201,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-		targetMsg.SetCode(200) //成功的状态码
+		targetMsg.SetCode(200)   //成功的状态码
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
@@ -296,7 +296,7 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-		targetMsg.SetCode(200) //成功的状态码
+		targetMsg.SetCode(200)   //成功的状态码
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
@@ -623,6 +623,9 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			for _, ch := range chs {
 				<-ch
 			}
+
+			//发送SyncDoneEvent
+			kc.SendSyncDoneEventToUser(username, deviceID, token)
 			kc.logger.Debug("All Sync done")
 		}()
 
@@ -647,4 +650,48 @@ COMPLETE:
 	_ = err
 	return nil
 
+}
+
+func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
+	rsp := &Sync.SyncDoneEventRsp{
+		TimeTag: uint64(time.Now().Unix()),
+	}
+	data, _ := proto.Marshal(rsp)
+
+	targetMsg := &models.Message{}
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+	targetMsg.SetJwtToken(token)
+	targetMsg.SetUserName(toUser)
+	targetMsg.SetDeviceID(deviceID)
+	// kickMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("Sync")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Sync))            //sync模块
+	targetMsg.SetBusinessSubType(uint32(Global.SyncSubType_SyncDoneEvent)) // 同步完成事件
+	targetMsg.BuildHeader("authservice", time.Now().UnixNano()/1e6)
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+	targetMsg.SetCode(200)   //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Sync.Frontend"
+	if err := kc.Produce(topic, targetMsg); err == nil {
+		kc.logger.Info("Msg message succeed send to ProduceChannel",
+			zap.String("topic", topic),
+			zap.String("to", toUser),
+			zap.String("toDeviceID:", deviceID),
+			zap.String("msgID:", targetMsg.GetID()),
+		)
+	} else {
+		kc.logger.Error("Failed to send message to ProduceChannel",
+			zap.String("topic", topic),
+			zap.String("to", toUser),
+			zap.String("toDeviceID:", deviceID),
+			zap.String("msgID:", targetMsg.GetID()),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
 }

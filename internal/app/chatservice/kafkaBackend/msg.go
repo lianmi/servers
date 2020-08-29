@@ -25,9 +25,7 @@ var (
 )
 
 /*
-1. 先从redis里读取 哈希表 userData:{username} 里的元素，如果无法读取，则直接从MySQL里读取
-2. 注意，更新资料后，也需要同步更新 哈希表 userData:{username}
-哈希表 userData:{username} 的元素就是User的各个字段
+处理SDK发来的sendmsg
 */
 func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 	var err error
@@ -267,10 +265,11 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        req.GetScene(), //传输场景
-				Type:         req.GetType(),  //消息类型
-				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
-				FromDeviceId: deviceID,
+				Scene:        req.GetScene(),                     //传输场景
+				Type:         req.GetType(),                      //消息类型
+				Body:         req.GetBody(),                      //不拆包，直接透传body给接收者
+				From:         username,                           //谁发的消息
+				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -310,8 +309,21 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		data, _ = proto.Marshal(rsp)
-		msg.FillBody(data)
+		//构造回包消息数据
+		if curSeq, err := redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
+			kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+
+		} else {
+			rsp = &Msg.SendMsgRsp{
+				Uuid:        fmt.Sprintf("%d", msg.GetTaskID()),
+				ServerMsgId: msg.GetID(),
+				Seq:         curSeq,
+				Time:        uint64(time.Now().Unix()),
+			}
+			data, _ = proto.Marshal(rsp)
+			msg.FillBody(data)
+		}
+
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -666,7 +678,6 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-
 		// log.Println("result:", string(data))
 		sjson, err := simpleJson.NewJson(data)
 		if err != nil {
@@ -684,11 +695,11 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 			zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
 		)
 		/*
-		//计算出Expire
-		dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
-		format := "2006-01-02T15:04:05Z"
-		now, _ := time.Parse(format, time.Now().Format(format))
-		expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
+			//计算出Expire
+			dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
+			format := "2006-01-02T15:04:05Z"
+			now, _ := time.Parse(format, time.Now().Format(format))
+			expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
 		*/
 
 		rsp = &Msg.GetOssTokenRsp{
@@ -699,7 +710,7 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),
 			Directory:       time.Now().Format("2006/01/02/"),
 			Expire:          common.EXPIRESECONDS, //默认3600s
-			Callback:        "", //不填
+			Callback:        "",                   //不填
 		}
 	}
 

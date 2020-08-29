@@ -12,7 +12,7 @@ enum BusinessType {
     Team             = 4;    //群组模块
     Msg              = 5;    //消息模块
     Sync             = 6;    //数据同步模块
-    Article          = 7;    //文章模块
+    Product          = 7;    //商品模块
     Broadcast        = 8;    //广播模块
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
@@ -110,10 +110,24 @@ enum MsgSubType {
 
 //同步模块子模块定义
 enum SyncSubType {
-    Syn_undefined  = 0;    //proto3必须从0开始
+    Syn_undefined  = 0;     //proto3必须从0开始
     SyncEvent      = 1;     /**< 1. 同步请求*/
     SyncDoneEvent  = 2;     /**< 2. 同步结束事件*/
 }
+
+//商品模块子模块定义
+enum ProductSubType {
+    PST_undefined        =  0;     //proto3必须从0开始
+    QueryProducts        =  1;     /**< 7-1. 查询某个商户的所有商品信息*/
+    AddProduct           =  2;     /**< 7-2. 商品上架*/
+    UpdateProduct        =  3;     /**< 7-3. 商品编辑更新*/
+    SoldoutProduct       =  4;     /**< 7-4. 商品下架*/
+    AddProductEvent      =  5;     /**< 7-5. 新商品上架事件*/
+    UpdateProductEvent   =  6;     /**< 7-6. 已有商品的编辑更新事件*/
+    SoldoutProductEvent  =  7;     /**< 7-7. 商品下架事件*/
+    SyncProductEvent     =  8;     /**< 7-8. 同步关注的商户商品信息事件*/
+}
+
 
 //订单模块子模块定义
 enum OrderSubType {
