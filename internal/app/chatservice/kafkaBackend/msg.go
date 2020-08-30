@@ -421,7 +421,7 @@ func (kc *KafkaClient) HandleMsgAck(msg *models.Message) error {
 			zap.Uint64("Seq", req.GetSeq()),
 		)
 
-		//从Redis缓存的消息队列里删除seq
+		//从Redis缓存的消息队列里删除ServerMsgId的缓存消息
 		if Msg.MessageType_MsgType_Notification == req.GetType() { //通知类型
 			if _, err = redisConn.Do("ZREM", fmt.Sprintf("systemMsgAt:%s", username), req.GetServerMsgId()); err != nil {
 				kc.logger.Error("ZREM Error", zap.Error(err))
