@@ -9,6 +9,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
+
 	// Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"google.golang.org/protobuf/proto"
@@ -121,10 +122,11 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        req.GetScene(), //传输场景
-				Type:         req.GetType(),  //消息类型
-				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
-				FromDeviceId: deviceID,
+				Scene:        req.GetScene(),                     //传输场景
+				Type:         req.GetType(),                      //消息类型
+				Body:         req.GetBody(),                      //不拆包，直接透传body给接收者
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -214,7 +216,8 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_C2C, //个人消息
 					Type:         req.GetType(),                 //消息类型
 					Body:         bodyData,
-					FromDeviceId: deviceID,
+					From:         username,                           //谁发的
+					FromDeviceId: deviceID,                           //哪个设备发的
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -259,10 +262,11 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        req.GetScene(), //传输场景
-				Type:         req.GetType(),  //消息类型
-				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
-				FromDeviceId: deviceID,
+				Scene:        req.GetScene(),                     //传输场景
+				Type:         req.GetType(),                      //消息类型
+				Body:         req.GetBody(),                      //不拆包，直接透传body给接收者
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -491,7 +495,8 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 					Scene:        req.GetScene(), //传输场景
 					Type:         req.GetType(),  //消息类型
 					Body:         bodyData,
-					FromDeviceId: deviceID,
+					From:         username,                           //谁发的
+					FromDeviceId: deviceID,                           //哪个设备发的
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -531,7 +536,8 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 				Scene: req.GetScene(), //系统消息
 				Type:  req.GetType(),  //通知类型
 				// Body:         bodyData, //此时没有body
-				FromDeviceId: deviceID,
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  req.GetServerMsgId(),               //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID

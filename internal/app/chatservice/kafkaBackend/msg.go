@@ -108,6 +108,35 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			//判断两者是不是好友， 单向好友也不能发消息
+			var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
+			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), toUser); err == nil {
+				if reply == nil {
+					//A好友列表中没有B
+					isAhaveB = false
+				} else {
+					isAhaveB = true
+				}
+
+			}
+			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", toUser), username); err == nil {
+				if reply == nil {
+					//B好友列表中没有A
+					isBhaveA = false
+				} else {
+					isBhaveA = true
+				}
+
+			}
+			if isAhaveB && isBhaveA {
+				//pass
+			} else {
+				kc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
+				goto COMPLETE
+			}
+
 			//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", toUser), username); err == nil {
 				if reply != nil {
@@ -130,10 +159,11 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				Scene:        req.GetScene(), //传输场景
 				Type:         req.GetType(),  //消息类型
 				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
-				FromDeviceId: deviceID,
-				ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
-				Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
+				From:         username,       //谁发的
+				FromDeviceId: deviceID,       //哪个设备发的
+				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
+				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
 				Time:         uint64(time.Now().Unix()),
 			}
 
@@ -220,7 +250,8 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_C2C, //个人消息
 					Type:         req.GetType(),                 //消息类型
 					Body:         bodyData,
-					FromDeviceId: deviceID,
+					From:         username,      //谁发的
+					FromDeviceId: deviceID,      //哪个设备发的
 					ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
 					Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
@@ -511,7 +542,8 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 					Scene:        req.GetScene(), //传输场景
 					Type:         req.GetType(),  //消息类型
 					Body:         bodyData,
-					FromDeviceId: deviceID,
+					From:         username,      //谁发的
+					FromDeviceId: deviceID,      //哪个设备发的
 					ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
 					Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
@@ -551,7 +583,8 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 				Scene: req.GetScene(), //系统消息
 				Type:  req.GetType(),  //通知类型
 				// Body:         bodyData, //此时没有body
-				FromDeviceId: deviceID,
+				From:         username,             //谁发的
+				FromDeviceId: deviceID,             //哪个设备发的
 				ServerMsgId:  req.GetServerMsgId(), //服务器分配的消息ID
 				Seq:          newSeq,               //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),        //客户端分配的消息ID，SDK生成的消息id

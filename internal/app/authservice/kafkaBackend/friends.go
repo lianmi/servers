@@ -281,7 +281,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         bodyData,
-							FromDeviceId: deviceID,
+							From:         username,                           //谁发的
+							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -315,7 +316,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         bodyData,
-							FromDeviceId: deviceID,
+							From:         username,                           //谁发的
+							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -366,7 +368,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						FromDeviceId: deviceID,
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -514,7 +517,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						FromDeviceId: deviceID,
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -571,7 +575,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						FromDeviceId: deviceID,
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -757,7 +762,8 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 				Type:         Msg.MessageType_MsgType_Notification, //通知类型
 				Body:         bodyData,
-				FromDeviceId: deviceID,
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
