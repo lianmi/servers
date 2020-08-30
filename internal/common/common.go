@@ -44,3 +44,8 @@ const (
 	//阿里云OSS临时token的过期时间, 默认是3600秒
 	EXPIRESECONDS = 3600
 )
+
+const (
+	//所有同步的时间戳数量
+	TotalSyncCount = 6
+)

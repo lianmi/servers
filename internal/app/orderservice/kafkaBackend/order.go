@@ -66,7 +66,10 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("QueryProducts  payload")
+		kc.logger.Debug("QueryProducts  payload",
+			zap.String("ProductId", req.GetProductId()),
+			zap.Uint64("TimeAt", req.GetTimeAt()),
+		)
 
 	}
 

@@ -67,6 +67,8 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 
 	tx := s.base.GetTransaction()
 
+	//将Status变为2 正常状态
+	p.Status = 2
 	if err := tx.Save(p).Error; err != nil {
 		s.logger.Error("授权新创建的群组失败", zap.Error(err))
 		tx.Rollback()

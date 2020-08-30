@@ -1,7 +1,7 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt
+    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt, productAt
 
 6-2 同步请求完成
 
@@ -527,6 +527,29 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 
 			}
 		}
+	}
+
+	//完成
+	ch <- 1
+	_ = err
+	return nil
+}
+
+//处理productAt
+func (kc *KafkaClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	var err error
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	productAt := req.GetProductAt()
+	productAtKey := fmt.Sprintf("sync:%s", username)
+
+	cur_productAt, _ := redis.Uint64(redisConn.Do("HGET", productAtKey, "productAt"))
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_productAt > productAt {
+		//TODO
 
 	}
 
@@ -537,7 +560,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 }
 
 /*
-注意： syncCount 是所有需要同步的数量，最终是5个
+注意： syncCount 是所有需要同步的数量，最终是6个
 */
 func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 	var err error
@@ -585,8 +608,9 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 
 		//异步
 		go func() {
+			//所有同步的时间戳数量
+			syncCount := common.TotalSyncCount
 
-			syncCount := 5
 			chs := make([]chan int, syncCount)
 
 			i := 0
@@ -618,6 +642,12 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			chs[i] = make(chan int)
 			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[i]); err == nil {
 				kc.logger.Debug("systemMsgAt is done")
+			}
+
+			i++
+			chs[i] = make(chan int)
+			if err := kc.SyncProductAt(username, token, deviceID, req, chs[i]); err == nil {
+				kc.logger.Debug("productAt is done")
 			}
 
 			for _, ch := range chs {

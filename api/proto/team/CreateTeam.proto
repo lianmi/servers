@@ -50,28 +50,31 @@ message Tmember {
     //群成员头像
     //是否必须-否
     string avatar = 4;
+    //群成员标签
+    //是否必须-否
+    string label = 5;
     //群成员来源,需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等,
     //UI可以根据该字段动态显示该成员来源,例: "abc邀请cde加入群组"
     //是否必须-是
-    string source = 5;
+    string source = 6;
     //成员类型
     //是否必须-是
-    TeamMemberType type = 6;
+    TeamMemberType type = 7;
     //群消息通知方式
     //是否必须-是
-    NotifyType notifyType = 7;
+    NotifyType notifyType = 8;
     //是否被禁言
     //是否必须-是
-    bool mute = 8;
+    bool mute = 9;
     //扩展字段
     //是否必须-否
-    string ex = 9;
+    string ex = 10;
     //入群时间，unix时间戳
     //是否必须-是
-    fixed64 joinTime = 10;
+    fixed64 joinTime = 11;
     //最近更新时间，unix时间戳
     //是否必须-是
-    fixed64 updateTime = 11;
+    fixed64 updateTime = 12;
 }
 
 enum MemberStatus {

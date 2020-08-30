@@ -111,12 +111,14 @@ func (pc *UsersController) Register(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+		pc.logger.Debug("注册",
+			zap.Int("user.UserType", user.UserType))
 
 		//初始化一些默认值及当期时间
 		user.CreatedAt = time.Now().Unix() //注意，必须要unix时间戳
 		user.State = 0                     //预审核
 		user.Avatar = common.PubAvatar     //公共头像
-		user.AllowType = 3
+		user.AllowType = 3                 //用户加好友枚举，默认是3
 
 		//检测手机是数字
 		if !conv.IsDigit(user.Mobile) {
@@ -149,6 +151,14 @@ func (pc *UsersController) Register(c *gin.Context) {
 				RespFail(c, http.StatusBadRequest, code, "商户信息必填")
 				return
 			}
+			pc.logger.Debug("商户注册",
+				zap.String("Province", user.Province),
+				zap.String("County", user.County),
+				zap.String("City", user.City),
+				zap.String("Street", user.Street),
+				zap.String("LegalPerson", user.LegalPerson),
+				zap.String("LegalIdentityCard", user.LegalIdentityCard),
+			)
 		}
 
 		if userName, err := pc.service.Register(&user); err == nil {
@@ -311,7 +321,7 @@ func (pc *UsersController) ApproveTeam(c *gin.Context) {
 	userName := claims[common.IdentityKey].(string)
 	deviceID := claims["deviceID"].(string)
 	token := jwt_v2.GetToken(c)
-	pc.logger.Debug("SignOut",
+	pc.logger.Debug("ApproveTeam",
 		zap.String("userName", userName),
 		zap.String("deviceID", deviceID),
 		zap.String("token", token))
@@ -326,7 +336,7 @@ func (pc *UsersController) ApproveTeam(c *gin.Context) {
 		pc.logger.Debug("ApproveTeam  run ok")
 		RespOk(c, http.StatusOK, 200)
 	} else {
-		pc.logger.Debug("ApproveTeam  run FAILD")
+		pc.logger.Debug("ApproveTeam run FAILD")
 		RespFail(c, http.StatusBadRequest, 400, "授权新创建的群组失败")
 
 	}
