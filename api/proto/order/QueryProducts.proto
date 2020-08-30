@@ -1,0 +1,30 @@
+syntax = "proto3"; 
+
+import "api/proto/order/Product.proto"; 
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+
+message QueryProductsReq {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+    //商品详情最大修改时间戳，对应timeAt字段，为0时获取全量商品
+    //是否必须-是
+    fixed64 timeAt = 2;
+}
+
+//
+//获取商品信息-响应
+message QueryProductsRsp {
+    //商品列表
+    //是否必须-是
+    repeated Product products = 1;
+    //该商品下架后的商品id列表
+    //是否必须-否
+    repeated string soldoutProducts = 2;
+    //本次同步后，服务器时间
+    //是否必须-是
+    fixed64 timeAt = 3;
+}

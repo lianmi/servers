@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//用来存储好友发起方的附言及来源
+message PsSource {
+    //附言
+    //是否必填-否
+    string ps = 1;
+    //来源
+    //是否必填-是
+    //添加来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等
+    string source = 2;
+}

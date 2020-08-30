@@ -57,8 +57,6 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 	var newSeq uint64
 
-	// uid := uuid.NewV4().String()
-
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -99,12 +97,17 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("FriendRequest body",
 			zap.String("Username", req.GetUsername()),
-			zap.String("Ps", req.GetPs()),
-			zap.String("Source", req.GetSource()),
+			zap.String("Ps", req.GetPs()),         // 附言
+			zap.String("Source", req.GetSource()), //来源
 			zap.Int("Type", int(req.GetType())))
 
-		//查出 targetUser 有效性，是否已经是好友，好友增加的设置等信息
+		psSource := &Friends.PsSource{
+			Ps:     req.GetPs(),
+			Source: req.GetSource(),
+		}
+		psSourceData, _ := proto.Marshal(psSource)
 
+		//查出 targetUser 有效性，是否已经是好友，好友增加的设置等信息
 		targetKey := fmt.Sprintf("userData:%s", req.GetUsername())
 
 		//检测目标用户是否注册及获取他的添加好友的设定
@@ -210,7 +213,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						fmt.Sprintf("FriendInfo:%s:%s", userA, userB),
 						"Username", userB,
 						"Nick", nick,
-						"Source", req.GetSource(),
+						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
 						"CreateAt", uint64(time.Now().UnixNano()/1e6),
 						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
@@ -223,7 +226,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						fmt.Sprintf("FriendInfo:%s:%s", userB, userA),
 						"Username", userA,
 						"Nick", nick,
-						"Source", req.GetSource(),
+						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
 						"CreateAt", uint64(time.Now().UnixNano()/1e6),
 						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
@@ -272,8 +275,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userA,
 							HandledMsg:     "",
-							Status:         1,  //TODO, 消息状态  存储
-							Text:           "", // 附带的文本 该系统消息的文本
+							Status:         1,            //TODO, 消息状态  存储
+							Data:           psSourceData, // 用来存储附言及来源
 							To:             userA,
 						}
 						bodyData, _ := proto.Marshal(body)
@@ -307,8 +310,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userB,
 							HandledMsg:     "",
-							Status:         1,  //TODO, 消息状态  存储
-							Text:           "", // 附带的文本 该系统消息的文本
+							Status:         1,            //TODO, 消息状态  存储
+							Data:           psSourceData, // 用来存储附言及来源
 							To:             userB,
 						}
 						bodyData, _ := proto.Marshal(body)
@@ -359,8 +362,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态  存储
-						Text:           "", // 附带的文本 该系统消息的文本
+						Status:         1,            //TODO, 消息状态  存储
+						Data:           psSourceData, // 用来存储附言及来源
 						To:             userB,
 					}
 					bodyData, _ := proto.Marshal(body)
@@ -508,8 +511,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态  存储
-						Text:           "", // 附带的文本 该系统消息的文本
+						Status:         1,            //TODO, 消息状态  存储
+						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
 					}
 					bodyData, _ := proto.Marshal(body)
@@ -566,8 +569,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
 						HandledAccount: userB,
 						HandledMsg:     "",
-						Status:         1,  //TODO, 消息状态  存储
-						Text:           "", // 附带的文本 该系统消息的文本
+						Status:         1,            //TODO, 消息状态  存储
+						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
 					}
 					bodyData, _ := proto.Marshal(body)
@@ -753,8 +756,8 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
 				HandledAccount: username,
 				HandledMsg:     "",
-				Status:         1,  //TODO, 消息状态  存储
-				Text:           "", // 附带的文本 该系统消息的文本
+				Status:         1,          //TODO, 消息状态  存储
+				Data:            []byte(""), // 附带的文本 该系统消息的文本
 				To:             targetUsername,
 			}
 			bodyData, _ := proto.Marshal(body)

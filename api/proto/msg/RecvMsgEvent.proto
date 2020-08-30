@@ -59,8 +59,8 @@ message MessageNotificationBody {
     // 消息状态
     MessageStatus status = 4;
 
-    // 附带的文本 该系统消息的文本
-    string text = 5;
+    // 附带的文本 该系统消息的二进制字节
+    bytes data = 5;
 
     // 最终接受者
     // 管理员可以看到 系统通知 所以管理员有权限修改

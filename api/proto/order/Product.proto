@@ -1,0 +1,89 @@
+syntax = "proto3"; 
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+message Product {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+
+    //商品名称
+    //是否必须-是
+    string ProductName = 2;
+
+    //商品分类名称
+    //是否必须-是
+    string CategoryName = 3;
+
+    //商品详细介绍
+    //是否必须-是
+    string ProductDesc = 4;
+
+    //商品图片1
+    //是否必须-是
+    string ProductPic1 = 5;
+
+    //商品图片2
+    //是否必须-否
+    string ProductPic2 = 6;
+
+    //商品图片3
+    //是否必须-否
+    string ProductPic3 = 7;
+
+    //商品图片4
+    //是否必须-否
+    string ProductPic4 = 8;
+
+    //商品图片5
+    //是否必须-否
+    string ProductPic5 = 9;
+
+    //商品短视频1
+    //是否必须-否
+    string ShortVideo1 = 10;
+
+    //商品短视频2
+    //是否必须-否
+    string ShortVideo2 = 11;
+
+    //商品短视频3
+    //是否必须-否
+    string ShortVideo3 = 12;
+
+    //价格
+    //是否必须-是
+    float Price = 13;
+
+    //库存数量
+    //是否必须-是
+    fixed64 LeftCount = 14;
+
+    //折扣
+    //实际数字，例如: 0.95, UI显示为九五折
+    //是否必须-否
+    float Discount = 15;
+
+    //折扣说明
+    //是否必须-否
+    string DiscountDesc = 16;
+
+    //折扣开始时间
+    //是否必须-否
+    fixed64 DiscountStartTime = 17;
+
+    //折扣结束时间
+    //是否必须-否
+    fixed64 DiscountEndTime = 18;
+
+    //创建时间
+    //是否必须-是
+    fixed64 CreateAt = 19;
+
+    //最后修改时间
+    //是否必须-是
+    fixed64 ModifyAt = 20;
+
+
+}

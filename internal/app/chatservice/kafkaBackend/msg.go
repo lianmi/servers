@@ -242,7 +242,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					HandledAccount: toUser,
 					HandledMsg:     "",
 					Status:         1,  //TODO, 消息状态  存储
-					Text:           "", // 附带的文本 该系统消息的文本
+					Data:           []byte(""), // 附带的文本 该系统消息的文本
 					To:             toUser,
 				}
 				bodyData, _ := proto.Marshal(body)
@@ -533,7 +533,7 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 					HandledAccount: username,
 					HandledMsg:     "",
 					Status:         1,  //TODO, 消息状态  存储
-					Text:           "", // 附带的文本 该系统消息的文本
+					Data:           []byte(""), // 附带的文本 该系统消息的文本
 					To:             recvUser,
 				}
 				bodyData, _ := proto.Marshal(body)
