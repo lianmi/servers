@@ -5,20 +5,19 @@ import "api/proto/order/Product.proto";
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
-//请求参数
-message AddProductReq {
-    //商品详情
-    Product product=1;
-    //订单类型，必填
-    global.OrderType orderType=2;
-    //商户的协商公钥，适用于任务类
-    string opkBusiness=3;
-    //商品过期时间
-    fixed64 expire=4;
-}
 
 //响应参数
-message AddProductRsp {
-    //商品ID
-    string productID=1;
+message AddProductEventRsp {
+    //商户用户账号id
+    string username=1;
+    //商品详情
+    Product product=2;
+    //订单类型，必填
+    global.OrderType orderType=3;
+    //商户的协商公钥，适用于任务类
+    string opkBusiness=4;
+    //商品过期时间
+    fixed64 expire=5;
+    //上架时间
+    fixed64 timeAt=6;
 }

@@ -1,0 +1,15 @@
+syntax = "proto3"; 
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+//请求参数
+message SoldoutProductReq {
+    //商品ID
+    string productID=1;
+}
+
+//响应参数
+message SoldoutProductRsp {
+    
+}
