@@ -27,6 +27,22 @@ func (kc *KafkaClient) SaveUser(user *models.User) error {
 	return nil
 }
 
+//修改用户标签
+func (kc *KafkaClient) SaveTag(tag *models.Tag) error {
+	//使用事务同时更新Tag数据
+	tx := kc.GetTransaction()
+
+	if err := tx.Save(tag).Error; err != nil {
+		kc.logger.Error("更新tag表失败", zap.Error(err))
+		tx.Rollback()
+
+	}
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
 //更新好友
 func (kc *KafkaClient) SaveFriend(pFriend *models.Friend) error {
 	//使用事务同时更新好友数据

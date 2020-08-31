@@ -80,7 +80,7 @@ func (x *GetPreKeyOrderIDReq) GetOrderType() global.OrderType {
 	if x != nil {
 		return x.OrderType
 	}
-	return global.OrderType_OT_Undefined
+	return global.OrderType_ORT_Undefined
 }
 
 type GetPreKeyOrderIDRsp struct {
@@ -139,7 +139,7 @@ func (x *GetPreKeyOrderIDRsp) GetOrderType() global.OrderType {
 	if x != nil {
 		return x.OrderType
 	}
-	return global.OrderType_OT_Undefined
+	return global.OrderType_ORT_Undefined
 }
 
 func (x *GetPreKeyOrderIDRsp) GetOrderID() string {

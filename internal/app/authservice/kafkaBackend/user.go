@@ -519,22 +519,21 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 			pTag.UpdatedAt = time.Now().Unix()
 			pTag.TagType = int(req.GetType())
 
-			//如果已经存在，则先删除，确保不会重复增加
-			where := models.Tag{UserID: pUser.ID, TagType: int(req.GetType())}
-			db := kc.db.Where(&where).Delete(models.Tag{})
-			err = db.Error
-			if err != nil {
-				kc.logger.Error("删除Tag出错", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("删除Tag出错[userID=%d]", pUser.ID)
-				goto COMPLETE
-			}
-			count := db.RowsAffected
-			kc.logger.Debug("删除Tag成功", zap.Int64("count", count))
+			// //如果已经存在，则先删除，确保不会重复增加
+			// where := models.Tag{UserID: pUser.ID, TagType: int(req.GetType())}
+			// db := kc.db.Where(&where).Delete(models.Tag{})
+			// err = db.Error
+			// if err != nil {
+			// 	kc.logger.Error("删除Tag出错", zap.Error(err))
+			// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			// 	errorMsg = fmt.Sprintf("删除Tag出错[userID=%d]", pUser.ID)
+			// 	goto COMPLETE
+			// }
+			// count := db.RowsAffected
+			// kc.logger.Debug("删除Tag成功", zap.Int64("count", count))
 
-			//使用事务同时更新用户数据和角色数据
-
-			if err := kc.SaveUser(pUser); err != nil {
+			//保存标签MarkTag
+			if err := kc.SaveTag(pTag); err != nil {
 				kc.logger.Error("MarkTag增加失败", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "MarkTag error"

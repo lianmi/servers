@@ -3,6 +3,7 @@ package kafkaBackend
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -12,6 +13,12 @@ import (
 
 	"go.uber.org/zap"
 )
+
+/*
+商户的商品表在redis里用有序集合保存， Products:{username}, 分数为更新时间， 元素是productID
+商品详细表用哈希表ProductInfo:{productID}保存
+
+*/
 
 /*
 1. 根据timeAt增量返回商品信息，首次timeAt请初始化为0，服务器返回全量商品信息，后续采取增量方式更新
@@ -24,10 +31,13 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 	// var toUser, teamID string
 	errorCode := 200
 	var errorMsg string
-	// rsp := &Order.QueryProductsRsp{}
+	rsp := &Order.QueryProductsRsp{
+		Products:        make([]*Order.Product, 0),
+		SoldoutProducts: make([]string, 0),
+		TimeAt:          uint64(time.Now().Unix()),
+	}
 
 	// var newSeq uint64
-	// var data []byte
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -67,17 +77,87 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 
 	} else {
 		kc.logger.Debug("QueryProducts  payload",
-			zap.String("ProductId", req.GetProductId()),
+			zap.String("UserName", req.GetUserName()),
 			zap.Uint64("TimeAt", req.GetTimeAt()),
 		)
+		//从redis里获取当前用户信息
+		userData := new(models.User)
+		userKey := fmt.Sprintf("userData:%s", username)
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, userData); err != nil {
+
+				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+				goto COMPLETE
+
+			}
+		}
+
+		//判断此商户是不是用户关注的，如果不是则返回
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", req.GetUserName()), username); err == nil {
+			if reply == nil {
+				//商户不是用户关注
+				kc.logger.Debug("商户不是用户关注",
+					zap.String("UserName", req.GetUserName()),
+				)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("User is not watching[Username=%s]", username)
+				goto COMPLETE
+			}
+
+		}
+
+		//获取商户的商品有序集合
+		//从redis的有序集合查询出商户的商品信息在时间戳req.GetTimeAt()之后的更新
+		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", req.GetUserName()), req.GetTimeAt(), "+inf"))
+		for _, productID := range productIDs {
+			product := new(models.Product)
+			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
+				if err := redis.ScanStruct(result, product); err != nil {
+					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					continue
+				}
+			}
+
+			rsp.Products = append(rsp.Products, &Order.Product{
+				ProductId: productID,
+				ProductName: product.ProductName,
+				CategoryName: product.CategoryName,
+				ProductDesc: product.ProductDesc,
+				ProductPic1: product.ProductPic1,
+				ProductPic2: product.ProductPic2,
+				ProductPic3: product.ProductPic3,
+				ProductPic4: product.ProductPic4,
+				ProductPic5: product.ProductPic5,
+				ShortVideo1: product.ShortVideo1,
+				ShortVideo2: product.ShortVideo2,
+				ShortVideo3: product.ShortVideo3,
+				Price: product.Price,
+				LeftCount: product.LeftCount,
+				Discount: product.Discount,
+				DiscountDesc: product.DiscountDesc,
+				DiscountStartTime: uint64(product.DiscountStartTime),
+				DiscountEndTime: uint64(product.DiscountEndTime),
+				CreateAt: uint64(product.CreateAt),
+				ModifyAt: uint64(product.ModifyAt),
+			})
+		}
+
+		//获取商户的下架soldoutProducts
+		soldoutProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("SoldoutProducts:%s", req.GetUserName()), req.GetTimeAt(), "+inf"))
+		for _, soldoutProductID := range soldoutProductIDs {
+			rsp.SoldoutProducts = append(rsp.SoldoutProducts, soldoutProductID)
+		}
+		
 
 	}
 
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		// data, _ = proto.Marshal(rsp)
-		// msg.FillBody(data)
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

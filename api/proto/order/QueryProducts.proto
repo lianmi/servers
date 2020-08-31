@@ -7,9 +7,9 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 
 
 message QueryProductsReq {
-    //商品ID
+    //商户用户账号 id
     //是否必须-是
-    string ProductId = 1;
+    string userName = 1;
     //商品详情最大修改时间戳，对应timeAt字段，为0时获取全量商品
     //是否必须-是
     fixed64 timeAt = 2;

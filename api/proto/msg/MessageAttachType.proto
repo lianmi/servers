@@ -103,10 +103,12 @@ message AttachGeo {
 
 // TODO 订单数据 需完善
 message AttachOrder {
+    //商品种类
+    global.ProductType productType=1;
     //订单类型，必填
-    global.OrderType orderType=1;
+    global.OrderType orderType=2;
     //订单加密二进制数据
-    bytes orderData=2;
+    bytes orderData=3;
 }
 
 //钱包相关的交易数据(提现，充值 ，转账，收款 ，退款等)

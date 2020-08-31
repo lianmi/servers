@@ -110,6 +110,7 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 
 	//注册每个业务子类型的处理方法
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = kClient.HandleQueryProducts //7-1  查询某个商户的所有商品信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 2)] = kClient.HandleQueryProducts //7-2  查询某个商户的所有商品信息
 
 	return kClient
 }

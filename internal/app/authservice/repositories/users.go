@@ -207,6 +207,12 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 		user.Username = fmt.Sprintf("id%d", newIndex)
 	}
 
+	//将用户信息缓存到redis里
+	userKey := fmt.Sprintf("userData:%s", user.Username)
+	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user)...); err != nil {
+		s.logger.Error("错误：HMSET", zap.Error(err))
+	}
+
 	if err := s.base.Create(user); err != nil {
 		s.logger.Error("db写入错误，注册用户失败")
 		return err

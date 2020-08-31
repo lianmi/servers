@@ -161,8 +161,8 @@ enum OrderState {
     OS_InHand      = 7;     /**< 订单处理中*/
 }
 
-//订单类型
-enum OrderType {
+//商品种类类型
+enum ProductType {
     OT_Undefined     = 0;     //proto3必须从0开始
     OT_FreshProduct  = 1;     /**< 生鲜产品*/
     OT_Meat          = 2;     /**< 肉类*/
@@ -174,6 +174,7 @@ enum OrderType {
     OT_Lottery       = 8;      /**< 彩票*/
     OT_Carry         = 9;      /**< 搬运*/
     OT_Maintenance   = 10;     /**< 维修*/
+    OT_Services      = 11;     /**< 服务行业*/
 }
 
 //交易类型枚举(钱包资产的收支)： 
@@ -186,3 +187,11 @@ enum TransactionType {
     DT_Refoud        = 5;     /**< 退款*/
 }
 
+
+//订单类型, 类型的不同决定着不同的交互
+enum OrderType {
+     ORT_Undefined     = 0;     //proto3必须从0开始
+     ORT_Normal        = 1;     //正常类型
+     ORT_Grabbing      = 2;     //任务抢单类型
+     ORT_Walking       = 3;     //竞猜类
+}

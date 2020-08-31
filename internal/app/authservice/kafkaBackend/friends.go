@@ -8,6 +8,8 @@
 3-6 刷新好友资料 UpdateFriend
 3-7 主从设备好友资料同步事件 SyncUpdateFriendEvent
 3-8 增量同步好友列表 未完成
+
+用户与商户互为好友或关注的有序集合是Business:%s
 */
 package kafkaBackend
 
@@ -25,6 +27,7 @@ import (
 	Friends "github.com/lianmi/servers/api/proto/friends"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -53,7 +56,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 	var data []byte
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
-	var allowType int
+	var allowType, userType int
 
 	var newSeq uint64
 
@@ -128,6 +131,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 		//Bob的加好友设定
 		allowType, _ = redis.Int(redisConn.Do("HGET", targetKey, "AllowType"))
+		//Bob的用户类型
+		userType, _ = redis.Int(redisConn.Do("HGET", targetKey, "UserType"))
 
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), req.GetUsername()); err == nil {
 			if reply == nil {
@@ -204,6 +209,14 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					}
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().Unix(), userA); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
+					}
+
+					//如果userB是商户
+					if userType == int(User.UserType_Ut_Business) {
+						//在用户的关注有序列表里增加此商户
+						if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
+							kc.logger.Error("ZADD Error", zap.Error(err))
+						}
 					}
 
 					//增加A的好友B的信息哈希表
@@ -459,6 +472,14 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
 
+				//如果userB是商户
+				if userType == int(User.UserType_Ut_Business) {
+					//在用户的关注有序列表里增加此商户
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
+						kc.logger.Error("ZADD Error", zap.Error(err))
+					}
+				}
+
 				//写入数据库，增加两条记录
 				{
 
@@ -679,6 +700,9 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//目标用户的用户类型
+		userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "UserType"))
+
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), targetUsername); err == nil {
 			if reply == nil {
 				//A好友列表中没有B
@@ -716,6 +740,14 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		//在B的好友列表里删除A ZREM
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:1", targetUsername), username); err != nil {
 			kc.logger.Error("ZREM Error", zap.Error(err))
+		}
+
+		//如果B是商户
+		if userType == int(User.UserType_Ut_Business) {
+			//在用户的关注有序列表里删除 此商户
+			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), targetUsername); err != nil {
+				kc.logger.Error("ZADD Error", zap.Error(err))
+			}
 		}
 
 		//增加到各自的删除好友列表
@@ -757,7 +789,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				HandledAccount: username,
 				HandledMsg:     "",
 				Status:         1,          //TODO, 消息状态  存储
-				Data:            []byte(""), // 附带的文本 该系统消息的文本
+				Data:           []byte(""), // 附带的文本 该系统消息的文本
 				To:             targetUsername,
 			}
 			bodyData, _ := proto.Marshal(body)
