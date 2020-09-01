@@ -27,3 +27,17 @@ func (kc *KafkaClient) SaveProduct(product *models.Product) error {
 
 	return nil
 }
+
+//删除商品
+func (kc *KafkaClient) DeleteProduct(productID, username string) error {
+	where := models.Product{ProductID: productID, Username: username}
+	db := kc.db.Where(&where).Delete(models.Product{})
+	err := db.Error
+	if err != nil {
+		kc.logger.Error("DeleteProduct", zap.Error(err))
+		return err
+	}
+	count := db.RowsAffected
+	kc.logger.Debug("DeleteProduct成功", zap.Int64("count", count))
+	return nil
+}

@@ -87,23 +87,29 @@ enum MessageNotificationType {
     MNT_MuteTeam = 20; ///< 设置群组禁言模式
     MNT_UpdateTeamMember = 21; ///< 管理员/群主修改群成员信息
     MNT_CheckTeamInvite = 22; ///< 邀请入群前询问管理员是否同意
+
+    MNT_AddProduct = 30; ///< 商户上架商品
+    MNT_UpdateProduct = 31; ///< 商户更新商品
+    MNT_SelloutProduct = 32; ///< 商户下架商品
+
+
     MNT_Customer = 100; ///< 自定义事件消息
 }
 
 
-// 当消息事件类型是 订单的时候的
+// 当消息事件类型是订单的时候的
 enum MessageOrderEventType{
     MOET_UNDEFINE = 0;
-    MOET_MakeOrder = 30; ///< 发起一个订单
-    MOET_ReceiveOrderr = 31; ///< 收到一个订单
-    MOET_CancelOrder = 32; ///< 撤销订单
-    MOET_ReceiveCancelOrder = 33; ///< 收到撤销订单
-    MOET_Deposit = 50; ///< 发起充值请求
-    MOET_WithDraw = 51; ///< 发起提现请求
-    MOET_OTCBuy = 52; ///< 发起一个OTC买单
-    MOET_OTCSell = 53; ///< 发起一个OTC卖单
-    MOET_AddProduct = 70; ///< 新增商品
-    MOET_DeleteProduct = 71; ///< 删除商品
+    MOET_MakeOrder = 1; ///< 发起一个订单
+    MOET_ReceiveOrderr = 2; ///< 收到一个订单
+    MOET_CancelOrder = 3; ///< 撤销订单
+    MOET_ReceiveCancelOrder = 4; ///< 收到撤销订单
+    MOET_Deposit = 5; ///< 发起充值请求
+    MOET_WithDraw = 6; ///< 发起提现请求
+    MOET_OTCBuy = 7; ///< 发起一个OTC买单
+    MOET_OTCSell = 8; ///< 发起一个OTC卖单
+    MOET_AddProduct = 9; ///< 新增商品
+    MOET_DeleteProduct = 10; ///< 删除商品
 }
 
 enum MessageStatus{
@@ -119,7 +125,7 @@ enum MessageStatus{
     MOS_Processing = 9 ; ///< 处理中
 }
 
-// 订单类型
+// 商品类型
 enum MessageOrderType{
    MOT_Undefined = 0 ; ///< 默认
    MOT_FreshProduct = 1 ; ///< 生鲜产品

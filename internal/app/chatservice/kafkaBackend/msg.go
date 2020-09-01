@@ -18,12 +18,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	TempKey    = "LTAI4G3o4sECdSBsD7rGLmCs"
-	TempSecret = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
-	RoleAcs    = "acs:ram::1230446857465673:role/ipfsuploader"
-)
-
 /*
 处理SDK发来的sendmsg
 */
@@ -241,7 +235,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				body := &Msg.MessageNotificationBody{
 					HandledAccount: toUser,
 					HandledMsg:     "",
-					Status:         1,  //TODO, 消息状态  存储
+					Status:         1,          //TODO, 消息状态  存储
 					Data:           []byte(""), // 附带的文本 该系统消息的文本
 					To:             toUser,
 				}
@@ -532,7 +526,7 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
 					HandledAccount: username,
 					HandledMsg:     "",
-					Status:         1,  //TODO, 消息状态  存储
+					Status:         1,          //TODO, 消息状态  存储
 					Data:           []byte(""), // 附带的文本 该系统消息的文本
 					To:             recvUser,
 				}
@@ -692,7 +686,7 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 		kc.logger.Debug("GetOssToken payload")
 
 		//生成阿里云oss临时sts
-		client := sts.NewStsClient(TempKey, TempSecret, RoleAcs)
+		client := sts.NewStsClient(common.AccessID, common.AccessKey, common.RoleAcs)
 
 		//阿里云规定，最低expire为1500秒
 		url, err := client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.EXPIRESECONDS))
@@ -736,8 +730,8 @@ func (kc *KafkaClient) HandleGetOssToken(msg *models.Message) error {
 		*/
 
 		rsp = &Msg.GetOssTokenRsp{
-			EndPoint:        "https://oss-cn-hangzhou.aliyuncs.com",
-			BucketName:      "lianmi-ipfs",
+			EndPoint:        common.Endpoint,
+			BucketName:      common.BucketName,
 			AccessKeyId:     sjson.Get("Credentials").Get("AccessKeyId").MustString(),
 			AccessKeySecret: sjson.Get("Credentials").Get("AccessKeySecret").MustString(),
 			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),

@@ -40,7 +40,13 @@ const (
 	OnedayInvitedLimit = 50
 )
 
+//阿里云
 const (
+	Endpoint   = "https://oss-cn-hangzhou.aliyuncs.com"
+	AccessID    = "LTAI4G3o4sECdSBsD7rGLmCs"
+	AccessKey = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
+	RoleAcs    = "acs:ram::1230446857465673:role/ipfsuploader"
+	BucketName = "lianmi-ipfs"
 	//阿里云OSS临时token的过期时间, 默认是3600秒
 	EXPIRESECONDS = 3600
 )

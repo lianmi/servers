@@ -5,6 +5,7 @@ import "api/proto/order/Product.proto";
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
+
 //响应参数
 message UpdateProductEventRsp {
     //商户用户账号id
