@@ -551,6 +551,15 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", username), req.GetUsername()); err != nil {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
+				//增加用户的取消关注有序列表
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+					kc.logger.Error("ZADD Error", zap.Error(err))
+				}
+				//更新redis的sync:{用户账号} watchAt 时间戳
+				redisConn.Do("HSET",
+					fmt.Sprintf("sync:%s", username),
+					"watchAt",
+					time.Now().Unix())
 			}
 
 		} else { //删除
@@ -574,6 +583,11 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
+				//更新redis的sync:{用户账号} watchAt 时间戳
+				redisConn.Do("HSET",
+					fmt.Sprintf("sync:%s", username),
+					"watchAt",
+					time.Now().Unix())
 			}
 
 			kc.logger.Debug("删除标签成功", zap.Int64("count", count))

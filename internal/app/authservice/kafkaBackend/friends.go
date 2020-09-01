@@ -217,6 +217,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
 							kc.logger.Error("ZADD Error", zap.Error(err))
 						}
+						//更新redis的sync:{用户账号} watchAt 时间戳
+						redisConn.Do("HSET",
+							fmt.Sprintf("sync:%s", userA),
+							"watchAt",
+							time.Now().Unix())
 					}
 
 					//增加A的好友B的信息哈希表
@@ -478,6 +483,11 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
+					//更新redis的sync:{用户账号} watchAt 时间戳
+					redisConn.Do("HSET",
+						fmt.Sprintf("sync:%s", userA),
+						"watchAt",
+						time.Now().Unix())
 				}
 
 				//写入数据库，增加两条记录
@@ -748,6 +758,15 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), targetUsername); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
+			//增加用户的取消关注有序列表
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), targetUsername); err != nil {
+				kc.logger.Error("ZADD Error", zap.Error(err))
+			}
+			//更新redis的sync:{用户账号} watchAt 时间戳
+			redisConn.Do("HSET",
+				fmt.Sprintf("sync:%s", username),
+				"watchAt",
+				time.Now().Unix())
 		}
 
 		//增加到各自的删除好友列表
@@ -1199,6 +1218,11 @@ func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
+		//更新redis的sync:{用户账号} watchAt 时间戳
+		redisConn.Do("HSET",
+			fmt.Sprintf("sync:%s", username),
+			"watchAt",
+			time.Now().Unix())
 
 		//在商户的被关注有序列表里增加此用户
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().Unix(), username); err != nil {
@@ -1283,11 +1307,20 @@ func (kc *KafkaClient) HandleCancelWatchRequest(msg *models.Message) error {
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), req.GetUsername()); err != nil {
 			kc.logger.Error("ZREM Error", zap.Error(err))
 		}
-
+		//增加用户的取消关注有序列表
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+			kc.logger.Error("ZADD Error", zap.Error(err))
+		}
+		//更新redis的sync:{用户账号} watchAt 时间戳
+		redisConn.Do("HSET",
+			fmt.Sprintf("sync:%s", username),
+			"watchAt",
+			time.Now().Unix())
 		//在商户的关注有序列表里移除此用户
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
 			kc.logger.Error("ZREM Error", zap.Error(err))
 		}
+		
 
 	}
 

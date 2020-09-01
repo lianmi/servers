@@ -1,7 +1,7 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt, productAt
+    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt, watchAt
 
 6-2 同步请求完成
 
@@ -22,6 +22,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Friends "github.com/lianmi/servers/api/proto/friends"
 	Global "github.com/lianmi/servers/api/proto/global"
+	Order "github.com/lianmi/servers/api/proto/order"
 	Sync "github.com/lianmi/servers/api/proto/syn"
 	Team "github.com/lianmi/servers/api/proto/team"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -487,7 +488,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 		//移除时间少于nTime离线通知
 		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", nTime)
 
-		//TODO 同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条，而且只能缓存7天
+		//同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条，而且只能缓存7天
 
 		//从大到小递减获取, 只获取最大的10条
 		msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "+inf", "-inf", "LIMIT", 0, 10))
@@ -535,21 +536,33 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	return nil
 }
 
-//处理productAt
-func (kc *KafkaClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+//处理watchAt 7-8 同步关注的商户事件
+func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
+	rsp := &Order.SyncWatchEventRsp{
+		TimeAt:      uint64(time.Now().Unix()),
+		Usernames:   make([]string, 0), //用户关注的商户
+		RemoveUsers: make([]string, 0), //用户取消关注的商户
+	}
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
-	productAt := req.GetProductAt()
-	productAtKey := fmt.Sprintf("sync:%s", username)
+	watchAt := req.GetWatchAt()
+	watchAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_productAt, _ := redis.Uint64(redisConn.Do("HGET", productAtKey, "productAt"))
+	cur_watchAt, _ := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
 
 	//服务端的时间戳大于客户端上报的时间戳
-	if cur_productAt > productAt {
-		//TODO
+	if cur_watchAt > watchAt {
+		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), watchAt, "+inf"))
+		for _, watchingUser := range watchingUsers {
+			rsp.Usernames = append(rsp.Usernames, watchingUser)
+		}
+		cancelWatchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("CancelWatching:%s", username), watchAt, "+inf"))
+		for _, cancelWatchingUser := range cancelWatchingUsers {
+			rsp.RemoveUsers = append(rsp.RemoveUsers, cancelWatchingUser)
+		}
 
 	}
 
@@ -646,8 +659,8 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 
 			i++
 			chs[i] = make(chan int)
-			if err := kc.SyncProductAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("productAt is done")
+			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[i]); err == nil {
+				kc.logger.Debug("watchAt is done")
 			}
 
 			for _, ch := range chs {
