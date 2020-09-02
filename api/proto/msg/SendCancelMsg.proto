@@ -15,9 +15,13 @@ message SendCancelMsgReq{
   MessageType type = 2;
   //客户端分配的uuid
   string uuid =3;
+  //消息是谁发的
+  string from =4;
+  //消息是发给谁的,根据场景判断是个人消息 还是群聊消息
+  string to =5;
   //要撤销的消息的由服务器分配的消息id
   //是否必填-是
-  string serverMsgId=4;
+  string serverMsgId=6;
  
 }
 message SendCancelMsgRsp{

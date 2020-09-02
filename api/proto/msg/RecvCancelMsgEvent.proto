@@ -12,7 +12,11 @@ message RecvCancelMsgEventRsp {
     //消息数据包的类型
     //是否必填-是
     MessageType type = 2;
+    //被撤销的消息发送方
+    string from=3;
+    //消息是发给谁的
+    string to=4;
     //要撤销的消息的由服务器分配的消息id
     //是否必填-是
-    string serverMsgId = 3;
+    string serverMsgId = 5;
 }

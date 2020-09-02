@@ -454,9 +454,10 @@ COMPLETE:
 
 }
 
-//5-9 发送撤销消息
+//5-9 发送撤销消息 的处理
 func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 	var err error
+	var data []byte
 	errorCode := 200
 	var errorMsg string
 	var isExists bool
@@ -502,46 +503,36 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 		kc.logger.Debug("SendCancelMsg payload",
 			zap.Int32("Scene", int32(req.GetScene())),
 			zap.Int32("Type", int32(req.GetType())),
+			zap.String("From", req.GetFrom()),
+			zap.String("To", req.GetTo()),
 			zap.String("ServerMsgId", req.GetServerMsgId()),
 		)
 
 		//查询出谁接收了此消息，如果超过1分钟，则无法撤销
-		recvKey := fmt.Sprintf("recvMsg:%s", req.GetServerMsgId())
+		recvKey := fmt.Sprintf("recvMsgList:%s", req.GetServerMsgId())
 		if isExists, err = redis.Bool(redisConn.Do("EXISTS", recvKey)); err != nil {
 			kc.logger.Error("EXISTS Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = "Can not cancel msg after 1 minute"
+			goto COMPLETE
 		}
 
 		if isExists {
 			recvUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", recvKey, "-inf", "+inf"))
-
+			eRsp := &Msg.RecvCancelMsgEventRsp{
+				Scene:       req.GetScene(),
+				Type:        req.GetType(),
+				From:        req.GetFrom(),
+				To:          req.GetTo(),
+				ServerMsgId: req.GetServerMsgId(), //要撤销的消息ID
+			}
+			data, _ = proto.Marshal(eRsp)
 			//查询出用户的当前在线所有主从设备
 			for _, recvUser := range recvUsers {
 				//此消息的接收人, 需要将消息从接收人的缓存队列删除，并下发撤销通知, 如果是群消息，会有很多接收人
 				//向接收此消息的用户发出撤销消息 RecvCancelMsgEvent
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", recvUser))); err != nil {
 					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				}
-
-				body := &Msg.MessageNotificationBody{
-					Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
-					HandledAccount: username,
-					HandledMsg:     "",
-					Status:         1,          //TODO, 消息状态  存储
-					Data:           []byte(""), // 附带的文本 该系统消息的文本
-					To:             recvUser,
-				}
-				bodyData, _ := proto.Marshal(body)
-
-				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        req.GetScene(), //传输场景
-					Type:         req.GetType(),  //消息类型
-					Body:         bodyData,
-					From:         username,      //谁发的
-					FromDeviceId: deviceID,      //哪个设备发的
-					ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
-					Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-					Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
-					Time:         uint64(time.Now().Unix()),
 				}
 
 				//从Redis里删除recvUser缓存的消息队列
@@ -552,15 +543,31 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 					_, err = redisConn.Do("DEL", key)
 				}
 
-				go kc.SendMsgToUser(eRsp, username, deviceID, recvUser)
+				go kc.SendDataToUserDevices(
+					data,
+					recvUser,
+					uint32(Global.BusinessType_Msg), //消息模块
+					uint32(Global.MsgSubType_RecvCancelMsgEvent), //接收撤销消息事件
+				)
 
 			}
 
 		}
 
+		//删除recvKey
+		_, err = redisConn.Do("DEL", recvKey)
+
 		//向用户自己的其它端发送撤销消息
 		selfDeviceListKey := fmt.Sprintf("devices:%s", username)
 		selfDeviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", selfDeviceListKey, "-inf", "+inf"))
+		cancelRsp := &Msg.SyncSendCancelMsgEventRsp{
+			Scene:       req.GetScene(),
+			Type:        req.GetType(),
+			From:        req.GetFrom(),
+			To:          req.GetTo(),
+			ServerMsgId: req.GetServerMsgId(), //要撤销的消息ID
+		}
+		data, _ = proto.Marshal(cancelRsp)
 
 		//查询出用户的当前在线所有主从设备
 		for _, selfDeviceID := range selfDeviceIDSliceNew {
@@ -573,18 +580,6 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 				errorMsg = "INCR Error"
 				goto COMPLETE
 			}
-			rsp := &Msg.RecvMsgEventRsp{
-				Scene: req.GetScene(), //系统消息
-				Type:  req.GetType(),  //通知类型
-				// Body:         bodyData, //此时没有body
-				From:         username,             //谁发的
-				FromDeviceId: deviceID,             //哪个设备发的
-				ServerMsgId:  req.GetServerMsgId(), //服务器分配的消息ID
-				Seq:          newSeq,               //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         req.GetUuid(),        //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().Unix()),
-			}
-			data, _ := proto.Marshal(rsp)
 
 			targetMsg := &models.Message{}
 			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", selfDeviceID)
@@ -789,11 +784,12 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 
 	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
 
-	//存储谁接收了此消息，以便撤销
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("recvMsgList:%s", rsp.GetServerMsgId()), msgAt, toUser); err != nil {
+	//有序集合存储哪些用户接收了此消息，以便撤销
+	recvKey := fmt.Sprintf("recvMsgList:%s", rsp.GetServerMsgId())
+	if _, err := redisConn.Do("ZADD", recvKey, msgAt, toUser); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
-	_, err = redisConn.Do("EXPIRE", fmt.Sprintf("recvMsgList:%s", toUser), 60) //设置有效期为60秒
+	_, err = redisConn.Do("EXPIRE", recvKey, 60) //设置有效期为60秒
 
 	//向用户的其它端发送 SyncSendMsgEvent
 	selfDeviceListKey := fmt.Sprintf("devices:%s", fromUser)
@@ -888,5 +884,64 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		}
 	}
 	_ = err
+	return nil
+}
+
+/*
+向目标用户账号的所有端发送消息。
+传参：
+序化后的 二进制数据: data
+目标用户： toUser
+业务号： businessType
+业务子号： businessSubType
+*/
+func (kc *KafkaClient) SendDataToUserDevices(data []byte, toUser string, businessType, businessSubType uint32) error {
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出toUser所有端
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(toUser)
+		targetMsg.SetDeviceID(eDeviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Msg")
+		targetMsg.SetBusinessType(businessType)       //业务号
+		targetMsg.SetBusinessSubType(businessSubType) //业务子号
+
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Msg.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("SendDataToUserDevices Succeed",
+			zap.String("Username:", toUser),
+			zap.String("DeviceID:", curDeviceKey),
+			zap.Int64("Now", time.Now().Unix()))
+
+	}
+
 	return nil
 }

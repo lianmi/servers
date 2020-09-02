@@ -621,10 +621,10 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 
 		//异步
 		go func() {
-			//所有同步的时间戳数量
+			//所有同步的时间戳数量,
 			syncCount := common.TotalSyncCount
 
-			chs := make([]chan int, syncCount)
+			chs := make([]chan int, syncCount) //6 个
 
 			i := 0
 			chs[i] = make(chan int)
