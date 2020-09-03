@@ -3749,7 +3749,6 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("GetMyTeams  payload",
 			zap.Uint64("timeAt", req.GetTimeAt()),
-			zap.Strings("usernames", req.GetUsernames()),
 		)
 
 		//查出此用户的所有群组

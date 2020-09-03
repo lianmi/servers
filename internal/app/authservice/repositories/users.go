@@ -453,7 +453,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			"usertype", user.UserType,
 			"clientType", clientType,
 			"os", os,
-			"logonAt", uint64(time.Now().UnixNano()/1e6))
+			"logonAt", uint64(time.Now().Unix()))
 
 		_ = err
 
@@ -528,7 +528,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 			"usertype", user.UserType,
 			"clientType", clientType,
 			"os", os,
-			"logonAt", uint64(time.Now().UnixNano()/1e6))
+			"logonAt", uint64(time.Now().Unix()))
 
 		//一次性写入到Redis
 		if err := redisConn.Flush(); err != nil {
@@ -573,7 +573,7 @@ func (s *MysqlUsersRepository) SendMultiLoginEventToOtherDevices(isOnline bool, 
 		targetMsg.SetBusinessType(uint32(2))
 		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 		//构造负载数据
 		clients := make([]*Auth.DeviceInfo, 0)
@@ -885,7 +885,7 @@ func (s *MysqlUsersRepository) SendKickedMsgToDevice(jwtToken, username, eDevice
 	kickMsg.SetBusinessType(uint32(businessType))
 	kickMsg.SetBusinessSubType(uint32(businessSubType))
 
-	kickMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+	kickMsg.BuildHeader("AuthService", time.Now().Unix())
 
 	//构造负载数据
 	resp := &Auth.KickedEventRsp{

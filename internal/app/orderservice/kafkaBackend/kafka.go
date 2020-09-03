@@ -115,6 +115,7 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 4)] = kClient.HandleSoldoutProduct //7-4 商品下架
 	
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 1)] = kClient.HandleRegisterPreKeys //9-1 商户上传订单DH加密公钥
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 2)] = kClient.HandleGetPreKeyOrderID //9-2 获取网点OPK公钥及订单ID
 
 	return kClient
 }

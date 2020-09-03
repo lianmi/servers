@@ -417,7 +417,7 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 		targetMsg.SetBusinessType(uint32(1))
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncUpdateProfileEvent = 4
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -622,7 +622,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(2))
 				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 				//构造负载数据
 				resp := &User.SyncMarkTagEventRsp{

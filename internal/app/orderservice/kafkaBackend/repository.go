@@ -41,3 +41,22 @@ func (kc *KafkaClient) DeleteProduct(productID, username string) error {
 	kc.logger.Debug("DeleteProduct成功", zap.Int64("count", count))
 	return nil
 }
+
+//保存商户的OPK, 批量
+func (kc *KafkaClient) SavePreKeys(prekeys []*models.Prekey) error {
+	//使用事务批量保存商户的OPK
+	tx := kc.GetTransaction()
+
+	for _, prekey := range prekeys {
+		if err := tx.Save(prekey).Error; err != nil {
+			kc.logger.Error("保存prekey表失败", zap.Error(err))
+			tx.Rollback()
+			continue
+		}
+	}
+
+	//提交
+	tx.Commit()
+
+	return nil
+}

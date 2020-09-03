@@ -233,8 +233,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().UnixNano()/1e6),
-						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
+						"CreateAt", uint64(time.Now().Unix()),
+						"UpdateAt", uint64(time.Now().Unix()),
 					)
 
 					//增加B的好友A的信息哈希表
@@ -246,8 +246,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().UnixNano()/1e6),
-						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
+						"CreateAt", uint64(time.Now().Unix()),
+						"UpdateAt", uint64(time.Now().Unix()),
 					)
 
 					//写入MySQL的好友表, 需要增加两条记录
@@ -460,8 +460,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().UnixNano()/1e6),
-					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
+					"CreateAt", uint64(time.Now().Unix()),
+					"UpdateAt", uint64(time.Now().Unix()),
 				)
 
 				//增加B的好友A的信息哈希表
@@ -473,8 +473,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().UnixNano()/1e6),
-					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
+					"CreateAt", uint64(time.Now().Unix()),
+					"UpdateAt", uint64(time.Now().Unix()),
 				)
 
 				//如果userB是商户
@@ -982,7 +982,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(3))
 				targetMsg.SetBusinessSubType(uint32(7)) //SyncUpdateFriendEvent = 7
 
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 				sData, _ := proto.Marshal(sameRsp)
 				targetMsg.FillBody(sData) //网络包的body，承载真正的业务数据
@@ -1320,7 +1320,6 @@ func (kc *KafkaClient) HandleCancelWatchRequest(msg *models.Message) error {
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
 			kc.logger.Error("ZREM Error", zap.Error(err))
 		}
-		
 
 	}
 
@@ -1403,7 +1402,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 

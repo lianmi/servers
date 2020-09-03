@@ -98,7 +98,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(1))
 				targetMsg.SetBusinessSubType(uint32(3)) //SyncUserProfileEvent = 3
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("AuthService", time.Now().Unix())
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 				targetMsg.SetCode(200)   //成功的状态码
 
@@ -200,7 +200,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(1))
 		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -295,7 +295,7 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(3))
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -402,7 +402,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetBusinessType(uint32(4))
 		targetMsg.SetBusinessSubType(uint32(17)) //SyncMyTeamsEvent = 17
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -444,7 +444,7 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
 	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
 
-	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -712,7 +712,7 @@ func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) e
 	targetMsg.SetBusinessTypeName("Sync")
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Sync))            //sync模块
 	targetMsg.SetBusinessSubType(uint32(Global.SyncSubType_SyncDoneEvent)) // 同步完成事件
-	targetMsg.BuildHeader("authservice", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("authservice", time.Now().Unix())
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 	targetMsg.SetCode(200)   //成功的状态码
 

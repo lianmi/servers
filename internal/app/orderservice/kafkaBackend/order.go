@@ -30,7 +30,7 @@ import (
 /*
 1. 根据timeAt增量返回商品信息，首次timeAt请初始化为0，服务器返回全量商品信息，后续采取增量方式更新
 2. 如果soldoutProducts不为空，终端根据soldoutProducts移除商品缓存数据
-3. 获取商品信息的流程： 发起获取商品信息请求 → 更新本地数据库 → 返回数据给UI
+3. 获取商品信息的流程:  发起获取商品信息请求 → 更新本地数据库 → 返回数据给UI
 
 */
 func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
@@ -91,7 +91,7 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -120,7 +120,7 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 			product := new(models.Product)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 				if err := redis.ScanStruct(result, product); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					kc.logger.Error("错误: ScanStruct", zap.Error(err))
 					continue
 				}
 			}
@@ -248,7 +248,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -292,12 +292,12 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			kc.logger.Error("错误: HMSET TeamInfo", zap.Error(err))
 		}
 
 		//保存到MySQL
 		if err = kc.SaveProduct(product); err != nil {
-			kc.logger.Error("错误：保存到MySQL失败", zap.Error(err))
+			kc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 
 		//推送通知给关注的用户
@@ -431,7 +431,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -482,12 +482,12 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			kc.logger.Error("错误: HMSET TeamInfo", zap.Error(err))
 		}
 
 		//保存到MySQL
 		if err = kc.SaveProduct(product); err != nil {
-			kc.logger.Error("错误：保存到MySQL失败", zap.Error(err))
+			kc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 
 		//推送通知给关注的用户
@@ -616,7 +616,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -648,7 +648,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 		product := new(models.Product)
 		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
 			if err := redis.ScanStruct(result, product); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "HGETALL Error"
 				goto COMPLETE
@@ -660,7 +660,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 
 		//从MySQL删除此商品
 		if err = kc.DeleteProduct(req.ProductID, username); err != nil {
-			kc.logger.Error("错误：从MySQL删除对应的req.ProductID失败", zap.Error(err))
+			kc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
 		}
 
 		//推送通知给关注的用户
@@ -730,7 +730,6 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	// var newSeq uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -770,7 +769,7 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 
 	} else {
 		kc.logger.Debug("RegisterPreKeys  payload",
-			zap.Strings("ProductId", req.GetPreKeys()),
+			zap.Strings("PreKeys", req.GetPreKeys()),
 		)
 
 		if len(req.GetPreKeys()) == 0 {
@@ -786,7 +785,7 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -801,7 +800,26 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//TODO opk入库
+		//opk入库
+		prekeys := make([]*models.Prekey, 0)
+		for _, opk := range req.GetPreKeys() {
+			prekeys = append(prekeys, &models.Prekey{
+				Type:         0,
+				Username:     username,
+				Publickey:    opk,
+				UploadTimeAt: time.Now().Unix(),
+			})
+
+			//保存到redis里prekeys:{username}
+			if _, err := redisConn.Do("ZADD", fmt.Sprintf("prekeys:%s", username), time.Now().Unix(), opk); err != nil {
+				kc.logger.Error("ZADD Error", zap.Error(err))
+			}
+		}
+
+		if err = kc.SavePreKeys(prekeys); err != nil {
+			kc.logger.Error("SavePreKeys错误", zap.Error(err))
+		}
+
 	}
 
 COMPLETE:
@@ -824,10 +842,168 @@ COMPLETE:
 	return nil
 }
 
+//9-2 获取网点OPK公钥及订单ID
+func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	rsp := &Order.GetPreKeyOrderIDRsp{}
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleGetPreKeyOrderID start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetPreKeyOrderID",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Order.GetPreKeyOrderIDReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("GetPreKeyOrderID  payload",
+			zap.String("UserName", req.GetUserName()),     //商户
+			zap.Int("OrderType", int(req.GetOrderType())), //订单类型
+		)
+
+		if req.GetUserName() == "" {
+			kc.logger.Warn("商户用户账号不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", username)
+			goto COMPLETE
+		}
+
+		//从redis里获取当前用户信息
+		userData := new(models.User)
+		userKey := fmt.Sprintf("userData:%s", username)
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, userData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+				goto COMPLETE
+
+			}
+		}
+
+		//从redis里获取目标商户的信息
+		businessUserData := new(models.User)
+		userKey = fmt.Sprintf("userData:%s", req.GetUserName())
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, businessUserData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetUserName())
+				goto COMPLETE
+
+			}
+		}
+
+		if businessUserData.UserType != int(User.UserType_Ut_Normal) {
+			kc.logger.Warn("目标用户不是商户类型")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetUserName())
+			goto COMPLETE
+		}
+
+		//TODO
+
+		// 生成订单ID
+		orderID := uuid.NewV4().String()
+
+		opk := ""
+
+		//从商户的prekeys有序集合取出一个opk
+		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.GetUserName()), 1, 1))
+		if len(prekeySlice) > 0 {
+			opk = prekeySlice[0]
+
+			//取出后就删除
+			if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.GetUserName()), opk); err != nil {
+				kc.logger.Error("ZREM Error", zap.Error(err))
+			}
+
+		} else {
+			kc.logger.Warn("商户的prekeys有序集合无法取出")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Business opks is empty[Username=%s]", req.GetUserName())
+			goto COMPLETE
+		}
+
+		rsp.OrderID = orderID
+		rsp.PubKey = opk
+		rsp.OrderType = req.GetOrderType()
+
+		//将订单ID保存到商户的订单有序集合，订单详情是orderInfo:{订单ID}
+		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orderID:%s", req.GetUserName()), time.Now().Unix(), orderID); err != nil {
+			kc.logger.Error("ZADD Error", zap.Error(err))
+		}
+
+		//订单详情
+		_, err = redisConn.Do("HMSET",
+			fmt.Sprintf("orderInfo:%s", orderID),
+			"sourceUser", username, //发起订单的用户id
+			"deviceid", deviceID, //发起订单的用户设备id
+			"businessUser", req.GetUserName(), //商户的用户id
+			"productID", "", //商品id，默认是空
+			"orderType", req.GetOrderType(), //订单类型
+			"orderState", 0, //订单状态, 初始值为0
+			"createAt", uint64(time.Now().Unix()), //秒
+		)
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
 /*
 向目标用户账号的所有端推送系统通知
-业务号： BusinessType_Msg(5)
-业务子号： MsgSubType_RecvMsgEvent(2)
+业务号:  BusinessType_Msg(5)
+业务子号:  MsgSubType_RecvMsgEvent(2)
 */
 func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
 	data, _ := proto.Marshal(rsp)
@@ -878,11 +1054,11 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessTypeName("Order")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("OrderService", time.Now().Unix())
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 

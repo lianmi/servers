@@ -313,7 +313,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					beKickedMsg.SetBusinessType(uint32(2))
 					beKickedMsg.SetBusinessSubType(uint32(5)) // KickedEvent = 5
 
-					beKickedMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+					beKickedMsg.BuildHeader("AuthService", time.Now().Unix())
 
 					//构造负载数据
 					kickedEventRsp := &Auth.KickedEventRsp{
@@ -358,7 +358,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					targetMsg.SetBusinessType(uint32(2))
 					targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-					targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+					targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 					//构造负载数据
 					clients := make([]*Auth.DeviceInfo, 0)
@@ -609,7 +609,7 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 			targetMsg.SetBusinessType(uint32(2))
 			targetMsg.SetBusinessSubType(uint32(9)) //SlaveDeviceAuthEvent = 9
 
-			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+			targetMsg.BuildHeader("AuthService", time.Now().Unix())
 
 			//构造负载数据
 			resp := &Auth.SlaveDeviceAuthEventRsp{

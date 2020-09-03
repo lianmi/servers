@@ -9,9 +9,6 @@ message GetMyTeamsReq {
     //上次同步，服务器时间，为0时为全量同步
     //是否必填-是
     fixed64 timeAt = 1;
-
-    //TODO ??? 文档确定???? 4-25 增量同步群组信息
-    repeated string Usernames = 2;
 }
 
 //. 增量群组信息
