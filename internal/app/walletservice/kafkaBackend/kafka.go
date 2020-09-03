@@ -109,9 +109,6 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	}
 
 	//注册每个业务子类型的处理方法
-	// kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = kClient.HandleRecvMsg       //5-1 收到消息的处理程序
-	// kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 4)] = kClient.HandleMsgAck        //5-4 确认消息送达
-	// kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 9)] = kClient.HandleSendCancelMsg //5-9 发送撤销消息
 
 	return kClient
 }

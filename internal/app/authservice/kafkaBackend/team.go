@@ -620,9 +620,9 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							continue
 						}
-						//向用户inviteUsername发出入群请求
+
 						body := Msg.MessageNotificationBody{
-							Type:           Msg.MessageNotificationType_MNT_TeamInvite, //对方同意加你为好友
+							Type:           Msg.MessageNotificationType_MNT_TeamInvite, //向用户inviteUsername发出入群请求
 							HandledAccount: username,
 							HandledMsg:     req.GetPs(),
 							Status:         1,          //TODO, 消息状态  存储
@@ -1539,8 +1539,8 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: targetUsername,
-					HandledMsg:     "", //TODO
-					Status:         1,  //TODO, 消息状态  存储
+					HandledMsg:     "",         //TODO
+					Status:         1,          //TODO, 消息状态  存储
 					Data:           []byte(""), // 附带的文本 该系统消息的文本
 					To:             teamInfo.Owner,
 				}
@@ -1765,10 +1765,10 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: targetUsername,
-					HandledMsg:     "",     //TODO
-					Status:         1,      //TODO, 消息状态  存储
-					Data:           []byte(""),     // 附带的文本 该系统消息的文本
-					To:             teamID, //群组id
+					HandledMsg:     "",         //TODO
+					Status:         1,          //TODO, 消息状态  存储
+					Data:           []byte(""), // 附带的文本 该系统消息的文本
+					To:             teamID,     //群组id
 				}
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
@@ -1967,10 +1967,10 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 			body := Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 				HandledAccount: targetUsername,
-				HandledMsg:     "",     //TODO
-				Status:         1,      //TODO, 消息状态  存储
-				Data:           []byte(""),    // 附带的文本 该系统消息的文本
-				To:             teamID, //群组id
+				HandledMsg:     "",         //TODO
+				Status:         1,          //TODO, 消息状态  存储
+				Data:           []byte(""), // 附带的文本 该系统消息的文本
+				To:             teamID,     //群组id
 			}
 			inviteEventRsp := &Msg.RecvMsgEventRsp{
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
@@ -2334,7 +2334,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
 								HandledAccount: username,
 								HandledMsg:     "",
-								Status:         1,  //TODO, 消息状态  存储
+								Status:         1,          //TODO, 消息状态  存储
 								Data:           []byte(""), // 附带的文本 该系统消息的文本
 								To:             teamInfo.Owner,
 							}
@@ -3965,7 +3965,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					HandledAccount: username,                                       //当前用户
 					HandledMsg:     "",                                             //TODO
 					Status:         1,                                              //TODO, 消息状态  存储
-					Data:           []byte(""),                                            // 附带的文本 该系统消息的文本
+					Data:           []byte(""),                                     // 附带的文本 该系统消息的文本
 					To:             teamID,                                         //群组id
 				}
 				inviteEventRsp := &Msg.RecvMsgEventRsp{

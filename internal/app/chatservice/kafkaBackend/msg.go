@@ -241,8 +241,8 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				}
 				bodyData, _ := proto.Marshal(body)
 				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        Msg.MessageScene_MsgScene_C2C, //个人消息
-					Type:         req.GetType(),                 //消息类型
+					Scene:        req.GetScene(), //消息场景
+					Type:         req.GetType(),  //消息类型
 					Body:         bodyData,
 					From:         username,      //谁发的
 					FromDeviceId: deviceID,      //哪个设备发的
