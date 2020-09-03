@@ -41,7 +41,7 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 	rsp := &Order.QueryProductsRsp{
 		Products:        make([]*Order.Product, 0),
 		SoldoutProducts: make([]string, 0),
-		TimeAt:          uint64(time.Now().Unix()),
+		TimeAt:          uint64(time.Now().UnixNano()/1e6),
 	}
 
 	redisConn := kc.redisPool.Get()
@@ -264,7 +264,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//上架
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Products:%s", username), time.Now().Unix(), req.Product.ProductId); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Products:%s", username), time.Now().UnixNano()/1e6, req.Product.ProductId); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
@@ -288,7 +288,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().Unix(),
+			CreateAt:          time.Now().UnixNano()/1e6,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -318,7 +318,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 				OrderType:   req.OrderType,   //订单类型，必填
 				OpkBusiness: req.OpkBusiness, //商户的协商公钥，适用于任务类
 				Expire:      req.Expire,      //商品过期时间
-				TimeAt:      uint64(time.Now().Unix()),
+				TimeAt:      uint64(time.Now().UnixNano()/1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
 
@@ -340,7 +340,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -478,7 +478,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().Unix(),
+			CreateAt:          time.Now().UnixNano()/1e6,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -507,7 +507,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				Product:   req.Product,
 				OrderType: req.OrderType,
 				Expire:    req.Expire,
-				TimeAt:    uint64(time.Now().Unix()),
+				TimeAt:    uint64(time.Now().UnixNano()/1e6),
 			}
 			productData, _ := proto.Marshal(updateProductEventReq)
 
@@ -529,7 +529,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -698,7 +698,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -807,11 +807,11 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 				Type:         0,
 				Username:     username,
 				Publickey:    opk,
-				UploadTimeAt: time.Now().Unix(),
+				UploadTimeAt: time.Now().UnixNano()/1e6,
 			})
 
 			//保存到redis里prekeys:{username}
-			if _, err := redisConn.Do("ZADD", fmt.Sprintf("prekeys:%s", username), time.Now().Unix(), opk); err != nil {
+			if _, err := redisConn.Do("ZADD", fmt.Sprintf("prekeys:%s", username), time.Now().UnixNano()/1e6, opk); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 		}
@@ -889,12 +889,19 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		kc.logger.Debug("GetPreKeyOrderID  payload",
 			zap.String("UserName", req.GetUserName()),     //商户
 			zap.Int("OrderType", int(req.GetOrderType())), //订单类型
+			zap.String("ProducctID", req.GetProductID()),  //商品id
 		)
 
 		if req.GetUserName() == "" {
 			kc.logger.Warn("商户用户账号不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", username)
+			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", req.GetUserName())
+			goto COMPLETE
+		}
+		if req.GetProductID() == "" {
+			kc.logger.Warn("商品id不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.GetProductID())
 			goto COMPLETE
 		}
 
@@ -957,12 +964,14 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		rsp.UserName = req.GetUserName()
+		rsp.OrderType = req.GetOrderType()
+		rsp.ProductID = req.GetProductID()
 		rsp.OrderID = orderID
 		rsp.PubKey = opk
-		rsp.OrderType = req.GetOrderType()
 
 		//将订单ID保存到商户的订单有序集合，订单详情是orderInfo:{订单ID}
-		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orderID:%s", req.GetUserName()), time.Now().Unix(), orderID); err != nil {
+		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orderID:%s", req.GetUserName()), time.Now().UnixNano()/1e6, orderID); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
@@ -972,10 +981,10 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"sourceUser", username, //发起订单的用户id
 			"deviceid", deviceID, //发起订单的用户设备id
 			"businessUser", req.GetUserName(), //商户的用户id
-			"productID", "", //商品id，默认是空
+			"productID", req.GetProductID(), //商品id，默认是空
 			"orderType", req.GetOrderType(), //订单类型
 			"orderState", 1, //订单状态,预审核
-			"createAt", uint64(time.Now().Unix()), //秒
+			"createAt", uint64(time.Now().UnixNano()/1e6), //秒
 		)
 	}
 
@@ -1017,7 +1026,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().Unix()
+	systemMsgAt := time.Now().UnixNano()/1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
@@ -1058,7 +1067,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("OrderService", time.Now().Unix())
+		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -1075,7 +1084,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		kc.logger.Info("BroadcastMsgToAllDevices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 		_ = err
 

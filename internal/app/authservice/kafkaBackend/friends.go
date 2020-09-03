@@ -202,26 +202,26 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
 						kc.logger.Error("ZREM Error", zap.Error(err))
 					}
-
+					//毫秒
 					//直接让双方成为好友
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().Unix(), userB); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().Unix(), userA); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().UnixNano()/1e6, userA); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
 					//如果userB是商户
 					if userType == int(User.UserType_Ut_Business) {
 						//在用户的关注有序列表里增加此商户
-						if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
+						if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 							kc.logger.Error("ZADD Error", zap.Error(err))
 						}
 						//更新redis的sync:{用户账号} watchAt 时间戳
 						redisConn.Do("HSET",
 							fmt.Sprintf("sync:%s", userA),
 							"watchAt",
-							time.Now().Unix())
+							time.Now().UnixNano()/1e6)
 					}
 
 					//增加A的好友B的信息哈希表
@@ -233,8 +233,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().Unix()),
-						"UpdateAt", uint64(time.Now().Unix()),
+						"CreateAt", uint64(time.Now().UnixNano()/1e6),
+						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 					)
 
 					//增加B的好友A的信息哈希表
@@ -246,8 +246,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().Unix()),
-						"UpdateAt", uint64(time.Now().Unix()),
+						"CreateAt", uint64(time.Now().UnixNano()/1e6),
+						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 					)
 
 					//写入MySQL的好友表, 需要增加两条记录
@@ -307,7 +307,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().Unix()),
+							Time:         uint64(time.Now().UnixNano()/1e6),
 						}
 
 						go kc.BroadcastMsgToAllDevices(eRsp, userA)
@@ -342,7 +342,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().Unix()),
+							Time:         uint64(time.Now().UnixNano()/1e6),
 						}
 						go kc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
@@ -351,17 +351,17 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					redisConn.Do("HSET",
 						fmt.Sprintf("sync:%s", userA),
 						"friendsAt",
-						time.Now().Unix())
+						time.Now().UnixNano()/1e6)
 
 					redisConn.Do("HSET",
 						fmt.Sprintf("sync:%s", userB),
 						"friendsAt",
-						time.Now().Unix())
+						time.Now().UnixNano()/1e6)
 
 				} else if allowType == common.NeedConfirm { //加好友设定是需要审核
 					kc.logger.Debug("加好友设定是需要审核")
 					//redis里增加A的预审核好友列表
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().Unix(), userB); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
@@ -394,7 +394,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().Unix()),
+						Time:         uint64(time.Now().UnixNano()/1e6),
 					}
 
 					//A和B互相不为好友，B所有终端均会收到该消息。
@@ -444,10 +444,10 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 				}
 
 				//让双方成为好友
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().Unix(), userB); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().Unix(), userA); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().UnixNano()/1e6, userA); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
@@ -460,8 +460,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().Unix()),
-					"UpdateAt", uint64(time.Now().Unix()),
+					"CreateAt", uint64(time.Now().UnixNano()/1e6),
+					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
 
 				//增加B的好友A的信息哈希表
@@ -473,21 +473,21 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().Unix()),
-					"UpdateAt", uint64(time.Now().Unix()),
+					"CreateAt", uint64(time.Now().UnixNano()/1e6),
+					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
 
 				//如果userB是商户
 				if userType == int(User.UserType_Ut_Business) {
 					//在用户的关注有序列表里增加此商户
-					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().Unix(), userB); err != nil {
+					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 					//更新redis的sync:{用户账号} watchAt 时间戳
 					redisConn.Do("HSET",
 						fmt.Sprintf("sync:%s", userA),
 						"watchAt",
-						time.Now().Unix())
+						time.Now().UnixNano()/1e6)
 				}
 
 				//写入数据库，增加两条记录
@@ -524,12 +524,12 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 				redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", userA),
 					"friendsAt",
-					time.Now().Unix())
+					time.Now().UnixNano()/1e6)
 
 				redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", userB),
 					"friendsAt",
-					time.Now().Unix())
+					time.Now().UnixNano()/1e6)
 
 				//下发通知给A所有端
 				{
@@ -556,7 +556,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().Unix()),
+						Time:         uint64(time.Now().UnixNano()/1e6),
 					}
 					isSend := false
 
@@ -614,7 +614,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().Unix()),
+						Time:         uint64(time.Now().UnixNano()/1e6),
 					}
 					kc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
 					go kc.BroadcastMsgToAllDevices(eRsp, userA)
@@ -755,25 +755,25 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		//如果B是商户
 		if userType == int(User.UserType_Ut_Business) {
 			//在用户的关注有序列表里删除 此商户
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), targetUsername); err != nil {
+			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			//增加用户的取消关注有序列表
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), targetUsername); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			//更新redis的sync:{用户账号} watchAt 时间戳
 			redisConn.Do("HSET",
 				fmt.Sprintf("sync:%s", username),
 				"watchAt",
-				time.Now().Unix())
+				time.Now().UnixNano()/1e6)
 		}
 
 		//增加到各自的删除好友列表
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", username), time.Now().Unix(), targetUsername); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", targetUsername), time.Now().Unix(), username); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", targetUsername), time.Now().UnixNano()/1e6, username); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
@@ -788,12 +788,12 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		redisConn.Do("HSET",
 			fmt.Sprintf("sync:%s", username),
 			"friendsAt",
-			time.Now().Unix())
+			time.Now().UnixNano()/1e6)
 
 		redisConn.Do("HSET",
 			fmt.Sprintf("sync:%s", targetUsername),
 			"friendsAt",
-			time.Now().Unix())
+			time.Now().UnixNano()/1e6)
 
 		//A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除的系统通知
 		{
@@ -821,7 +821,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(eRsp, targetUsername)
 		}
@@ -943,14 +943,14 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		rsp.TimeTag = uint64(time.Now().Unix())
+		rsp.TimeTag = uint64(time.Now().UnixNano()/1e6)
 
 		// 同步到用户的其它端
 		{
 			sameRsp := &Friends.SyncUpdateFriendEventRsp{
 				Username: targetUsername,
 				Fields:   make(map[int32]string),
-				TimeAt:   uint64(time.Now().Unix()),
+				TimeAt:   uint64(time.Now().UnixNano()/1e6),
 			}
 			sameRsp.Fields[1] = req.Fields[1]
 			sameRsp.Fields[2] = req.Fields[2]
@@ -982,7 +982,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(3))
 				targetMsg.SetBusinessSubType(uint32(7)) //SyncUpdateFriendEvent = 7
 
-				targetMsg.BuildHeader("AuthService", time.Now().Unix())
+				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 				sData, _ := proto.Marshal(sameRsp)
 				targetMsg.FillBody(sData) //网络包的body，承载真正的业务数据
@@ -1000,7 +1000,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 				kc.logger.Info("Sync SyncUpdateFriendEvent Succeed",
 					zap.String("Username:", username),
 					zap.String("DeviceID:", curDeviceKey),
-					zap.Int64("Now", time.Now().Unix()))
+					zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 			}
 
@@ -1082,7 +1082,7 @@ func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 			zap.Uint64("timeTag", req.GetTimeTag()))
 
 		rsp = &Friends.GetFriendsRsp{
-			TimeTag:      uint64(time.Now().Unix()),
+			TimeTag:      uint64(time.Now().UnixNano()/1e6),
 			Friends:      make([]*Friends.Friend, 0),
 			RemovedUsers: make([]string, 0),
 		}
@@ -1215,17 +1215,17 @@ func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
 		}
 
 		//在用户的关注有序列表里增加此商户
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
 		redisConn.Do("HSET",
 			fmt.Sprintf("sync:%s", username),
 			"watchAt",
-			time.Now().Unix())
+			time.Now().UnixNano()/1e6)
 
 		//在商户的被关注有序列表里增加此用户
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().Unix(), username); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().UnixNano()/1e6, username); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 	}
@@ -1308,14 +1308,14 @@ func (kc *KafkaClient) HandleCancelWatchRequest(msg *models.Message) error {
 			kc.logger.Error("ZREM Error", zap.Error(err))
 		}
 		//增加用户的取消关注有序列表
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
 		redisConn.Do("HSET",
 			fmt.Sprintf("sync:%s", username),
 			"watchAt",
-			time.Now().Unix())
+			time.Now().UnixNano()/1e6)
 		//在商户的关注有序列表里移除此用户
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
 			kc.logger.Error("ZREM Error", zap.Error(err))
@@ -1361,7 +1361,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().Unix()
+	systemMsgAt := time.Now().UnixNano()/1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
@@ -1402,7 +1402,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("AuthService", time.Now().Unix())
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -1419,7 +1419,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		kc.logger.Info("BroadcastMsgToAllDevices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 		_ = err
 

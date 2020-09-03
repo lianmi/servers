@@ -48,7 +48,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	memberAddress, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Address"))
 
 	teamUser := new(models.TeamUser)
-	teamUser.JoinAt = time.Now().Unix()
+	teamUser.JoinAt = time.Now().UnixNano()/1e6
 	teamUser.Teamname = p.Teamname
 	teamUser.Username = p.Owner
 	teamUser.Nick = memberNick                                   //群成员呢称
@@ -91,7 +91,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 		4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 		5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 	*/
-	if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().Unix(), p.TeamID); err != nil {
+	if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().UnixNano()/1e6, p.TeamID); err != nil {
 		s.logger.Error("ZADD Error", zap.Error(err))
 	}
 	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", p.TeamID)).AddFlat(p)...); err != nil {
@@ -99,7 +99,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	}
 
 	//当前只有群主一个成员
-	if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().Unix(), p.Owner); err != nil {
+	if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().UnixNano()/1e6, p.Owner); err != nil {
 		s.logger.Error("ZADD Error", zap.Error(err))
 	}
 
@@ -110,7 +110,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	redisConn.Do("HSET",
 		fmt.Sprintf("sync:%s", p.Owner),
 		"teamsAt",
-		time.Now().Unix())
+		time.Now().UnixNano()/1e6)
 	return nil
 
 }

@@ -137,7 +137,7 @@ func IsPhone(phoneStr string) bool {
 
 //取两个数字之间的随机数
 func RandInt(min, max int) int {
-	mrand.Seed(time.Now().Unix())
+	mrand.Seed(time.Now().UnixNano()/1e6)
 	randNum := mrand.Intn(max - min)
 	randNum = randNum + min
 	// fmt.Printf("rand is %v\n", randNum)

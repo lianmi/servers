@@ -136,7 +136,7 @@ func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
 			}
 
 			pTeam := new(models.Team)
-			pTeam.CreatedAt = time.Now().Unix()
+			pTeam.CreatedAt = time.Now().UnixNano()/1e6
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
 			pTeam.Teamname = req.GetName()
 			pTeam.Nick = req.GetName()
@@ -220,7 +220,7 @@ func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
 
 	//响应参数
 	rsp := &Team.GetTeamMembersRsp{
-		TimeAt:       uint64(time.Now().Unix()),
+		TimeAt:       uint64(time.Now().UnixNano()/1e6),
 		Tmembers:     make([]*Team.Tmember, 0),
 		RemovedUsers: make([]string, 0),
 	}
@@ -638,7 +638,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().Unix()),
+							Time:         uint64(time.Now().UnixNano()/1e6),
 						}
 						go kc.BroadcastMsgToAllDevices(inviteEventRsp, inviteUsername)
 					}
@@ -834,7 +834,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								continue
 							}
 							//增加到此用户自己的退群列表
-							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().Unix(), teamID); err != nil {
+							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().UnixNano()/1e6, teamID); err != nil {
 								kc.logger.Error("ZADD Error", zap.Error(err))
 							}
 
@@ -856,7 +856,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 								Seq:          newSeq,                             //消息序号，单个会话内自然递增
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-								Time:         uint64(time.Now().Unix()),
+								Time:         uint64(time.Now().UnixNano()/1e6),
 							}
 							go kc.BroadcastMsgToAllDevices(mrsp, removedUsername)
 
@@ -1037,7 +1037,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().Unix()
+			teamUser.JoinAt = time.Now().UnixNano()/1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1089,7 +1089,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().Unix()),
+					Time:         uint64(time.Now().UnixNano()/1e6),
 				}
 
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
@@ -1101,7 +1101,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 			*/
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().Unix(), teamInfo.TeamID); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -1109,7 +1109,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			}
 
 			//add群成员
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().Unix(), targetUsername); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 
@@ -1140,7 +1140,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
 				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().Unix()), //更新时间
+				UpdateAt:     uint64(time.Now().UnixNano()/1e6), //更新时间
 			}
 
 		}
@@ -1287,7 +1287,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 
@@ -1455,7 +1455,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 				//存储群成员信息 TeamUser
 				teamUser := new(models.TeamUser)
-				teamUser.JoinAt = time.Now().Unix()
+				teamUser.JoinAt = time.Now().UnixNano()/1e6
 				teamUser.Teamname = teamInfo.Teamname
 				teamUser.Username = userData.Username
 				teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1502,7 +1502,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().Unix()),
+						Time:         uint64(time.Now().UnixNano()/1e6),
 					}
 					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				}
@@ -1513,7 +1513,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 					5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 				*/
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().Unix(), teamInfo.TeamID); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -1521,7 +1521,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 
 				//add群成员
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().Unix(), targetUsername); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
@@ -1553,7 +1553,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().Unix()),
+					Time:         uint64(time.Now().UnixNano()/1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 			}
@@ -1733,7 +1733,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			}
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().Unix()
+			teamUser.JoinAt = time.Now().UnixNano()/1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1779,7 +1779,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().Unix()),
+					Time:         uint64(time.Now().UnixNano()/1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
@@ -1790,7 +1790,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 			*/
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().Unix(), teamInfo.TeamID); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -1798,7 +1798,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			}
 
 			//add群成员
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().Unix(), targetUsername); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 
@@ -1981,7 +1981,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, targetUsername)
 		}
@@ -2154,7 +2154,7 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 			kc.SaveTeam(teamInfo)
 
 			rsp.TeamId = teamID
-			rsp.TimeAt = uint64(time.Now().Unix())
+			rsp.TimeAt = uint64(time.Now().UnixNano()/1e6)
 		}
 	}
 
@@ -2325,7 +2325,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 							}
 
 							//增加到用户自己的退群列表
-							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().Unix(), teamID); err != nil {
+							if _, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().UnixNano()/1e6, teamID); err != nil {
 								kc.logger.Error("ZADD Error", zap.Error(err))
 							}
 
@@ -2347,7 +2347,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 								Seq:          newSeq,                             //消息序号，单个会话内自然递增
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-								Time:         uint64(time.Now().Unix()),
+								Time:         uint64(time.Now().UnixNano()/1e6),
 							}
 							go kc.BroadcastMsgToAllDevices(mrsp, teamInfo.Owner)
 						}
@@ -3791,7 +3791,7 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
 				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().Unix()), //更新时间
+				UpdateAt:     uint64(time.Now().UnixNano()/1e6), //更新时间
 			})
 		}
 		//用户自己的退群列表
@@ -3930,7 +3930,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 			}
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().Unix()
+			teamUser.JoinAt = time.Now().UnixNano()/1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -3977,7 +3977,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().Unix()),
+					Time:         uint64(time.Now().UnixNano()/1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
@@ -3988,7 +3988,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 			*/
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", req.GetInvitee()), time.Now().Unix(), teamInfo.TeamID); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", req.GetInvitee()), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -3996,7 +3996,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 			}
 
 			//add群成员
-			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().Unix(), req.GetInvitee()); err != nil {
+			if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetInvitee()); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
 

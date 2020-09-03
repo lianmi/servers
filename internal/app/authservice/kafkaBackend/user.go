@@ -283,7 +283,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			pUser.LegalPerson = legal_identity_card
 		}
 
-		pUser.UpdatedAt = time.Now().Unix()
+		pUser.UpdatedAt = time.Now().UnixNano()/1e6
 
 		if err := kc.SaveUser(pUser); err != nil {
 			kc.logger.Error("更新用户信息失败", zap.Error(err))
@@ -313,7 +313,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 		redisConn.Do("HSET",
 			fmt.Sprintf("sync:%s", username),
 			"myInfoAt",
-			time.Now().Unix())
+			time.Now().UnixNano()/1e6)
 
 		//更新redis的sync:{用户账号} friendUsersAt 时间戳 让所有与此用户为好友的用户触发更新用户资料
 		//从redis里读取username的好友列表
@@ -323,7 +323,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			redisConn.Do("HSET",
 				fmt.Sprintf("sync:%s", friendUsername),
 				"friendUsersAt",
-				time.Now().Unix())
+				time.Now().UnixNano()/1e6)
 		}
 
 		rsp = &User.UpdateProfileRsp{
@@ -417,7 +417,7 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 		targetMsg.SetBusinessType(uint32(1))
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncUpdateProfileEvent = 4
 
-		targetMsg.BuildHeader("AuthService", time.Now().Unix())
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -434,7 +434,7 @@ func (kc *KafkaClient) HandleSyncUpdateProfileEvent(sourceDeviceID string, userD
 		kc.logger.Info("Sync myInfoAt Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	}
 
@@ -516,7 +516,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 		if req.GetIsAdd() { //增加
 			pTag := new(models.Tag)
 			pTag.UserID = pUser.ID
-			pTag.UpdatedAt = time.Now().Unix()
+			pTag.UpdatedAt = time.Now().UnixNano()/1e6
 			pTag.TagType = int(req.GetType())
 
 			// //如果已经存在，则先删除，确保不会重复增加
@@ -544,7 +544,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 
 			//Redis缓存黑名单
 			if req.GetType() == User.MarkTagType_Mtt_Blocked {
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				//在自己的关注有序列表里移除此用户
@@ -552,14 +552,14 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 					kc.logger.Error("ZREM Error", zap.Error(err))
 				}
 				//增加用户的取消关注有序列表
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				//更新redis的sync:{用户账号} watchAt 时间戳
 				redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", username),
 					"watchAt",
-					time.Now().Unix())
+					time.Now().UnixNano()/1e6)
 			}
 
 		} else { //删除
@@ -580,14 +580,14 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				//在自己的关注有序列表里重新加回此用户
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", username), time.Now().Unix(), req.GetUsername()); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				//更新redis的sync:{用户账号} watchAt 时间戳
 				redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", username),
 					"watchAt",
-					time.Now().Unix())
+					time.Now().UnixNano()/1e6)
 			}
 
 			kc.logger.Debug("删除标签成功", zap.Int64("count", count))
@@ -622,7 +622,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(2))
 				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-				targetMsg.BuildHeader("AuthService", time.Now().Unix())
+				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 				//构造负载数据
 				resp := &User.SyncMarkTagEventRsp{

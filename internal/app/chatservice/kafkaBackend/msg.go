@@ -158,7 +158,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 
 			//转发消息
@@ -249,7 +249,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
 					Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
-					Time:         uint64(time.Now().Unix()),
+					Time:         uint64(time.Now().UnixNano()/1e6),
 				}
 
 				//转发消息
@@ -298,7 +298,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().Unix()),
+				Time:         uint64(time.Now().UnixNano()/1e6),
 			}
 			data, _ := proto.Marshal(eRsp)
 
@@ -318,7 +318,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 			targetMsg.SetBusinessTypeName("Msg")
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-			targetMsg.BuildHeader("ChatService", time.Now().Unix())
+			targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 			targetMsg.SetCode(200)   //成功的状态码
 
@@ -343,7 +343,7 @@ COMPLETE:
 				Uuid:        req.GetUuid(),
 				ServerMsgId: msg.GetID(),
 				Seq:         curSeq,
-				Time:        uint64(time.Now().Unix()),
+				Time:        uint64(time.Now().UnixNano()/1e6),
 			}
 			data, _ = proto.Marshal(rsp)
 			msg.FillBody(data)
@@ -594,7 +594,7 @@ func (kc *KafkaClient) HandleSendCancelMsg(msg *models.Message) error {
 			targetMsg.SetBusinessTypeName("Msg")
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                     //消息模块
 			targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncSendCancelMsgEvent)) //自己的设备同步发送撤销消息事件
-			targetMsg.BuildHeader("ChatService", time.Now().Unix())
+			targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 			targetMsg.SetCode(200)   //成功的状态码
 
@@ -764,7 +764,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 	defer redisConn.Close()
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些消息给用户
-	msgAt := time.Now().Unix()
+	msgAt := time.Now().UnixNano()/1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("offLineMsgList:%s", toUser), rsp.Seq, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
@@ -813,7 +813,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		targetMsg.SetBusinessTypeName("Msg")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))               //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncSendMsgEvent)) //发送消息多终端同步事件
-		targetMsg.BuildHeader("ChatService", time.Now().Unix())
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -858,7 +858,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		targetMsg.SetBusinessTypeName("Msg")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-		targetMsg.BuildHeader("ChatService", time.Now().Unix())
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -922,7 +922,7 @@ func (kc *KafkaClient) SendDataToUserDevices(data []byte, toUser string, busines
 		targetMsg.SetBusinessType(businessType)       //业务号
 		targetMsg.SetBusinessSubType(businessSubType) //业务子号
 
-		targetMsg.BuildHeader("ChatService", time.Now().Unix())
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -939,7 +939,7 @@ func (kc *KafkaClient) SendDataToUserDevices(data []byte, toUser string, busines
 		kc.logger.Info("SendDataToUserDevices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	}
 

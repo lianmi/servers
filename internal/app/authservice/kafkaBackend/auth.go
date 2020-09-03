@@ -85,7 +85,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 
 			//向当前主设备及从设备发出踢下线
 			kickMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6
+			now := time.Now().UnixNano() / 1e6 //毫秒
 			kickMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
@@ -104,7 +104,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 			resp := &Auth.KickedEventRsp{
 				ClientType: 0,
 				Reason:     Auth.KickReason_SamePlatformKick,
-				TimeTag:    uint64(time.Now().UnixNano() / 1e6),
+				TimeTag:    uint64(time.Now().UnixNano() / 1e6), //毫秒
 			}
 			data, _ := proto.Marshal(resp)
 			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
@@ -157,7 +157,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
-			now := time.Now().UnixNano() / 1e6
+			now := time.Now().UnixNano() / 1e6 //毫秒
 			targetMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
@@ -313,7 +313,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					beKickedMsg.SetBusinessType(uint32(2))
 					beKickedMsg.SetBusinessSubType(uint32(5)) // KickedEvent = 5
 
-					beKickedMsg.BuildHeader("AuthService", time.Now().Unix())
+					beKickedMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
 
 					//构造负载数据
 					kickedEventRsp := &Auth.KickedEventRsp{
@@ -358,7 +358,7 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					targetMsg.SetBusinessType(uint32(2))
 					targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-					targetMsg.BuildHeader("AuthService", time.Now().Unix())
+					targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
 
 					//构造负载数据
 					clients := make([]*Auth.DeviceInfo, 0)
@@ -609,7 +609,7 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 			targetMsg.SetBusinessType(uint32(2))
 			targetMsg.SetBusinessSubType(uint32(9)) //SlaveDeviceAuthEvent = 9
 
-			targetMsg.BuildHeader("AuthService", time.Now().Unix())
+			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
 
 			//构造负载数据
 			resp := &Auth.SlaveDeviceAuthEventRsp{

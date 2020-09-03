@@ -35,13 +35,13 @@ type Team struct {
 
 //BeforeCreate CreatedAt赋值
 func (t *Team) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().Unix())
+	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
 func (t *Team) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().Unix())
+	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 

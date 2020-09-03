@@ -115,10 +115,10 @@ func (pc *UsersController) Register(c *gin.Context) {
 			zap.Int("user.UserType", user.UserType))
 
 		//初始化一些默认值及当期时间
-		user.CreatedAt = time.Now().Unix() //注意，必须要unix时间戳
-		user.State = 0                     //预审核
-		user.Avatar = common.PubAvatar     //公共头像
-		user.AllowType = 3                 //用户加好友枚举，默认是3
+		user.CreatedAt = time.Now().UnixNano() / 1e6 //注意，必须要unix时间戳，毫秒
+		user.State = 0                               //预审核
+		user.Avatar = common.PubAvatar               //公共头像
+		user.AllowType = 3                           //用户加好友枚举，默认是3
 
 		//检测手机是数字
 		if !conv.IsDigit(user.Mobile) {

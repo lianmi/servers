@@ -4,17 +4,23 @@ package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
 message GetPreKeyOrderIDReq {
-    //用户账号
+    //商户账号
     string userName =1;
     //订单类型
     global.OrderType orderType =2;
+    //商品id
+    string productID =3;
 }
 
 message GetPreKeyOrderIDRsp {
-    //OPK公钥，hex格式
-    string pubKey =1;
+    //商户账号
+    string userName =1;    
     //订单类型
-    global.OrderType orderType =2;
+    global.OrderType orderType =2;   
+    //商品id
+    string productID =3;  
+    //OPK公钥，hex格式
+    string pubKey =4;
     //服务端生成的订单ID,用于以后此订单的追踪
-    string OrderID =3;
+    string OrderID =5;
 }

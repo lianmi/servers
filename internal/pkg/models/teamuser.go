@@ -38,7 +38,7 @@ type TeamUser struct {
 
 //BeforeUpdate UpdatedAt赋值
 func (t *TeamUser) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().Unix())
+	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 

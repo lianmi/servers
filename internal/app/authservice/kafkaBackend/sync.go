@@ -59,7 +59,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 
 			} else {
 				rsp := &User.SyncUserProfileEventRsp{
-					TimeTag: uint64(time.Now().UnixNano() / 1e6),
+					TimeTag: uint64(time.Now().UnixNano()/1e6),
 					UInfo: &User.User{
 						Username:          username,
 						Gender:            User.Gender(userData.Gender),
@@ -98,7 +98,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(1))
 				targetMsg.SetBusinessSubType(uint32(3)) //SyncUserProfileEvent = 3
-				targetMsg.BuildHeader("AuthService", time.Now().Unix())
+				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 				targetMsg.SetCode(200)   //成功的状态码
 
@@ -113,7 +113,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				kc.logger.Info("Sync myInfoAt Succeed",
 					zap.String("Username:", username),
 					zap.String("DeviceID:", deviceID),
-					zap.Int64("Now", time.Now().Unix()))
+					zap.Int64("Now", time.Now().UnixNano()/1e6))
 			}
 
 		}
@@ -141,7 +141,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	if cur_friendsAt > friendsAt {
 		//构造SyncFriendsEventRsp
 		rsp := &Friends.SyncFriendsEventRsp{
-			TimeTag:         uint64(time.Now().UnixNano() / 1e6),
+			TimeTag:         uint64(time.Now().UnixNano() / 1e6), //毫秒
 			Friends:         make([]*Friends.Friend, 0),
 			RemovedAccounts: make([]*Friends.Friend, 0),
 		}
@@ -200,7 +200,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(1))
 		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
-		targetMsg.BuildHeader("AuthService", time.Now().Unix())
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -215,7 +215,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		kc.logger.Info("Sync myInfoAt Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
 	//完成
 	ch <- 1
@@ -295,7 +295,7 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.SetBusinessTypeName("User")
 		targetMsg.SetBusinessType(uint32(3))
 		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
-		targetMsg.BuildHeader("AuthService", time.Now().Unix())
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -310,7 +310,7 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		kc.logger.Info("Sync FriendUsers Event Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
 	//完成
 	ch <- 1
@@ -402,7 +402,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetBusinessType(uint32(4))
 		targetMsg.SetBusinessSubType(uint32(17)) //SyncMyTeamsEvent = 17
 
-		targetMsg.BuildHeader("AuthService", time.Now().Unix())
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -419,7 +419,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		kc.logger.Info("SyncMyTeamsEvent  Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
-			zap.Int64("Now", time.Now().Unix()))
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
 	//完成
 	ch <- 1
@@ -444,7 +444,7 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
 	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
 
-	targetMsg.BuildHeader("AuthService", time.Now().Unix())
+	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -457,7 +457,7 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 	kc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
 		zap.String("Username:", toUser),
 		zap.String("DeviceID:", deviceID),
-		zap.Int64("Now", time.Now().Unix()))
+		zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	return nil
 }
@@ -540,7 +540,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	rsp := &Order.SyncWatchEventRsp{
-		TimeAt:      uint64(time.Now().Unix()),
+		TimeAt:      uint64(time.Now().UnixNano()/1e6),
 		Usernames:   make([]string, 0), //用户关注的商户
 		RemoveUsers: make([]string, 0), //用户取消关注的商户
 	}
@@ -697,7 +697,7 @@ COMPLETE:
 
 func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
 	rsp := &Sync.SyncDoneEventRsp{
-		TimeTag: uint64(time.Now().Unix()),
+		TimeTag: uint64(time.Now().UnixNano()/1e6),
 	}
 	data, _ := proto.Marshal(rsp)
 
@@ -712,7 +712,7 @@ func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) e
 	targetMsg.SetBusinessTypeName("Sync")
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Sync))            //sync模块
 	targetMsg.SetBusinessSubType(uint32(Global.SyncSubType_SyncDoneEvent)) // 同步完成事件
-	targetMsg.BuildHeader("authservice", time.Now().Unix())
+	targetMsg.BuildHeader("authservice", time.Now().UnixNano()/1e6)
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 	targetMsg.SetCode(200)   //成功的状态码
 
