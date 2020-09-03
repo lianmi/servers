@@ -32,9 +32,8 @@ type Login struct {
 	Os              string `form:"os" json:"os" binding:"required"`
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
 	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`
-	IsMaster        bool   `form:"ismaster" json:"ismaster" binding:"required"`
+	IsMaster        bool   `form:"ismaster" json:"ismaster"` //由于golang对false处理不对，所以不能设为必填
 }
-
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token

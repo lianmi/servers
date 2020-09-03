@@ -974,7 +974,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"businessUser", req.GetUserName(), //商户的用户id
 			"productID", "", //商品id，默认是空
 			"orderType", req.GetOrderType(), //订单类型
-			"orderState", 0, //订单状态, 初始值为0
+			"orderState", 1, //订单状态,预审核
 			"createAt", uint64(time.Now().Unix()), //秒
 		)
 	}

@@ -508,7 +508,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 		}
 
 		//向其它端发送此从设备上线的事件
-		logonAt := uint64(time.Now().UnixNano() / 1e6)
+		logonAt := uint64(time.Now().Unix())
 		if err := s.SendMultiLoginEventToOtherDevices(true, username, deviceID, os, clientType, logonAt); err != nil {
 			s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
 		}

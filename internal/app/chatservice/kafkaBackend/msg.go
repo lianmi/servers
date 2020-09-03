@@ -795,7 +795,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 	selfDeviceListKey := fmt.Sprintf("devices:%s", fromUser)
 	selfDeviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", selfDeviceListKey, "-inf", "+inf"))
 
-	//查询出当前在线所有主从设备
+	//查询出当前用户自己的在线所有主从设备
 	for _, selfDeviceID := range selfDeviceIDSliceNew {
 		if selfDeviceID == fromDeviceID {
 			continue
@@ -811,8 +811,8 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		targetMsg.SetDeviceID(selfDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Msg")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))               //消息模块
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncSendMsgEvent)) //发送消息多终端同步事件
 		targetMsg.BuildHeader("ChatService", time.Now().Unix())
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
@@ -839,7 +839,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 		}
 	}
 
-	//向toUser所有端发送
+	//向接收者toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUser)
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 
