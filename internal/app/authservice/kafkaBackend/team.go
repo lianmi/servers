@@ -1364,7 +1364,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 	body := msg.GetContent()
 
 	//解包body
-	req := &Team.AcceptTeamInviteReq{}
+	req := &Team.ApplyTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1374,11 +1374,11 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("ApplyTeam payload",
 			zap.String("teamId", req.GetTeamId()),
-			zap.String("from", req.GetFrom()),
+			zap.String("ps", req.GetPs()),
 		)
 
 		teamID := req.GetTeamId()
-		targetUsername := req.GetFrom()
+		// targetUsername := req.GetFrom()
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
@@ -1413,17 +1413,17 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//判断targetUsername是不是被封禁了，如果是则返回
-			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
+			//判断username是不是被封禁了，如果是则返回
+			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State")); err != nil {
 				kc.logger.Error("redisConn HGET Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
+				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", username)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
-					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
+					kc.logger.Debug("User is blocked", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
+					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", username)
 					goto COMPLETE
 				}
 			}
@@ -1431,10 +1431,10 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 			//判断targetUsername是不是已经是群成员了，如果是，则返回
 
 			//首先判断一下是否是群成员
-			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), targetUsername); err == nil {
+			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
 				if reply != nil { //是群成员
 					err = nil
-					kc.logger.Debug("User is already member", zap.String("Username", targetUsername))
+					kc.logger.Debug("User is already member", zap.String("Username", username))
 					goto COMPLETE
 				}
 			}
@@ -1442,13 +1442,13 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 			//判断群邀请模式，如果是需要审核的，就向群主及群管理员发送通知, 否则直接入群
 			if Team.InviteMode(teamInfo.InviteMode) == Team.InviteMode_Invite_All {
 				userData := new(models.User)
-				userKey := fmt.Sprintf("userData:%s", targetUsername)
+				userKey := fmt.Sprintf("userData:%s", username)
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
 
 						kc.logger.Error("错误：ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", targetUsername)
+						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 						goto COMPLETE
 
 					}
@@ -1475,7 +1475,6 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				kc.SaveTeamUser(teamUser)
 
 				//向群推送此用户的入群通知
-
 				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 				for _, teamMember := range teamMembers {
 
@@ -1487,7 +1486,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					}
 					body := Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
-						HandledAccount: targetUsername,
+						HandledAccount: username,
 						HandledMsg:     "",         //TODO
 						Status:         1,          //TODO, 消息状态  存储
 						Data:           []byte(""), // 附带的文本 该系统消息的文本
@@ -1497,7 +1496,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         []byte(body.String()),                //JSON
-						From:         targetUsername,                       //发起人
+						From:         username,                             //发起人
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -1513,7 +1512,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 					5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 				*/
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -1521,11 +1520,11 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 
 				//add群成员
-				if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername); err != nil {
+				if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username); err != nil {
 					kc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
-				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, targetUsername)).AddFlat(teamUser)...); err != nil {
+				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
 					kc.logger.Error("错误：HMSET TeamUser", zap.Error(err))
 				}
 			} else if Team.InviteMode(teamInfo.InviteMode) == Team.InviteMode_Invite_Check {
@@ -1538,7 +1537,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_ApplyJoinTeam, //向群主推送此用户的主动入群通知
-					HandledAccount: targetUsername,
+					HandledAccount: username,
 					HandledMsg:     "",         //TODO
 					Status:         1,          //TODO, 消息状态  存储
 					Data:           []byte(""), // 附带的文本 该系统消息的文本
@@ -1548,7 +1547,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         []byte(body.String()),                //JSON
-					From:         targetUsername,                       //发起人
+					From:         username,                             //发起人
 					FromDeviceId: deviceID,
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
