@@ -674,10 +674,8 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("WatchAt", req.WatchAt),
 		)
 
-		//所有同步的时间戳数量,
-		syncCount := common.TotalSyncCount
-
-		chs := make([]chan int, syncCount) //6 个
+		//所有同步的时间戳数量
+		chs := make([]chan int, common.TotalSyncCount) //6 个
 		for i := 0; i < common.TotalSyncCount; i++ {
 			chs[i] = make(chan int)
 		}
@@ -731,9 +729,8 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			}
 		}()
 
-		for i, ch := range chs {
-			kc.logger.Debug("range chs", zap.Int("i", i))
-			<-ch
+		for i := 0; i < common.TotalSyncCount; i++ {
+			<-chs[i]
 		}
 
 		//发送SyncDoneEvent
