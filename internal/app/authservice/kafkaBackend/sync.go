@@ -514,8 +514,8 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_systemMsgAt > systemMsgAt {
 		nTime := time.Now()
-		yesTime := nTime.AddDate(0, 0, -7).Unix()
-		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, nTime))
+		yesTime := nTime.AddDate(0, 0, -7).UnixNano() / 1e6
+		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, time.Now().UnixNano()/1e6))
 		for _, msgID := range msgIDs {
 			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
 			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
@@ -681,7 +681,7 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		for i := 0; i < common.TotalSyncCount; i++ {
 			chs[i] = make(chan int)
 		}
-		
+
 		//异步
 		go func() {
 			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
