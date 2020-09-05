@@ -12,8 +12,6 @@ message UpdateProductReq {
     //订单类型，必填
     global.OrderType orderType=2;
 
-    //商品过期时间
-    fixed64 expire=3;
 }
 
 //响应参数

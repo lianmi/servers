@@ -8,95 +8,98 @@ message Product {
     //是否必须-是
     string ProductId = 1;
 
+    //商品过期时间
+    fixed64 expire=2;
+
     //商品名称
     //是否必须-是
-    string ProductName = 2;
+    string ProductName = 3;
 
     //商品分类名称
     //是否必须-是
-    string CategoryName = 3;
+    string CategoryName = 4;
 
     //商品详细介绍
     //是否必须-是
-    string ProductDesc = 4;
+    string ProductDesc = 5;
 
     //商品图片1-小图
     //是否必须-是
-    string ProductPic1Small = 5;
+    string ProductPic1Small = 6;
 
     //商品图片1-中图
     //是否必须-是
-    string ProductPic1Middle = 6;
+    string ProductPic1Middle = 7;
 
     //商品图片1-大图
     //是否必须-是
-    string ProductPic1Large = 7;
+    string ProductPic1Large = 8;
 
 
     //商品图片2-小图
     //是否必须-否
-    string ProductPic2Small = 8;
+    string ProductPic2Small = 9;
 
     //商品图片2-中图
     //是否必须-否
-    string ProductPic2Middle = 9;
+    string ProductPic2Middle = 10;
 
     //商品图片2-大图
     //是否必须-否
-    string ProductPic2Large = 10;
+    string ProductPic2Large = 11;
 
     //商品图片3-小图
     //是否必须-否
-    string ProductPic3Small = 11;
+    string ProductPic3Small = 12;
 
     //商品图片3-中图
     //是否必须-否
-    string ProductPic3Middle = 12;
+    string ProductPic3Middle = 13;
 
     //商品图片3-大图
     //是否必须-否
-    string ProductPic3Large = 13;
+    string ProductPic3Large = 14;
 
     //商品短视频缩略图
     //是否必须-否
-    string Thumbnail = 14;
+    string Thumbnail = 15;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 15;
+    string ShortVideo = 16;
 
     //价格
     //是否必须-是
-    float Price = 16;
+    float Price = 17;
 
     //库存数量
     //是否必须-是
-    fixed64 LeftCount = 17;
+    fixed64 LeftCount = 18;
 
     //折扣
     //实际数字，例如: 0.95, UI显示为九五折
     //是否必须-否
-    float Discount = 18;
+    float Discount = 19;
 
     //折扣说明
     //是否必须-否
-    string DiscountDesc = 19;
+    string DiscountDesc = 20;
 
     //折扣开始时间
     //是否必须-否
-    fixed64 DiscountStartTime = 20;
+    fixed64 DiscountStartTime = 21;
 
     //折扣结束时间
     //是否必须-否
-    fixed64 DiscountEndTime = 21;
+    fixed64 DiscountEndTime = 22;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 22;
+    fixed64 CreateAt = 23;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 23;
+    fixed64 ModifyAt = 24;
 
 
 }

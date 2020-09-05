@@ -127,6 +127,7 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 
 			rsp.Products = append(rsp.Products, &Order.Product{
 				ProductId:         productID,
+				Expire:            uint64(product.Expire),
 				ProductName:       product.ProductName,
 				CategoryName:      product.CategoryName,
 				ProductDesc:       product.ProductDesc,
@@ -277,6 +278,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		product := &models.Product{
 			Username:          username,
 			ProductID:         req.Product.ProductId,
+			Expire:            int64(req.Product.Expire),
 			ProductName:       req.Product.ProductName,
 			CategoryName:      req.Product.CategoryName,
 			ProductDesc:       req.Product.ProductDesc,
@@ -427,7 +429,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		kc.logger.Debug("UpdateProduct  payload",
 			zap.String("ProductId", req.GetProduct().ProductId),
 			zap.Int("OrderType", int(req.GetOrderType())),
-			zap.Uint64("Expire", req.GetExpire()),
+			// zap.Uint64("Expire", req.GetExpire()),
 		)
 
 		if req.GetProduct().ProductId == "" {
@@ -473,6 +475,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		product := &models.Product{
 			Username:          username,
 			ProductID:         req.Product.ProductId,
+			Expire:            int64(req.Product.Expire),
 			ProductName:       req.Product.ProductName,
 			CategoryName:      req.Product.CategoryName,
 			ProductDesc:       req.Product.ProductDesc,
@@ -524,7 +527,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				Username:  username,
 				Product:   req.Product,
 				OrderType: req.OrderType,
-				Expire:    req.Expire,
+				// Expire:    req.Expire,
 				TimeAt:    uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(updateProductEventReq)
