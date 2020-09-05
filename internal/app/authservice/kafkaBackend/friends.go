@@ -453,7 +453,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 				//增加A的好友B的信息哈希表
 				//HMSET FriendInfo:{A}:{B} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-				nick, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "Nick"))
+				nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "Nick"))
 				_, err = redisConn.Do("HMSET",
 					fmt.Sprintf("FriendInfo:%s:%s", userA, userB),
 					"Username", userB,
@@ -466,7 +466,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 
 				//增加B的好友A的信息哈希表
 				//HMSET FriendInfo:{B}:{A} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
-				nick, _ = redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "Nick"))
+				nick, _ = redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userA), "Nick"))
 				_, err = redisConn.Do("HMSET",
 					fmt.Sprintf("FriendInfo:%s:%s", userB, userA),
 					"Username", userA,
