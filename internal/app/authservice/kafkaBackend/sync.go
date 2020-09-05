@@ -44,7 +44,11 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 	myInfoAt := req.GetMyInfoAt()
 	myInfoAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_myInfoAt, _ := redis.Uint64(redisConn.Do("HGET", myInfoAtKey, "myInfoAt"))
+	cur_myInfoAt, err := redis.Uint64(redisConn.Do("HGET", myInfoAtKey, "myInfoAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 	kc.logger.Debug("SyncMyInfoAt",
 		zap.Uint64("cur_myInfoAt", cur_myInfoAt),
 		zap.Uint64("myInfoAt", myInfoAt),
@@ -138,8 +142,11 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	friendsAt := req.GetFriendsAt()
 	friendsAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_friendsAt, _ := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
-
+	cur_friendsAt, err := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 	kc.logger.Debug("SyncFriendsAt",
 		zap.Uint64("cur_friendsAt", cur_friendsAt),
 		zap.Uint64("friendsAt", friendsAt),
@@ -240,7 +247,11 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 	friendUsersAt := req.GetFriendUsersAt()
 	friendUsersAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_friendUsersAt, _ := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
+	cur_friendUsersAt, err := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 
 	kc.logger.Debug("SyncFriendUsersAt",
 		zap.Uint64("cur_friendUsersAt", cur_friendUsersAt),
@@ -340,7 +351,11 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	teamsAt := req.GetTeamsAt()
 	teamsAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_teamsAt, _ := redis.Uint64(redisConn.Do("HGET", teamsAtKey, "teamsAt"))
+	cur_teamsAt, err := redis.Uint64(redisConn.Do("HGET", teamsAtKey, "teamsAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 
 	kc.logger.Debug("SyncTeamsAt",
 		zap.Uint64("cur_teamsAt", cur_teamsAt),
@@ -490,7 +505,11 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	systemMsgAt := req.GetSystemMsgAt()
 	systemMsgAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_systemMsgAt, _ := redis.Uint64(redisConn.Do("HGET", systemMsgAtKey, "systemMsgAt"))
+	cur_systemMsgAt, err := redis.Uint64(redisConn.Do("HGET", systemMsgAtKey, "systemMsgAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_systemMsgAt > systemMsgAt {
@@ -569,7 +588,11 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 	watchAt := req.GetWatchAt()
 	watchAtKey := fmt.Sprintf("sync:%s", username)
 
-	cur_watchAt, _ := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
+	cur_watchAt, err := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
+	if err != nil {
+		kc.logger.Error("HGET error", zap.Error(err))
+		return err
+	}
 
 	kc.logger.Debug("SyncWatchAt",
 		zap.Uint64("cur_watchAt", cur_watchAt),
@@ -657,41 +680,47 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 
 			chs := make([]chan int, syncCount) //6 个
 
-			i := 0
-			chs[i] = make(chan int)
+			chs[0] = make(chan int)
 
-			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[i]); err == nil {
+			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
+				kc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
+			} else {
 				kc.logger.Debug("myInfoAt is done")
 			}
 
-			i++
-			chs[i] = make(chan int)
-			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("friendUsersAt is done")
+			chs[1] = make(chan int)
+			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
+				kc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncFriendsAt is done")
 			}
 
-			i++
-			chs[i] = make(chan int)
-			if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("myInfoAt is done")
+			chs[2] = make(chan int)
+			if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
+				kc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncFriendUsersAt is done")
 			}
 
-			i++
-			chs[i] = make(chan int)
-			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("teamsAt is done")
+			chs[3] = make(chan int)
+			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
+				kc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncTeamsAt is done")
 			}
 
-			i++
-			chs[i] = make(chan int)
-			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("systemMsgAt is done")
+			chs[4] = make(chan int)
+			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[4]); err != nil {
+				kc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncSystemMsgAt is done")
 			}
 
-			i++
-			chs[i] = make(chan int)
-			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[i]); err == nil {
-				kc.logger.Debug("watchAt is done")
+			chs[5] = make(chan int)
+			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[5]); err != nil {
+				kc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncWatchAt is done")
 			}
 
 			for _, ch := range chs {
