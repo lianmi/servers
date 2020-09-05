@@ -45,7 +45,10 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 	myInfoAtKey := fmt.Sprintf("sync:%s", username)
 
 	cur_myInfoAt, _ := redis.Uint64(redisConn.Do("HGET", myInfoAtKey, "myInfoAt"))
-
+	kc.logger.Debug("SyncMyInfoAt",
+		zap.Uint64("cur_myInfoAt", cur_myInfoAt),
+		zap.Uint64("myInfoAt", myInfoAt),
+	)
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_myInfoAt > myInfoAt {
 		//构造SyncUserProfileEventRsp
@@ -59,7 +62,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 
 			} else {
 				rsp := &User.SyncUserProfileEventRsp{
-					TimeTag: uint64(time.Now().UnixNano()/1e6),
+					TimeTag: uint64(time.Now().UnixNano() / 1e6),
 					UInfo: &User.User{
 						Username:          username,
 						Gender:            User.Gender(userData.Gender),
@@ -136,6 +139,11 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	friendsAtKey := fmt.Sprintf("sync:%s", username)
 
 	cur_friendsAt, _ := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
+
+	kc.logger.Debug("SyncFriendsAt",
+		zap.Uint64("cur_friendsAt", cur_friendsAt),
+		zap.Uint64("friendsAt", friendsAt),
+	)
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_friendsAt > friendsAt {
@@ -234,6 +242,11 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 
 	cur_friendUsersAt, _ := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
 
+	kc.logger.Debug("SyncFriendUsersAt",
+		zap.Uint64("cur_friendUsersAt", cur_friendUsersAt),
+		zap.Uint64("friendUsersAt", friendUsersAt),
+	)
+
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_friendUsersAt > friendUsersAt {
 		//构造SyncFriendsEventRsp
@@ -328,6 +341,11 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	teamsAtKey := fmt.Sprintf("sync:%s", username)
 
 	cur_teamsAt, _ := redis.Uint64(redisConn.Do("HGET", teamsAtKey, "teamsAt"))
+
+	kc.logger.Debug("SyncTeamsAt",
+		zap.Uint64("cur_teamsAt", cur_teamsAt),
+		zap.Uint64("teamsAt", teamsAt),
+	)
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_teamsAt > teamsAt {
@@ -540,7 +558,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	rsp := &Order.SyncWatchEventRsp{
-		TimeAt:      uint64(time.Now().UnixNano()/1e6),
+		TimeAt:      uint64(time.Now().UnixNano() / 1e6),
 		Usernames:   make([]string, 0), //用户关注的商户
 		RemoveUsers: make([]string, 0), //用户取消关注的商户
 	}
@@ -552,6 +570,11 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 	watchAtKey := fmt.Sprintf("sync:%s", username)
 
 	cur_watchAt, _ := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
+
+	kc.logger.Debug("SyncWatchAt",
+		zap.Uint64("cur_watchAt", cur_watchAt),
+		zap.Uint64("watchAt", watchAt),
+	)
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_watchAt > watchAt {
@@ -618,7 +641,15 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-
+		kc.logger.Debug("Sync  payload",
+			zap.Uint64("MyInfoAt", req.MyInfoAt),
+			zap.Uint64("FriendsAt", req.FriendsAt),
+			zap.Uint64("FriendUsersAt", req.FriendUsersAt),
+			zap.Uint64("TeamsAt", req.TeamsAt),
+			zap.Uint64("TagsAt", req.TagsAt),
+			zap.Uint64("SystemMsgAt", req.SystemMsgAt),
+			zap.Uint64("WatchAt", req.WatchAt),
+		)
 		//异步
 		go func() {
 			//所有同步的时间戳数量,
@@ -686,9 +717,9 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	if err := kc.Produce(topic, msg); err == nil {
-		kc.logger.Info("GetUsersResp message succeed send to ProduceChannel", zap.String("topic", topic))
+		kc.logger.Info("Sync message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send GetUsersResp message to ProduceChannel", zap.Error(err))
+		kc.logger.Error("Failed to send Sync message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -697,7 +728,7 @@ COMPLETE:
 
 func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
 	rsp := &Sync.SyncDoneEventRsp{
-		TimeTag: uint64(time.Now().UnixNano()/1e6),
+		TimeTag: uint64(time.Now().UnixNano() / 1e6),
 	}
 	data, _ := proto.Marshal(rsp)
 
