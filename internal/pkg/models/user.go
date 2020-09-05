@@ -18,8 +18,8 @@ NeedConfirm(3)<添加好友需要验证,默认值>
 //定义用户的数据结构
 type User struct {
 	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`                         //自动递增id
-	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`                            //创建时刻
-	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻
+	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`                            //创建时刻,毫秒
+	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻,毫秒
 	Username          string `json:"username" `                                                         //用户注册号，自动生成，字母 + 数字
 	Password          string `json:"password" validate:"required"`                                      //用户密码，md5加密
 	SmsCode           string `json:"smscode" validate:"required"`                                       //校验码
