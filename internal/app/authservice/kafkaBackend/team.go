@@ -136,7 +136,7 @@ func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
 			}
 
 			pTeam := new(models.Team)
-			pTeam.CreatedAt = time.Now().UnixNano()/1e6
+			pTeam.CreatedAt = time.Now().UnixNano() / 1e6
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
 			pTeam.Teamname = req.GetName()
 			pTeam.Nick = req.GetName()
@@ -220,7 +220,7 @@ func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
 
 	//响应参数
 	rsp := &Team.GetTeamMembersRsp{
-		TimeAt:       uint64(time.Now().UnixNano()/1e6),
+		TimeAt:       uint64(time.Now().UnixNano() / 1e6),
 		Tmembers:     make([]*Team.Tmember, 0),
 		RemovedUsers: make([]string, 0),
 	}
@@ -638,7 +638,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().UnixNano()/1e6),
+							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 						go kc.BroadcastMsgToAllDevices(inviteEventRsp, inviteUsername)
 					}
@@ -856,7 +856,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 								Seq:          newSeq,                             //消息序号，单个会话内自然递增
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-								Time:         uint64(time.Now().UnixNano()/1e6),
+								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
 							go kc.BroadcastMsgToAllDevices(mrsp, removedUsername)
 
@@ -1037,7 +1037,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().UnixNano()/1e6
+			teamUser.JoinAt = time.Now().UnixNano() / 1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1089,7 +1089,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano()/1e6),
+					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
@@ -1140,7 +1140,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
 				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().UnixNano()/1e6), //更新时间
+				UpdateAt:     uint64(time.Now().UnixNano() / 1e6), //更新时间
 			}
 
 		}
@@ -1287,7 +1287,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 
@@ -1455,7 +1455,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 				//存储群成员信息 TeamUser
 				teamUser := new(models.TeamUser)
-				teamUser.JoinAt = time.Now().UnixNano()/1e6
+				teamUser.JoinAt = time.Now().UnixNano() / 1e6
 				teamUser.Teamname = teamInfo.Teamname
 				teamUser.Username = userData.Username
 				teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1502,7 +1502,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano()/1e6),
+						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				}
@@ -1537,7 +1537,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					goto COMPLETE
 				}
 				body := Msg.MessageNotificationBody{
-					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
+					Type:           Msg.MessageNotificationType_MNT_ApplyJoinTeam, //向群主推送此用户的主动入群通知
 					HandledAccount: targetUsername,
 					HandledMsg:     "",         //TODO
 					Status:         1,          //TODO, 消息状态  存储
@@ -1553,7 +1553,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano()/1e6),
+					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamInfo.Owner) //群主
 			}
@@ -1733,7 +1733,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			}
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().UnixNano()/1e6
+			teamUser.JoinAt = time.Now().UnixNano() / 1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -1779,7 +1779,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano()/1e6),
+					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
@@ -1981,7 +1981,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, targetUsername)
 		}
@@ -2154,7 +2154,7 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 			kc.SaveTeam(teamInfo)
 
 			rsp.TeamId = teamID
-			rsp.TimeAt = uint64(time.Now().UnixNano()/1e6)
+			rsp.TimeAt = uint64(time.Now().UnixNano() / 1e6)
 		}
 	}
 
@@ -2347,7 +2347,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 								Seq:          newSeq,                             //消息序号，单个会话内自然递增
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-								Time:         uint64(time.Now().UnixNano()/1e6),
+								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
 							go kc.BroadcastMsgToAllDevices(mrsp, teamInfo.Owner)
 						}
@@ -2952,7 +2952,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 	var errorMsg string
 
 	// var data []byte
-	// var newSeq uint64
+	var newSeq uint64
 	// var count int
 
 	redisConn := kc.redisPool.Get()
@@ -2994,8 +2994,10 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 
 	} else {
 		kc.logger.Debug("MuteTeamMember  payload",
-			zap.String("teamId", req.GetTeamId()),
-			zap.String("username", req.GetUsername()),
+			zap.String("teamId", req.GetTeamId()),       //所在群组
+			zap.String("username", req.GetUsername()),   //被禁言的群成员
+			zap.Bool("Mute", req.GetMute()),             //是否禁言,false/true
+			zap.Int("Mutedays", int(req.GetMutedays())), //禁言天数，如：禁言3天
 		)
 
 		teamID := req.GetTeamId()
@@ -3070,6 +3072,38 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 			//刷新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+			}
+
+			//向群成员推送此用户被禁言, TODO
+			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), "-inf", "+inf"))
+			for _, teamMember := range teamMembers {
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+					goto COMPLETE
+				}
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_MuteTeamMember, //群成员禁言/解禁
+					HandledAccount: username,                                       //当前用户
+					HandledMsg:     "",                                             //TODO
+					Status:         1,                                              //TODO, 消息状态  存储
+					Data:           []byte(""),                                     // 附带的文本 该系统消息的文本
+					To:             teamID,                                         //群组id
+				}
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         []byte(body.String()),                //JSON
+					From:         teamMember,                           //群成员
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+				go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
 			}
 		}
 	}
@@ -3791,7 +3825,7 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
 				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().UnixNano()/1e6), //更新时间
+				UpdateAt:     uint64(time.Now().UnixNano() / 1e6), //更新时间
 			})
 		}
 		//用户自己的退群列表
@@ -3930,7 +3964,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 			}
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
-			teamUser.JoinAt = time.Now().UnixNano()/1e6
+			teamUser.JoinAt = time.Now().UnixNano() / 1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                //群成员呢称
@@ -3977,7 +4011,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano()/1e6),
+					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
