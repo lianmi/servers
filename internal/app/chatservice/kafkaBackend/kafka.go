@@ -217,15 +217,8 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue
 			} else {
-				if err := handleFunc(msg); err != nil {
-
-					msg.SetCode(500) //异常出错
-					msg.SetErrorMsg([]byte("Internal Server Error"))
-
-					//处理完成，向dispatcher发送
-					topic := msg.GetSource() + ".Frontend"
-					kc.Produce(topic, msg)
-				}
+				//启动Go程
+				go handleFunc(msg)
 			}
 
 		}

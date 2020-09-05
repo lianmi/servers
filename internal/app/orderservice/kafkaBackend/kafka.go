@@ -109,12 +109,12 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	}
 
 	//注册每个业务子类型的处理方法
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = kClient.HandleQueryProducts //7-1  查询某个商户的所有商品信息
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 2)] = kClient.HandleAddProduct    //7-2  查询某个商户的所有商品信息
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 3)] = kClient.HandleUpdateProduct //7-3  商品编辑更新
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = kClient.HandleQueryProducts  //7-1  查询某个商户的所有商品信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 2)] = kClient.HandleAddProduct     //7-2  查询某个商户的所有商品信息
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 3)] = kClient.HandleUpdateProduct  //7-3  商品编辑更新
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 4)] = kClient.HandleSoldoutProduct //7-4 商品下架
-	
-	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 1)] = kClient.HandleRegisterPreKeys //9-1 商户上传订单DH加密公钥
+
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 1)] = kClient.HandleRegisterPreKeys  //9-1 商户上传订单DH加密公钥
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 2)] = kClient.HandleGetPreKeyOrderID //9-2 获取网点OPK公钥及订单ID
 
 	return kClient
@@ -224,15 +224,8 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue
 			} else {
-				if err := handleFunc(msg); err != nil {
-
-					msg.SetCode(500) //异常出错
-					msg.SetErrorMsg([]byte("Internal Server Error"))
-
-					//处理完成，向dispatcher发送
-					topic := msg.GetSource() + ".Frontend"
-					kc.Produce(topic, msg)
-				}
+				//启动Go程
+				go handleFunc(msg)
 			}
 
 		}
