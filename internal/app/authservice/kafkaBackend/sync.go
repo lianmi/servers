@@ -47,7 +47,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 	cur_myInfoAt, err := redis.Uint64(redisConn.Do("HGET", myInfoAtKey, "myInfoAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 	kc.logger.Debug("SyncMyInfoAt",
 		zap.Uint64("cur_myInfoAt", cur_myInfoAt),
@@ -127,6 +127,7 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 
 	}
 
+COMPLETE:
 	//完成
 	ch <- 1
 
@@ -145,7 +146,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	cur_friendsAt, err := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 	kc.logger.Debug("SyncFriendsAt",
 		zap.Uint64("cur_friendsAt", cur_friendsAt),
@@ -232,6 +233,8 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
+
+COMPLETE:
 	//完成
 	ch <- 1
 
@@ -250,7 +253,7 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 	cur_friendUsersAt, err := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 
 	kc.logger.Debug("SyncFriendUsersAt",
@@ -336,6 +339,8 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
+
+COMPLETE:
 	//完成
 	ch <- 1
 
@@ -354,7 +359,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	cur_teamsAt, err := redis.Uint64(redisConn.Do("HGET", teamsAtKey, "teamsAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 
 	kc.logger.Debug("SyncTeamsAt",
@@ -454,6 +459,8 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
+
+COMPLETE:
 	//完成
 	ch <- 1
 
@@ -508,7 +515,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	cur_systemMsgAt, err := redis.Uint64(redisConn.Do("HGET", systemMsgAtKey, "systemMsgAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 
 	//服务端的时间戳大于客户端上报的时间戳
@@ -566,7 +573,7 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 			}
 		}
 	}
-
+COMPLETE:
 	//完成
 	ch <- 1
 	_ = err
@@ -591,7 +598,7 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 	cur_watchAt, err := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
 	if err != nil {
 		kc.logger.Error("HGET error", zap.Error(err))
-		return err
+		goto COMPLETE
 	}
 
 	kc.logger.Debug("SyncWatchAt",
@@ -612,6 +619,7 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 
 	}
 
+COMPLETE:
 	//完成
 	ch <- 1
 	_ = err
