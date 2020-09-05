@@ -103,8 +103,8 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 				targetMsg.SetDeviceID(deviceID)
 				// kickMsg.SetTaskID(uint32(taskId))
 				targetMsg.SetBusinessTypeName("User")
-				targetMsg.SetBusinessType(uint32(1))
-				targetMsg.SetBusinessSubType(uint32(3)) //SyncUserProfileEvent = 3
+				targetMsg.SetBusinessType(uint32(Global.BusinessType_User))                   // 1
+				targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncUserProfileEvent)) // 3
 				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 				targetMsg.SetCode(200)   //成功的状态码
@@ -213,9 +213,9 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("User")
-		targetMsg.SetBusinessType(uint32(1))
-		targetMsg.SetBusinessSubType(uint32(3)) //SyncFriendsEvent = 3
+		targetMsg.SetBusinessTypeName("Friends")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_User))                 //3
+		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncFriendsEvent)) //3
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
@@ -319,9 +319,9 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("User")
-		targetMsg.SetBusinessType(uint32(3))
-		targetMsg.SetBusinessSubType(uint32(4)) //SyncFriendUsersEvent = 4
+		targetMsg.SetBusinessTypeName("Friends")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))                  // 3
+		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncFriendUsersEvent)) // 4
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
@@ -425,7 +425,6 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		data, _ := proto.Marshal(rsp)
 
 		//向客户端响应 SyncFriendUsersEvent 事件
-
 		targetMsg := &models.Message{}
 
 		targetMsg.UpdateID()
@@ -436,9 +435,9 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("User")
-		targetMsg.SetBusinessType(uint32(4))
-		targetMsg.SetBusinessSubType(uint32(17)) //SyncMyTeamsEvent = 17
+		targetMsg.SetBusinessTypeName("Team")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Team))               // 4
+		targetMsg.SetBusinessSubType(uint32(Global.TeamSubType_SyncMyTeamsEvent)) // 17
 
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
@@ -480,7 +479,7 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 	targetMsg.SetUserName(toUser)
 	targetMsg.SetDeviceID(deviceID)
 	// kickMsg.SetTaskID(uint32(taskId))
-	targetMsg.SetBusinessTypeName("User")
+	targetMsg.SetBusinessTypeName("Msg")
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
 	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
 
@@ -584,9 +583,9 @@ COMPLETE:
 func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	rsp := &Order.SyncWatchEventRsp{
-		TimeAt:      uint64(time.Now().UnixNano() / 1e6),
-		Usernames:   make([]string, 0), //用户关注的商户
-		RemoveUsers: make([]string, 0), //用户取消关注的商户
+		TimeAt:              uint64(time.Now().UnixNano() / 1e6),
+		WatchingUsers:       make([]string, 0), //用户关注的商户
+		CancelWatchingUsers: make([]string, 0), //用户取消关注的商户
 	}
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -610,13 +609,48 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 	if cur_watchAt > watchAt {
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), watchAt, "+inf"))
 		for _, watchingUser := range watchingUsers {
-			rsp.Usernames = append(rsp.Usernames, watchingUser)
+			rsp.WatchingUsers = append(rsp.WatchingUsers, watchingUser)
 		}
 		cancelWatchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("CancelWatching:%s", username), watchAt, "+inf"))
 		for _, cancelWatchingUser := range cancelWatchingUsers {
-			rsp.RemoveUsers = append(rsp.RemoveUsers, cancelWatchingUser)
+			rsp.CancelWatchingUsers = append(rsp.CancelWatchingUsers, cancelWatchingUser)
 		}
 
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Friends")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))            // 3
+		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncWatchEvent)) // 11
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("SyncWatchEvent Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	}
 
 COMPLETE:

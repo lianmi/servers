@@ -57,6 +57,9 @@ enum FriendSubType {
     UpdateFriend          =  6;  /**< 刷新好友资料*/ 
     SyncUpdateFriendEvent =  7;  /**< 主从设备好友资料同步事件*/
     GetFriends            =  8;  /**< 增量同步好友列表 */
+    WatchRequest          =  9;  /**< 关注商户 */
+    CancelWatchRequest    =  10;  /**< 取消关注商户 */
+    SyncWatchEvent        =  11;  /**< 关注商户同步事件*/
 }
 
 //群组模块子模块定义

@@ -307,7 +307,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().UnixNano()/1e6),
+							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 
 						go kc.BroadcastMsgToAllDevices(eRsp, userA)
@@ -342,7 +342,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().UnixNano()/1e6),
+							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 						go kc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
@@ -394,7 +394,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano()/1e6),
+						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
 					//A和B互相不为好友，B所有终端均会收到该消息。
@@ -556,7 +556,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano()/1e6),
+						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 					isSend := false
 
@@ -614,7 +614,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano()/1e6),
+						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 					kc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
 					go kc.BroadcastMsgToAllDevices(eRsp, userA)
@@ -821,7 +821,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(eRsp, targetUsername)
 		}
@@ -943,14 +943,14 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		rsp.TimeTag = uint64(time.Now().UnixNano()/1e6)
+		rsp.TimeTag = uint64(time.Now().UnixNano() / 1e6)
 
 		// 同步到用户的其它端
 		{
 			sameRsp := &Friends.SyncUpdateFriendEventRsp{
 				Username: targetUsername,
 				Fields:   make(map[int32]string),
-				TimeAt:   uint64(time.Now().UnixNano()/1e6),
+				TimeAt:   uint64(time.Now().UnixNano() / 1e6),
 			}
 			sameRsp.Fields[1] = req.Fields[1]
 			sameRsp.Fields[2] = req.Fields[2]
@@ -978,7 +978,7 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 				targetMsg.SetUserName(username)
 				targetMsg.SetDeviceID(eDeviceID)
 				// kickMsg.SetTaskID(uint32(taskId))
-				targetMsg.SetBusinessTypeName("User")
+				targetMsg.SetBusinessTypeName("Friends")
 				targetMsg.SetBusinessType(uint32(3))
 				targetMsg.SetBusinessSubType(uint32(7)) //SyncUpdateFriendEvent = 7
 
@@ -1082,7 +1082,7 @@ func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
 			zap.Uint64("timeTag", req.GetTimeTag()))
 
 		rsp = &Friends.GetFriendsRsp{
-			TimeTag:      uint64(time.Now().UnixNano()/1e6),
+			TimeTag:      uint64(time.Now().UnixNano() / 1e6),
 			Friends:      make([]*Friends.Friend, 0),
 			RemovedUsers: make([]string, 0),
 		}
@@ -1361,7 +1361,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano()/1e6
+	systemMsgAt := time.Now().UnixNano() / 1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
@@ -1398,7 +1398,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessTypeName("Friends")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 

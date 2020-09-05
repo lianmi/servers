@@ -283,7 +283,7 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 			pUser.LegalPerson = legal_identity_card
 		}
 
-		pUser.UpdatedAt = time.Now().UnixNano()/1e6
+		pUser.UpdatedAt = time.Now().UnixNano() / 1e6
 
 		if err := kc.SaveUser(pUser); err != nil {
 			kc.logger.Error("更新用户信息失败", zap.Error(err))
@@ -516,7 +516,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 		if req.GetIsAdd() { //增加
 			pTag := new(models.Tag)
 			pTag.UserID = pUser.ID
-			pTag.UpdatedAt = time.Now().UnixNano()/1e6
+			pTag.UpdatedAt = time.Now().UnixNano() / 1e6
 			pTag.TagType = int(req.GetType())
 
 			// //如果已经存在，则先删除，确保不会重复增加
@@ -618,7 +618,7 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetUserName(username)
 				targetMsg.SetDeviceID(eDeviceID)
 				// kickMsg.SetTaskID(uint32(taskId))
-				targetMsg.SetBusinessTypeName("Auth")
+				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(2))
 				targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 

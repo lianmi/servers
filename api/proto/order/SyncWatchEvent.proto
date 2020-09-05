@@ -9,8 +9,8 @@ message SyncWatchEventRsp {
     fixed64 timeAt=1;
     //关注的商户列表
     //是否必须-是
-    repeated string usernames = 2;
+    repeated string watchingUsers = 2;
     //取消关注的商户列表
     //是否必须-否
-    repeated string removeUsers = 3;
+    repeated string cancelWatchingUsers = 3;
 }
