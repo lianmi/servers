@@ -20,70 +20,83 @@ message Product {
     //是否必须-是
     string ProductDesc = 4;
 
-    //商品图片1
+    //商品图片1-小图
     //是否必须-是
-    string ProductPic1 = 5;
+    string ProductPic1Small = 5;
 
-    //商品图片2
-    //是否必须-否
-    string ProductPic2 = 6;
+    //商品图片1-中图
+    //是否必须-是
+    string ProductPic1Middle = 6;
 
-    //商品图片3
-    //是否必须-否
-    string ProductPic3 = 7;
+    //商品图片1-大图
+    //是否必须-是
+    string ProductPic1Large = 7;
 
-    //商品图片4
-    //是否必须-否
-    string ProductPic4 = 8;
 
-    //商品图片5
+    //商品图片2-小图
     //是否必须-否
-    string ProductPic5 = 9;
+    string ProductPic2Small = 8;
 
-    //商品短视频1
+    //商品图片2-中图
     //是否必须-否
-    string ShortVideo1 = 10;
+    string ProductPic2Middle = 9;
 
-    //商品短视频2
+    //商品图片2-大图
     //是否必须-否
-    string ShortVideo2 = 11;
+    string ProductPic2Large = 10;
 
-    //商品短视频3
+    //商品图片3-小图
     //是否必须-否
-    string ShortVideo3 = 12;
+    string ProductPic3Small = 11;
+
+    //商品图片3-中图
+    //是否必须-否
+    string ProductPic3Middle = 12;
+
+    //商品图片3-大图
+    //是否必须-否
+    string ProductPic3Large = 13;
+
+    //商品短视频缩略图
+    //是否必须-否
+    string Thumbnail = 14;
+
+    //商品短视频
+    //是否必须-否
+    string ShortVideo = 15;
 
     //价格
     //是否必须-是
-    float Price = 13;
+    float Price = 16;
 
     //库存数量
     //是否必须-是
-    fixed64 LeftCount = 14;
+    fixed64 LeftCount = 17;
 
     //折扣
     //实际数字，例如: 0.95, UI显示为九五折
     //是否必须-否
-    float Discount = 15;
+    float Discount = 18;
 
     //折扣说明
     //是否必须-否
-    string DiscountDesc = 16;
+    string DiscountDesc = 19;
 
     //折扣开始时间
     //是否必须-否
-    fixed64 DiscountStartTime = 17;
+    fixed64 DiscountStartTime = 20;
 
     //折扣结束时间
     //是否必须-否
-    fixed64 DiscountEndTime = 18;
+    fixed64 DiscountEndTime = 21;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 19;
+    fixed64 CreateAt = 22;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 20;
+    fixed64 ModifyAt = 23;
 
 
 }

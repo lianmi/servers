@@ -40,7 +40,8 @@ require (
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	github.com/unrolled/secure v1.0.8
 	go.uber.org/zap v1.12.0
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20200903185744-af4cc2cd812e // indirect
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2

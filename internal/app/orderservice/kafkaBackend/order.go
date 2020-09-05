@@ -41,7 +41,7 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 	rsp := &Order.QueryProductsRsp{
 		Products:        make([]*Order.Product, 0),
 		SoldoutProducts: make([]string, 0),
-		TimeAt:          uint64(time.Now().UnixNano()/1e6),
+		TimeAt:          uint64(time.Now().UnixNano() / 1e6),
 	}
 
 	redisConn := kc.redisPool.Get()
@@ -130,14 +130,20 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 				ProductName:       product.ProductName,
 				CategoryName:      product.CategoryName,
 				ProductDesc:       product.ProductDesc,
-				ProductPic1:       product.ProductPic1,
-				ProductPic2:       product.ProductPic2,
-				ProductPic3:       product.ProductPic3,
-				ProductPic4:       product.ProductPic4,
-				ProductPic5:       product.ProductPic5,
-				ShortVideo1:       product.ShortVideo1,
-				ShortVideo2:       product.ShortVideo2,
-				ShortVideo3:       product.ShortVideo3,
+				ProductPic1Small:  product.ProductPic1Small,
+				ProductPic1Middle: product.ProductPic1Middle,
+				ProductPic1Large:  product.ProductPic1Large,
+
+				ProductPic2Small:  product.ProductPic2Small,
+				ProductPic2Middle: product.ProductPic2Middle,
+				ProductPic2Large:  product.ProductPic2Large,
+
+				ProductPic3Small:  product.ProductPic3Small,
+				ProductPic3Middle: product.ProductPic3Middle,
+				ProductPic3Large:  product.ProductPic3Large,
+
+				Thumbnail:         product.Thumbnail,
+				ShortVideo:        product.ShortVideo,
 				Price:             product.Price,
 				LeftCount:         product.LeftCount,
 				Discount:          product.Discount,
@@ -274,21 +280,27 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			ProductName:       req.Product.ProductName,
 			CategoryName:      req.Product.CategoryName,
 			ProductDesc:       req.Product.ProductDesc,
-			ProductPic1:       req.Product.ProductPic1,
-			ProductPic2:       req.Product.ProductPic2,
-			ProductPic3:       req.Product.ProductPic3,
-			ProductPic4:       req.Product.ProductPic4,
-			ProductPic5:       req.Product.ProductPic5,
-			ShortVideo1:       req.Product.ShortVideo1,
-			ShortVideo2:       req.Product.ShortVideo2,
-			ShortVideo3:       req.Product.ShortVideo3,
+			ProductPic1Small:  req.Product.ProductPic1Small,
+			ProductPic1Middle: req.Product.ProductPic1Middle,
+			ProductPic1Large:  req.Product.ProductPic1Large,
+
+			ProductPic2Small:  req.Product.ProductPic2Small,
+			ProductPic2Middle: req.Product.ProductPic2Middle,
+			ProductPic2Large:  req.Product.ProductPic2Large,
+
+			ProductPic3Small:  req.Product.ProductPic3Small,
+			ProductPic3Middle: req.Product.ProductPic3Middle,
+			ProductPic3Large:  req.Product.ProductPic3Large,
+
+			Thumbnail:         req.Product.Thumbnail,
+			ShortVideo:        req.Product.ShortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
 			Discount:          req.Product.Discount,
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().UnixNano()/1e6,
+			CreateAt:          time.Now().UnixNano() / 1e6,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -318,7 +330,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 				OrderType:   req.OrderType,   //订单类型，必填
 				OpkBusiness: req.OpkBusiness, //商户的协商公钥，适用于任务类
 				Expire:      req.Expire,      //商品过期时间
-				TimeAt:      uint64(time.Now().UnixNano()/1e6),
+				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
 
@@ -340,7 +352,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -464,21 +476,27 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 			ProductName:       req.Product.ProductName,
 			CategoryName:      req.Product.CategoryName,
 			ProductDesc:       req.Product.ProductDesc,
-			ProductPic1:       req.Product.ProductPic1,
-			ProductPic2:       req.Product.ProductPic2,
-			ProductPic3:       req.Product.ProductPic3,
-			ProductPic4:       req.Product.ProductPic4,
-			ProductPic5:       req.Product.ProductPic5,
-			ShortVideo1:       req.Product.ShortVideo1,
-			ShortVideo2:       req.Product.ShortVideo2,
-			ShortVideo3:       req.Product.ShortVideo3,
+			ProductPic1Small:  req.Product.ProductPic1Small,
+			ProductPic1Middle: req.Product.ProductPic1Middle,
+			ProductPic1Large:  req.Product.ProductPic1Large,
+
+			ProductPic2Small:  req.Product.ProductPic2Small,
+			ProductPic2Middle: req.Product.ProductPic2Middle,
+			ProductPic2Large:  req.Product.ProductPic2Large,
+
+			ProductPic3Small:  req.Product.ProductPic3Small,
+			ProductPic3Middle: req.Product.ProductPic3Middle,
+			ProductPic3Large:  req.Product.ProductPic3Large,
+
+			Thumbnail:         req.Product.Thumbnail,
+			ShortVideo:        req.Product.ShortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
 			Discount:          req.Product.Discount,
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().UnixNano()/1e6,
+			CreateAt:          time.Now().UnixNano() / 1e6,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -507,7 +525,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				Product:   req.Product,
 				OrderType: req.OrderType,
 				Expire:    req.Expire,
-				TimeAt:    uint64(time.Now().UnixNano()/1e6),
+				TimeAt:    uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(updateProductEventReq)
 
@@ -529,7 +547,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -698,7 +716,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
 			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
@@ -807,7 +825,7 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 				Type:         0,
 				Username:     username,
 				Publickey:    opk,
-				UploadTimeAt: time.Now().UnixNano()/1e6,
+				UploadTimeAt: time.Now().UnixNano() / 1e6,
 			})
 
 			//保存到redis里prekeys:{username}
@@ -933,6 +951,14 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			}
 		}
 
+		//判断商户是否被封号
+		if businessUserData.State == 2 {
+			kc.logger.Warn("此商户已被封号", zap.String("businessUser", req.GetUserName()))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUserName())
+			goto COMPLETE
+		}
+
 		if businessUserData.UserType != int(User.UserType_Ut_Normal) {
 			kc.logger.Warn("目标用户不是商户类型")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -940,7 +966,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//TODO
+		//TODO 检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
 
 		// 生成订单ID
 		orderID := uuid.NewV4().String()
@@ -1026,7 +1052,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano()/1e6
+	systemMsgAt := time.Now().UnixNano() / 1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
@@ -1107,67 +1133,94 @@ func (kc *KafkaClient) DeleteAliyunOssFile(product *models.Product) error {
 	}
 
 	//删除文件
-	if product.ProductPic1 != "" {
-		err = bucket.DeleteObject(product.ProductPic1)
+	if product.ProductPic1Small != "" {
+		err = bucket.DeleteObject(product.ProductPic1Small)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic1:", product.ProductPic1))
+				zap.String("ProductPic1Small:", product.ProductPic1Small))
 		}
 
 	}
-	if product.ProductPic2 != "" {
-		err = bucket.DeleteObject(product.ProductPic2)
+	if product.ProductPic1Middle != "" {
+		err = bucket.DeleteObject(product.ProductPic1Middle)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic2:", product.ProductPic2))
+				zap.String("ProductPic1Middle:", product.ProductPic1Middle))
 		}
 
 	}
-	if product.ProductPic3 != "" {
-		err = bucket.DeleteObject(product.ProductPic3)
+	if product.ProductPic1Large != "" {
+		err = bucket.DeleteObject(product.ProductPic1Large)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic3:", product.ProductPic3))
+				zap.String("ProductPic1Large:", product.ProductPic1Large))
 		}
 
 	}
-	if product.ProductPic4 != "" {
-		err = bucket.DeleteObject(product.ProductPic4)
+
+	if product.ProductPic2Small != "" {
+		err = bucket.DeleteObject(product.ProductPic2Small)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic4:", product.ProductPic4))
+				zap.String("ProductPic2Small:", product.ProductPic2Small))
 		}
 
 	}
-	if product.ProductPic5 != "" {
-		err = bucket.DeleteObject(product.ProductPic5)
+	if product.ProductPic2Middle != "" {
+		err = bucket.DeleteObject(product.ProductPic2Middle)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic5:", product.ProductPic5))
+				zap.String("ProductPic2Middle:", product.ProductPic2Middle))
 		}
 
 	}
-	if product.ShortVideo1 != "" {
-		err = bucket.DeleteObject(product.ShortVideo1)
+	if product.ProductPic2Large != "" {
+		err = bucket.DeleteObject(product.ProductPic2Large)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ShortVideo1:", product.ShortVideo1))
+				zap.String("ProductPic2Large:", product.ProductPic2Large))
 		}
 
 	}
-	if product.ShortVideo2 != "" {
-		err = bucket.DeleteObject(product.ShortVideo2)
+
+	if product.ProductPic3Small != "" {
+		err = bucket.DeleteObject(product.ProductPic3Small)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ShortVideo2:", product.ShortVideo2))
+				zap.String("ProductPic3Small:", product.ProductPic3Small))
 		}
 
 	}
-	if product.ShortVideo3 != "" {
-		err = bucket.DeleteObject(product.ShortVideo3)
+	if product.ProductPic3Middle != "" {
+		err = bucket.DeleteObject(product.ProductPic3Middle)
 		if err == nil {
 			kc.logger.Info("删除文件 Succeed",
-				zap.String("ShortVideo3:", product.ShortVideo3))
+				zap.String("ProductPic3Middle:", product.ProductPic3Middle))
+		}
+
+	}
+	if product.ProductPic3Large != "" {
+		err = bucket.DeleteObject(product.ProductPic3Large)
+		if err == nil {
+			kc.logger.Info("删除文件 Succeed",
+				zap.String("ProductPic3Large:", product.ProductPic3Large))
+		}
+
+	}
+
+	if product.Thumbnail != "" {
+		err = bucket.DeleteObject(product.Thumbnail)
+		if err == nil {
+			kc.logger.Info("删除文件 Succeed",
+				zap.String("Thumbnail:", product.Thumbnail))
+		}
+
+	}
+	if product.ShortVideo != "" {
+		err = bucket.DeleteObject(product.ShortVideo)
+		if err == nil {
+			kc.logger.Info("删除文件 Succeed",
+				zap.String("ShortVideo:", product.ShortVideo))
 		}
 
 	}
