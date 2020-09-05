@@ -214,7 +214,7 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Friends")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_User))                 //3
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))              //3
 		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncFriendsEvent)) //3
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
