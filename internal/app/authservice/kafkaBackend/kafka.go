@@ -246,16 +246,8 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				continue
 			} else {
-				if err := handleFunc(msg); err == nil {
-					kc.logger.Debug("handleFunc succeed",
-						zap.Uint32("taskId:", taskID),                     //SDK的任务ID
-						zap.String("BusinessTypeName:", businessTypeName), //业务名称
-						zap.Uint16("businessType:", businessType),         // 业务类型
-						zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
-						zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
-						zap.String("Target:", msg.GetTarget()),            // 接收者, 这里是自己，authService
-					)
-				}
+				//启动Go程
+				go handleFunc(msg)
 			}
 
 		}
