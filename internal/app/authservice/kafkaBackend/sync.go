@@ -674,63 +674,63 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("WatchAt", req.WatchAt),
 		)
 		//异步
-		go func() {
-			//所有同步的时间戳数量,
-			syncCount := common.TotalSyncCount
+		// go func() {
+		//所有同步的时间戳数量,
+		syncCount := common.TotalSyncCount
 
-			chs := make([]chan int, syncCount) //6 个
+		chs := make([]chan int, syncCount) //6 个
 
-			chs[0] = make(chan int)
+		chs[0] = make(chan int)
 
-			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
-				kc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("myInfoAt is done")
-			}
+		if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
+			kc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("myInfoAt is done")
+		}
 
-			chs[1] = make(chan int)
-			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
-				kc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("SyncFriendsAt is done")
-			}
+		chs[1] = make(chan int)
+		if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
+			kc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("SyncFriendsAt is done")
+		}
 
-			chs[2] = make(chan int)
-			if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
-				kc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("SyncFriendUsersAt is done")
-			}
+		chs[2] = make(chan int)
+		if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
+			kc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("SyncFriendUsersAt is done")
+		}
 
-			chs[3] = make(chan int)
-			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
-				kc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("SyncTeamsAt is done")
-			}
+		chs[3] = make(chan int)
+		if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
+			kc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("SyncTeamsAt is done")
+		}
 
-			chs[4] = make(chan int)
-			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[4]); err != nil {
-				kc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("SyncSystemMsgAt is done")
-			}
+		chs[4] = make(chan int)
+		if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[4]); err != nil {
+			kc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("SyncSystemMsgAt is done")
+		}
 
-			chs[5] = make(chan int)
-			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[5]); err != nil {
-				kc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
-			} else {
-				kc.logger.Debug("SyncWatchAt is done")
-			}
+		chs[5] = make(chan int)
+		if err := kc.SyncWatchAt(username, token, deviceID, req, chs[5]); err != nil {
+			kc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
+		} else {
+			kc.logger.Debug("SyncWatchAt is done")
+		}
 
-			for _, ch := range chs {
-				<-ch
-			}
+		for _, ch := range chs {
+			<-ch
+		}
 
-			//发送SyncDoneEvent
-			kc.SendSyncDoneEventToUser(username, deviceID, token)
-			kc.logger.Debug("All Sync done")
-		}()
+		//发送SyncDoneEvent
+		kc.SendSyncDoneEventToUser(username, deviceID, token)
+		kc.logger.Debug("All Sync done")
+		// }()
 
 	}
 
