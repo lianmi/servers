@@ -723,7 +723,8 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			kc.logger.Debug("SyncWatchAt is done")
 		}
 
-		for _, ch := range chs {
+		for i, ch := range chs {
+			kc.logger.Debug("range chs", zap.Int("i", i))
 			<-ch
 		}
 
