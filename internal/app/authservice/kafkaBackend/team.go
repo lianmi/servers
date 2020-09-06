@@ -621,6 +621,11 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							continue
 						}
 
+						//将被邀请方存入InviteTeamMembers:{teamID}里，以便被邀请方同意或拒绝的时候校验，其它人没被邀请，则直接退出
+						if _, err = redisConn.Do("ZADD", fmt.Sprintf("InviteTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, inviteUsername); err != nil {
+							kc.logger.Error("ZADD Error", zap.Error(err))
+						}
+
 						body := Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_TeamInvite, //向用户inviteUsername发出入群请求
 							HandledAccount: username,
@@ -961,7 +966,21 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 		)
 
 		teamID := req.GetTeamId()
-		targetUsername := username
+		targetUsername := username //被邀请方
+
+		//校验用户是否曾经被人拉入群
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername); err == nil {
+			if reply != nil {
+				//曾经被人拉入群, 删除有序集合
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername)
+
+			} else {
+				kc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("targetUsername", targetUsername))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Not Invite for this team")
+				goto COMPLETE
+			}
+		}
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
@@ -1229,6 +1248,19 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 
 		teamID := req.GetTeamId()
 		targetUsername := username
+
+		//校验用户是否曾经被人拉入群
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername); err == nil {
+			if reply != nil {
+				//曾经被人拉入群, 删除有序集合
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername)
+			} else {
+				kc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("targetUsername", targetUsername))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Not Invite for this team")
+				goto COMPLETE
+			}
+		}
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
