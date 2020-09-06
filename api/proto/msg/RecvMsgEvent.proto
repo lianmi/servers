@@ -19,25 +19,31 @@ message RecvMsgEventRsp {
     //是否必填-否
     bytes body = 3;
 
-    //是否必填-否
+    //是否必填-是
     //发送方消息设备ID 如果是S2C 的场景 不用填
     string from = 4;
 
-    //是否必填-否 ， P2P 等端对端的时候使用
+    //是否必填-是 ， P2P 等端对端的时候使用
     string fromDeviceId = 5;
+
+    //是否必填-是
+    //接收方, 根据场景判断to是个人还是群
+    string to = 6;
+
     //服务器分配的消息ID
     //是否必填-是
-    string serverMsgId = 6;
+    string serverMsgId = 7;
     //消息序号，单个会话内自然递增
     //是否必填-是
-    fixed64 seq = 7;
+    fixed64 seq = 8;
 
     //是否必填-否 由客户端生成的 uuid , 单聊 / 群聊 等客户端产生的时候需要
     // 服务端下发的不需要uuid
-    string uuid = 8;
+    string uuid = 9;
+    
     //服务器处理消息时间，Unix时间戳
     //是否必填-是
-    fixed64 time = 9;
+    fixed64 time = 10;
 }
 
 message MessageNotificationBody {

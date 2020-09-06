@@ -155,6 +155,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
 				From:         username,       //谁发的
 				FromDeviceId: deviceID,       //哪个设备发的
+				To:           toUser,         //个人消息接收方
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
@@ -239,12 +240,13 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					Body:         req.GetBody(),  //不拆包，直接透传body给接收者
 					From:         username,       //谁发的
 					FromDeviceId: deviceID,       //哪个设备发的
+					To:           teamID,         //接收方， 群id
 					ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 					Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				
+
 				//转发消息
 				go kc.SendMsgToUser(eRsp, username, deviceID, toUser)
 			}
@@ -288,6 +290,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
 				From:         username,       //谁发的消息
 				FromDeviceId: deviceID,       //哪个设备发的
+				To:           username,       //接收方
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
