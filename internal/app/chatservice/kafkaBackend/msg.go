@@ -158,7 +158,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
 			//转发消息
@@ -232,26 +232,19 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 					kc.logger.Warn("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
-				body := &Msg.MessageNotificationBody{
-					HandledAccount: toUser,
-					HandledMsg:     "",
-					Status:         1,          //TODO, 消息状态  存储
-					Data:           []byte(""), // 附带的文本 该系统消息的文本
-					To:             toUser,
-				}
-				bodyData, _ := proto.Marshal(body)
-				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        req.GetScene(), //消息场景
-					Type:         req.GetType(),  //消息类型
-					Body:         bodyData,
-					From:         username,      //谁发的
-					FromDeviceId: deviceID,      //哪个设备发的
-					ServerMsgId:  msg.GetID(),   //服务器分配的消息ID
-					Seq:          newSeq,        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-					Uuid:         req.GetUuid(), //客户端分配的消息ID，SDK生成的消息id
-					Time:         uint64(time.Now().UnixNano()/1e6),
-				}
 
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        req.GetScene(), //传输场景
+					Type:         req.GetType(),  //消息类型
+					Body:         req.GetBody(),  //不拆包，直接透传body给接收者
+					From:         username,       //谁发的
+					FromDeviceId: deviceID,       //哪个设备发的
+					ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
+					Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+					Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+				
 				//转发消息
 				go kc.SendMsgToUser(eRsp, username, deviceID, toUser)
 			}
@@ -298,7 +291,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
 				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().UnixNano()/1e6),
+				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			data, _ := proto.Marshal(eRsp)
 
@@ -343,7 +336,7 @@ COMPLETE:
 				Uuid:        req.GetUuid(),
 				ServerMsgId: msg.GetID(),
 				Seq:         curSeq,
-				Time:        uint64(time.Now().UnixNano()/1e6),
+				Time:        uint64(time.Now().UnixNano() / 1e6),
 			}
 			data, _ = proto.Marshal(rsp)
 			msg.FillBody(data)
@@ -764,7 +757,7 @@ func (kc *KafkaClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDev
 	defer redisConn.Close()
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些消息给用户
-	msgAt := time.Now().UnixNano()/1e6
+	msgAt := time.Now().UnixNano() / 1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("offLineMsgList:%s", toUser), rsp.Seq, rsp.GetServerMsgId()); err != nil {
 		kc.logger.Error("ZADD Error", zap.Error(err))
 	}
