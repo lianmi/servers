@@ -1,11 +1,15 @@
 syntax = "proto3"; 
 import "api/proto/global/Global.proto";
+import "api/proto/order/Product.proto"; 
+
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
 message ChangeOrderStateReq {
-    //订单ID 
-    string orderID =1;
+    //订单body数据体
+    OrderProductBody orderBody =1;
     //订单状态
     global.OrderState state =2;
+    //时间戳
+    fixed64 timeAt=3;
 }

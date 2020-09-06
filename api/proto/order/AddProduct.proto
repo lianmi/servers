@@ -12,7 +12,7 @@ message AddProductReq {
     //订单类型，必填
     global.OrderType orderType=2;
     //商户的协商公钥，适用于任务类
-    string opkBusiness=3;
+    string opkBusinessUser=3;
     //商品过期时间
     fixed64 expire=4;
 }

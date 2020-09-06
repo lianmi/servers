@@ -80,90 +80,111 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 		switch req.GetScene() {
 		case Msg.MessageScene_MsgScene_C2C: //个人消息
 			toUser = req.GetTo()
-			kc.logger.Debug("MessageScene_MsgScene_C2C", zap.String("toUser", req.GetTo()))
-			//判断toUser的合法性以及是否封禁等
-			userData := new(models.User)
-			userKey := fmt.Sprintf("userData:%s", toUser)
-			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-				if err := redis.ScanStruct(result, userData); err != nil {
+			kc.logger.Debug("MessageScene_MsgScene_C2C",
+				zap.String("toUser", req.GetTo()),
+				zap.Int("Type", int(req.GetType())),
+			)
 
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+			//判断消息类型
+			switch req.GetType() {
+			case Msg.MessageType_MsgType_Text, //Text(0)-文本
+				Msg.MessageType_MsgType_Attach, //附件类型
+				Msg.MessageType_MsgType_Bin,    // 二进制
+				Msg.MessageType_MsgType_Secret: //加密类型
+
+				//判断toUser的合法性以及是否封禁等
+				userData := new(models.User)
+				userKey := fmt.Sprintf("userData:%s", toUser)
+				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+					if err := redis.ScanStruct(result, userData); err != nil {
+
+						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", toUser)
+						goto COMPLETE
+
+					}
+				}
+
+				if userData.State == 2 {
+					kc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", toUser)
-					goto COMPLETE
-
-				}
-			}
-
-			if userData.State == 2 {
-				kc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
-				goto COMPLETE
-			}
-
-			//判断两者是不是好友， 单向好友也不能发消息
-			var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
-			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), toUser); err == nil {
-				if reply == nil {
-					//A好友列表中没有B
-					isAhaveB = false
-				} else {
-					isAhaveB = true
-				}
-
-			}
-			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", toUser), username); err == nil {
-				if reply == nil {
-					//B好友列表中没有A
-					isBhaveA = false
-				} else {
-					isBhaveA = true
-				}
-
-			}
-			if isAhaveB && isBhaveA {
-				//pass
-			} else {
-				kc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
-				goto COMPLETE
-			}
-
-			//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
-			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", toUser), username); err == nil {
-				if reply != nil {
-					kc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
-					errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
 					goto COMPLETE
 				}
-			}
 
-			//构造转发消息数据
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
-				goto COMPLETE
-			}
+				//判断两者是不是好友， 单向好友也不能发消息
+				var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), toUser); err == nil {
+					if reply == nil {
+						//A好友列表中没有B
+						isAhaveB = false
+					} else {
+						isAhaveB = true
+					}
 
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        req.GetScene(), //传输场景
-				Type:         req.GetType(),  //消息类型
-				Body:         req.GetBody(),  //不拆包，直接透传body给接收者
-				From:         username,       //谁发的
-				FromDeviceId: deviceID,       //哪个设备发的
-				To:           toUser,         //个人消息接收方
-				ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
-				Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
+				}
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", toUser), username); err == nil {
+					if reply == nil {
+						//B好友列表中没有A
+						isBhaveA = false
+					} else {
+						isBhaveA = true
+					}
 
-			//转发消息
-			go kc.SendMsgToUser(eRsp, username, deviceID, toUser)
+				}
+				if isAhaveB && isBhaveA {
+					//pass
+				} else {
+					kc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
+					goto COMPLETE
+				}
+
+				//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", toUser), username); err == nil {
+					if reply != nil {
+						kc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
+						errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+						goto COMPLETE
+					}
+				}
+
+				//构造转发消息数据
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = "INCR Error"
+					goto COMPLETE
+				}
+
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        req.GetScene(), //传输场景
+					Type:         req.GetType(),  //消息类型
+					Body:         req.GetBody(),  //不拆包，直接透传body给接收者
+					From:         username,       //谁发的
+					FromDeviceId: deviceID,       //哪个设备发的
+					To:           toUser,         //个人消息接收方
+					ServerMsgId:  msg.GetID(),    //服务器分配的消息ID
+					Seq:          newSeq,         //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+					Uuid:         req.GetUuid(),  //客户端分配的消息ID，SDK生成的消息id
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+
+				//转发消息
+				go kc.SendMsgToUser(eRsp, username, deviceID, toUser)
+
+			case Msg.MessageType_MsgType_Order: //订单
+				//将消息转发到OrderService
+				msg.BuildRouter("Order", "", "Order.Frontend")
+				topic := "Order.Frontend"
+				go kc.Produce(topic, msg)
+
+			case Msg.MessageType_MSgType_Customer: //自定义
+
+			}
 
 		case Msg.MessageScene_MsgScene_C2G: //群聊消息
 			teamID = req.GetTo()
@@ -940,3 +961,8 @@ func (kc *KafkaClient) SendDataToUserDevices(data []byte, toUser string, busines
 
 	return nil
 }
+
+/*
+9-3 下单 处理
+*/
+// func (kc *KafkaClient) HandelOrder

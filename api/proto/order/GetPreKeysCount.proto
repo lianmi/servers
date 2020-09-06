@@ -3,8 +3,6 @@ package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
 message GetPreKeysCountReq{
-    //用户账号
-    string userName=1;
 }
 
 message GetPreKeysCountRsp{

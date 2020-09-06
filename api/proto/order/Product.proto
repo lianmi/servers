@@ -103,3 +103,22 @@ message Product {
 
 
 }
+
+//下单消息里的商品信息Body
+message OrderProductBody {
+    //服务端生成订单ID,用于以后此订单的追踪
+    string OrderID =1;
+    //商品id
+    string productID =2;  
+    //买家账号
+    string buyUser =3;
+    //买家的协商公钥
+    string opkBuyUser =4;
+    //商户账号
+    string businessUser=5;
+    //商户的协商公钥
+    string opkBusinessUser =6;
+    //加密信息(明文是JSON格式字符串)
+    string attach=7;
+
+}

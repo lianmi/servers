@@ -136,9 +136,9 @@ enum OrderSubType {
     OST_undefined     =  0;    //proto3必须从0开始
     RegisterPreKeys   =  1;     /**< 9-1. 商户上传订单DH加密公钥*/
     GetPreKeyOrderID  =  2;     /**< 9-2. 获取网点OPK公钥及订单ID*/
-    OrderStateEvent   =  3;     /**< 9-4. 订单状态变化事件*/
-    ChangeOrderState  =  4;     /**< 9-5. 对订单进行状态更改*/
-    GetPreKeysCount   =  5;     /**< 9-6. 商户获取OPK存量*/
+    OrderStateEvent   =  4;     /**< 9-4. 订单状态变化事件*/
+    ChangeOrderState  =  5;     /**< 9-5. 对订单进行状态更改*/
+    GetPreKeysCount   =  6;     /**< 9-6. 商户获取OPK存量*/
 }
 
 //钱包模块子模块定义

@@ -528,7 +528,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 				Product:   req.Product,
 				OrderType: req.OrderType,
 				// Expire:    req.Expire,
-				TimeAt:    uint64(time.Now().UnixNano() / 1e6),
+				TimeAt: uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(updateProductEventReq)
 
@@ -1228,5 +1228,141 @@ func (kc *KafkaClient) DeleteAliyunOssFile(product *models.Product) error {
 
 	}
 
+	return nil
+}
+
+/*
+处理订单消息，是由ChatService转发过来的
+*/
+func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	rsp := &Order.GetPreKeyOrderIDRsp{}
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleOrderMsg start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("OrderMsg",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Msg.SendMsgReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("RecvMsg  payload",
+			zap.Int32("Scene", int32(req.GetScene())),
+			zap.Int32("Type", int32(req.GetType())),
+			zap.String("To", req.GetTo()),
+			zap.String("Uuid", req.GetUuid()),
+			zap.Uint64("SendAt", req.GetSendAt()),
+		)
+
+		if req.GetTo() == "" {
+			kc.logger.Warn("商户用户账号不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("To is empty[Username=%s]", req.GetTo())
+			goto COMPLETE
+		}
+		if req.GetType() != Msg.MessageType_MsgType_Order {
+			kc.logger.Warn("警告，不能处理非订单类型的消息")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Type is not right[Type=%d]", int32(req.GetType()))
+			goto COMPLETE
+		}
+
+		//从redis里获取当前用户信息
+		userData := new(models.User)
+		userKey := fmt.Sprintf("userData:%s", username)
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, userData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+				goto COMPLETE
+
+			}
+		}
+
+		//从redis里获取目标商户的信息
+		businessUserData := new(models.User)
+		userKey = fmt.Sprintf("userData:%s", req.GetTo())
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, businessUserData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetTo())
+				goto COMPLETE
+
+			}
+		}
+
+		//判断商户是否被封号
+		if businessUserData.State == 2 {
+			kc.logger.Warn("此商户已被封号", zap.String("businessUser", req.GetTo()))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetTo())
+			goto COMPLETE
+		}
+
+		if businessUserData.UserType != int(User.UserType_Ut_Normal) {
+			kc.logger.Warn("目标用户不是商户类型")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetTo())
+			goto COMPLETE
+		}
+
+		//TODO 检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
+
+		
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
 	return nil
 }
