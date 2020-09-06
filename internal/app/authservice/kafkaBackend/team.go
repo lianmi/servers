@@ -957,11 +957,11 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("AcceptTeamInvite payload",
 			zap.String("teamId", req.GetTeamId()),
-			zap.String("from", req.GetFrom()),
+			zap.String("from", req.GetFrom()), //邀请方
 		)
 
 		teamID := req.GetTeamId()
-		targetUsername := req.GetFrom()
+		targetUsername := username
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
@@ -1228,7 +1228,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 		)
 
 		teamID := req.GetTeamId()
-		targetUsername := req.GetFrom()
+		targetUsername := username
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
@@ -1378,7 +1378,6 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 		)
 
 		teamID := req.GetTeamId()
-		// targetUsername := req.GetFrom()
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
@@ -1625,7 +1624,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 	body := msg.GetContent()
 
 	//解包body
-	req := &Team.AcceptTeamInviteReq{}
+	req := &Team.PassTeamApplyReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1639,7 +1638,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 		)
 
 		teamID := req.GetTeamId()
-		targetUsername := req.GetFrom()
+		targetUsername := req.GetFrom() //申请方
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
