@@ -5,6 +5,7 @@ import "api/proto/order/Product.proto";
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
+//订单状态变化事件
 message OrderStateEventRsp {
     //订单数据体
     Product orderBody =1;

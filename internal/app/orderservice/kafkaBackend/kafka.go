@@ -117,8 +117,11 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 1)] = kClient.HandleRegisterPreKeys  //9-1 商户上传订单DH加密公钥
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 2)] = kClient.HandleGetPreKeyOrderID //9-2 获取网点OPK公钥及订单ID
 
-	//5-1 处理订单消息
+	//9-3 处理chatService转发过来的订单消息
 	kClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = kClient.HandleOrderMsg
+
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 5)] = kClient.HandleChangeOrderState //9-5 对订单进行状态更改
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 6)] = kClient.HandleGetPreKeysCount  //9-8 商户获取OPK存量
 
 	return kClient
 }

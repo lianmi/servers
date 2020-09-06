@@ -35,7 +35,6 @@ import (
 */
 func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 	var err error
-	// var toUser, teamID string
 	errorCode := 200
 	var errorMsg string
 	rsp := &Order.QueryProductsRsp{
@@ -234,7 +233,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		kc.logger.Debug("AddProduct  payload",
 			zap.String("ProductId", req.GetProduct().ProductId),
 			zap.Int("OrderType", int(req.GetOrderType())),
-			zap.String("OpkBusiness", req.GetOpkBusiness()),
+			zap.String("OpkBusinessUser", req.GetOpkBusinessUser()),
 			zap.Uint64("Expire", req.GetExpire()),
 		)
 
@@ -306,7 +305,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			kc.logger.Error("错误: HMSET TeamInfo", zap.Error(err))
+			kc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
 
 		//保存到MySQL
@@ -327,11 +326,11 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 
 			//7-5 新商品上架事件 将商品信息序化
 			addProductEventRsp := &Order.AddProductEventRsp{
-				Username:    username,        //商户用户账号id
-				Product:     req.Product,     //商品详情
-				OrderType:   req.OrderType,   //订单类型，必填
-				OpkBusiness: req.OpkBusiness, //商户的协商公钥，适用于任务类
-				Expire:      req.Expire,      //商品过期时间
+				Username:    username,            //商户用户账号id
+				Product:     req.Product,         //商品详情
+				OrderType:   req.OrderType,       //订单类型，必填
+				OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
+				Expire:      req.Expire,          //商品过期时间
 				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
@@ -503,7 +502,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			kc.logger.Error("错误: HMSET TeamInfo", zap.Error(err))
+			kc.logger.Error("错误: HMSET Product Info", zap.Error(err))
 		}
 
 		//保存到MySQL
@@ -969,7 +968,24 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//TODO 检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
+		// 获取ProductID对应的商品信息
+		product := new(models.Product)
+		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.GetProductID()))); err == nil {
+			if err := redis.ScanStruct(result, product); err != nil {
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("This Product is not exists")
+				goto COMPLETE
+			}
+		}
+
+		//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
+		if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
+			kc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Product is expire")
+			goto COMPLETE
+		}
 
 		// 生成订单ID
 		orderID := uuid.NewV4().String()
@@ -981,7 +997,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		if len(prekeySlice) > 0 {
 			opk = prekeySlice[0]
 
-			//取出后就删除
+			//取出后就删除此OPK
 			if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.GetUserName()), opk); err != nil {
 				kc.logger.Error("ZREM Error", zap.Error(err))
 			}
@@ -999,8 +1015,8 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		rsp.OrderID = orderID
 		rsp.PubKey = opk
 
-		//将订单ID保存到商户的订单有序集合，订单详情是orderInfo:{订单ID}
-		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orderID:%s", req.GetUserName()), time.Now().UnixNano()/1e6, orderID); err != nil {
+		//将订单ID保存到商户的订单有序集合orders:{username}，订单详情是 orderInfo:{订单ID}
+		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", req.GetUserName()), time.Now().UnixNano()/1e6, orderID); err != nil {
 			kc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
@@ -1012,7 +1028,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"businessUser", req.GetUserName(), //商户的用户id
 			"productID", req.GetProductID(), //商品id，默认是空
 			"orderType", req.GetOrderType(), //订单类型
-			"orderState", 1, //订单状态,预审核
+			"orderState", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
 			"createAt", uint64(time.Now().UnixNano()/1e6), //秒
 		)
 	}
@@ -1039,7 +1055,7 @@ COMPLETE:
 }
 
 /*
-向目标用户账号的所有端推送系统通知
+向目标用户账号的所有端推送消息， 接收端会触发接收消息事件
 业务号:  BusinessType_Msg(5)
 业务子号:  MsgSubType_RecvMsgEvent(2)
 */
@@ -1232,13 +1248,15 @@ func (kc *KafkaClient) DeleteAliyunOssFile(product *models.Product) error {
 }
 
 /*
-处理订单消息，是由ChatService转发过来的
+9-3 下单 处理订单消息，是由ChatService转发过来的
 */
 func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	rsp := &Order.GetPreKeyOrderIDRsp{}
+	var newSeq uint64
+
+	rsp := &Msg.SendMsgRsp{}
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -1277,7 +1295,7 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RecvMsg  payload",
+		kc.logger.Debug("OrderMsg payload",
 			zap.Int32("Scene", int32(req.GetScene())),
 			zap.Int32("Type", int32(req.GetType())),
 			zap.String("To", req.GetTo()),
@@ -1334,23 +1352,136 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		if businessUserData.UserType != int(User.UserType_Ut_Normal) {
-			kc.logger.Warn("目标用户不是商户类型")
+		// if businessUserData.UserType != int(User.UserType_Ut_Normal) {
+		// 	kc.logger.Warn("目标用户不是商户类型")
+		// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		// 	errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetTo())
+		// 	goto COMPLETE
+		// }
+		//解包出 OrderProductBody
+		var orderProductBody = new(Order.OrderProductBody)
+		if err := proto.Unmarshal(req.GetBody(), orderProductBody); err != nil {
+			kc.logger.Error("Protobuf Unmarshal OrderProductBody Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetTo())
+			errorMsg = fmt.Sprintf("Protobuf Unmarshal OrderProductBody Error: %s", err.Error())
 			goto COMPLETE
+
+		} else {
+			kc.logger.Debug("OrderProductBody payload",
+				zap.String("OrderID", orderProductBody.GetOrderID()),
+				zap.String("ProductID", orderProductBody.GetProductID()),
+				zap.String("BuyUser", orderProductBody.GetBuyUser()),
+				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
+				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
+				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
+				zap.String("Attach", orderProductBody.GetAttach()),
+			)
+
+			if orderProductBody.GetOrderID() == "" {
+				kc.logger.Error("OrderID is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("OrderID is empty")
+				goto COMPLETE
+			}
+
+			if orderProductBody.GetProductID() == "" {
+				kc.logger.Error("ProductID is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ProductID is empty")
+				goto COMPLETE
+			}
+
+			if orderProductBody.GetBuyUser() == "" {
+				kc.logger.Error("BuyUser is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BuyUser is empty")
+				goto COMPLETE
+			}
+
+			if orderProductBody.GetOpkBuyUser() == "" {
+				kc.logger.Error("OpkBuyUser is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("OpkBuyUser is empty")
+				goto COMPLETE
+			}
+
+			if orderProductBody.GetBusinessUser() == "" {
+				kc.logger.Error("BusinessUse is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BusinessUse is empty")
+				goto COMPLETE
+			}
+
+			if orderProductBody.GetOpkBusinessUser() == "" {
+				kc.logger.Error("OpkBusinessUser is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
+				goto COMPLETE
+			}
+
+			// 获取ProductID对应的商品信息
+			product := new(models.Product)
+			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.GetProductID()))); err == nil {
+				if err := redis.ScanStruct(result, product); err != nil {
+					kc.logger.Error("错误: ScanStruct", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("This Product is not exists")
+					goto COMPLETE
+				}
+			}
+
+			//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
+			if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
+				kc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Product is expire")
+				goto COMPLETE
+			}
+
+			//TODO, 余额是否足够扣除
+
+			//将订单转发到商户
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.GetBusinessUser()))); err != nil {
+				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "INCR Error"
+				goto COMPLETE
+			}
+
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+				Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+				Body:         req.GetBody(),
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
+				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+				Time:         uint64(time.Now().UnixNano() / 1e6),
+			}
+
+			go kc.BroadcastMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}
 
-		//TODO 检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
-
-		
 	}
 
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		data, _ := proto.Marshal(rsp)
-		msg.FillBody(data)
+		//构造回包消息数据
+		if curSeq, err := redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
+			kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+
+		} else {
+			rsp = &Msg.SendMsgRsp{
+				Uuid:        req.GetUuid(),
+				ServerMsgId: msg.GetID(),
+				Seq:         curSeq,
+				Time:        uint64(time.Now().UnixNano() / 1e6), //毫秒
+			}
+			data, _ := proto.Marshal(rsp)
+			msg.FillBody(data)
+		}
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -1359,9 +1490,358 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	if err := kc.Produce(topic, msg); err == nil {
-		kc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
+		kc.logger.Info("HandleOrderMsg: Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		kc.logger.Error("HandleOrderMsg: Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+9-5 对订单进行状态更改
+1. 双方都可以更改订单的状态, 只有商户才可以撤单及设置订单完成，用户可以申请撤单及确认收货
+*/
+func (kc *KafkaClient) HandleChangeOrderState(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var newSeq uint64
+	var toUser string
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleChangeOrderState start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("ChangeOrderState",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Order.ChangeOrderStateReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		goto COMPLETE
+
+	} else {
+		kc.logger.Debug("ChangeOrderState payload",
+			zap.String("OrderID", req.OrderBody.GetOrderID()),
+			zap.String("ProductID", req.OrderBody.GetProductID()),
+			zap.String("BuyUser", req.OrderBody.GetBuyUser()),
+			zap.String("OpkBuyUser", req.OrderBody.GetOpkBuyUser()),
+			zap.String("BusinessUser", req.OrderBody.GetBusinessUser()),
+			zap.String("OpkBusinessUser", req.OrderBody.GetOpkBusinessUser()),
+			zap.Int("State", int(req.GetState())),
+			zap.Uint64("TimeAt", req.TimeAt),
+		)
+		if req.OrderBody.GetOrderID() == "" {
+			kc.logger.Error("OrderID is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("OrderID is empty")
+			goto COMPLETE
+		}
+
+		if req.OrderBody.GetProductID() == "" {
+			kc.logger.Error("ProductID is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ProductID is empty")
+			goto COMPLETE
+		}
+
+		if req.OrderBody.GetBuyUser() == "" {
+			kc.logger.Error("BuyUser is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("BuyUser is empty")
+			goto COMPLETE
+		}
+
+		if req.OrderBody.GetOpkBuyUser() == "" {
+			kc.logger.Error("OpkBuyUser is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("OpkBuyUser is empty")
+			goto COMPLETE
+		}
+
+		if req.OrderBody.GetBusinessUser() == "" {
+			kc.logger.Error("BusinessUse is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("BusinessUse is empty")
+			goto COMPLETE
+		}
+
+		if req.OrderBody.GetOpkBusinessUser() == "" {
+			kc.logger.Error("OpkBusinessUser is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
+			goto COMPLETE
+		}
+
+		//判断发起方是谁
+		if username == req.OrderBody.GetBuyUser() {
+			toUser = req.OrderBody.GetBusinessUser()
+
+		} else {
+			toUser = req.OrderBody.GetBuyUser()
+		}
+
+		//从redis里获取买家信息
+		buyerData := new(models.User)
+		userKey := fmt.Sprintf("userData:%s", req.OrderBody.GetBuyUser())
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, buyerData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.OrderBody.GetBuyUser())
+				goto COMPLETE
+
+			}
+		}
+
+		//从redis里获取商户的信息
+		businessUserData := new(models.User)
+		userKey = fmt.Sprintf("userData:%s", req.OrderBody.GetBusinessUser())
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, businessUserData); err != nil {
+
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.OrderBody.GetBusinessUser())
+				goto COMPLETE
+
+			}
+		}
+
+		//判断商户是否被封号
+		if businessUserData.State == 2 {
+			kc.logger.Warn("此商户已被封号", zap.String("businessUser", req.OrderBody.GetBusinessUser()))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.OrderBody.GetBusinessUser())
+			goto COMPLETE
+		}
+		//判断此订单是否已经在商户的有序集合里orders:{账号id}
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("orders:%s", req.OrderBody.GetBusinessUser()), req.OrderBody.GetOrderID()); err == nil {
+			if reply == nil {
+				//商户不是用户关注
+				kc.logger.Error("此订单id不属于此商户",
+					zap.String("OrderID", req.OrderBody.GetOrderID()),
+				)
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("This orderid is not be geared to BusinessUser:[%s]", req.OrderBody.GetBusinessUser())
+				goto COMPLETE
+			}
+
+		}
+		// 获取ProductID对应的商品信息
+		product := new(models.Product)
+		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.OrderBody.GetProductID()))); err == nil {
+			if err := redis.ScanStruct(result, product); err != nil {
+				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("This Product is not exists")
+				goto COMPLETE
+			}
+		}
+
+		//获取当前订单的状态
+		curState, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()), "orderState"))
+		switch Global.OrderState(curState) {
+		case Global.OrderState_OS_Undefined:
+			_, err = redisConn.Do("HSET",
+				fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()),
+				"orderState", Global.OrderState_OS_Prepare, //预审核
+			)
+
+		case Global.OrderState_OS_Prepare, //预审核
+			Global.OrderState_OS_SendOK,      //订单发送成功
+			Global.OrderState_OS_RecvOK,      //订单送达成功
+			Global.OrderState_OS_Taked,       //接单成功
+			Global.OrderState_OS_Processing,  //订单处理中
+			Global.OrderState_OS_Done,        //完成订单
+			Global.OrderState_OS_ApplyCancel: //用户申请撤单
+
+			if req.OrderBody.GetBusinessUser() == username { //只有商户才能有权更改订单状态为完成或撤单
+				if req.GetState() == Global.OrderState_OS_Done || req.GetState() == Global.OrderState_OS_Cancel {
+					//pass
+				} else {
+					kc.logger.Warn("警告: 只有商户才能有权更改订单状态为撤单或完成")
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("You have not right to change order state")
+					goto COMPLETE
+				}
+			}
+
+			_, err = redisConn.Do("HSET",
+				fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()),
+				"orderState", int(req.GetState()), //订单状态
+			)
+
+		case Global.OrderState_OS_Confirm: //确认收货
+			kc.logger.Warn("警告: 此订单已经确认收货,不能再更改其状态")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("This order is confirmed")
+			goto COMPLETE
+
+		case Global.OrderState_OS_Cancel: //撤单
+			kc.logger.Warn("警告: 此订单已撤单,不能再更改其状态")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("This order is canceled")
+			goto COMPLETE
+
+		}
+
+		//TODO 如果是完成或撤单，需要向钱包发送结算
+
+		//将最新订单状态转发到目标用户
+		if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
+			kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = "INCR Error"
+			goto COMPLETE
+		}
+
+		orderBodyData, _ := proto.Marshal(req.OrderBody)
+
+		eRsp := &Msg.RecvMsgEventRsp{
+			Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+			Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+			Body:         orderBodyData,                      //发起方的body负载
+			From:         username,                           //谁发的
+			FromDeviceId: deviceID,                           //哪个设备发的
+			ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+			Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+			Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+			Time:         uint64(time.Now().UnixNano() / 1e6),
+		}
+
+		go kc.BroadcastMsgToAllDevices(eRsp, toUser)
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		//
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("HandleChangeOrderState: Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("HandleChangeOrderState: Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+9-8 商户获取OPK存量
+*/
+func (kc *KafkaClient) HandleGetPreKeysCount(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var count int
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	kc.logger.Info("HandleGetPreKeysCount start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	kc.logger.Debug("GetPreKeysCount",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//从redis里获取当前用户信息
+	userData := new(models.User)
+	userKey := fmt.Sprintf("userData:%s", username)
+	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+		if err := redis.ScanStruct(result, userData); err != nil {
+
+			kc.logger.Error("错误: ScanStruct", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+			goto COMPLETE
+
+		}
+	}
+
+	if userData.UserType != 2 {
+		kc.logger.Error("只有商户才能查询OPK存量")
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("UserType is not business type")
+		goto COMPLETE
+	}
+
+	if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", username), "-inf", "+inf")); err != nil {
+		kc.logger.Error("ZCOUNT Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Prekeys is not exists[username=%s]", username)
+		goto COMPLETE
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		rsp := &Order.GetPreKeysCountRsp{
+			Count: int32(count),
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	if err := kc.Produce(topic, msg); err == nil {
+		kc.logger.Info("HandleGetPreKeysCount: Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		kc.logger.Error("HandleGetPreKeysCount: Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil

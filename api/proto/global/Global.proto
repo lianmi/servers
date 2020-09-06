@@ -161,7 +161,9 @@ enum OrderState {
     OS_Taked       = 4;     /**< 接单成功*/
     OS_Done        = 5;     /**< 完成订单*/
     OS_Cancel      = 6;     /**< 取消订单*/
-    OS_InHand      = 7;     /**< 订单处理中*/
+    OS_Processing  = 7;     /**< 订单处理中*/
+    OS_Confirm     = 8;     /**< 确认收货*/
+    OS_ApplyCancel = 9;     /**< 申请撤单 */
 }
 
 //商品种类类型
