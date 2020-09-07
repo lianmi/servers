@@ -108,7 +108,7 @@ const (
 	MessageType_MsgType_Order MessageType = 6
 	// 系统消息更新 类型 用于更新系统消息
 	MessageType_MsgType_SysMsgUpdate MessageType = 7
-	//吸顶式群消息 只能是系统、群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
+	//吸顶式群消息,只能是群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
 	MessageType_MsgType_Roof MessageType = 8
 	//用户自定义
 	MessageType_MSgType_Customer MessageType = 100

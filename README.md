@@ -6,7 +6,7 @@ ipfs星际文件系统
 
 
 ## 准备
-
+参考：Golang微服务实践 https://github.com/sdgmf/go-project-sample
 安装docker,go,[jsonnet](https://jsonnet.org/)
 
 ### 部署jaeger

@@ -239,6 +239,18 @@ func CreateInitControllersFn(
 			auth.GET("/blockteam/:teamid", pc.BlockTeam)       //封禁群组
 			auth.GET("/disblockteam/:teamid", pc.DisBlockTeam) //解封群组
 
+			//4-2 获取群组成员信息
+			// auth.GET("/teammembers/:teamid", pc.GetTeamMembers)
+
+			// 4-3 查询群信息
+			// auth.GET("/getteam/:teamid", pc.GetTeam)
+
+			//4-24 获取指定群组成员
+			// auth.POST("/pullteammembers", pc.PullTeamMembers)
+
+			// 4-27 分页获取群成员信息
+			// auth.POST("/getteammemberspage", pc.GetTeamMembersPage)
+
 		}
 
 	}

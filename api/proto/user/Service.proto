@@ -1,6 +1,5 @@
 syntax = "proto3";
 import "api/proto/user/GetUsers.proto";
-import "api/proto/user/MarkTag.proto";
 
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
@@ -26,8 +25,8 @@ service Users {
     //修改密码
     rpc ChanPasswd (ChanPasswdReq) returns (ChanPasswdResp);
 
-    //打标签
-    rpc MarkTag (MarkTagReq) returns (MarkTagRsp);
+
+
 }
 
 message RespHeader {
