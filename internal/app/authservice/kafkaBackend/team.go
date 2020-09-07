@@ -489,6 +489,7 @@ COMPLETE:
 权限要求：
 1. 群没有被封禁
 2. 拉人入群设定
+3. 不是群成员
 
 */
 func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
@@ -599,11 +600,14 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("Reach one day invite limit[count=%d]", count)
 				goto COMPLETE
 			}
+
+			//判断req.GetUsernames()里的成员是否已经在群里
 			for _, inviteUsername := range req.GetUsernames() {
 				//首先判断一下是否已经是群成员了
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), inviteUsername); err == nil {
 					if reply != nil {
 						//已经是群成员
+						rsp.AbortedUsers = append(rsp.AbortedUsers, inviteUsername)
 					} else {
 						//是否被封禁
 						if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviteUsername), "State")); err != nil {
@@ -1252,7 +1256,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 		//校验用户是否曾经被人拉入群
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername); err == nil {
 			if reply != nil {
-				//曾经被人拉入群, 删除有序集合
+				//曾经被人拉入群 , 删除有序集合
 				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), targetUsername)
 			} else {
 				kc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("targetUsername", targetUsername))

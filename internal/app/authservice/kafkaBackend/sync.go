@@ -439,7 +439,7 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_teamsAt > teamsAt {
 		//构造
-		rsp := &Team.SyncMyTeamsEventRsp{
+		rsp := &Team.SyncMyTeamsEventRsp{ //4-17
 			TimeAt:       uint64(time.Now().UnixNano() / 1e6),
 			Teams:        make([]*Team.TeamInfo, 0),
 			RemovedTeams: make([]string, 0),
