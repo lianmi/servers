@@ -20,7 +20,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	defer redisConn.Close()
 
 	p := new(models.Team)
-	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+	if err = s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
 
@@ -48,7 +48,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 	memberAddress, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Address"))
 
 	teamUser := new(models.TeamUser)
-	teamUser.JoinAt = time.Now().UnixNano()/1e6
+	teamUser.JoinAt = time.Now().UnixNano() / 1e6
 	teamUser.Teamname = p.Teamname
 	teamUser.Username = p.Owner
 	teamUser.Nick = memberNick                                   //群成员呢称
@@ -91,26 +91,25 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 		4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 		5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
 	*/
-	if _, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().UnixNano()/1e6, p.TeamID); err != nil {
-		s.logger.Error("ZADD Error", zap.Error(err))
-	}
-	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", p.TeamID)).AddFlat(p)...); err != nil {
-		s.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
-	}
+
+	//存储所有群组， 方便查询及定时任务解禁
+	err = redisConn.Send("ZADD", "Teams", time.Now().UnixNano()/1e6, p.TeamID)
+	err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().UnixNano()/1e6, p.TeamID)
+	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", p.TeamID)).AddFlat(p)...)
 
 	//当前只有群主一个成员
-	if _, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().UnixNano()/1e6, p.Owner); err != nil {
-		s.logger.Error("ZADD Error", zap.Error(err))
-	}
+	err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().UnixNano()/1e6, p.Owner)
 
-	if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser)...); err != nil {
-		s.logger.Error("错误：HMSET TeamUser", zap.Error(err))
-	}
+	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser)...)
+
 	//更新redis的sync:{用户账号} teamsAt 时间戳
-	redisConn.Do("HSET",
+	err = redisConn.Send("HSET",
 		fmt.Sprintf("sync:%s", p.Owner),
 		"teamsAt",
 		time.Now().UnixNano()/1e6)
+
+	redisConn.Flush()
+
 	return nil
 
 }
