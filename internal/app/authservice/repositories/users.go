@@ -219,8 +219,13 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 	}
 
 	//创建redis的sync:{用户账号} myInfoAt 时间戳
-	myInfoAtKey := fmt.Sprintf("sync:%s", user.Username)
-	redisConn.Do("HSET", myInfoAtKey, "myInfoAt", time.Now().UnixNano()/1e6)
+	syncKey := fmt.Sprintf("sync:%s", user.Username)
+	redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "friendsAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "systemMsgAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
 
 	//网点商户自动建群
 	if user.GetUserType() == pb.UserType_Ut_Business {

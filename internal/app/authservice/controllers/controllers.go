@@ -251,6 +251,11 @@ func CreateInitControllersFn(
 			// 4-27 分页获取群成员信息
 			// auth.POST("/getteammemberspage", pc.GetTeamMembersPage)
 
+			//5-1发送吸顶式群消息
+			// auth.POST("/sendteamroofmsg", pc.SendTeamRoofMsg)
+
+
+
 		}
 
 	}

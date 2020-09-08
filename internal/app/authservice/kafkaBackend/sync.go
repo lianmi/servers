@@ -38,26 +38,27 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_myInfoAt uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	myInfoAt := req.GetMyInfoAt()
-	myInfoAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_myInfoAt, err := redis.Uint64(redisConn.Do("HGET", myInfoAtKey, "myInfoAt"))
+	cur_myInfoAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "myInfoAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET myInfoAt error[myInfoAtKey=%s]", myInfoAtKey)
-		goto COMPLETE
+		cur_myInfoAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "myInfoAt", cur_myInfoAt)
 	}
+
 	kc.logger.Debug("SyncMyInfoAt",
 		zap.Uint64("cur_myInfoAt", cur_myInfoAt),
 		zap.Uint64("myInfoAt", myInfoAt),
 		zap.String("username", username),
 	)
+
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_myInfoAt > myInfoAt {
 		//构造SyncUserProfileEventRsp
@@ -151,21 +152,21 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_friendsAt uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	friendsAt := req.GetFriendsAt()
-	friendsAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_friendsAt, err := redis.Uint64(redisConn.Do("HGET", friendsAtKey, "friendsAt"))
+	cur_friendsAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "friendsAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET friendsAt error[friendsAtKey=%s]", friendsAtKey)
-		goto COMPLETE
+		cur_friendsAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "friendsAt", cur_friendsAt)
 	}
+
 	kc.logger.Debug("SyncFriendsAt",
 		zap.Uint64("cur_friendsAt", cur_friendsAt),
 		zap.Uint64("friendsAt", friendsAt),
@@ -291,20 +292,19 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_friendUsersAt uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	friendUsersAt := req.GetFriendUsersAt()
-	friendUsersAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_friendUsersAt, err := redis.Uint64(redisConn.Do("HGET", friendUsersAtKey, "friendUsersAt"))
+	cur_friendUsersAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "friendUsersAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET friendUsersAt error[friendUsersAtKey=%s]", friendUsersAtKey)
-		goto COMPLETE
+		cur_friendUsersAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "friendUsersAt", cur_friendUsersAt)
 	}
 
 	kc.logger.Debug("SyncFriendUsersAt",
@@ -414,20 +414,20 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_teamsAt uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	teamsAt := req.GetTeamsAt()
-	teamsAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_teamsAt, err := redis.Uint64(redisConn.Do("HGET", teamsAtKey, "teamsAt"))
+	cur_teamsAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "teamsAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET teamsAt error[teamsAtKey=%s]", teamsAtKey)
-		goto COMPLETE
+		cur_teamsAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "teamsAt", cur_teamsAt)
+
 	}
 
 	kc.logger.Debug("SyncTeamsAt",
@@ -586,20 +586,20 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_systemMsgAt uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	systemMsgAt := req.GetSystemMsgAt()
-	systemMsgAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_systemMsgAt, err := redis.Uint64(redisConn.Do("HGET", systemMsgAtKey, "systemMsgAt"))
+	cur_systemMsgAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "systemMsgAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET systemMsgAt error[systemMsgAtKey=%s]", systemMsgAtKey)
-		goto COMPLETE
+		cur_systemMsgAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "systemMsgAt", cur_systemMsgAt)
+
 	}
 
 	//服务端的时间戳大于客户端上报的时间戳
@@ -680,6 +680,7 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var cur_watchAt uint64
 
 	rsp := &Order.SyncWatchEventRsp{
 		TimeAt:              uint64(time.Now().UnixNano() / 1e6),
@@ -691,14 +692,13 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 
 	//req里的成员
 	watchAt := req.GetWatchAt()
-	watchAtKey := fmt.Sprintf("sync:%s", username)
+	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_watchAt, err := redis.Uint64(redisConn.Do("HGET", watchAtKey, "watchAt"))
+	cur_watchAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "watchAt"))
 	if err != nil {
-		kc.logger.Error("HGET error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET watchAt error[watchAtKey=%s]", watchAtKey)
-		goto COMPLETE
+		cur_watchAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "watchAt", cur_watchAt)
+
 	}
 
 	kc.logger.Debug("SyncWatchAt",
@@ -709,7 +709,15 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_watchAt > watchAt {
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), watchAt, "+inf"))
+		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), watchAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
+			goto COMPLETE
+		}
+
 		for _, watchingUser := range watchingUsers {
 			rsp.WatchingUsers = append(rsp.WatchingUsers, watchingUser)
 		}
