@@ -606,12 +606,6 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	if cur_systemMsgAt > systemMsgAt {
 		nTime := time.Now()
 		yesTime := nTime.AddDate(0, 0, -7).UnixNano() / 1e6
-		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
-		for _, msgID := range msgIDs {
-			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
-			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-			err = kc.SendOffLineMsg(username, token, deviceID, data)
-		}
 
 		//移除时间少于yesTime离线通知
 		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", yesTime)
@@ -620,6 +614,18 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=%s]", fmt.Sprintf("systemMsgAt:%s", username))
 			goto COMPLETE
+		} else {
+			kc.logger.Debug("移除时间少于yesTime离线通知", zap.Int64("yesTime", yesTime))
+		}
+
+		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
+		for _, msgID := range msgIDs {
+			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
+			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+			err = kc.SendOffLineMsg(username, token, deviceID, data)
+			if err == nil {
+				kc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
+			}
 		}
 
 		//同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条，而且只能缓存7天
