@@ -606,15 +606,15 @@ func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Syn
 	if cur_systemMsgAt > systemMsgAt {
 		nTime := time.Now()
 		yesTime := nTime.AddDate(0, 0, -7).UnixNano() / 1e6
-		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, time.Now().UnixNano()/1e6))
+		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
 		for _, msgID := range msgIDs {
 			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
 			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
 			err = kc.SendOffLineMsg(username, token, deviceID, data)
 		}
 
-		//移除时间少于nTime离线通知
-		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", nTime)
+		//移除时间少于yesTime离线通知
+		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", yesTime)
 		if err != nil {
 			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
