@@ -338,7 +338,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_AddProduct, //关注的商户上架了新商品
 				HandledAccount: username,
-				HandledMsg:     "",
+				HandledMsg:     "关注的商户上架了新商品",
 				Status:         1,           //消息状态
 				Data:           productData, //AddProductEventRsp
 				To:             watchingUser,
@@ -534,7 +534,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_UpdateProduct, //商户更新商品
 				HandledAccount: username,
-				HandledMsg:     "",
+				HandledMsg:     "商户更新商品",
 				Status:         1,           //消息状态
 				Data:           productData, // 用来存储UpdateProductEventRsp
 				To:             watchingUser,
@@ -703,7 +703,7 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_SelloutProduct, //商户下架商品
 				HandledAccount: username,
-				HandledMsg:     "",
+				HandledMsg:     "商户下架商品",
 				Status:         1,           //消息状态
 				Data:           productData, // 用来存储SoldoutProductEventRsp
 				To:             watchingUser,

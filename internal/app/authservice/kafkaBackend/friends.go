@@ -292,7 +292,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						body := &Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userA,
-							HandledMsg:     "",
+							HandledMsg:     "对方同意加你为好友",
 							Status:         1,            //TODO, 消息状态  存储
 							Data:           psSourceData, // 用来存储附言及来源
 							To:             userA,
@@ -327,7 +327,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						body := &Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userB,
-							HandledMsg:     "",
+							HandledMsg:     "对方同意加你为好友",
 							Status:         1,            //TODO, 消息状态  存储
 							Data:           psSourceData, // 用来存储附言及来源
 							To:             userB,
@@ -379,7 +379,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
-						HandledMsg:     "",
+						HandledMsg:     "好友请求",
 						Status:         1,            //TODO, 消息状态  存储
 						Data:           psSourceData, // 用来存储附言及来源
 						To:             userB,
@@ -541,7 +541,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
-						HandledMsg:     "",
+						HandledMsg:     "对方同意加你为好友",
 						Status:         1,            //TODO, 消息状态  存储
 						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
@@ -599,7 +599,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //对方拒绝添加好友
 						HandledAccount: userB,
-						HandledMsg:     "",
+						HandledMsg:     "对方拒绝添加好友",
 						Status:         1,            //TODO, 消息状态  存储
 						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
@@ -806,7 +806,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
 				HandledAccount: username,
-				HandledMsg:     "",
+				HandledMsg:     "删除好友",
 				Status:         1,          //TODO, 消息状态  存储
 				Data:           []byte(""), // 附带的文本 该系统消息的文本
 				To:             targetUsername,

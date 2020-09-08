@@ -303,12 +303,14 @@ func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
 					Invitedusername: teamUser.InvitedUsername,
 					Nick:            teamUser.Nick,
 					Avatar:          teamUser.Avatar,
+					Label:           teamUser.Label,
 					Source:          teamUser.Source,
 					Type:            Team.TeamMemberType(teamUser.TeamMemberType),
 					NotifyType:      Team.NotifyType(teamUser.NotifyType),
 					Mute:            teamUser.IsMute,
 					Ex:              teamUser.Extend,
 					JoinTime:        uint64(teamUser.JoinAt),
+					UpdateTime:      uint64(teamUser.UpdatedAt),
 				})
 			}
 
@@ -1106,20 +1108,20 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
-			teamUser.InvitedUsername = req.GetFrom()                     //邀请者
-			teamUser.Nick = userData.Nick                                //群成员呢称
-			teamUser.Avatar = userData.Avatar                            //群成员头像
-			teamUser.Label = userData.Label                              //群成员标签
-			teamUser.Source = ""                                         //群成员来源  TODO
-			teamUser.Extend = userData.Extend                            //群成员扩展字段
-			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
-			teamUser.IsMute = false                                      //是否被禁言
-			teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
-			teamUser.Province = userData.Province                        //省份, 如广东省
-			teamUser.City = userData.City                                //城市，如广州市
-			teamUser.County = userData.County                            //区，如天河区
-			teamUser.Street = userData.Street                            //街道
-			teamUser.Address = userData.Address                          //地址
+			teamUser.InvitedUsername = req.GetFrom()                      //邀请者
+			teamUser.Nick = userData.Nick                                 //群成员呢称
+			teamUser.Avatar = userData.Avatar                             //群成员头像
+			teamUser.Label = userData.Label                               //群成员标签
+			teamUser.Source = ""                                          //群成员来源  TODO
+			teamUser.Extend = userData.Extend                             //群成员扩展字段
+			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型 3-普通
+			teamUser.IsMute = false                                       //是否被禁言
+			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
+			teamUser.Province = userData.Province                         //省份, 如广东省
+			teamUser.City = userData.City                                 //城市，如广州市
+			teamUser.County = userData.County                             //区，如天河区
+			teamUser.Street = userData.Street                             //街道
+			teamUser.Address = userData.Address                           //地址
 
 			if err := kc.SaveTeamUser(teamUser); err != nil {
 				kc.logger.Error("更新teamUser失败", zap.Error(err))
@@ -1566,19 +1568,20 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.JoinAt = time.Now().UnixNano() / 1e6
 				teamUser.Teamname = teamInfo.Teamname
 				teamUser.Username = userData.Username
-				teamUser.Nick = userData.Nick                                //群成员呢称
-				teamUser.Avatar = userData.Avatar                            //群成员头像
-				teamUser.Label = userData.Label                              //群成员标签
-				teamUser.Source = ""                                         //群成员来源  TODO
-				teamUser.Extend = userData.Extend                            //群成员扩展字段
-				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
-				teamUser.IsMute = false                                      //是否被禁言
-				teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
-				teamUser.Province = userData.Province                        //省份, 如广东省
-				teamUser.City = userData.City                                //城市，如广州市
-				teamUser.County = userData.County                            //区，如天河区
-				teamUser.Street = userData.Street                            //街道
-				teamUser.Address = userData.Address                          //地址
+				teamUser.InvitedUsername = ""
+				teamUser.Nick = userData.Nick                                 //群成员呢称
+				teamUser.Avatar = userData.Avatar                             //群成员头像
+				teamUser.Label = userData.Label                               //群成员标签
+				teamUser.Source = ""                                          //群成员来源  TODO
+				teamUser.Extend = userData.Extend                             //群成员扩展字段
+				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
+				teamUser.IsMute = false                                       //是否被禁言
+				teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
+				teamUser.Province = userData.Province                         //省份, 如广东省
+				teamUser.City = userData.City                                 //城市，如广州市
+				teamUser.County = userData.County                             //区，如天河区
+				teamUser.Street = userData.Street                             //街道
+				teamUser.Address = userData.Address                           //地址
 
 				kc.SaveTeamUser(teamUser)
 
@@ -1858,19 +1861,19 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
 			teamUser.Teamname = teamInfo.Teamname
 			teamUser.Username = userData.Username
-			teamUser.Nick = userData.Nick                                //群成员呢称
-			teamUser.Avatar = userData.Avatar                            //群成员头像
-			teamUser.Label = userData.Label                              //群成员标签
-			teamUser.Source = ""                                         //群成员来源  TODO
-			teamUser.Extend = userData.Extend                            //群成员扩展字段
-			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
-			teamUser.IsMute = false                                      //是否被禁言
-			teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
-			teamUser.Province = userData.Province                        //省份, 如广东省
-			teamUser.City = userData.City                                //城市，如广州市
-			teamUser.County = userData.County                            //区，如天河区
-			teamUser.Street = userData.Street                            //街道
-			teamUser.Address = userData.Address                          //地址
+			teamUser.Nick = userData.Nick                                 //群成员呢称
+			teamUser.Avatar = userData.Avatar                             //群成员头像
+			teamUser.Label = userData.Label                               //群成员标签
+			teamUser.Source = ""                                          //群成员来源  TODO
+			teamUser.Extend = userData.Extend                             //群成员扩展字段
+			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
+			teamUser.IsMute = false                                       //是否被禁言
+			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
+			teamUser.Province = userData.Province                         //省份, 如广东省
+			teamUser.City = userData.City                                 //城市，如广州市
+			teamUser.County = userData.County                             //区，如天河区
+			teamUser.Street = userData.Street                             //街道
+			teamUser.Address = userData.Address                           //地址
 
 			kc.SaveTeamUser(teamUser)
 
@@ -2323,7 +2326,36 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 			//对所有群成员
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 			curAt := time.Now().UnixNano() / 1e6
+			var newSeq uint64
 			for _, teamMember := range teamMembers {
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					continue
+				}
+
+				//向群成员发出更新群资料通知
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_UpdateTeam, //更新群资料
+					HandledAccount: username,
+					HandledMsg:     "更新群资料",
+					Status:         1,
+					Data:           []byte(""),
+					To:             teamID, //群id
+				}
+				bodyData, _ := proto.Marshal(&body)
+				mrsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         bodyData,
+					From:         username,
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(curAt),
+				}
+				go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 				//更新redis的sync:{用户账号} teamsAt 时间戳
 				redisConn.Send("HSET",
@@ -2371,9 +2403,8 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	// var data []byte
 	var newSeq uint64
-	// var count int
+	var teamID string
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -2417,7 +2448,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 			zap.String("teamId", req.GetTeamId()),
 		)
 
-		teamID := req.GetTeamId()
+		teamID = req.GetTeamId()
 
 		psSource := &Friends.PsSource{
 			Ps:     "",
@@ -2551,6 +2582,8 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//200
+		kc.logger.Info("退群成功", zap.String("teamID", teamID))
+
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -2728,6 +2761,44 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 							if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
 								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
 							}
+
+							//向所有群成员推送
+							teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+							curAt := time.Now().UnixNano() / 1e6
+							var newSeq uint64
+
+							for _, teamMember := range teamMembers {
+
+								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+									continue
+								}
+
+								//向群成员发出通知
+								body := Msg.MessageNotificationBody{
+									Type:           Msg.MessageNotificationType_MNT_GrantManager, //设置管理员
+									HandledAccount: username,
+									HandledMsg:     fmt.Sprintf("用户 %s 被群主设为管理员", managerUser.Nick),
+									Status:         1,
+									Data:           []byte(""),
+									To:             teamID, //群id
+								}
+								bodyData, _ := proto.Marshal(&body)
+								mrsp := &Msg.RecvMsgEventRsp{
+									Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+									Type:         Msg.MessageType_MsgType_Notification, //通知类型
+									Body:         bodyData,
+									From:         username,
+									FromDeviceId: deviceID,
+									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+									Seq:          newSeq,                             //消息序号，单个会话内自然递增
+									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+									Time:         uint64(curAt),
+								}
+								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+
+							}
+
 						}
 
 					} else {
@@ -2928,6 +2999,43 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
 							}
 
+							//向所有群成员推送
+							teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+							curAt := time.Now().UnixNano() / 1e6
+							var newSeq uint64
+
+							for _, teamMember := range teamMembers {
+
+								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+									continue
+								}
+
+								//向群成员发出通知
+								body := Msg.MessageNotificationBody{
+									Type:           Msg.MessageNotificationType_MNT_CancelManager, //取消管理员
+									HandledAccount: username,
+									HandledMsg:     fmt.Sprintf("用户 %s 被群主撤销管理员", managerUser.Nick),
+									Status:         1,
+									Data:           []byte(""),
+									To:             teamID, //群id
+								}
+								bodyData, _ := proto.Marshal(&body)
+								mrsp := &Msg.RecvMsgEventRsp{
+									Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+									Type:         Msg.MessageType_MsgType_Notification, //通知类型
+									Body:         bodyData,
+									From:         username,
+									FromDeviceId: deviceID,
+									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+									Seq:          newSeq,                             //消息序号，单个会话内自然递增
+									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+									Time:         uint64(curAt),
+								}
+								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+
+							}
+
 						}
 
 					} else {
@@ -3098,6 +3206,43 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 			//刷新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
 				kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			}
+
+			//向所有群成员推送
+			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+			curAt := time.Now().UnixNano() / 1e6
+			var newSeq uint64
+
+			for _, teamMember := range teamMembers {
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					continue
+				}
+
+				//向群成员发出通知
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_MuteTeam, //设置群组禁言模式
+					HandledAccount: username,
+					HandledMsg:     "设置群组禁言模式",
+					Status:         1,
+					Data:           []byte(""),
+					To:             teamID, //群id
+				}
+				bodyData, _ := proto.Marshal(&body)
+				mrsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         bodyData,
+					From:         username,
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(curAt),
+				}
+				go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+
 			}
 		}
 	}
@@ -3766,7 +3911,41 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
 
-			//TODO 将此修改同步到用户的其它端
+			// 向所有群成员推送
+			var newSeq uint64
+			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), "-inf", "+inf"))
+			for _, teamMember := range teamMembers {
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+					goto COMPLETE
+				}
+
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_UpdateTeamMember, //管理员/群主修改群成员信息
+					HandledAccount: username,                                         //当前用户
+					HandledMsg:     "管理员/群主修改群成员信息",
+					Status:         1,
+					Data:           []byte(""),
+					To:             teamID, //群组id
+				}
+				bodyData, _ := proto.Marshal(&body)
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         bodyData,
+					From:         username,
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+				go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
+			}
+
 		}
 	}
 
@@ -3903,6 +4082,7 @@ func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
 					Invitedusername: teamUser.InvitedUsername,
 					Nick:            teamUser.Nick,
 					Avatar:          teamUser.Avatar,
+					Label:           teamUser.Label,
 					Source:          teamUser.Source,
 					Type:            Team.TeamMemberType(teamUser.TeamMemberType),
 					NotifyType:      Team.NotifyType(teamUser.NotifyType),
@@ -4192,7 +4372,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				teamUser.Label = userData.Label                              //群成员标签
 				teamUser.Source = ""                                         //群成员来源  TODO
 				teamUser.Extend = userData.Extend                            //群成员扩展字段
-				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
+				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型 
 				teamUser.IsMute = false                                      //是否被禁言
 				teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
 				teamUser.Province = userData.Province                        //省份, 如广东省
@@ -4267,8 +4447,8 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
 				handledMsg := fmt.Sprintf("管理员拒绝用户:%s 加群申请", inviterNick)
 				body := Msg.MessageNotificationBody{
-					Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //管理员拒绝加群申请
-					HandledAccount: username,                                         //当前用户
+					Type:           Msg.MessageNotificationType_MNT_RejectTeamApply, //管理员拒绝加群申请
+					HandledAccount: username,                                        //当前用户
 					HandledMsg:     handledMsg,
 					Status:         1,
 					Data:           psSourceData,
@@ -4465,6 +4645,7 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 				Invitedusername: teamUser.InvitedUsername,
 				Nick:            teamUser.Nick,
 				Avatar:          teamUser.Avatar,
+				Label:           teamUser.Label,
 				Source:          teamUser.Source,
 				Type:            Team.TeamMemberType(teamUser.TeamMemberType),
 				NotifyType:      Team.NotifyType(teamUser.NotifyType),
