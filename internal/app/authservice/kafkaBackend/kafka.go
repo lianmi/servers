@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
@@ -20,6 +21,11 @@ import (
 	"github.com/lianmi/servers/util/randtool"
 
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
+)
+
+var (
+	sigchan chan os.Signal
+	run     bool = true
 )
 
 type KafkaOptions struct {
@@ -147,6 +153,30 @@ func (kc *KafkaClient) Application(name string) {
 	kc.app = name
 }
 
+/*
+判断redis是否存在键值，如果没，则创建
+*/
+func (kc *KafkaClient) RedisInit() {
+	var err error
+
+	kc.logger.Info("RedisInit start...")
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	isExists, _ := redis.Bool(redisConn.Do("EXISTS", "Teams"))
+	if !isExists {
+		teamIDs := kc.GetTeams()
+		for _, teamID := range teamIDs {
+			err = redisConn.Send("ZADD", "Teams", time.Now().UnixNano()/1e6, teamID)
+		}
+		redisConn.Flush()
+		kc.logger.Info("ZADD succeed", zap.Int("length of teamIDs ", len(teamIDs)))
+	}
+
+	_ = err
+
+}
+
 //启动Kafka实例
 func (kc *KafkaClient) Start() error {
 	kc.logger.Info("==> Subscribe Topics ", zap.Strings("Topics", kc.topics))
@@ -158,13 +188,17 @@ func (kc *KafkaClient) Start() error {
 		return err
 	}
 
+	//redis初始化
+	go kc.RedisInit()
+
+	//Go程，启动定时任务
+
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
 
 	go func() {
-		run := true
 
-		sigchan := make(chan os.Signal, 1)
+		sigchan = make(chan os.Signal, 1)
 		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 		for run == true {

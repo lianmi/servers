@@ -67,8 +67,10 @@ make proto
 ## 定时任务类
 https://github.com/robfig/cron
 例子在： /Users/mac/developments/lianmi/lm-cloud/cron_demo
+使用说明：
+https://www.jianshu.com/p/fd3dda663953
 
-
+ 
 ## 本项目采用Gorm, 但需要创建表
 internal/pkg/database/database.go :
 

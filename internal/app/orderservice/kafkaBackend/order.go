@@ -1065,7 +1065,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
 
-	//删除7天前的缓存系统消息
+	//一次性删除7天前的缓存系统消息
 	nTime := time.Now()
 	yesTime := nTime.AddDate(0, 0, -7).Unix()
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)

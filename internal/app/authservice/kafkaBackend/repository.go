@@ -163,3 +163,10 @@ func (kc *KafkaClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, wh
 	}
 	return teamUsers
 }
+
+//获取所有群组id， 返回一个切片
+func (kc *KafkaClient) GetTeams() []string {
+	var teamIDs []string
+	kc.db.Model(&models.Team{}).Pluck("team_id", &teamIDs)
+	return teamIDs
+}

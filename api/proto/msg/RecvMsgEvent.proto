@@ -33,17 +33,21 @@ message RecvMsgEventRsp {
     //服务器分配的消息ID
     //是否必填-是
     string serverMsgId = 7;
+    
+    // 服务端生成的工作流ID
+    string workflowID = 8;
+
     //消息序号，单个会话内自然递增
     //是否必填-是
-    fixed64 seq = 8;
+    fixed64 seq = 9;
 
     //是否必填-否 由客户端生成的 uuid , 单聊 / 群聊 等客户端产生的时候需要
     // 服务端下发的不需要uuid
-    string uuid = 9;
+    string uuid = 10;
     
     //服务器处理消息时间，Unix时间戳
     //是否必填-是
-    fixed64 time = 10;
+    fixed64 time = 11;
 }
 
 message MessageNotificationBody {
