@@ -13,9 +13,12 @@ message RejectTeamApplyReq {
     //群组ID
     //是否必须：是
     string teamId = 2;
+    //工作流ID
+    //是否必填-是
+    string workflowID = 3;  
     //附件信息
     //是否必须：是
-    string ps = 3;
+    string ps = 4;
 
 }
 //

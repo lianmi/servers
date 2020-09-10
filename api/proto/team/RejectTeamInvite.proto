@@ -10,12 +10,15 @@ message RejectTeamInviteReq {
     //邀请方账号ID
     //是否必须-是
     string from = 1;
+    //工作流ID
+    //是否必填-是
+    string workflowID = 2;    
     //群组ID
     //是否必须-是
-    string teamId = 2;
+    string teamId = 3;
     //附加信息
     //是否必须-否
-    string ps = 3;
+    string ps = 4;
 }
 //
 //拒绝群邀请-响应

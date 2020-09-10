@@ -11,12 +11,15 @@ message AcceptTeamInviteReq {
     //邀请方
     //是否必填-是
     string from = 1;
+    //工作流ID
+    //是否必填-是
+    string workflowID = 2;
     //群组ID
     //是否必填-是
-    string teamId = 2;
+    string teamId = 3;
 }
 //
 //接收群邀请-响应
-message AcceptTeamInviteRsp {
+message AcceptTeamInviteRsp {  
     TeamInfo teamInfo = 1;
 }

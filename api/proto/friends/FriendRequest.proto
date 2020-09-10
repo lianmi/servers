@@ -38,7 +38,7 @@ message FriendRequestReq {
     string ps = 2;
     //来源
     //是否必填-是
-    //添加来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等
+    //添加来源，需要添加“AddSource_Type_”前缀，后面自由拼接，如：Team、SHARE、SEARCH、QrCode等
     string source = 3;
     //操作类型
     //是否必填-是
@@ -52,7 +52,11 @@ message FriendRequestRsp {
     //是否必填-是
     string username = 1;
 
+    //工作流ID, 此ID会同步到其它端，一旦用对方同意 或拒绝，将会携带这个工作流ID
+    //是否必填-是
+    string workflowID = 2;
+
     //操作状态
     //是否必填-是
-    OpStatusType status = 2;
+    OpStatusType status = 3;
 }

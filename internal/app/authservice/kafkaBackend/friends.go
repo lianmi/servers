@@ -30,12 +30,17 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
+	uuid "github.com/satori/go.uuid"
 
 	"go.uber.org/zap"
 )
 
 /*
 3-1 好友请求发起与处理
+预审核好友列表： Friend:{username}:0
+当前好友列表： Friend:{username}:1
+移除的好友列表 ： Friend:{username}:2
+
 注意：
 1. Alice加Bob, 先判断Bob是否已经注册，不用判断Alice是否注册，因为在 dispatcher已经做了这个工作。
 2. Bob是否允许加好友, 如果Bob拒绝任何人添加好友，就直接返回给Alice.
@@ -182,7 +187,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					kc.logger.Debug("拒绝任何人添加好友")
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
-				} else if allowType == common.AllowAny { //允许人加为好友
+					//允许人加为好友
+				} else if allowType == common.AllowAny {
 
 					kc.logger.Debug("允许人加为好友")
 
@@ -202,7 +208,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
 						kc.logger.Error("ZREM Error", zap.Error(err))
 					}
-					//毫秒
+
 					//直接让双方成为好友
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
@@ -293,8 +299,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userA,
 							HandledMsg:     "对方同意加你为好友",
-							Status:         1,            //TODO, 消息状态  存储
-							Data:           psSourceData, // 用来存储附言及来源
+							Status:         Msg.MessageStatus_MOS_Passed, //消息状态: 已通过验证
+							Data:           psSourceData,                 // 用来存储附言及来源
 							To:             userA,
 						}
 						bodyData, _ := proto.Marshal(body)
@@ -305,6 +311,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							From:         username,                           //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -340,6 +347,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							From:         username,                           //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -358,14 +366,28 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						"friendsAt",
 						time.Now().UnixNano()/1e6)
 
-				} else if allowType == common.NeedConfirm { //加好友设定是需要审核
+					//加好友设定是需要审核
+				} else if allowType == common.NeedConfirm {
 					kc.logger.Debug("加好友设定是需要审核")
-					//redis里增加A的预审核好友列表
+
+					//判断是否已经在预审核好友列表里
+					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", req.GetUsername()), username); err == nil {
+						if reply != nil {
+							kc.logger.Info("用户已经在预审核好友列表里", zap.String("Username", req.GetUsername()))
+							//删除旧的
+							_, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", req.GetUsername()), username)
+						}
+					}
+
+					//redis里增加A的预审核好友列表, 注意: 好友请求有效期
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().UnixNano()/1e6, userB); err != nil {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
+					//TODO 生成工作流ID
+					workflowID := uuid.NewV4().String()
 					rsp.Status = Friends.OpStatusType_Ost_WaitConfirm
+					rsp.WorkflowID = workflowID
 
 					//构造回包里的数据
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
@@ -380,8 +402,8 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
 						HandledMsg:     "好友请求",
-						Status:         1,            //TODO, 消息状态  存储
-						Data:           psSourceData, // 用来存储附言及来源
+						Status:         Msg.MessageStatus_MOS_Init, //未处理状态
+						Data:           psSourceData,               // 用来存储附言及来源
 						To:             userB,
 					}
 					bodyData, _ := proto.Marshal(body)
@@ -392,6 +414,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   workflowID,                         //服务端生成的工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -424,6 +447,18 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			{
 				userA := req.GetUsername() //发起方
 				userB := username          //此时username是被加的人
+
+				//注意: 好友请求有效期 7 天， 定时任务模块要处理
+				//判断是否已经在预审核好友列表里
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
+					if reply == nil {
+						kc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
+						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
+						errorMsg = "FriendRequest timeout"
+						goto COMPLETE
+					}
+				}
+
 				kc.logger.Debug(fmt.Sprintf("对方同意加你为好友, OptType_Fr_PassFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
@@ -554,6 +589,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   "",                                 //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -576,10 +612,24 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 				}
 
 			}
-		case Friends.OptType_Fr_RejectFriendApply: //对方拒绝添加好友
+
+			//对方拒绝添加好友
+		case Friends.OptType_Fr_RejectFriendApply:
 			{
 				userA := req.GetUsername() //发起方
 				userB := username          //此时username是被加的人
+
+				//注意: 好友请求有效期 7 天， 定时任务模块要处理
+				//判断是否已经在预审核好友列表里
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
+					if reply == nil {
+						kc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
+						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
+						errorMsg = "FriendRequest timeout"
+						goto COMPLETE
+					}
+				}
+
 				kc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
@@ -612,6 +662,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   "",                                 //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -655,8 +706,6 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	// rsp := &Friends.DeleteFriendRsp{}
-	// var data []byte
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
 
@@ -819,6 +868,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				From:         username,                           //谁发的
 				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				WorkflowID:   "",                                 //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),

@@ -12,7 +12,9 @@ message PassTeamApplyReq {
     //申请方账号
     //是否必须：是
     string from = 2;
-
+    //工作流ID
+    //是否必填-是
+    string workflowID = 3;  
 }
 //
 //通过群组申请响应
