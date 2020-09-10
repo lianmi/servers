@@ -191,7 +191,8 @@ func (kc *KafkaClient) Start() error {
 	//redis初始化
 	go kc.RedisInit()
 
-	//Go程，启动定时任务 
+	//Go程，启动定时任务
+	go kc.RunCron()
 
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
