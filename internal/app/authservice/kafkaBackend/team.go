@@ -785,7 +785,7 @@ func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, invite
 					}
 				}
 
-				//TODO 生成工作流ID
+				//生成工作流ID
 				workflowID := uuid.NewV4().String()
 				serverMsgId := uuid.NewV4().String()
 
@@ -1360,8 +1360,6 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 
-			//TODO 向自己的其它端广播
-
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
 				kc.logger.Error("ZCARD Error", zap.Error(err))
@@ -1563,7 +1561,8 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
 
-			//TODO 向自己的其它端推送
+			//向自己的其它端推送
+			go kc.BroadcastMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
 
 		}
 	}
@@ -1714,7 +1713,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				if state == common.UserBlocked {
 					kc.logger.Debug("User is blocked", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", username)
+					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
 					goto COMPLETE
 				}
 			}
@@ -1725,12 +1724,14 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
 				if reply != nil { //是群成员
 					err = nil
-					kc.logger.Debug("User is already member", zap.String("Username", username))
+					kc.logger.Debug("User is already team member", zap.String("Username", username))
+					errorCode = http.StatusFound //302
+					errorMsg = fmt.Sprintf("User is already team member[Username=%s]", username)
 					goto COMPLETE
 				}
 			}
 
-			//TODO 生成工作流ID
+			//生成工作流ID
 			workflowID := uuid.NewV4().String()
 
 			//判断入群校验模式
@@ -1758,6 +1759,29 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.Address = userData.Address                           //地址
 
 				kc.SaveTeamUser(teamUser)
+
+				/*
+					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
+					2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
+					3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
+					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+					5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
+				*/
+				err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
+				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
+
+				//删除退群名单列表里的此用户
+				err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+
+				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
+				//更新redis的sync:{用户账号} teamsAt 时间戳
+				err = redisConn.Send("HSET",
+					fmt.Sprintf("sync:%s", username),
+					"teamsAt",
+					time.Now().UnixNano()/1e6)
+
+				redisConn.Flush()
 
 				//向群推送此用户的入群通知
 				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -1792,29 +1816,6 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					}
 					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				}
-
-				/*
-					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
-					2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
-					3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
-					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-					5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
-				*/
-				err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
-				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
-
-				//删除退群名单列表里的此用户
-				err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
-
-				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
-				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
-				//更新redis的sync:{用户账号} teamsAt 时间戳
-				err = redisConn.Send("HSET",
-					fmt.Sprintf("sync:%s", username),
-					"teamsAt",
-					time.Now().UnixNano()/1e6)
-
-				redisConn.Flush()
 
 			case Team.VerifyType_Vt_Apply: //需要审核加入
 
@@ -2764,6 +2765,10 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 							go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 						}
+
+						kc.logger.Info("HandleLeaveTeam succeed",
+							zap.String("username", username),
+							zap.String("deviceId", deviceID))
 
 					}
 
@@ -3796,8 +3801,6 @@ func (kc *KafkaClient) HandleSetNotifyType(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
-
-			//TODO 向用户的其它设备
 		}
 	}
 
@@ -3943,8 +3946,6 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
-
-			//TODO 向用户的其它设备
 		}
 	}
 
@@ -4817,7 +4818,7 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 			}
 		}
 
-		//TODO  GetPages 分页返回数据
+		// GetPages 分页返回数据
 		var maps string
 		switch req.GetQueryType() {
 		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All:
