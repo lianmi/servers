@@ -244,6 +244,37 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		if req.GetOrderType() == Global.OrderType_ORT_Normal ||
+			req.GetOrderType() == Global.OrderType_ORT_Grabbing ||
+			req.GetOrderType() == Global.OrderType_ORT_Walking {
+			//符合要求 pass
+		} else {
+			kc.logger.Warn("新的上架商品所属类型不正确")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("OrderType is not right[Username=%s]", username)
+			goto COMPLETE
+		}
+
+		//协商公钥
+		if req.GetOpkBusinessUser() == "" {
+			kc.logger.Warn("商户的协商公钥不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("OpkBusinessUser is empty[Username=%s]", username)
+			goto COMPLETE
+		}
+
+		//校验过期时间
+		if req.GetExpire() > 0 {
+			//是否小于当前时间戳
+			if int64(req.GetExpire()) < time.Now().UnixNano()/1e6 {
+				kc.logger.Warn("Expire小于当前时间戳")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Expire is less than current unixnano[Expire=%d]", req.GetExpire())
+				goto COMPLETE
+			}
+
+		}
+
 		//生成随机的商品id
 		req.Product.ProductId = uuid.NewV4().String()
 		rsp.ProductID = req.Product.ProductId
@@ -319,9 +350,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			//构造回包里的数据
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", watchingUser))); err != nil {
 				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
-				goto COMPLETE
+				continue
 			}
 
 			//7-5 新商品上架事件 将商品信息序化
