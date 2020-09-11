@@ -2720,7 +2720,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 						//删除群成员的有序集合
 						err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), username)
 						//增加此群的退群名单
-						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), username)
+						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6,  username)
 
 						//删除Team:{username}里teamID
 						err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", username), teamInfo.TeamID)
