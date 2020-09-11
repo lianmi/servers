@@ -315,8 +315,8 @@ func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
 				})
 			}
 
-			//被移除的成员列表
-			teamRemoveMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsersRemoved:%s", teamID), req.GetTimeAt(), "+inf"))
+			//群成员退群用户列表
+			teamRemoveMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveTeamMembers:%s", teamID), req.GetTimeAt(), "+inf"))
 			for _, teamRemoveMember := range teamRemoveMembers {
 				rsp.RemovedUsers = append(rsp.RemovedUsers, teamRemoveMember)
 			}
@@ -710,7 +710,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_CheckTeamInvite, //向群主推送审核入群通知
 							HandledAccount: username,
 							HandledMsg:     handledMsg,
-							Status:         1,
+							Status:         Msg.MessageStatus_MOS_Processing, //处理中
 							Data:           []byte(""),
 							To:             teamInfo.TeamID, //群id
 						}
@@ -823,7 +823,7 @@ func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, invite
 					Type:           Msg.MessageNotificationType_MNT_TeamInvite, //邀请加群
 					HandledAccount: inviter,
 					HandledMsg:     handledMsg,
-					Status:         1, //未处理
+					Status:         Msg.MessageStatus_MOS_Init, //未处理
 					Data:           []byte(""),
 					To:             teamID, //群id
 				}
@@ -1010,6 +1010,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 							err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", removedUsername), teamID)
 							//增加到此用户自己的退群列表
 							err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().UnixNano()/1e6, teamID)
+
 							//更新redis的sync:{用户账号} teamsAt 时间戳
 							redisConn.Send("HSET",
 								fmt.Sprintf("sync:%s", removedUsername),
@@ -1023,9 +1024,14 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 							//向其它群成员推送MNT_KickOffTeam
 							for _, teamMember := range teamMembers {
 
+								//更新redis的sync:{用户账号} teamsAt 时间戳
+								redisConn.Do("HSET",
+									fmt.Sprintf("sync:%s", teamMember),
+									"teamsAt",
+									time.Now().UnixNano()/1e6)
+
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-
 									continue
 								}
 
@@ -1041,7 +1047,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Type:           Msg.MessageNotificationType_MNT_KickOffTeam, //被管理员踢出群
 									HandledAccount: username,
 									HandledMsg:     handledMsg,
-									Status:         1,
+									Status:         Msg.MessageStatus_MOS_Done,
 									Data:           psSourceData, //包含信息
 									To:             teamID,       //群id
 								}
@@ -1058,6 +1064,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Time:         uint64(time.Now().UnixNano() / 1e6),
 								}
 								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+
 							}
 
 						}
@@ -1157,7 +1164,8 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("AcceptTeamInvite payload",
 			zap.String("teamId", req.GetTeamId()),
-			zap.String("from", req.GetFrom()), //邀请方
+			zap.String("from", req.GetFrom()),             //邀请方
+			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
 		)
 
 		teamID := req.GetTeamId()
@@ -1283,6 +1291,33 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			}
 
+			/*
+				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
+				2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
+				3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
+				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+				5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
+			*/
+			err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
+
+			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
+
+			//删除退群名单列表里的此用户
+			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+			//add群成员
+			err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+
+			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
+
+			//更新redis的sync:{用户账号} teamsAt 时间戳
+			redisConn.Send("HSET",
+				fmt.Sprintf("sync:%s", username),
+				"teamsAt",
+				time.Now().UnixNano()/1e6)
+
+			//一次性写入到Redis
+			redisConn.Flush()
+
 			//向群推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 			psSource := &Friends.PsSource{
@@ -1302,7 +1337,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
 					HandledAccount: username,
 					HandledMsg:     handledMsg,
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Passed,
 					Data:           psSourceData,
 					To:             teamID, //群组id
 				}
@@ -1314,6 +1349,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					From:         username,
 					FromDeviceId: deviceID,
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -1322,30 +1358,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 
-			/*
-				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
-				2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
-				3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
-				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
-			*/
-			err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
-
-			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
-
-			//add群成员
-			err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
-
-			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
-
-			//更新redis的sync:{用户账号} teamsAt 时间戳
-			redisConn.Send("HSET",
-				fmt.Sprintf("sync:%s", username),
-				"teamsAt",
-				time.Now().UnixNano()/1e6)
-
-			//一次性写入到Redis
-			redisConn.Flush()
+			//TODO 向自己的其它端广播
 
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
@@ -1450,8 +1463,9 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("RejectTeamInvitee payload",
 			zap.String("teamId", req.GetTeamId()),
-			zap.String("from", req.GetFrom()), //邀请方
-			zap.String("ps", req.GetPs()),     //拒绝的附言
+			zap.String("from", req.GetFrom()),             //邀请方
+			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
+			zap.String("ps", req.GetPs()),                 //拒绝的附言
 		)
 
 		teamID := req.GetTeamId()
@@ -1528,7 +1542,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //用户拒绝群邀请
 				HandledAccount: username,
 				HandledMsg:     fmt.Sprintf("用户 %s  拒绝群邀请", nick),
-				Status:         1,
+				Status:         Msg.MessageStatus_MOS_Declined,
 				Data:           psSourceData,
 				To:             teamInfo.Owner,
 			}
@@ -1540,11 +1554,14 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				From:         username,
 				FromDeviceId: deviceID,
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				WorkflowID:   req.GetWorkflowID(),                //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
+
+			//TODO 向自己的其它端推送
 
 		}
 	}
@@ -1711,6 +1728,9 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				}
 			}
 
+			//TODO 生成工作流ID
+			workflowID := uuid.NewV4().String()
+
 			//判断入群校验模式
 			switch Team.VerifyType(teamInfo.VerifyType) {
 			case Team.VerifyType_Vt_Free: //所有人可加入
@@ -1751,7 +1771,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_ApplyJoinTeam, //申请加群请求
 						HandledAccount: username,
 						HandledMsg:     fmt.Sprintf("用户: %s 申请加群请求获得通过", userData.Nick),
-						Status:         1,
+						Status:         Msg.MessageStatus_MOS_Passed,
 						Data:           psSourceData, // 附带的文本 该系统消息的文本
 						To:             teamID,       //群组id
 					}
@@ -1763,6 +1783,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						From:         username,                             //发起人
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   workflowID,                         //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -1775,10 +1796,14 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
 					3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
 					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-					5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
+					5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 				*/
 				err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
 				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
+
+				//删除退群名单列表里的此用户
+				err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+
 				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
 				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
 				//更新redis的sync:{用户账号} teamsAt 时间戳
@@ -1804,7 +1829,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_CheckTeamInvite, //向群主推送此用户的主动入群通知
 						HandledAccount: username,
 						HandledMsg:     fmt.Sprintf("用户: %s 发出申请加群请求", userData.Nick),
-						Status:         1,
+						Status:         Msg.MessageStatus_MOS_Processing,
 						Data:           psSourceData,
 						To:             teamInfo.TeamID, //群id
 					}
@@ -1816,6 +1841,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						From:         username, //发起人
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   workflowID,                         //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -1907,8 +1933,9 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 
 	} else {
 		kc.logger.Debug("PassTeamApply  payload",
-			zap.String("teamId", req.GetTeamId()), // 群组ID
-			zap.String("from", req.GetFrom()),     //申请方账号
+			zap.String("teamId", req.GetTeamId()),         // 群组ID
+			zap.String("from", req.GetFrom()),             //申请方账号
+			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
 		)
 
 		teamID := req.GetTeamId()
@@ -2045,7 +2072,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_PassTeamApply, //同意群邀请
 					HandledAccount: username,
 					HandledMsg:     handledMsg,
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Passed,
 					Data:           psSourceData, // 附带的文本 该系统消息的文本
 					To:             teamID,       //群组id
 				}
@@ -2057,6 +2084,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					From:         username, //当前用户
 					FromDeviceId: deviceID,
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -2068,10 +2096,13 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 				2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
 				3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
 				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-				5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
+				5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 			*/
 			err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID)
 			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
+			//删除退群名单列表里的此用户
+			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername)
+
 			err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername)
 			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, targetUsername)).AddFlat(teamUser)...)
 			//更新redis的sync:{用户账号} teamsAt 时间戳
@@ -2160,6 +2191,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 		kc.logger.Debug("RejectTeamApply  payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("from", req.GetFrom()),
+			zap.String("workflowID", req.GetWorkflowID()),
 			zap.String("ps", req.GetPs()),
 		)
 
@@ -2252,7 +2284,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				Type:           Msg.MessageNotificationType_MNT_RejectTeamApply, //管理员拒绝加群申请
 				HandledAccount: username,                                        //当前是管理员
 				HandledMsg:     handledMsg,
-				Status:         1,
+				Status:         Msg.MessageStatus_MOS_Declined,
 				Data:           psSourceData,
 				To:             teamID, //群组id
 			}
@@ -2264,6 +2296,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				From:         username, //当前用户
 				FromDeviceId: deviceID,
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				WorkflowID:   req.GetWorkflowID(),                //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -2285,7 +2318,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_RejectTeamApply, //管理员拒绝加群申请
 					HandledAccount: opUser.Username,
 					HandledMsg:     handledMsg,
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Declined,
 					Data:           psSourceData, // 附带的文本 该系统消息的文本
 					To:             teamID,       //群组id
 				}
@@ -2492,7 +2525,7 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_UpdateTeam, //更新群资料
 					HandledAccount: username,
 					HandledMsg:     handledMsg,
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Processing,
 					Data:           []byte(""),
 					To:             teamID, //群id
 				}
@@ -2679,6 +2712,9 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 						err = redisConn.Send("DEL", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username))
 						//删除群成员的有序集合
 						err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), username)
+						//增加此群的退群名单
+						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), username)
+
 						//删除Team:{username}里teamID
 						err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", username), teamInfo.TeamID)
 						//增加到用户自己的退群列表
@@ -2703,7 +2739,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								Type:           Msg.MessageNotificationType_MNT_QuitTeam, //主动退群
 								HandledAccount: username,
 								HandledMsg:     fmt.Sprintf("用户 %s 退出本群", removeUser.Nick),
-								Status:         1,
+								Status:         Msg.MessageStatus_MOS_Done,
 								Data:           psSourceData,
 								To:             teamID, //群id
 							}
@@ -2932,7 +2968,7 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 									Type:           Msg.MessageNotificationType_MNT_GrantManager, //设置管理员
 									HandledAccount: username,
 									HandledMsg:     fmt.Sprintf("用户 %s 被群主设为管理员", managerUser.Nick),
-									Status:         1,
+									Status:         Msg.MessageStatus_MOS_Done,
 									Data:           []byte(""),
 									To:             teamID, //群id
 								}
@@ -3169,7 +3205,7 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Type:           Msg.MessageNotificationType_MNT_CancelManager, //取消管理员
 									HandledAccount: username,
 									HandledMsg:     fmt.Sprintf("用户 %s 被群主撤销管理员", managerUser.Nick),
-									Status:         1,
+									Status:         Msg.MessageStatus_MOS_Done,
 									Data:           []byte(""),
 									To:             teamID, //群id
 								}
@@ -3378,7 +3414,7 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_MuteTeam, //设置群组禁言模式
 					HandledAccount: username,
 					HandledMsg:     "设置群组禁言模式",
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Done,
 					Data:           []byte(""),
 					To:             teamID, //群id
 				}
@@ -3599,7 +3635,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_MuteTeamMember, //群成员禁言/解禁
 					HandledAccount: username,                                       //当前用户
 					HandledMsg:     handledMsg,
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Done,
 					Data:           psSourceData,
 					To:             teamID, //群组id
 				}
@@ -4080,7 +4116,7 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 					Type:           Msg.MessageNotificationType_MNT_UpdateTeamMember, //管理员/群主修改群成员信息
 					HandledAccount: username,                                         //当前用户
 					HandledMsg:     "管理员/群主修改群成员信息",
-					Status:         1,
+					Status:         Msg.MessageStatus_MOS_Done,
 					Data:           []byte(""),
 					To:             teamID, //群组id
 				}
@@ -4406,8 +4442,13 @@ TODO
 4-26 管理员审核用户入群申请
 
 管理员收到询问是否同意邀请用户入群的系统通知事件， 处理：同意或拒绝
-*/
 
+说明:
+1.  管理员根据工作流ID拉人入群进行甄别处理
+2.  处理结果需要同时向其它管理员同步处理结果
+3.  当同意后，需要将这个拉人入群事件向被邀请的用户发送
+4. 当拒绝后，需要向发起拉人入群的用户发送拒绝
+*/
 func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -4432,7 +4473,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("CheckTeamInvite ",
+	kc.logger.Debug("CheckTeamInvite",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4454,20 +4495,14 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("CheckTeamInvite payload",
 			zap.String("TeamId", req.GetTeamId()),
-			zap.String("Inviter", req.GetInviter()), //邀请人
-			zap.String("Invitee", req.GetInvitee()), //被邀请人
-			zap.Bool("IsAgree", req.GetIsAgree()),   //是否同意邀请用户入群操作，true-同意，false-不同意
-
+			zap.String("WorkflowID", req.GetWorkflowID()), //工作流ID
+			zap.String("Inviter", req.GetInviter()),       //邀请人
+			zap.String("Invitee", req.GetInvitee()),       //被邀请人
+			zap.Bool("IsAgree", req.GetIsAgree()),         //是否同意邀请用户入群操作，true-同意，false-不同意
 			zap.String("Ps", req.GetPs()),
 		)
 
 		teamID := req.GetTeamId()
-
-		psSource := &Friends.PsSource{
-			Ps:     req.GetPs(),
-			Source: req.GetInvitee(), //被邀请人
-		}
-		psSourceData, _ := proto.Marshal(psSource)
 
 		//获取到群信息
 		key := fmt.Sprintf("TeamInfo:%s", teamID)
@@ -4480,6 +4515,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				goto COMPLETE
 			}
 		}
+
 		//此群是否是正常的
 		if teamInfo.Status != 2 {
 			kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
@@ -4498,13 +4534,14 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 				goto COMPLETE
 			}
 		}
+
 		//判断操作者是群主还是管理员
 		teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
 		if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 
 			if req.GetIsAgree() {
 				userData := new(models.User)
-				userKey := fmt.Sprintf("userData:%s", req.GetInvitee())
+				userKey := fmt.Sprintf("userData:%s", req.GetInvitee()) //受邀请人
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
 
@@ -4515,97 +4552,22 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 
 					}
 				}
-				//存储群成员信息 TeamUser
-				teamUser := new(models.TeamUser)
-				teamUser.JoinAt = time.Now().UnixNano() / 1e6
-				teamUser.Teamname = teamInfo.Teamname
-				teamUser.Username = userData.Username
-				teamUser.InvitedUsername = req.GetInviter()
-				teamUser.Nick = userData.Nick                                 //群成员呢称
-				teamUser.Avatar = userData.Avatar                             //群成员头像
-				teamUser.Label = userData.Label                               //群成员标签
-				teamUser.Source = ""                                          //群成员来源  TODO
-				teamUser.Extend = userData.Extend                             //群成员扩展字段
-				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
-				teamUser.IsMute = false                                       //是否被禁言
-				teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
-				teamUser.Province = userData.Province                         //省份, 如广东省
-				teamUser.City = userData.City                                 //城市，如广州市
-				teamUser.County = userData.County                             //区，如天河区
-				teamUser.Street = userData.Street                             //街道
-				teamUser.Address = userData.Address                           //地址
 
-				kc.SaveTeamUser(teamUser)
-
-				//向群推送此用户的入群通知
-				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
-				handledMsg := fmt.Sprintf("用户:%s 邀请 %s 进群", inviterNick, userData.Nick)
-
-				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
-				for _, teamMember := range teamMembers {
-
-					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInvitee()))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
-						goto COMPLETE
-					}
-					body := Msg.MessageNotificationBody{
-						Type:           Msg.MessageNotificationType_MNT_PassTeamApply, //管理员同意加群申请
-						HandledAccount: username,                                      //当前用户
-						HandledMsg:     handledMsg,
-						Status:         1,
-						Data:           psSourceData,
-						To:             teamID, //群组id
-					}
-					bodyData, _ := proto.Marshal(&body)
-					inviteEventRsp := &Msg.RecvMsgEventRsp{
-						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-						Type:         Msg.MessageType_MsgType_Notification, //通知类型
-						Body:         bodyData,
-						From:         username,
-						FromDeviceId: deviceID,
-						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
-						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano() / 1e6),
-					}
-					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
-				}
-				/*
-					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
-					2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
-					3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
-					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-					5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
-				*/
-				err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", req.GetInvitee()), time.Now().UnixNano()/1e6, teamInfo.TeamID)
-
-				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
-
-				//add群成员
-				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetInvitee())
-
-				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetInvitee())).AddFlat(teamUser)...)
-
-				redisConn.Flush()
-
-			} else {
-				//向邀请人 及 其它管理员发送通知
-				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInviter()))); err != nil {
+				//向受邀请人发送邀请加群通知
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInvitee()))); err != nil {
 					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
 					goto COMPLETE
 				}
 				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
-				handledMsg := fmt.Sprintf("管理员拒绝用户 %s 加群申请", inviterNick)
+				handledMsg := fmt.Sprintf("用户 %s 邀请你入群", inviterNick)
 				body := Msg.MessageNotificationBody{
-					Type:           Msg.MessageNotificationType_MNT_RejectTeamApply, //管理员拒绝加群申请
-					HandledAccount: username,                                        //当前用户
+					Type:           Msg.MessageNotificationType_MNT_TeamInvite, //邀请加群
+					HandledAccount: username,                                   //当前用户
 					HandledMsg:     handledMsg,
-					Status:         1,
-					Data:           psSourceData,
+					Status:         Msg.MessageStatus_MOS_Processing,
+					Data:           []byte(""),
 					To:             teamID, //群组id
 				}
 				bodyData, _ := proto.Marshal(&body)
@@ -4616,6 +4578,75 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					From:         username,
 					FromDeviceId: deviceID,
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					WorkflowID:   req.GetWorkflowID(),                //工作流ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+				go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetInvitee()) //向受邀请人推送
+
+				//向其它管理员推送
+				managers, _ := kc.GetOwnerAndManagers(teamID)
+				for _, manager := range managers {
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
+						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("INCR error[Username=%s]", manager)
+						goto COMPLETE
+					}
+					handledMsg := fmt.Sprintf("管理员同意用户 %s 拉人入群申请", inviterNick)
+					body := Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //管理员拒绝加群申请
+						HandledAccount: username,                                         //当前用户
+						HandledMsg:     handledMsg,
+						Status:         Msg.MessageStatus_MOS_Declined,
+						Data:           []byte(""),
+						To:             teamID, //群组id
+					}
+					bodyData, _ := proto.Marshal(&body)
+					inviteEventRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         bodyData,
+						From:         username,
+						FromDeviceId: deviceID,
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   req.GetWorkflowID(),                //工作流ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
+					go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+				}
+
+			} else {
+
+				//向邀请人 及 其它管理员发送通知
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInviter()))); err != nil {
+					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
+					goto COMPLETE
+				}
+				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
+				handledMsg := fmt.Sprintf("管理员拒绝用户 %s 拉人入群申请", inviterNick)
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_RejectTeamApply, //管理员拒绝加群申请
+					HandledAccount: username,                                        //当前用户
+					HandledMsg:     handledMsg,
+					Status:         Msg.MessageStatus_MOS_Declined,
+					Data:           []byte(""),
+					To:             teamID, //群组id
+				}
+				bodyData, _ := proto.Marshal(&body)
+				inviteEventRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         bodyData,
+					From:         username,
+					FromDeviceId: deviceID,
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -4635,8 +4666,8 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //管理员拒绝加群申请
 						HandledAccount: username,                                         //当前用户
 						HandledMsg:     handledMsg,
-						Status:         1,
-						Data:           psSourceData,
+						Status:         Msg.MessageStatus_MOS_Declined,
+						Data:           []byte(""),
 						To:             teamID, //群组id
 					}
 					bodyData, _ := proto.Marshal(&body)
@@ -4647,6 +4678,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						From:         username,
 						FromDeviceId: deviceID,
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						WorkflowID:   req.GetWorkflowID(),                //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
