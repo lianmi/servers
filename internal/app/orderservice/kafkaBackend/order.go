@@ -255,13 +255,6 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//协商公钥
-		if req.GetOpkBusinessUser() == "" {
-			kc.logger.Warn("商户的协商公钥不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OpkBusinessUser is empty[Username=%s]", username)
-			goto COMPLETE
-		}
 
 		//校验过期时间
 		if req.GetExpire() > 0 {

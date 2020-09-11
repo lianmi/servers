@@ -633,6 +633,8 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 				}
 				teamMemberType := Team.TeamMemberType(opUser.TeamMemberType)
 				if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+					//pass
+				} else {
 					kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is not team owner or manager[Username=%s]", username)
@@ -2017,6 +2019,8 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			}
 			teamMemberType := Team.TeamMemberType(opUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+				//pass
+			} else {
 				kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
@@ -2264,6 +2268,8 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 			}
 			teamMemberType := Team.TeamMemberType(opUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+				//pass
+			} else {
 				kc.logger.Warn("Operate User is not team owner or manager", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Operate User is not team owner[Username=%s]", username)

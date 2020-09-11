@@ -21,7 +21,7 @@ $ docker exec -it simplenode sh
 ```
 
 
-### 进入geth控制台
+### 外部进入geth控制台
 ```
-$ geth attach /opt/node0 geth.ipc
+$ geth attach http://localhost:8545
 ```
