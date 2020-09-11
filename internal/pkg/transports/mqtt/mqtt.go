@@ -230,15 +230,15 @@ func (mc *MQTTClient) Start() error {
 
 			//分发到后端的各自的服务器
 			switch Global.BusinessType(businessType) {
-			case Global.BusinessType_Auth,
-				Global.BusinessType_User,
+			case Global.BusinessType_User,
+				Global.BusinessType_Auth,
 				Global.BusinessType_Friends,
 				Global.BusinessType_Team,
 				Global.BusinessType_Msg,
 				Global.BusinessType_Sync,
+				Global.BusinessType_Product,
 				Global.BusinessType_Order,
-				Global.BusinessType_Wallet,
-				Global.BusinessType_Product:
+				Global.BusinessType_Wallet:
 
 			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 

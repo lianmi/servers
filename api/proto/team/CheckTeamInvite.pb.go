@@ -25,7 +25,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//管理员收到询问是否同意邀请用户入群的系统消息事件CheckTeamInvitel
+//管理员收到询问是否同意邀请用户入群的系统消息事件CheckTeamInvite,
 //做出决定是同意还是不同意邀请用户入群操作
 //管理员审核群邀请的请求
 type CheckTeamInviteReq struct {
