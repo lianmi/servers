@@ -2720,7 +2720,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 						//删除群成员的有序集合
 						err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), username)
 						//增加此群的退群名单
-						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6,  username)
+						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, username)
 
 						//删除Team:{username}里teamID
 						err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", username), teamInfo.TeamID)
@@ -3834,6 +3834,7 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var newSeq uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -3946,6 +3947,37 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
+
+			//向其它端推送修改
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
+				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
+				goto COMPLETE
+			}
+
+			myProfileData, _ := proto.Marshal(req)
+			body := Msg.MessageNotificationBody{
+				Type:           Msg.MessageNotificationType_MNT_MemberUpdateMyInfo, //用户设置其在群里的资料
+				HandledAccount: username,                                           //当前用户
+				HandledMsg:     "",
+				Status:         Msg.MessageStatus_MOS_Done,
+				Data:           myProfileData,
+				To:             teamID, //群组id
+			}
+			bodyData, _ := proto.Marshal(&body)
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+				Type:         Msg.MessageType_MsgType_Notification, //通知类型
+				Body:         bodyData,
+				From:         username,
+				FromDeviceId: deviceID,
+				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+				Time:         uint64(time.Now().UnixNano() / 1e6),
+			}
+			go kc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
 		}
 	}
 

@@ -1399,7 +1399,19 @@ COMPLETE:
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
 */
-func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+func inArray(in string, exceptDeviceIDs []string) string {
+	if len(exceptDeviceIDs) > 0 {
+		for _, exceptDeviceID := range exceptDeviceIDs {
+			if in == exceptDeviceID {
+				break
+			}
+		}
+	}
+	return ""
+}
+
+func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
+
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := kc.redisPool.Get()
@@ -1434,7 +1446,9 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
-
+		if  inArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
+			continue
+		}
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
