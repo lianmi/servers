@@ -264,3 +264,24 @@ https://github.com/lianmi/docs
 ```
 gitbook插件
 https://www.jianshu.com/p/427b8bb066e6
+
+# ca
+
+```
+https://github.com/do-know/Crypt-LE
+https://hub.docker.com/r/zerossl/client/
+```
+docker
+```
+docker pull zerossl/client
+
+alias le.pl='docker run -it -v /root/developments/lianmi/work/keys_and_certs:/data -v /home/my_user/public_html/.well-known/acme-challenge:/webroot -u $(id -u) --rm zerossl/client'
+
+证书存放目录:
+/root/developments/lianmi/work/keys_and_certs
+```
+
+生成证书:
+```
+le.pl --key account.key --csr domain.csr --csr-key domain.key --crt domain.crt --domains "mqtt.lianmi.cloud,api.lianmi.cloud" --generate-missing --path /webroot --unlink
+```

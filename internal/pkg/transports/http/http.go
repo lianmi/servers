@@ -24,6 +24,7 @@ import (
 type Options struct {
 	Port int
 	Mode string
+	Tls  bool
 }
 
 type Server struct {
@@ -62,15 +63,12 @@ func NewRouter(o *Options, logger *zap.Logger, init InitControllers, tracer open
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 	r.Use(ginprom.New(r).Middleware()) // 添加prometheus 监控
-	// r.Use(Tls.TlsHandler())            // tls ssl
 	r.Use(ginhttp.Middleware(tracer))
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	pprof.Register(r)
 
 	init(r)
-	//https
-	// r.RunTLS(":28080", "server.pem", "server.key")
 
 	return r
 }
@@ -109,12 +107,25 @@ func (s *Server) Start() error {
 
 	s.httpServer = http.Server{Addr: addr, Handler: s.router}
 
-	s.logger.Info("http server starting ...", zap.String("addr", addr))
+	s.logger.Info("http(s) server starting ...", zap.String("addr", addr))
 	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Fatal("start http server err", zap.Error(err))
-			return
+		if s.o.Tls {
+			if err := s.httpServer.ListenAndServeTLS("domain.crt", "domain.key"); err != nil && err != http.ErrServerClosed {
+				s.logger.Fatal("start https server err", zap.Error(err))
+				return
+			} else {
+				s.logger.Info("https server start succeed")
+			}
+		} else {
+
+			if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				s.logger.Fatal("start http server err", zap.Error(err))
+				return
+			} else {
+				s.logger.Info("http server start succeed")
+			}
 		}
+
 	}()
 
 	if err := s.register(); err != nil {
