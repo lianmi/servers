@@ -92,7 +92,7 @@ enum MessageNotificationType {
     MNT_UpdateTeamMember = 21; ///< 管理员/群主修改群成员信息
     MNT_CheckTeamInvite = 22; ///< 邀请入群前询问管理员是否同意
     MNT_Approveteam = 23; ///< 群审核通过，成为正常状态，可以加群及拉人
-    MNT_MemberUpdateMyInfo = 24; ///< 用户设置其在群里的资料
+    MNT_MemberUpdateMyInfo = 24; ///<  多端同步用户设置其在群里的资料
     MNT_MultiDeleteFriend= 25; ///< 多端同步删除好友
     MNT_MultiQuitTeam= 26; ///< 多端同步主动退群
      

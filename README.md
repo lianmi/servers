@@ -281,7 +281,14 @@ alias le.pl='docker run -it -v /root/developments/lianmi/work/keys_and_certs:/da
 /root/developments/lianmi/work/keys_and_certs
 ```
 
-生成证书:
+生成key及签名:
 ```
 le.pl --key account.key --csr domain.csr --csr-key domain.key --crt domain.crt --domains "mqtt.lianmi.cloud,api.lianmi.cloud" --generate-missing --path /webroot --unlink
+```
+
+生成证书:
+
+```
+cd /root/developments/lianmi/work/keys_and_certs
+openssl req -new -x509 -sha256 -key domain.key -out domain.crt -days 3650
 ```
