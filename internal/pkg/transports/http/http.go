@@ -107,22 +107,18 @@ func (s *Server) Start() error {
 
 	s.httpServer = http.Server{Addr: addr, Handler: s.router}
 
-	s.logger.Info("http(s) server starting ...", zap.String("addr", addr))
 	go func() {
 		if s.o.Tls {
+			s.logger.Info("https server starting ...", zap.String("addr", addr))
 			if err := s.httpServer.ListenAndServeTLS("domain.crt", "domain.key"); err != nil && err != http.ErrServerClosed {
 				s.logger.Fatal("start https server err", zap.Error(err))
 				return
-			} else {
-				s.logger.Info("https server start succeed")
 			}
 		} else {
-
+			s.logger.Info("http server starting ...", zap.String("addr", addr))
 			if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				s.logger.Fatal("start http server err", zap.Error(err))
 				return
-			} else {
-				s.logger.Info("http server start succeed")
 			}
 		}
 
