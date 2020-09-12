@@ -384,7 +384,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						kc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
-					//TODO 生成工作流ID
+					//生成工作流ID
 					workflowID := uuid.NewV4().String()
 					rsp.Status = Friends.OpStatusType_Ost_WaitConfirm
 					rsp.WorkflowID = workflowID
@@ -706,6 +706,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
+	var newSeq uint64
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
 
@@ -847,7 +848,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		//A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除的系统通知
 		{
 			//构造回包里的数据
-			var newSeq uint64
+
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
 				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 			}
@@ -855,8 +856,8 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
 				HandledAccount: username,
-				HandledMsg:     "删除好友",
-				Status:         1,          //TODO, 消息状态  存储
+				HandledMsg:     "多端同步删除好友",
+				Status:         Msg.MessageStatus_MOS_Done,
 				Data:           []byte(""), // 附带的文本 该系统消息的文本
 				To:             targetUsername,
 			}
@@ -874,6 +875,38 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			go kc.BroadcastMsgToAllDevices(eRsp, targetUsername)
+		}
+
+		//向当前用户的其它端推送
+		{
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
+				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
+				goto COMPLETE
+			}
+
+			body := Msg.MessageNotificationBody{
+				Type:           Msg.MessageNotificationType_MNT_MultiDeleteFriend, //多端同步删除好友
+				HandledAccount: username,                                          //当前用户
+				HandledMsg:     "",
+				Status:         Msg.MessageStatus_MOS_Done,
+				Data:           []byte(""),
+				To:             targetUsername, //删除的好友
+			}
+			bodyData, _ := proto.Marshal(&body)
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+				Type:         Msg.MessageType_MsgType_Notification, //通知类型
+				Body:         bodyData,
+				From:         username,
+				FromDeviceId: deviceID,
+				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+				Time:         uint64(time.Now().UnixNano() / 1e6),
+			}
+			go kc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
 		}
 	}
 
@@ -1394,22 +1427,23 @@ COMPLETE:
 
 }
 
-/*
-向目标用户账号的所有端推送系统通知
-业务号： BusinessType_Msg(5)
-业务子号： MsgSubType_RecvMsgEvent(2)
-*/
+//判断in是否在设备列表里，如果在，则返回in，如果不在，则返回 空
 func inArray(in string, exceptDeviceIDs []string) string {
 	if len(exceptDeviceIDs) > 0 {
 		for _, exceptDeviceID := range exceptDeviceIDs {
 			if in == exceptDeviceID {
-				break
+				return in
 			}
 		}
 	}
 	return ""
 }
 
+/*
+向目标用户账号的所有端推送系统通知
+业务号： BusinessType_Msg(5)
+业务子号： MsgSubType_RecvMsgEvent(2)
+*/
 func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
 
 	data, _ := proto.Marshal(rsp)
@@ -1446,7 +1480,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
-		if  inArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
+		if inArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
 			continue
 		}
 		targetMsg := &models.Message{}
