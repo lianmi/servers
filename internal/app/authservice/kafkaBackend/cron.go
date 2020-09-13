@@ -3,11 +3,13 @@ package kafkaBackend
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/robfig/cron"
 	"go.uber.org/zap"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
-
-	"github.com/lianmi/servers/internal/pkg/models"
 )
 
 func (kc *KafkaClient) RunCron() {
@@ -70,9 +72,28 @@ func (kc *KafkaClient) RunCron() {
 
 	// 关闭任务
 	defer c.Stop()
-	for run == true {
 
+	var (
+		sigchan chan os.Signal
+		run     bool = true
+	)
+
+	sigchan = make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			kc.logger.Info("Caught signal terminating")
+			_ = sig
+			run = false
+
+		}
 	}
+
+	// for run == true {
+
+	// }
 	kc.logger.Info("RunCron end")
 
 }

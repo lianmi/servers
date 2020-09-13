@@ -23,11 +23,6 @@ import (
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
-var (
-	sigchan chan os.Signal
-	run     bool = true
-)
-
 type KafkaOptions struct {
 	Broker string
 	Group  string
@@ -192,10 +187,15 @@ func (kc *KafkaClient) Start() error {
 	go kc.RedisInit()
 
 	//Go程，启动定时任务
-	// go kc.RunCron()
+	go kc.RunCron()
 
 	//Go程，处理dispatcher发来的业务数据
 	go kc.ProcessRecvPayload()
+
+	var (
+		sigchan chan os.Signal
+		run     bool = true
+	)
 
 	go func() {
 
