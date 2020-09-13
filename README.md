@@ -20,6 +20,13 @@ $ docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 -p 5775:5775/ud
 $ consul agen -dev
 ```
 
+## 运行mysql:
+docker方式的mysql 5.7
+```
+$ cd ../database
+$ sh runmysql.sh
+```
+
 ## 快速开始
 ### 下载项目
 ```bash

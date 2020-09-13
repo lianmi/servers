@@ -122,8 +122,6 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.Kafka
 		logger:              logger.With(zap.String("type", "mqtt.Client")),
 		redisPool:           redisPool,
 	}
-	// mc.OnConnect = mc.OnMQTTConnect
-	// mc.OnLost = mc.OnMQTTLost
 	return mc
 }
 
