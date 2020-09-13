@@ -87,13 +87,9 @@ func (kc *KafkaClient) RunCron() {
 			kc.logger.Info("Caught signal terminating")
 			_ = sig
 			run = false
-
 		}
 	}
 
-	// for run == true {
-
-	// }
 	kc.logger.Info("RunCron end")
 
 }
