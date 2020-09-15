@@ -157,7 +157,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 			}
 
 		}
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", req.GetUsername()), username); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
 				kc.logger.Warn("用户已被对方拉黑， 不能加好友", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
@@ -1288,7 +1288,7 @@ func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
 		}
 
 		//判断是否被对方拉黑
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", req.GetUsername()), username); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
 				kc.logger.Warn("用户已被对方拉黑， 不能关注", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误

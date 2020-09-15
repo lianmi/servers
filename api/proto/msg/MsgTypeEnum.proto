@@ -96,9 +96,9 @@ enum MessageNotificationType {
     MNT_MultiDeleteFriend= 25; ///< 多端同步删除好友
     MNT_MultiQuitTeam= 26; ///< 多端同步主动退群
      
-    MNT_AddProduct = 30; ///< 商户上架商品
-    MNT_UpdateProduct = 31; ///< 商户更新商品
-    MNT_SelloutProduct = 32; ///< 商户下架商品
+    //MNT_AddProduct = 30; ///< 商户上架商品
+    //MNT_UpdateProduct = 31; ///< 商户更新商品
+    //MNT_SelloutProduct = 32; ///< 商户下架商品
 
 
     MNT_Customer = 100; ///< 自定义事件消息

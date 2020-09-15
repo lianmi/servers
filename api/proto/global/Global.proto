@@ -44,6 +44,7 @@ enum UserSubType {
     SyncUpdateProfileEvent = 4;    /**< 用户资料更新事件,同一账号其他终端修改个人资料会触发该事件*/
     MarkTag                = 5;    /**< 用户打标*/
     SyncMarkTagEvent       = 6;    /**< 同步其它终端的好友添加、删除标签事件*/
+    SyncTagsEvent          = 7;    /**< 同步用户标签列表*/
 }
 
 //好友模块子模块定义

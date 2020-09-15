@@ -192,7 +192,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 	var errorMsg string
 	rsp := &Order.AddProductRsp{}
 
-	var newSeq uint64
+	// var newSeq uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -262,7 +262,7 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			if int64(req.GetExpire()) < time.Now().UnixNano()/1e6 {
 				kc.logger.Warn("Expire小于当前时间戳")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Expire is less than current unixnano[Expire=%d]", req.GetExpire())
+				errorMsg = fmt.Sprintf("Expire is less than current microsecond[Expire=%d]", req.GetExpire())
 				goto COMPLETE
 			}
 
@@ -340,11 +340,6 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 		//推送通知给关注的用户
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
-			//构造回包里的数据
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", watchingUser))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				continue
-			}
 
 			//7-5 新商品上架事件 将商品信息序化
 			addProductEventRsp := &Order.AddProductEventRsp{
@@ -357,28 +352,8 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
 
-			body := &Msg.MessageNotificationBody{
-				Type:           Msg.MessageNotificationType_MNT_AddProduct, //关注的商户上架了新商品
-				HandledAccount: username,
-				HandledMsg:     "关注的商户上架了新商品",
-				Status:         1,           //消息状态
-				Data:           productData, //AddProductEventRsp
-				To:             watchingUser,
-			}
-			bodyData, _ := proto.Marshal(body)
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         bodyData,
-				From:         username,                           //谁发的
-				FromDeviceId: deviceID,                           //哪个设备发的
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
-
-			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
+			//向所有关注了此商户的用户推送 7-5 新商品上架事件
+			go kc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
 		}
 	}
 
@@ -408,7 +383,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	var newSeq uint64
+	// var newSeq uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -535,46 +510,19 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 		//推送通知给关注的用户
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
-			//构造回包里的数据
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", watchingUser))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
-				goto COMPLETE
-			}
 
 			//7-6 已有商品的编辑更新事件
-			updateProductEventReq := &Order.UpdateProductEventRsp{
+			updateProductEventRsp := &Order.UpdateProductEventRsp{
 				Username:  username,
 				Product:   req.Product,
 				OrderType: req.OrderType,
-				// Expire:    req.Expire,
-				TimeAt: uint64(time.Now().UnixNano() / 1e6),
+				Expire:    req.Expire,
+				TimeAt:    uint64(time.Now().UnixNano() / 1e6),
 			}
-			productData, _ := proto.Marshal(updateProductEventReq)
+			productData, _ := proto.Marshal(updateProductEventRsp)
 
-			body := &Msg.MessageNotificationBody{
-				Type:           Msg.MessageNotificationType_MNT_UpdateProduct, //商户更新商品
-				HandledAccount: username,
-				HandledMsg:     "商户更新商品",
-				Status:         1,           //消息状态
-				Data:           productData, // 用来存储UpdateProductEventRsp
-				To:             watchingUser,
-			}
-			bodyData, _ := proto.Marshal(body)
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         bodyData,
-				From:         username,                           //谁发的
-				FromDeviceId: deviceID,                           //哪个设备发的
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
-
-			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
+			//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
+			go kc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
 		}
 	}
 
@@ -602,7 +550,6 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	var newSeq uint64
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -684,6 +631,9 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 			}
 
 		}
+		_, err = redisConn.Do("ZREM", fmt.Sprintf("Products:%s", username), req.ProductID)
+		_, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveProducts:%s", username), time.Now().UnixNano()/1e6, req.ProductID)
+
 		//TODO 判断是否存在着此商品id的订单
 
 		//得到此商品的详细信息，如图片等，从阿里云OSS里删除这些文件
@@ -708,42 +658,14 @@ func (kc *KafkaClient) HandleSoldoutProduct(msg *models.Message) error {
 		//推送通知给关注的用户
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
-			//构造回包里的数据
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", watchingUser))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
-				goto COMPLETE
-			}
-
 			//7-7 商品下架事件
 			soldoutProductEventRsp := &Order.SoldoutProductEventRsp{
 				ProductID: req.ProductID,
 			}
 			productData, _ := proto.Marshal(soldoutProductEventRsp)
 
-			body := &Msg.MessageNotificationBody{
-				Type:           Msg.MessageNotificationType_MNT_SelloutProduct, //商户下架商品
-				HandledAccount: username,
-				HandledMsg:     "商户下架商品",
-				Status:         1,           //消息状态
-				Data:           productData, // 用来存储SoldoutProductEventRsp
-				To:             watchingUser,
-			}
-			bodyData, _ := proto.Marshal(body)
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         bodyData,
-				From:         username,                           //谁发的
-				FromDeviceId: deviceID,                           //哪个设备发的
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
-
-			go kc.BroadcastMsgToAllDevices(eRsp, watchingUser)
+			//向所有关注了此商户的用户推送 7-7 商品下架事件
+			go kc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
 		}
 	}
 
@@ -1866,5 +1788,64 @@ COMPLETE:
 		kc.logger.Error("HandleGetPreKeysCount: Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
+	return nil
+}
+
+/*
+向目标用户账号的所有端推送传入的业务号及子号的消息， 接收端会触发对应事件
+传参：
+1. data 字节流
+2. businessType 业务号
+3. businessSubType 业务子号
+*/
+func (kc *KafkaClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, businessSubType uint32, toUser string) error {
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//向toUser所有端发送
+	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(toUser)
+		targetMsg.SetDeviceID(eDeviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(businessType)       //业务号
+		targetMsg.SetBusinessSubType(businessSubType) //业务子号
+
+		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Order.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("BroadcastMsgToAllDevices Succeed",
+			zap.String("Username:", toUser),
+			zap.String("DeviceID:", curDeviceKey),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+	}
+
 	return nil
 }

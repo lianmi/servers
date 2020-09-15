@@ -1,7 +1,7 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, systemMsgAt, watchAt
+    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt
 
 6-2 同步请求完成
 
@@ -546,6 +546,192 @@ COMPLETE:
 	}
 }
 
+//1-7 同步用户标签列表 处理 TagsAt
+func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var cur_tagsAt uint64
+
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	tagsAt := req.GetTagsAt()
+	syncKey := fmt.Sprintf("sync:%s", username)
+
+	cur_tagsAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "tagsAt"))
+	if err != nil {
+		cur_tagsAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "tagsAt", cur_tagsAt)
+
+	}
+
+	kc.logger.Debug("SyncTagsAt",
+		zap.Uint64("cur_tagsAt", cur_tagsAt),
+		zap.Uint64("tagsAt", tagsAt),
+		zap.String("username", username),
+	)
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_tagsAt > tagsAt {
+		//构造
+		rsp := &User.SyncTagsEventRsp{ //1-7 同步用户标签列表
+			TimeTag:     uint64(time.Now().UnixNano() / 1e6),
+			AddTags:     make([]*User.Tag, 0),
+			RemovedTags: make([]*User.Tag, 0),
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的黑名单
+		blackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:1", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:1]", username)
+			goto COMPLETE
+		}
+
+		for _, blackUser := range blackUsers {
+			rsp.AddTags = append(rsp.AddTags, &User.Tag{
+				Username: blackUser,
+				Type:     User.MarkTagType_Mtt_Blocked,
+			})
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的免打扰
+		mutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:1", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:1]", username)
+			goto COMPLETE
+		}
+
+		for _, mutedUser := range mutedUsers {
+			rsp.AddTags = append(rsp.AddTags, &User.Tag{
+				Username: mutedUser,
+				Type:     User.MarkTagType_Mtt_Muted,
+			})
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的置顶
+		stickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:1", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:1]", username)
+			goto COMPLETE
+		}
+
+		for _, stickyUser := range stickyUsers {
+			rsp.AddTags = append(rsp.AddTags, &User.Tag{
+				Username: stickyUser,
+				Type:     User.MarkTagType_Mtt_Sticky,
+			})
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的移除黑名单
+		removeBlackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:2", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:2]", username)
+			goto COMPLETE
+		}
+
+		for _, removeBlackUser := range removeBlackUsers {
+			rsp.RemovedTags = append(rsp.RemovedTags, &User.Tag{
+				Username: removeBlackUser,
+				Type:     User.MarkTagType_Mtt_Blocked,
+			})
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的移除免打扰
+		removeMutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:2", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:2]", username)
+			goto COMPLETE
+		}
+
+		for _, removeMutedUser := range removeMutedUsers {
+			rsp.RemovedTags = append(rsp.RemovedTags, &User.Tag{
+				Username: removeMutedUser,
+				Type:     User.MarkTagType_Mtt_Muted,
+			})
+		}
+
+		//遍历时间戳大于客户端上报的时间戳的移除置顶
+		removeStickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:2", username), tagsAt, "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:2]", username)
+			goto COMPLETE
+		}
+
+		for _, removeStickyUser := range removeStickyUsers {
+			rsp.RemovedTags = append(rsp.RemovedTags, &User.Tag{
+				Username: removeStickyUser,
+				Type:     User.MarkTagType_Mtt_Sticky,
+			})
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("User")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_User))            // 1
+		targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncTagsEvent)) // 7
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("Sync MyTeamsEvent  Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+	}
+
+COMPLETE:
+	//完成
+	ch <- 1
+	if errorCode == 200 {
+		//只需返回200
+		return nil
+	} else {
+		return errors.Wrap(err, errorMsg)
+	}
+}
+
 func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
 
 	targetMsg := &models.Message{}
@@ -780,6 +966,146 @@ COMPLETE:
 	}
 }
 
+//处理productAt 7-8 同步商品列表
+func (kc *KafkaClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var cur_productAt uint64
+
+	rsp := &Order.SyncProductsEventRsp{
+		TimeTag:           uint64(time.Now().UnixNano() / 1e6),
+		AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
+		RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
+
+	}
+	redisConn := kc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	productAt := req.GetProductAt()
+	syncKey := fmt.Sprintf("sync:%s", username)
+
+	cur_productAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "productAt"))
+	if err != nil {
+		cur_productAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "productAt", cur_productAt)
+
+	}
+
+	kc.logger.Debug("SyncProductAt",
+		zap.Uint64("cur_productAt", cur_productAt),
+		zap.Uint64("productAt", productAt),
+		zap.String("username", username),
+	)
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_productAt > productAt {
+		//获取此用户关注的商户列表
+		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), "-inf", "+inf"))
+		if err != nil {
+
+			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
+			goto COMPLETE
+		}
+
+		for _, watchingUser := range watchingUsers {
+			//商户 的商品列表
+			productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", watchingUser), productAt, "+inf"))
+			for _, productID := range productIDs {
+				productInfo := new(models.Product)
+				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
+					if err := redis.ScanStruct(result, productInfo); err != nil {
+						kc.logger.Error("错误: ScanStruct", zap.Error(err))
+						continue
+					}
+				}
+				rsp.AddProducts = append(rsp.AddProducts, &Order.Product{
+					ProductId:         productID,
+					Expire:            uint64(productInfo.Expire),
+					ProductName:       productInfo.ProductName,
+					CategoryName:      productInfo.CategoryName,
+					ProductDesc:       productInfo.ProductDesc,
+					ProductPic1Small:  productInfo.ProductPic1Small,
+					ProductPic1Middle: productInfo.ProductPic1Middle,
+					ProductPic1Large:  productInfo.ProductPic1Large,
+					ProductPic2Small:  productInfo.ProductPic2Small,
+					ProductPic2Middle: productInfo.ProductPic2Middle,
+					ProductPic2Large:  productInfo.ProductPic2Large,
+					ProductPic3Small:  productInfo.ProductPic3Small,
+					ProductPic3Middle: productInfo.ProductPic3Middle,
+					ProductPic3Large:  productInfo.ProductPic3Large,
+					Thumbnail:         productInfo.Thumbnail,
+					ShortVideo:        productInfo.ShortVideo,
+					Price:             productInfo.Price,
+					LeftCount:         productInfo.LeftCount,
+					Discount:          productInfo.Discount,
+					DiscountDesc:      productInfo.DiscountDesc,
+					DiscountStartTime: uint64(productInfo.DiscountStartTime),
+					DiscountEndTime:   uint64(productInfo.DiscountEndTime),
+					CreateAt:          uint64(productInfo.CreateAt),
+					ModifyAt:          uint64(productInfo.ModifyAt),
+				})
+			}
+
+			//下架的商品ID
+
+			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveProducts:%s", watchingUser), productAt, "+inf"))
+			for _, removeProductID := range removeProductIDs {
+				rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
+			}
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))               // 7
+		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncProductEvent)) // 8
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		if err := kc.Produce(topic, targetMsg); err == nil {
+			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		kc.logger.Info("SyncProductAt Succeed",
+			zap.String("Username:", username),
+			zap.String("DeviceID:", deviceID),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+	}
+
+COMPLETE:
+	//完成
+	ch <- 1
+	if errorCode == 200 {
+		//只需返回200
+		return nil
+	} else {
+		return errors.Wrap(err, errorMsg)
+	}
+}
+
 /*
 注意： syncCount 是所有需要同步的数量，最终是6个
 */
@@ -834,10 +1160,11 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("TagsAt", req.TagsAt),
 			zap.Uint64("SystemMsgAt", req.SystemMsgAt),
 			zap.Uint64("WatchAt", req.WatchAt),
+			zap.Uint64("ProductAt", req.ProductAt),
 		)
 
 		//所有同步的时间戳数量
-		chs := make([]chan int, common.TotalSyncCount) //6 个
+		chs := make([]chan int, common.TotalSyncCount) //8 个
 		for i := 0; i < common.TotalSyncCount; i++ {
 			chs[i] = make(chan int)
 		}
@@ -876,7 +1203,15 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[4]); err != nil {
+			if err := kc.SyncTagsAt(username, token, deviceID, req, chs[4]); err != nil {
+				kc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncTagsAt is done")
+			}
+		}()
+
+		go func() {
+			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[5]); err != nil {
 				kc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
 			} else {
 				kc.logger.Debug("SyncSystemMsgAt is done")
@@ -884,10 +1219,18 @@ func (kc *KafkaClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[5]); err != nil {
+			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[6]); err != nil {
 				kc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
 			} else {
 				kc.logger.Debug("SyncWatchAt is done")
+			}
+		}()
+
+		go func() {
+			if err := kc.SyncProductAt(username, token, deviceID, req, chs[7]); err != nil {
+				kc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
+			} else {
+				kc.logger.Debug("SyncProductAt is done")
 			}
 		}()
 

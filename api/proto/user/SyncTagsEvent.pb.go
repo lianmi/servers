@@ -33,8 +33,11 @@ type Tag struct {
 
 	//用户账号
 	//是否必须-是
-	Username string      `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Type     MarkTagType `protobuf:"varint,2,opt,name=type,proto3,enum=cloud.lianmi.im.user.MarkTagType" json:"type,omitempty"`
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//标签类型
+	//是否必须-是
+	//Blocked(1) - 黑名单 Muted(2) - 免打扰 Sticky(3) - 置顶
+	Type MarkTagType `protobuf:"varint,2,opt,name=type,proto3,enum=cloud.lianmi.im.user.MarkTagType" json:"type,omitempty"`
 }
 
 func (x *Tag) Reset() {

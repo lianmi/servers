@@ -1004,26 +1004,8 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								continue
 							}
 
-							//删除redis里的TeamUser哈希表
-							err = redisConn.Send("DEL", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, removedUsername))
-							//删除群成员的有序集合
-							err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), removedUsername)
-							//将群成员自己加入的群里删除teamID
-							err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", removedUsername), teamID)
-							//增加到此用户自己的退群列表
-							err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().UnixNano()/1e6, teamID)
-
-							//更新redis的sync:{用户账号} teamsAt 时间戳
-							redisConn.Send("HSET",
-								fmt.Sprintf("sync:%s", removedUsername),
-								"teamsAt",
-								time.Now().UnixNano()/1e6)
-
-							//一次性写入到Redis
-							redisConn.Flush()
-
 							teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
-							//向其它群成员推送MNT_KickOffTeam
+							//向所有群成员推送MNT_KickOffTeam
 							for _, teamMember := range teamMembers {
 
 								//更新redis的sync:{用户账号} teamsAt 时间戳
@@ -1068,6 +1050,24 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
+
+							//删除redis里的TeamUser哈希表
+							err = redisConn.Send("DEL", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, removedUsername))
+							//删除群成员的有序集合
+							err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), removedUsername)
+							//将群成员自己加入的群里删除teamID
+							err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", removedUsername), teamID)
+							//增加到此用户自己的退群列表
+							err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().UnixNano()/1e6, teamID)
+
+							//更新redis的sync:{用户账号} teamsAt 时间戳
+							redisConn.Send("HSET",
+								fmt.Sprintf("sync:%s", removedUsername),
+								"teamsAt",
+								time.Now().UnixNano()/1e6)
+
+							//一次性写入到Redis
+							redisConn.Flush()
 
 						}
 

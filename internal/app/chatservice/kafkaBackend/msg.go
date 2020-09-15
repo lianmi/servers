@@ -143,7 +143,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				}
 
 				//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
-				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s", toUser), username); err == nil {
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
 					if reply != nil {
 						kc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
 						errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
@@ -183,7 +183,7 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 				go kc.Produce(topic, msg)
 
 			case Msg.MessageType_MsgType_Roof: //吸顶式群消息 只能是系统、群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
-				
+
 			case Msg.MessageType_MSgType_Customer: //自定义
 
 			}

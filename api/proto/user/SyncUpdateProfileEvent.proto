@@ -9,7 +9,7 @@ option go_package = "github.com/lianmi/servers/api/proto/user";
 message SyncUpdateProfileEventRsp{
   //更新时间戳
   //是否必填-是
-//  fixed64 timeTag=1;
+  fixed64 timeTag=1;
   //采用字典表方式提交更新内容 key定义成枚举(UserFieldEnum)
   //取值范围：
   //Nick(1) - 昵称
@@ -22,5 +22,5 @@ message SyncUpdateProfileEventRsp{
   //Ex(8) - 扩展信息
   //map的key为1到8的整数含义见上
   //是否必填-是
-  map<int32,string> fields=1;
+  map<int32,string> fields=2;
 }

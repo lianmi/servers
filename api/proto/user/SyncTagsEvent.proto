@@ -12,7 +12,7 @@ message Tag {
     string username = 1;
     //标签类型
     //是否必须-是
-
+    //Blocked(1) - 黑名单 Muted(2) - 免打扰 Sticky(3) - 置顶
     MarkTagType type = 2;
 }
 // 同步用户标签列表
