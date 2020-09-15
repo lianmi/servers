@@ -28,6 +28,7 @@ import (
 */
 
 /*
+7-1 查询某个商户的所有商品信息
 1. 根据timeAt增量返回商品信息，首次timeAt请初始化为0，服务器返回全量商品信息，后续采取增量方式更新
 2. 如果soldoutProducts不为空，终端根据soldoutProducts移除商品缓存数据
 3. 获取商品信息的流程:  发起获取商品信息请求 → 更新本地数据库 → 返回数据给UI
@@ -99,14 +100,14 @@ func (kc *KafkaClient) HandleQueryProducts(msg *models.Message) error {
 		}
 
 		//判断此商户是不是用户关注的，如果不是则返回
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", req.GetUserName()), username); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", username), req.GetUserName()); err == nil {
 			if reply == nil {
 				//商户不是用户关注
-				kc.logger.Debug("商户不是用户关注",
+				kc.logger.Debug("此商户不是用户关注",
 					zap.String("UserName", req.GetUserName()),
 				)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not watching[Username=%s]", username)
+				errorMsg = fmt.Sprintf("User is not watching[Watching Username=%s]", req.GetUserName())
 				goto COMPLETE
 			}
 
@@ -254,7 +255,6 @@ func (kc *KafkaClient) HandleAddProduct(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("OrderType is not right[Username=%s]", username)
 			goto COMPLETE
 		}
-
 
 		//校验过期时间
 		if req.GetExpire() > 0 {
