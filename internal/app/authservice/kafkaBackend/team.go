@@ -1307,7 +1307,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
 
 			//删除退群名单列表里的此用户
-			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), username)
 			//add群成员
 			err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
 
@@ -1773,7 +1773,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
 
 				//删除退群名单列表里的此用户
-				err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
+				err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), username)
 
 				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
 				err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...)
@@ -2108,7 +2108,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamInfo.TeamID)
 			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...)
 			//删除退群名单列表里的此用户
-			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername)
+			err = redisConn.Send("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamInfo.TeamID), targetUsername)
 
 			err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, targetUsername)
 			err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, targetUsername)).AddFlat(teamUser)...)
