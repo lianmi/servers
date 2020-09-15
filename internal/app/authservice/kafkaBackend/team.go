@@ -2717,21 +2717,6 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 							goto COMPLETE
 						}
 
-						//删除redis里的TeamUser哈希表
-						err = redisConn.Send("DEL", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username))
-						//删除群成员的有序集合
-						err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), username)
-						//增加此群的退群名单
-						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, username)
-
-						//删除Team:{username}里teamID
-						err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", username), teamInfo.TeamID)
-						//增加到用户自己的退群列表
-						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().UnixNano()/1e6, teamID)
-
-						//一次性写入到Redis
-						redisConn.Flush()
-
 						//对所有群成员
 						teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 						curAt := time.Now().UnixNano() / 1e6
@@ -2767,6 +2752,21 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 							go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 						}
+
+						//删除redis里的TeamUser哈希表
+						err = redisConn.Send("DEL", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username))
+						//删除群成员的有序集合
+						err = redisConn.Send("ZREM", fmt.Sprintf("TeamUsers:%s", teamID), username)
+						//增加此群的退群名单
+						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, username)
+
+						//删除Team:{username}里teamID
+						err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", username), teamInfo.TeamID)
+						//增加到用户自己的退群列表
+						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().UnixNano()/1e6, teamID)
+
+						//一次性写入到Redis
+						redisConn.Flush()
 
 						//向当前用户的其他端推送 MNT_MultiQuitTeam
 						{
