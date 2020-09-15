@@ -215,10 +215,12 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			// var ok bool
 			if handleFunc, ok := kc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
-				msg.SetCode(int32(404)) //状态码
+				msg.SetCode(int32(404))                                                          //状态码
+				msg.SetErrorMsg([]byte("Can not process this businessType and businessSubType")) //错误提示
 				//向dispatcher发送
 				topic := msg.GetSource() + ".Frontend"
-				kc.Produce(topic, msg)
+				msg.FillBody(nil)
+				go kc.Produce(topic, msg)
 				continue
 			} else {
 				//启动Go程

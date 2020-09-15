@@ -280,7 +280,7 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			if handleFunc, ok := kc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
 				kc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
 				//向SDK回包，业务号及业务子号无法匹配 404
-				kc.SendErrorMsg(msg)
+				go kc.SendErrorMsg(msg)
 
 				continue
 			} else {
@@ -294,9 +294,11 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 
 //SendErrorMsg
 func (kc *KafkaClient) SendErrorMsg(msg *models.Message) {
-	msg.SetCode(int32(404)) //状态码
+	msg.SetCode(int32(404))                                                          //状态码
+	msg.SetErrorMsg([]byte("Can not process this businessType and businessSubType")) //错误提示
 	//向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
+	msg.FillBody(nil)
 	kc.Produce(topic, msg)
 }
 
