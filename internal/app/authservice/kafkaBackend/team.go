@@ -1059,6 +1059,8 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 							err = redisConn.Send("ZREM", fmt.Sprintf("Team:%s", removedUsername), teamID)
 							//增加到此用户自己的退群列表
 							err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", removedUsername), time.Now().UnixNano()/1e6, teamID)
+							//增加此群的退群名单
+							err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, removedUsername)
 
 							//更新redis的sync:{用户账号} teamsAt 时间戳
 							redisConn.Send("HSET",
