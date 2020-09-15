@@ -2768,38 +2768,6 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 						//一次性写入到Redis
 						redisConn.Flush()
 
-						//向当前用户的其他端推送 MNT_MultiQuitTeam
-						{
-							if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
-								kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
-								goto COMPLETE
-							}
-
-							body := Msg.MessageNotificationBody{
-								Type:           Msg.MessageNotificationType_MNT_MultiQuitTeam, //多端同步主动退群
-								HandledAccount: username,                                      //当前用户
-								HandledMsg:     "",
-								Status:         Msg.MessageStatus_MOS_Done,
-								Data:           []byte(""),
-								To:             teamID, //群id
-							}
-							bodyData, _ := proto.Marshal(&body)
-							eRsp := &Msg.RecvMsgEventRsp{
-								Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-								Type:         Msg.MessageType_MsgType_Notification, //通知类型
-								Body:         bodyData,
-								From:         username,
-								FromDeviceId: deviceID,
-								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-								Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
-								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-								Time:         uint64(time.Now().UnixNano() / 1e6),
-							}
-							go kc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
-						}
-
 						kc.logger.Info("HandleLeaveTeam succeed",
 							zap.String("username", username),
 							zap.String("deviceId", deviceID))
