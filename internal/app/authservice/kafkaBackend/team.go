@@ -1271,7 +1271,8 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.Teamname = teamInfo.Teamname
+			teamUser.TeamID = teamID              //群id
+			teamUser.Teamname = teamInfo.Teamname //群名称
 			teamUser.Username = userData.Username
 			teamUser.InvitedUsername = req.GetFrom()                      //邀请者
 			teamUser.Nick = userData.Nick                                 //群成员呢称
@@ -1745,7 +1746,8 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 				//存储群成员信息 TeamUser
 				teamUser := new(models.TeamUser)
 				teamUser.JoinAt = time.Now().UnixNano() / 1e6
-				teamUser.Teamname = teamInfo.Teamname
+				teamUser.TeamID = teamID              //群id
+				teamUser.Teamname = teamInfo.Teamname //群名称
 				teamUser.Username = userData.Username
 				teamUser.InvitedUsername = ""
 				teamUser.Nick = userData.Nick                                 //群成员呢称
@@ -2048,7 +2050,8 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.Teamname = teamInfo.Teamname
+			teamUser.TeamID = teamID              //群id
+			teamUser.Teamname = teamInfo.Teamname //群名称
 			teamUser.Username = userData.Username
 			teamUser.Nick = userData.Nick                                 //群成员呢称
 			teamUser.Avatar = userData.Avatar                             //群成员头像
@@ -4343,7 +4346,7 @@ func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
 					}
 				}
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
-					TeamId:          teamUser.TeamID,
+					TeamId:          teamID, //teamUser.TeamID,
 					Username:        teamUser.Username,
 					Invitedusername: teamUser.InvitedUsername,
 					Nick:            teamUser.Nick,
