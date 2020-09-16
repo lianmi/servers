@@ -2935,9 +2935,9 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 
 						managerUser := new(models.TeamUser)
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, manager))); err == nil {
-							if err := redis.ScanStruct(result, manager); err != nil {
+							if err := redis.ScanStruct(result, managerUser); err != nil {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, manager)
-								kc.logger.Error("TeamUser is not exist", zap.Error(err))
+								kc.logger.Error("TeamUser is not exists", zap.Error(err), zap.String("errorMsg", errorMsg))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3170,9 +3170,9 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 
 						managerUser := new(models.TeamUser)
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, manager))); err == nil {
-							if err := redis.ScanStruct(result, manager); err != nil {
+							if err := redis.ScanStruct(result, managerUser); err != nil {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, manager)
-								kc.logger.Error("TeamUser is not exist", zap.Error(err))
+								kc.logger.Error("TeamUser is not exists", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3927,7 +3927,7 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 				if err := redis.ScanStruct(result, teamUser); err != nil {
 					kc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+					errorMsg = fmt.Sprintf("Team user is not exists[teamID=%s, username=%s]", teamID, username)
 					goto COMPLETE
 				}
 			}
