@@ -4821,6 +4821,7 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	// var newSeq uint64
 
 	rsp := &Team.GetTeamMembersPageRsp{
+		Total:   0,
 		Members: make([]*Team.Tmember, 0),
 	}
 
@@ -4864,7 +4865,7 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	} else {
 		kc.logger.Debug("GetTeamMembersPage  payload",
 			zap.String("TeamId", req.GetTeamId()),
-			// zap.Int32("QueryType", req.GetQueryType()),
+			zap.Int("QueryType", int(req.GetQueryType())),
 			zap.Int32("Page", req.GetPage()),
 			zap.Int32("PageSize", req.GetPageSize()),
 		)
@@ -4904,19 +4905,28 @@ func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		// GetPages 分页返回数据
 		var maps string
 		switch req.GetQueryType() {
-		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All:
+		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All: //全部,默认
 			maps = "team_member_type != 0 "
 		case Team.QueryType_Tmqt_Manager: //管理员
 			maps = "team_member_type = 2 "
 		case Team.QueryType_Tmqt_Muted:
-			maps = "is_mute = true " //禁言
+			maps = "is_mute = true " //禁言成员
 		}
+
 		var total uint64
 		teamUsers := kc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		kc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {
+			kc.logger.Debug("for...range: teamUser",
+				zap.String("TeamId", teamID),
+				zap.String("Username", teamUser.Username),
+				zap.String("Invitedusername", teamUser.InvitedUsername),
+				zap.String("Nick", teamUser.Nick),
+				zap.String("Avatar", teamUser.Avatar),
+			)
 			rsp.Members = append(rsp.Members, &Team.Tmember{
-				TeamId:          teamUser.TeamID,
+				TeamId:          teamID,
 				Username:        teamUser.Username,
 				Invitedusername: teamUser.InvitedUsername,
 				Nick:            teamUser.Nick,
