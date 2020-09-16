@@ -2984,6 +2984,8 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 							} else {
 								kc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
+							//更新时间戳
+							_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, manager)
 
 							//向所有群成员推送
 							teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -3224,6 +3226,8 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							} else {
 								kc.logger.Debug("用户被群主撤销管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
+							//更新时间戳
+							_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, manager)
 
 							curAt := time.Now().UnixNano() / 1e6
 
@@ -3631,7 +3635,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 				teamUser.Mutedays = int(req.GetMutedays())
 			} else {
 				//其它成员无权设置
-				kc.logger.Warn("其它成员无权设置禁言时长")
+				kc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", req.GetUsername()))
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("其它成员无权设置禁言时长[username=%s]", req.GetUsername())
 				goto COMPLETE
@@ -3649,6 +3653,9 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
+			//更新时间戳
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
+
 			//向redis里的定时解禁任务列表DissMuteUsers:{群id}增加此用户， 由系统定时器cron将此用户到期解禁
 			if req.GetMute() {
 				if req.GetMutedays() > 0 {
@@ -3989,6 +3996,8 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
+			//更新时间戳
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
 
 			//向其它端推送修改
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
@@ -4180,6 +4189,8 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
 				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
+			//更新时间戳
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
 
 			// 向所有群成员推送
 			var newSeq uint64
