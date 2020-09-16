@@ -805,8 +805,8 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 		//如果B是商户
 		if userType == int(User.UserType_Ut_Business) {
 			//在用户的关注有序列表里删除 此商户
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
-				kc.logger.Error("ZADD Error", zap.Error(err))
+			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), targetUsername); err != nil {
+				kc.logger.Error("ZREM Error", zap.Error(err))
 			}
 			//增加用户的取消关注有序列表
 			if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {

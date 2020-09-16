@@ -1069,7 +1069,8 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 								time.Now().UnixNano()/1e6)
 
 							//一次性写入到Redis
-							redisConn.Flush()
+							err = redisConn.Flush()
+							kc.PrintRedisErr(err)
 
 						}
 
@@ -1320,7 +1321,8 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				time.Now().UnixNano()/1e6)
 
 			//一次性写入到Redis
-			redisConn.Flush()
+			err = redisConn.Flush()
+			kc.PrintRedisErr(err)
 
 			//向群推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -1783,7 +1785,8 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 					"teamsAt",
 					time.Now().UnixNano()/1e6)
 
-				redisConn.Flush()
+				err = redisConn.Flush()
+				kc.PrintRedisErr(err)
 
 				//向群推送此用户的入群通知
 				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -2118,7 +2121,8 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 				"teamsAt",
 				time.Now().UnixNano()/1e6)
 
-			redisConn.Flush()
+			err = redisConn.Flush()
+			kc.PrintRedisErr(err)
 
 		}
 	}
@@ -2560,7 +2564,8 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 			}
 
 			//一次性写入到Redis
-			redisConn.Flush()
+			err = redisConn.Flush()
+			kc.PrintRedisErr(err)
 
 			rsp.TeamId = teamID
 			rsp.TimeAt = uint64(time.Now().UnixNano() / 1e6)
@@ -2766,7 +2771,8 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 						err = redisConn.Send("ZADD", fmt.Sprintf("RemoveTeam:%s", username), time.Now().UnixNano()/1e6, teamID)
 
 						//一次性写入到Redis
-						redisConn.Flush()
+						err = redisConn.Flush()
+						kc.PrintRedisErr(err)
 
 						kc.logger.Info("HandleLeaveTeam succeed",
 							zap.String("username", username),

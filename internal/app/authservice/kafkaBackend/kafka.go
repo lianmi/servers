@@ -326,4 +326,9 @@ func (kc *KafkaClient) Stop() error {
 	return nil
 }
 
+func (kc *KafkaClient) PrintRedisErr(err error) {
+	kc.logger.Error("Redis Error", zap.Error(err))
+}
+
+
 var ProviderSet = wire.NewSet(NewKafkaOptions, NewKafkaClient)

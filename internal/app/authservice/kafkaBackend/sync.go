@@ -585,8 +585,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		//遍历时间戳大于客户端上报的时间戳的黑名单
 		blackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的黑名单 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:1]", username)
 			goto COMPLETE
@@ -602,8 +601,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		//遍历时间戳大于客户端上报的时间戳的免打扰
 		mutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的免打扰 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:1]", username)
 			goto COMPLETE
@@ -619,8 +617,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		//遍历时间戳大于客户端上报的时间戳的置顶
 		stickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的置顶  ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:1]", username)
 			goto COMPLETE
@@ -636,8 +633,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		//遍历时间戳大于客户端上报的时间戳的移除黑名单
 		removeBlackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
-
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除黑名单 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:2]", username)
 			goto COMPLETE
@@ -653,8 +649,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		//遍历时间戳大于客户端上报的时间戳的移除免打扰
 		removeMutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
-
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除免打扰 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:2]", username)
 			goto COMPLETE
@@ -671,7 +666,7 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 		removeStickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
 
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除置顶 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:2]", username)
 			goto COMPLETE
