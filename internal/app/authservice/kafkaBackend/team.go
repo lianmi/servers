@@ -2519,7 +2519,16 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 				teamInfo.InviteMode = inviteMode
 			}
 
+			//保存到MySQL
 			kc.SaveTeam(teamInfo)
+
+			//更新redis
+			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
+				kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			} else {
+				kc.logger.Debug("4-11 更新群组信息 更新redis成功")
+
+			}
 
 			//对所有群成员
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -3206,8 +3215,11 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							}
 
 							//刷新redis
-							if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+							managerKey := fmt.Sprintf("TeamUser:%s:%s", teamID, manager)
+							if _, err = redisConn.Do("HSET", managerKey, "TeamMemberType", 3); err != nil {
+								kc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
+							} else {
+								kc.logger.Debug("用户被群主撤销管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
 
 							//向所有群成员推送
