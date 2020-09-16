@@ -77,11 +77,11 @@ enum TeamSubType {
     PassTeamApply         =  9;  /**< 9.  通过群申请*/
     RejectTeamApply       =  10; /**< 10. 拒绝群申请*/
     UpdateTeam            =  11; /**< 11. 更新群组信息*/
-    DismissTeam           =  12; /**< 12. 解散群组*/
+    DismissTeam           =  12; /**< 暂时不开发 12. 解散群组*/
     LeaveTeam             =  13; /**< 13. 离开群组*/
     AddTeamManagers       =  14; /**< 14. 设置群管理员*/
     RemoveTeamManagers    =  15; /**< 15. 取消群管理员*/
-    TransferTeam          =  16; /**< 16. 转让群*/
+    TransferTeam          =  16; /**< 暂时不开发 16. 转让群*/
     SyncMyTeamsEvent      =  17; /**< 17. 同步群组事件*/
     MuteTeam              =  18; /**< 18. 修改群禁言模式*/
     MuteTeamMember        =  19; /**< 19. 设置群成员禁言*/
