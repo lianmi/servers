@@ -2966,8 +2966,11 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 							}
 
 							//刷新redis
-							if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-								kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+							managerKey := fmt.Sprintf("TeamUser:%s:%s", teamID, manager)
+							if _, err = redisConn.Do("HSET", managerKey, "TeamMemberType", 2); err != nil {
+								kc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
+							} else {
+								kc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
 
 							//向所有群成员推送
@@ -3006,8 +3009,6 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
-
-							kc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager))
 
 						}
 
