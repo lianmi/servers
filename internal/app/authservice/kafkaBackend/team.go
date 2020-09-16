@@ -1799,7 +1799,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						goto COMPLETE
 					}
 					body := Msg.MessageNotificationBody{
-						Type:           Msg.MessageNotificationType_MNT_ApplyJoinTeam, //申请加群请求
+						Type:           Msg.MessageNotificationType_MNT_PassTeamApply, //同意加群申请
 						HandledAccount: username,
 						HandledMsg:     fmt.Sprintf("用户: %s 申请加群请求获得通过", userData.Nick),
 						Status:         Msg.MessageStatus_MOS_Passed,
