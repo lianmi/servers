@@ -94,6 +94,8 @@ enum MessageNotificationType {
     MNT_Approveteam = 23; ///< 群审核通过，成为正常状态，可以加群及拉人
     MNT_MemberUpdateMyInfo = 24; ///<  多端同步用户设置其在群里的资料
     MNT_MultiDeleteFriend= 25; ///< 多端同步删除好友
+    MNT_CheckTeamInvitePass= 26; ///< 管理员同意了邀请入群前的询问
+    MNT_CheckTeamInviteReject= 27; ///< 管理员拒绝了邀请入群前的询问
      
     //MNT_AddProduct = 30; ///< 商户上架商品
     //MNT_UpdateProduct = 31; ///< 商户更新商品

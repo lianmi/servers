@@ -335,11 +335,11 @@ const (
 	TeamSubType_PassTeamApply      TeamSubType = 9  //*< 9.  通过群申请
 	TeamSubType_RejectTeamApply    TeamSubType = 10 //*< 10. 拒绝群申请
 	TeamSubType_UpdateTeam         TeamSubType = 11 //*< 11. 更新群组信息
-	TeamSubType_DismissTeam        TeamSubType = 12 //*< 12. 解散群组
+	TeamSubType_DismissTeam        TeamSubType = 12 //*< 暂时不开发 12. 解散群组
 	TeamSubType_LeaveTeam          TeamSubType = 13 //*< 13. 离开群组
 	TeamSubType_AddTeamManagers    TeamSubType = 14 //*< 14. 设置群管理员
 	TeamSubType_RemoveTeamManagers TeamSubType = 15 //*< 15. 取消群管理员
-	TeamSubType_TransferTeam       TeamSubType = 16 //*< 16. 转让群
+	TeamSubType_TransferTeam       TeamSubType = 16 //*< 暂时不开发 16. 转让群
 	TeamSubType_SyncMyTeamsEvent   TeamSubType = 17 //*< 17. 同步群组事件
 	TeamSubType_MuteTeam           TeamSubType = 18 //*< 18. 修改群禁言模式
 	TeamSubType_MuteTeamMember     TeamSubType = 19 //*< 19. 设置群成员禁言
