@@ -4336,28 +4336,28 @@ func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
 				kc.logger.Debug("查询群成员TeamUser", zap.String("key", key))
 
 				teamUser := new(models.TeamUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err != nil {
+				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 					if err := redis.ScanStruct(result, teamUser); err != nil {
 						kc.logger.Error("错误：ScanStruct", zap.Error(err))
 						continue
 					}
-				} else {
-					rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
-						TeamId:          teamUser.TeamID,
-						Username:        teamUser.Username,
-						Invitedusername: teamUser.InvitedUsername,
-						Nick:            teamUser.Nick,
-						Avatar:          teamUser.Avatar,
-						Label:           teamUser.Label,
-						Source:          teamUser.Source,
-						Type:            Team.TeamMemberType(teamUser.TeamMemberType),
-						NotifyType:      Team.NotifyType(teamUser.NotifyType),
-						Mute:            teamUser.IsMute,
-						Ex:              teamUser.Extend,
-						JoinTime:        uint64(teamUser.JoinAt),
-						UpdateTime:      uint64(teamUser.UpdatedAt),
-					})
 				}
+				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
+					TeamId:          teamUser.TeamID,
+					Username:        teamUser.Username,
+					Invitedusername: teamUser.InvitedUsername,
+					Nick:            teamUser.Nick,
+					Avatar:          teamUser.Avatar,
+					Label:           teamUser.Label,
+					Source:          teamUser.Source,
+					Type:            Team.TeamMemberType(teamUser.TeamMemberType),
+					NotifyType:      Team.NotifyType(teamUser.NotifyType),
+					Mute:            teamUser.IsMute,
+					Ex:              teamUser.Extend,
+					JoinTime:        uint64(teamUser.JoinAt),
+					UpdateTime:      uint64(teamUser.UpdatedAt),
+				})
+
 			}
 		}
 	}
@@ -4451,9 +4451,7 @@ func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
 					kc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
-					goto COMPLETE
+					continue
 				}
 			}
 
