@@ -158,8 +158,8 @@ func (kc *KafkaClient) GetPages(model interface{}, out interface{}, pageIndex, p
 //分页获取群成员
 func (kc *KafkaClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
-	if err := kc.GetPages(&models.User{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
-		kc.logger.Error("获取用户信息失败", zap.Error(err))
+	if err := kc.GetPages(&models.TeamUser{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+		kc.logger.Error("获取群成员信息失败", zap.Error(err))
 	}
 	return teamUsers
 }
