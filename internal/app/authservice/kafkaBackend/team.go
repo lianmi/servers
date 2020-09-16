@@ -3642,6 +3642,16 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 						goto COMPLETE
 					}
 				}
+
+				//判断是否处于解禁状态
+				if curTeamUser.IsMute == false && req.GetMute() == curTeamUser.IsMute {
+						kc.logger.Warm("警告: 不能重复解禁")
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Team user is already disMute[username=%s]", req.GetUsername())
+						goto COMPLETE
+					}
+				}
+
 				curTeamUser.IsMute = req.GetMute()
 				curTeamUser.Mutedays = int(req.GetMutedays())
 
