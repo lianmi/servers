@@ -3007,6 +3007,8 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 
 							}
 
+							kc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager))
+
 						}
 
 					} else {
