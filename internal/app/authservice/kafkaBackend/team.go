@@ -3683,7 +3683,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 						//定时任务取出到时解禁的用户
 						redisConn.Send("ZADD", fmt.Sprintf("DissMuteUsers:%s", teamInfo.TeamID), dd1.UnixNano()/1e6, req.GetUsername())
 					} else {
-						//永久禁言
+						//永久禁言需要删除定时解禁
 						redisConn.Send("ZREM", fmt.Sprintf("DissMuteUsers:%s", teamInfo.TeamID), req.GetUsername())
 					}
 				}
