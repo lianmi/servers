@@ -3205,8 +3205,8 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 						}
 						teamMemberType := Team.TeamMemberType(managerUser.TeamMemberType)
 
-						//管理员或群主
-						if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+						//管理员 teamMemberType == Team.TeamMemberType_Tmt_Owner
+						if teamMemberType == Team.TeamMemberType_Tmt_Manager {
 
 							//撤销管理员
 							managerUser.TeamMemberType = 3 //普通成员
@@ -4168,8 +4168,6 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			//判断操作者是群主还是管理员
 			teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
-				// teamUser.IsMute = req.GetMute()
-				// teamUser.Mutedays = int(req.GetMutedays())
 				if nick, ok := req.Fields[1]; ok {
 					//修改群组呢称
 					teamUser.Nick = nick
@@ -4181,62 +4179,62 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 				}
 
+				//写入MySQL
+				if err = kc.SaveTeamUser(teamUser); err != nil {
+					kc.logger.Error("Save teamUser Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = "无法保存到teamUser"
+					goto COMPLETE
+				}
+
+				//刷新redis
+				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
+					kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+				}
+				//更新时间戳
+				_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
+
+				// 向所有群成员推送
+				var newSeq uint64
+				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), "-inf", "+inf"))
+				for _, teamMember := range teamMembers {
+
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+						goto COMPLETE
+					}
+
+					body := Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_UpdateTeamMember, //管理员/群主修改群成员信息
+						HandledAccount: username,                                         //当前用户
+						HandledMsg:     "管理员/群主修改群成员信息",
+						Status:         Msg.MessageStatus_MOS_Done,
+						Data:           []byte(""),
+						To:             teamID, //群组id
+					}
+					bodyData, _ := proto.Marshal(&body)
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         bodyData,
+						From:         username,
+						FromDeviceId: deviceID,
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
+					go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
+				}
+
 			} else {
 				//其它成员无权设置
 				kc.logger.Warn("其它成员无权设置群成员资料")
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("其它成员无权设置群成员资料[username=%s]", req.GetUsername())
+				errorMsg = fmt.Sprintf("其它成员无权设置群成员资料[username=%s]", username)
 				goto COMPLETE
-			}
-
-			//写入MySQL
-			if err = kc.SaveTeamUser(teamUser); err != nil {
-				kc.logger.Error("Save teamUser Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法保存到teamUser"
-				goto COMPLETE
-			}
-
-			//刷新redis
-			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
-				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
-			}
-			//更新时间戳
-			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
-
-			// 向所有群成员推送
-			var newSeq uint64
-			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), "-inf", "+inf"))
-			for _, teamMember := range teamMembers {
-
-				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
-					goto COMPLETE
-				}
-
-				body := Msg.MessageNotificationBody{
-					Type:           Msg.MessageNotificationType_MNT_UpdateTeamMember, //管理员/群主修改群成员信息
-					HandledAccount: username,                                         //当前用户
-					HandledMsg:     "管理员/群主修改群成员信息",
-					Status:         Msg.MessageStatus_MOS_Done,
-					Data:           []byte(""),
-					To:             teamID, //群组id
-				}
-				bodyData, _ := proto.Marshal(&body)
-				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-					Type:         Msg.MessageType_MsgType_Notification, //通知类型
-					Body:         bodyData,
-					From:         username,
-					FromDeviceId: deviceID,
-					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
-					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano() / 1e6),
-				}
-				go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
 			}
 
 		}
