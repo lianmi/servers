@@ -3719,9 +3719,9 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 
 			} else {
 				//其它成员无权设置
-				kc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", req.GetUsername()))
+				kc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", username))
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("其它成员无权设置禁言时长[username=%s]", req.GetUsername())
+				errorMsg = fmt.Sprintf("其它成员无权设置禁言时长[username=%s]", username)
 				goto COMPLETE
 			}
 
