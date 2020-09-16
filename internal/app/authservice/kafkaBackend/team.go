@@ -2988,6 +2988,11 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 							var newSeq uint64
 
 							for _, teamMember := range teamMembers {
+								//更新redis的sync:{用户账号} teamsAt 时间戳
+								redisConn.Send("HSET",
+									fmt.Sprintf("sync:%s", teamMember),
+									"teamsAt",
+									curAt)
 
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
@@ -3018,6 +3023,8 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
+
+							redisConn.Flush()
 
 						}
 
@@ -3193,15 +3200,8 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 						}
 						teamMemberType := Team.TeamMemberType(managerUser.TeamMemberType)
 
+						//管理员或群主
 						if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
-							//管理员或群主
-							kc.logger.Error("已经是管理员或群主", zap.Error(err))
-
-							//增加到放弃列表
-							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
-							continue
-
-						} else {
 
 							//撤销管理员
 							managerUser.TeamMemberType = 3 //普通成员
@@ -3222,12 +3222,19 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 								kc.logger.Debug("用户被群主撤销管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
 
+							curAt := time.Now().UnixNano() / 1e6
+
 							//向所有群成员推送
 							teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
-							curAt := time.Now().UnixNano() / 1e6
+
 							var newSeq uint64
 
 							for _, teamMember := range teamMembers {
+								//更新redis的sync:{用户账号} teamsAt 时间戳
+								redisConn.Send("HSET",
+									fmt.Sprintf("sync:%s", teamMember),
+									"teamsAt",
+									curAt)
 
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
@@ -3258,6 +3265,15 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
+							redisConn.Flush()
+
+						} else {
+
+							kc.logger.Error("传参不是是管理员或群主", zap.Error(err))
+
+							//增加到放弃列表
+							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
+							continue
 
 						}
 
