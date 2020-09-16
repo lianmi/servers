@@ -3574,8 +3574,12 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 		)
 
 		teamID := req.GetTeamId()
-		// isMute := req.GetMute()
-		// mutedays := req.GetMutedays()
+		if req.GetMutedays() < 0 {
+			kc.logger.Error("Mutedays Error")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Mutedays must greater than 0[Mutedays=%d]", req.GetMutedays())
+			goto COMPLETE
+		}
 
 		psSource := &Friends.PsSource{
 			Ps:     "",
@@ -3664,11 +3668,10 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 				}
 
 				//刷新redis
-				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(curTeamUser)...); err != nil {
-					kc.logger.Error("错误：HMSET curTeamUser", zap.Error(err))
-				}
+				err = redisConn.Send("HSET", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername()), "IsMute", req.GetMute())
+				err = redisConn.Send("HSET", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername()), "Mutedays", int(req.GetMutedays()))
 				//更新时间戳
-				_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
+				err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
 
 				//向redis里的定时解禁任务列表DissMuteUsers:{群id}增加此用户， 由系统定时器cron将此用户到期解禁
 				if req.GetMute() {
@@ -3678,9 +3681,13 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 						dd, _ := time.ParseDuration(fmt.Sprintf("%dh", 24*req.GetMutedays())) //什么时间解禁
 						dd1 := now.Add(dd)
 						//定时任务取出到时解禁的用户
-						redisConn.Do("ZADD", fmt.Sprintf("DissMuteUsers:%s", teamInfo.TeamID), dd1.UnixNano()/1e6, req.GetUsername())
+						redisConn.Send("ZADD", fmt.Sprintf("DissMuteUsers:%s", teamInfo.TeamID), dd1.UnixNano()/1e6, req.GetUsername())
+					} else {
+						//永久禁言
+						redisConn.Send("ZREM", fmt.Sprintf("DissMuteUsers:%s", teamInfo.TeamID), req.GetUsername())
 					}
 				}
+				redisConn.Flush()
 
 				//向群成员推送此用户被禁言
 				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), "-inf", "+inf"))
