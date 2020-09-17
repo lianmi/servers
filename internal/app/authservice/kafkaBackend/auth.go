@@ -640,6 +640,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//这里不需要发送body，直接向主设备发送200即可
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

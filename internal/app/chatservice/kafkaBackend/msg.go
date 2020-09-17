@@ -355,7 +355,9 @@ COMPLETE:
 		//构造回包消息数据
 		if curSeq, err := redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 			kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-
+			msg.SetCode(int32(500))                       //状态码
+			msg.SetErrorMsg([]byte("INCR userSeq Error")) //错误提示
+			msg.FillBody(nil)
 		} else {
 			rsp = &Msg.SendMsgRsp{
 				Uuid:        req.GetUuid(),
@@ -455,6 +457,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -634,6 +637,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

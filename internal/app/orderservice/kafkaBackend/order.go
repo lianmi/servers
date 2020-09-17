@@ -529,6 +529,7 @@ func (kc *KafkaClient) HandleUpdateProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -673,6 +674,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -834,7 +836,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 	kc.logger.Debug("GetPreKeyOrderID",
 		zap.Bool("isMaster", isMaster),
-		zap.String("username", username), 
+		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
 		zap.Int("curClientType", curClientType),
@@ -1194,12 +1196,14 @@ func (kc *KafkaClient) DeleteAliyunOssFile(product *models.Product) error {
 
 /*
 9-3 下单 处理订单消息，是由ChatService转发过来的
+只能是向商户下单
 */
 func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
+	// var businessName string //商户账户
 
 	rsp := &Msg.SendMsgRsp{}
 
@@ -1243,7 +1247,7 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 		kc.logger.Debug("OrderMsg payload",
 			zap.Int32("Scene", int32(req.GetScene())),
 			zap.Int32("Type", int32(req.GetType())),
-			zap.String("To", req.GetTo()),
+			zap.String("To", req.GetTo()), //商户账户id
 			zap.String("Uuid", req.GetUuid()),
 			zap.Uint64("SendAt", req.GetSendAt()),
 		)
@@ -1297,12 +1301,6 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		// if businessUserData.UserType != int(User.UserType_Ut_Normal) {
-		// 	kc.logger.Warn("目标用户不是商户类型")
-		// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		// 	errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetTo())
-		// 	goto COMPLETE
-		// }
 		//解包出 OrderProductBody
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.GetBody(), orderProductBody); err != nil {
@@ -1319,7 +1317,7 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
 				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
 				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
-				zap.String("Attach", orderProductBody.GetAttach()),
+				zap.String("Attach", orderProductBody.GetAttach()), //加密的密文
 			)
 
 			if orderProductBody.GetOrderID() == "" {
@@ -1394,11 +1392,12 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
-				Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
-				Body:         req.GetBody(),
+				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+				Body:         req.GetBody(),                      //订单载体
 				From:         username,                           //谁发的
 				FromDeviceId: deviceID,                           //哪个设备发的
+				Recv:         req.GetTo(),                        //商户账户id
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -1416,7 +1415,9 @@ COMPLETE:
 		//构造回包消息数据
 		if curSeq, err := redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 			kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-
+			msg.SetCode(int32(500))                       //状态码
+			msg.SetErrorMsg([]byte("INCR userSeq Error")) //错误提示
+			msg.FillBody(nil)
 		} else {
 			rsp = &Msg.SendMsgRsp{
 				Uuid:        req.GetUuid(),
@@ -1543,7 +1544,7 @@ func (kc *KafkaClient) HandleChangeOrderState(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//判断发起方是谁
+		//判断ToUser方是谁
 		if username == req.OrderBody.GetBuyUser() {
 			toUser = req.OrderBody.GetBusinessUser()
 
@@ -1688,6 +1689,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		//
+		msg.FillBody(nil)
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
