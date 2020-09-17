@@ -714,7 +714,7 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							HandledMsg:     handledMsg,
 							Status:         Msg.MessageStatus_MOS_Processing, //处理中
 							Data:           []byte(""),
-							To:             teamInfo.TeamID, //群id
+							To:             manager, //群主或管理员
 						}
 						bodyData, _ := proto.Marshal(&body)
 						inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4171,20 +4171,34 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
-			teamUser := new(models.TeamUser)
+			//获取到当前用户的角色权限
+			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+			opTeamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-				if err := redis.ScanStruct(result, teamUser); err != nil {
+				if err := redis.ScanStruct(result, opTeamUser); err != nil {
 					kc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
+					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 					goto COMPLETE
 				}
 			}
 
 			//判断操作者是群主还是管理员
-			teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
+			teamMemberType := Team.TeamMemberType(opTeamUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+				
+				//从redis里获取出需要修改的群成员对象
+				teamUser := new(models.TeamUser)
+				key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
+				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+					if err := redis.ScanStruct(result, teamUser); err != nil {
+						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
+						goto COMPLETE
+					}
+				}
+
 				if nick, ok := req.Fields[1]; ok {
 					//修改群组呢称
 					teamUser.Nick = nick
