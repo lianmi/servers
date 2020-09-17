@@ -27,8 +27,8 @@ message RecvMsgEventRsp {
     string fromDeviceId = 5;
 
     //是否必填-是
-    //接收方, 根据场景判断to是个人还是群
-    string to = 6;
+    //接收方, 根据场景判断to是个人id还是群id
+    string recv = 6;
 
     //服务器分配的消息ID
     //是否必填-是
@@ -72,7 +72,7 @@ message MessageNotificationBody {
     // 附带的文本 该系统消息的二进制字节
     bytes data = 5;
 
-    // 最终接受者
+    // 最终接受者,目标用户账号id
     // 管理员可以看到 系统通知 所以管理员有权限修改
     // 所以推送的时候 需要 同时给 管理员推送
     string to = 6;

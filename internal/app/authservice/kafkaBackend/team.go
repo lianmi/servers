@@ -714,15 +714,16 @@ func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
 							HandledMsg:     handledMsg,
 							Status:         Msg.MessageStatus_MOS_Processing, //处理中
 							Data:           []byte(""),
-							To:             manager, //群主或管理员
+							To:             inviteUsername, //目标用户id
 						}
 						bodyData, _ := proto.Marshal(&body)
 						inviteEventRsp := &Msg.RecvMsgEventRsp{
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         bodyData,
-							From:         username, //发起人
+							From:         username, //发起人, 邀请人
 							FromDeviceId: deviceID,
+							Recv:         teamID,      //接收方, 根据场景判断to是个人还是群
 							ServerMsgId:  serverMsgId, //服务器分配的消息ID
 							WorkflowID:   workflowID,
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -827,7 +828,7 @@ func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, invite
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Init, //未处理
 					Data:           []byte(""),
-					To:             teamID, //群id
+					To:             inviteUsername, //被邀请人
 				}
 				bodyData, _ := proto.Marshal(&body)
 
@@ -837,6 +838,7 @@ func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, invite
 					Body:         bodyData,                             //字节流
 					From:         inviter,                              //邀请人
 					FromDeviceId: fromDeviceId,
+					Recv:         teamID,      //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  serverMsgId, //服务器分配的消息ID
 					WorkflowID:   workflowID,  //工作流ID
 					Seq:          newSeq,      //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -1032,8 +1034,8 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									HandledAccount: username,
 									HandledMsg:     handledMsg,
 									Status:         Msg.MessageStatus_MOS_Done,
-									Data:           psSourceData, //包含信息
-									To:             teamID,       //群id
+									Data:           psSourceData,    //包含信息
+									To:             removedUsername, //被移除出群的用户
 								}
 								bodyData, _ := proto.Marshal(&body)
 								mrsp := &Msg.RecvMsgEventRsp{
@@ -1042,6 +1044,7 @@ func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Body:         bodyData,
 									From:         username,
 									FromDeviceId: deviceID,
+									Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 									Seq:          newSeq,                             //消息序号，单个会话内自然递增
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -1346,7 +1349,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Passed,
 					Data:           psSourceData,
-					To:             teamID, //群组id
+					To:             req.GetFrom(), //发出邀请的用户id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -1355,6 +1358,7 @@ func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Body:         bodyData,                             //字节流
 					From:         username,
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -1549,7 +1553,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				HandledMsg:     fmt.Sprintf("用户 %s  拒绝群邀请", nick),
 				Status:         Msg.MessageStatus_MOS_Declined,
 				Data:           psSourceData,
-				To:             teamInfo.Owner,
+				To:             req.GetFrom(), // 邀请人
 			}
 			bodyData, _ := proto.Marshal(&body)
 			inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -1558,6 +1562,7 @@ func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Body:         bodyData,
 				From:         username,
 				FromDeviceId: deviceID,
+				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				WorkflowID:   req.GetWorkflowID(),                //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -1806,7 +1811,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						HandledMsg:     fmt.Sprintf("用户: %s 申请加群请求获得通过", userData.Nick),
 						Status:         Msg.MessageStatus_MOS_Passed,
 						Data:           psSourceData, // 附带的文本 该系统消息的文本
-						To:             teamID,       //群组id
+						To:             username,     //由于是主动加群，因此To填自己
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -1815,6 +1820,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Body:         bodyData,                             //字节流
 						From:         username,                             //发起人
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						WorkflowID:   workflowID,                         //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -1841,7 +1847,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						HandledMsg:     fmt.Sprintf("用户: %s 发出申请加群请求", userData.Nick),
 						Status:         Msg.MessageStatus_MOS_Processing,
 						Data:           psSourceData,
-						To:             teamInfo.TeamID, //群id
+						To:             username, //目标用户id
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -1850,6 +1856,7 @@ func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
 						Body:         bodyData,
 						From:         username, //发起人
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						WorkflowID:   workflowID,                         //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -2086,8 +2093,8 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					HandledAccount: username,
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Passed,
-					Data:           psSourceData, // 附带的文本 该系统消息的文本
-					To:             teamID,       //群组id
+					Data:           psSourceData,   // 附带的文本 该系统消息的文本
+					To:             targetUsername, //目标用户id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -2096,6 +2103,7 @@ func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
 					Body:         bodyData,
 					From:         username, //当前用户
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -2302,7 +2310,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				HandledMsg:     handledMsg,
 				Status:         Msg.MessageStatus_MOS_Declined,
 				Data:           psSourceData,
-				To:             teamID, //群组id
+				To:             req.GetFrom(), //目标用户id
 			}
 			bodyData, _ := proto.Marshal(&body)
 			inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -2311,6 +2319,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 				Body:         bodyData,
 				From:         username, //当前用户
 				FromDeviceId: deviceID,
+				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				WorkflowID:   req.GetWorkflowID(),                //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -2335,8 +2344,8 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 					HandledAccount: opUser.Username,
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Declined,
-					Data:           psSourceData, // 附带的文本 该系统消息的文本
-					To:             teamID,       //群组id
+					Data:           psSourceData,  // 附带的文本 该系统消息的文本
+					To:             req.GetFrom(), //目标id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -2345,6 +2354,7 @@ func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
 					Body:         bodyData,
 					From:         username, //当前用户
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -2552,7 +2562,7 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Processing,
 					Data:           []byte(""),
-					To:             teamID, //群id
+					To:             username, //这里意义不大，没有目标id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				mrsp := &Msg.RecvMsgEventRsp{
@@ -2561,6 +2571,7 @@ func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
 					Body:         bodyData,
 					From:         username,
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -2608,7 +2619,7 @@ COMPLETE:
 
 /*
 4-13 退群
-
+用户主动发起退群
 */
 
 func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
@@ -2752,7 +2763,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								HandledMsg:     fmt.Sprintf("用户 %s 退出本群", removeUser.Nick),
 								Status:         Msg.MessageStatus_MOS_Done,
 								Data:           psSourceData,
-								To:             teamID, //群id
+								To:             username, //这里填用户自己
 							}
 							bodyData, _ := proto.Marshal(&body)
 							mrsp := &Msg.RecvMsgEventRsp{
@@ -2761,6 +2772,7 @@ func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
 								Body:         bodyData,
 								From:         username,
 								FromDeviceId: deviceID,
+								Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 								Seq:          newSeq,                             //消息序号，单个会话内自然递增
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -3011,7 +3023,7 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 									HandledMsg:     fmt.Sprintf("用户 %s 被群主设为管理员", managerUser.Nick),
 									Status:         Msg.MessageStatus_MOS_Done,
 									Data:           []byte(""),
-									To:             teamID, //群id
+									To:             manager, //这里是即将被设置为管理员的用户id
 								}
 								bodyData, _ := proto.Marshal(&body)
 								mrsp := &Msg.RecvMsgEventRsp{
@@ -3020,6 +3032,7 @@ func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
 									Body:         bodyData,
 									From:         username,
 									FromDeviceId: deviceID,
+									Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 									Seq:          newSeq,                             //消息序号，单个会话内自然递增
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -3255,7 +3268,7 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									HandledMsg:     fmt.Sprintf("用户 %s 被群主撤销管理员", managerUser.Nick),
 									Status:         Msg.MessageStatus_MOS_Done,
 									Data:           []byte(""),
-									To:             teamID, //群id
+									To:             manager, //被撤销的管理员用户id
 								}
 								bodyData, _ := proto.Marshal(&body)
 								mrsp := &Msg.RecvMsgEventRsp{
@@ -3264,6 +3277,7 @@ func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Body:         bodyData,
 									From:         username,
 									FromDeviceId: deviceID,
+									Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 									Seq:          newSeq,                             //消息序号，单个会话内自然递增
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -3473,7 +3487,7 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 					HandledMsg:     "设置群组禁言模式",
 					Status:         Msg.MessageStatus_MOS_Done,
 					Data:           []byte(""),
-					To:             teamID, //群id
+					To:             username, //填自己
 				}
 				bodyData, _ := proto.Marshal(&body)
 				mrsp := &Msg.RecvMsgEventRsp{
@@ -3482,6 +3496,7 @@ func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
 					Body:         bodyData,
 					From:         username,
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -3717,7 +3732,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Done,
 						Data:           psSourceData,
-						To:             teamID, //群组id
+						To:             req.GetUsername(), //被禁言的用户id
 					}
 					bodyData, _ := proto.Marshal(&body)
 					eRsp := &Msg.RecvMsgEventRsp{
@@ -3726,6 +3741,7 @@ func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
 						Body:         bodyData,
 						From:         username,
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -4043,7 +4059,7 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 				HandledMsg:     "",
 				Status:         Msg.MessageStatus_MOS_Done,
 				Data:           myProfileData,
-				To:             teamID, //群组id
+				To:             username, //用户自己
 			}
 			bodyData, _ := proto.Marshal(&body)
 			eRsp := &Msg.RecvMsgEventRsp{
@@ -4052,6 +4068,7 @@ func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
 				Body:         bodyData,
 				From:         username,
 				FromDeviceId: deviceID,
+				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -4186,7 +4203,7 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			//判断操作者是群主还是管理员
 			teamMemberType := Team.TeamMemberType(opTeamUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
-				
+
 				//从redis里获取出需要修改的群成员对象
 				teamUser := new(models.TeamUser)
 				key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
@@ -4243,7 +4260,7 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						HandledMsg:     "管理员/群主修改群成员信息",
 						Status:         Msg.MessageStatus_MOS_Done,
 						Data:           []byte(""),
-						To:             teamID, //群组id
+						To:             req.GetUsername(), //被修改的用户id
 					}
 					bodyData, _ := proto.Marshal(&body)
 					eRsp := &Msg.RecvMsgEventRsp{
@@ -4252,6 +4269,7 @@ func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						Body:         bodyData,
 						From:         username,
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -4702,7 +4720,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Processing,
 					Data:           []byte(""),
-					To:             teamID, //群组id
+					To:             req.GetInvitee(), //目标用户 id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4711,6 +4729,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Body:         bodyData,
 					From:         req.GetInviter(), //谁发出的邀请
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -4735,7 +4754,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
-						To:             teamID, //群组id
+						To:             req.GetInvitee(), //目标用户 id
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4744,6 +4763,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Body:         bodyData,
 						From:         req.GetInviter(), //谁发出的邀请
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						WorkflowID:   req.GetWorkflowID(),                //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -4770,7 +4790,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Declined,
 					Data:           []byte(""),
-					To:             teamID, //群组id
+					To:             req.GetInvitee(), //目标用户 id
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4779,6 +4799,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Body:         bodyData,
 					From:         req.GetInviter(), //谁发出邀请
 					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					WorkflowID:   req.GetWorkflowID(),                //工作流ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
@@ -4802,7 +4823,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
-						To:             teamID, //群组id
+						To:             req.GetInvitee(), //目标用户 id
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4811,6 +4832,7 @@ func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Body:         bodyData,
 						From:         req.GetInviter(), //谁发出邀请
 						FromDeviceId: deviceID,
+						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						WorkflowID:   req.GetWorkflowID(),                //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
