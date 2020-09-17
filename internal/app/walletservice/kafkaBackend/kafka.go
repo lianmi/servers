@@ -1,5 +1,5 @@
 /*
-处理商品及订单的业务
+处理 钱包相关的业务
 */
 package kafkaBackend
 
@@ -203,8 +203,8 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 			//根据目标target,  组装数据包， 写入processChan
 			kc.logger.Info("kfaPayload",
 				// zap.String("Topic:", payload.Topic),
-				zap.Uint32("taskId:", taskId),                     //taskId
-				zap.String("BusinessTypeName:", businessTypeName), //业务名称
+				zap.Uint32("taskId:", taskId),                     // taskId
+				zap.String("BusinessTypeName:", businessTypeName), // 业务名称
 				zap.Uint16("businessType:", businessType),         // 业务类型
 				zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
 				zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
@@ -226,7 +226,6 @@ func (kc *KafkaClient) ProcessRecvPayload() {
 				//启动Go程
 				go handleFunc(msg)
 			}
-
 		}
 	}
 }

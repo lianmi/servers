@@ -11,8 +11,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/log"
 )
 
-
-
 var testProviderSet = wire.NewSet(
 	log.ProviderSet,
 	config.ProviderSet,
