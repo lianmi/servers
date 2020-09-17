@@ -834,7 +834,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 	kc.logger.Debug("GetPreKeyOrderID",
 		zap.Bool("isMaster", isMaster),
-		zap.String("username", username),
+		zap.String("username", username), 
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
 		zap.Int("curClientType", curClientType),
@@ -906,7 +906,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		if businessUserData.UserType != int(User.UserType_Ut_Normal) {
+		if businessUserData.UserType != int(User.UserType_Ut_Business) {
 			kc.logger.Warn("目标用户不是商户类型")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetUserName())
