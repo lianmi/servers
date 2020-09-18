@@ -178,8 +178,9 @@ func (kc *KafkaClient) HandleRecvMsg(msg *models.Message) error {
 
 			case Msg.MessageType_MsgType_Order: //订单
 				//将消息转发到OrderService
-				msg.BuildRouter("Order", "", "Order.Frontend")
-				topic := "Order.Frontend"
+				kc.logger.Debug("MessageType_MsgType_Order, 收到订单, 将消息转发到Order.Backend")
+				msg.BuildRouter("Order", "", "Order.Backend")
+				topic := "Order.Backend"
 				go kc.Produce(topic, msg)
 
 			case Msg.MessageType_MsgType_Roof: //吸顶式群消息 只能是系统、群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
