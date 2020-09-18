@@ -1392,7 +1392,7 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+				Scene:        Msg.MessageScene_MsgScene_C2C,      //个人消息
 				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
 				Body:         req.GetBody(),                      //订单载体
 				From:         username,                           //谁发的
@@ -1403,7 +1403,7 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-
+			//向商户发送订单消息
 			go kc.BroadcastMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}
 

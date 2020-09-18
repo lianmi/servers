@@ -1,4 +1,4 @@
-package main
+package ECDH
 
 import (
 	"bytes"
@@ -282,7 +282,8 @@ func AesCTR_Encrypt(plainText, key []byte) []byte {
 
 	//2.不需要填充,直接获取ctr分组模式的stream
 	// 返回一个计数器模式的、底层采用block生成key流的Stream接口，初始向量iv的长度必须等于block的块尺寸。
-	iv := []byte("wumansgygoaesctr")
+	// iv := []byte("wumansgygoaesctr")
+	iv := []byte{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}
 	stream := cipher.NewCTR(block, iv)
 
 	//3.加密操作
@@ -308,7 +309,8 @@ func AesCTR_Decrypt(cipherText, key []byte) []byte {
 		panic(err)
 	}
 	//2.返回一个计数器模式的、底层采用block生成key流的Stream接口，初始向量iv的长度必须等于block的块尺寸。
-	iv := []byte("wumansgygoaesctr")
+	// iv := []byte("wumansgygoaesctr")
+	iv := []byte{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'}
 	stream := cipher.NewCTR(block, iv)
 
 	//3.解密操作
