@@ -815,6 +815,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	rsp := &Order.GetPreKeyOrderIDRsp{}
+	var count int //OPK有序集合的数量
 
 	redisConn := kc.redisPool.Get()
 	defer redisConn.Close()
@@ -978,6 +979,70 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"orderState", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
 			"createAt", uint64(time.Now().UnixNano()/1e6), //秒
 		)
+
+		//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
+		if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.GetUserName()), "-inf", "+inf")); err != nil {
+			kc.logger.Error("ZCOUNT Error", zap.Error(err))
+		} else {
+
+			if count < 10 {
+				kc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
+
+				//查询出商户主设备
+				deviceListKey := fmt.Sprintf("devices:%s", req.GetUserName())
+				deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+				for index, eDeviceID := range deviceIDSlice {
+					if index == 0 {
+						kc.logger.Debug("查询出商户主设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+						deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+						jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
+						kc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+
+						//向商户主设备推送9-10OPK存量不足事件
+						opkAlertMsg := &models.Message{}
+						now := time.Now().UnixNano() / 1e6 //毫秒
+						opkAlertMsg.UpdateID()
+
+						//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+						opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
+						opkAlertMsg.SetJwtToken(jwtToken)
+						opkAlertMsg.SetUserName(req.GetUserName())
+						opkAlertMsg.SetDeviceID(string(eDeviceID))
+						// opkAlertMsg.SetTaskID(uint32(taskId))
+						opkAlertMsg.SetBusinessTypeName("Order")
+						opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
+						opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
+
+						opkAlertMsg.BuildHeader("OrderService", now)
+
+						//构造负载数据
+						resp := &Order.OPKLimitAlertRsp{
+							Count: int32(count),
+						}
+						data, _ := proto.Marshal(resp)
+						opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+						opkAlertMsg.SetCode(200) //成功的状态码
+
+						//构建数据完成，向dispatcher发送
+						topic := "Order.Frontend"
+						if err := kc.Produce(topic, opkAlertMsg); err == nil {
+							kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+						} else {
+							kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+						}
+
+						//跳出，不用管从设备
+						break
+
+					}
+				}
+
+			} else {
+				kc.logger.Debug("商户的prekeys存量", zap.Int("count", count))
+			}
+
+		}
 	}
 
 COMPLETE:
@@ -1054,7 +1119,7 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
+		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
@@ -1825,7 +1890,7 @@ func (kc *KafkaClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
+		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
 		targetMsg.SetBusinessType(businessType)       //业务号
 		targetMsg.SetBusinessSubType(businessSubType) //业务子号

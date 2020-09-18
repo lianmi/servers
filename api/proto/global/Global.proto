@@ -140,6 +140,7 @@ enum OrderSubType {
     OrderStateEvent   =  4;     /**< 9-4. 订单状态变化事件*/
     ChangeOrderState  =  5;     /**< 9-5. 对订单进行状态更改*/
     GetPreKeysCount   =  6;     /**< 9-6. 商户获取OPK存量*/
+    OPKLimitAlert     =  10;     /**< 9-10. 商户OPK存量不足事件*/
 }
 
 //钱包模块子模块定义

@@ -100,6 +100,8 @@ enum MessageNotificationType {
     //MNT_AddProduct = 30; ///< 商户上架商品
     //MNT_UpdateProduct = 31; ///< 商户更新商品
     //MNT_SelloutProduct = 32; ///< 商户下架商品
+    
+    MNT_OPKLimitAlert = 40; ///< 商户的OPK存量少于10个告警
 
 
     MNT_Customer = 100; ///< 自定义事件消息
