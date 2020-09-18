@@ -310,6 +310,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							Body:         bodyData,
 							From:         username,                           //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
+							Recv:         userB,                              //接收方, 根据场景判断to是个人还是群
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -347,6 +348,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 							From:         username,                           //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+							Recv:         userB,                              //接收方, 根据场景判断to是个人还是群
 							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -413,6 +415,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						Body:         bodyData,
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
+						Recv:         userB,                              //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 						WorkflowID:   workflowID,                         //服务端生成的工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -589,6 +592,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Recv:         userA,                              //接收方, 根据场景判断to是个人还是群
 						WorkflowID:   "",                                 //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -662,6 +666,7 @@ func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
 						From:         username,                           //谁发的
 						FromDeviceId: deviceID,                           //哪个设备发的
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Recv:         userA,                              //接收方, 根据场景判断to是个人还是群
 						WorkflowID:   "",                                 //工作流ID
 						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -869,6 +874,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				From:         username,                           //谁发的
 				FromDeviceId: deviceID,                           //哪个设备发的
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Recv:         targetUsername,                     //接收方, 根据场景判断to是个人还是群
 				WorkflowID:   "",                                 //工作流ID
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -902,6 +908,7 @@ func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
 				From:         username,
 				FromDeviceId: deviceID,
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Recv:         targetUsername,                     //接收方, 根据场景判断to是个人还是群
 				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),

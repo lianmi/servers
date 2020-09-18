@@ -122,7 +122,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 		HandledMsg:     "approveteam passed",
 		Status:         Msg.MessageStatus_MOS_Passed, //已通过验证
 		Data:           []byte(""),
-		To:             teamID, //群id
+		To:             p.Owner, //群主
 	}
 	bodyData, _ := proto.Marshal(&body)
 
@@ -133,6 +133,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 		From:         "",
 		FromDeviceId: "",
 		ServerMsgId:  uuid.NewV4().String(), //服务器分配的消息ID
+		Recv:         teamID,                //接收方, 根据场景判断to是个人还是群
 		WorkflowID:   "",                    //工作流ID
 		Seq:          0,                     //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 		Uuid:         "",

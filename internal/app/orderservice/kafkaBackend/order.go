@@ -1356,12 +1356,12 @@ func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			if orderProductBody.GetOpkBusinessUser() == "" {
-				kc.logger.Error("OpkBusinessUser is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
-				goto COMPLETE
-			}
+			// if orderProductBody.GetOpkBusinessUser() == "" {
+			// 	kc.logger.Error("OpkBusinessUser is empty")
+			// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			// 	errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
+			// 	goto COMPLETE
+			// }
 
 			// 获取ProductID对应的商品信息
 			product := new(models.Product)
