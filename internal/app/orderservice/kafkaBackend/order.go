@@ -1195,7 +1195,8 @@ func (kc *KafkaClient) DeleteAliyunOssFile(product *models.Product) error {
 }
 
 /*
-9-3 下单 处理订单消息，是由ChatService转发过来的
+处理订单消息 5-1
+文档是9-3 下单 处理订单消息，是由ChatService转发过来的
 只能是向商户下单
 */
 func (kc *KafkaClient) HandleOrderMsg(msg *models.Message) error {
