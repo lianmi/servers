@@ -9,8 +9,10 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/confluentinc/confluent-kafka-go v1.4.2 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.golang v0.9.0
+	github.com/ethereum/go-ethereum v1.9.21
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-contrib/zap v0.0.0-20190528085758-3cc18cd8fce3
 	github.com/gin-gonic/gin v1.4.0
@@ -27,6 +29,7 @@ require (
 	github.com/ipfs/go-ipfs-api v0.1.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
+	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/opentracing-contrib/go-gin v0.0.0-20190301172248-2e18f8b9c7d4
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
@@ -48,7 +51,7 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.2.7
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
