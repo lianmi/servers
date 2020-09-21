@@ -4,17 +4,13 @@ package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message RegisterWalletReq{
-    //用户账号
-    string userName=1;
-    //用户本地的协商公钥
-    string publicKey=2;
-    //加密过的签名后的创建钱包交易数据
-    bytes sigTxData=3;
+    //bip44的索引号，默认是0
+    //SDK端必须将seed加密后保存，同时也保存此index
+    int32 index=1;
+    //用户利用钱包SDK生成的地址
+    string walletAddress=2;
 }
 
-
+//code=200
 message RegisterWalletRsp{
-    //钱包地址
-    string walletAddess=1;
-
 }

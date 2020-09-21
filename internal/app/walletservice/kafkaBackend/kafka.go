@@ -108,8 +108,9 @@ func NewKafkaClient(o *KafkaOptions, db *gorm.DB, redisPool *redis.Pool, logger 
 		handleFuncMap:     make(map[uint32]func(payload *models.Message) error),
 	}
 
-	//注册每个业务子类型的处理方法
-
+	//注册每个业务子类型的处理方法, BusinessType = 10
+	kClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = kClient.HandleRegisterWallet          //10-1 钱包账号注册
+	
 	return kClient
 }
 

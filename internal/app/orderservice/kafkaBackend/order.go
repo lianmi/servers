@@ -780,6 +780,7 @@ func (kc *KafkaClient) HandleRegisterPreKeys(msg *models.Message) error {
 			if _, err := redisConn.Do("ZADD", fmt.Sprintf("prekeys:%s", username), time.Now().UnixNano()/1e6, opk); err != nil {
 				kc.logger.Error("ZADD Error", zap.Error(err))
 			}
+			kc.logger.Debug("ZADD "+fmt.Sprintf("prekeys:%s", username), zap.String("opk", opk))
 		}
 
 		if err = kc.SavePreKeys(prekeys); err != nil {
@@ -941,7 +942,7 @@ func (kc *KafkaClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		opk := ""
 
 		//从商户的prekeys有序集合取出一个opk
-		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.GetUserName()), 1, 1))
+		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.GetUserName()), 0, 0))
 		if len(prekeySlice) > 0 {
 			opk = prekeySlice[0]
 
