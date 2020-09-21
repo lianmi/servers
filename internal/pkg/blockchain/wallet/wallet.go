@@ -1,20 +1,15 @@
 package wallet
 
 import (
-	"bytes"
-	"encoding/hex"
-	"fmt"
+	// "bytes"
+	// "encoding/hex"
+	// "fmt"
 
 	"github.com/lianmi/servers/internal/pkg/blockchain/bip44"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcd/btcec"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcd/chaincfg"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcd/chaincfg/chainhash"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcd/txscript"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcd/wire"
-	// "github.com/lianmi/servers/internal/pkg/blockchain/btcutil"
-	"github.com/lianmi/servers/internal/pkg/blockchain/btcutil/hdkeychain"
 
-	"errors"
+	"github.com/btcsuite/btcutil/hdkeychain"
+
+	// "errors"
 	"github.com/lianmi/servers/internal/pkg/blockchain/bip39"
 )
 

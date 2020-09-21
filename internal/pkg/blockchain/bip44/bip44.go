@@ -6,9 +6,7 @@ package bip44
 
 import (
 	"fmt"
-	// "xiaomawallet/bip32"
-	// "xiaomawallet/bip39"
-	"github.com/lianmi/servers/internal/pkg/blockchain/btcutil/hdkeychain"
+	"github.com/btcsuite/btcutil/hdkeychain"
 )
 
 const Purpose uint32 = 0x8000002C //

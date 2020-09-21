@@ -7,6 +7,7 @@ require (
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/bingjian-zhu/gin-vue-admin v0.0.0-20200506131022-dcbf95f91663
 	github.com/bitly/go-simplejson v0.5.0
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/confluentinc/confluent-kafka-go v1.4.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
