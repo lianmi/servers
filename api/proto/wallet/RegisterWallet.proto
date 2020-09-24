@@ -4,11 +4,10 @@ package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message RegisterWalletReq{
-    //bip44的索引号，默认是0
-    //SDK端必须将seed加密后保存，同时也保存此index
-    int32 index=1;
-    //用户利用钱包SDK生成的地址
-    string walletAddress=2;
+    //用户HD钱包的第0号索引，用于存储Eth
+    string accountETH=1;
+    //用户HD钱包的第1号索引，用于存储连米币
+    string accountLNMC=2;
 }
 
 //code=200

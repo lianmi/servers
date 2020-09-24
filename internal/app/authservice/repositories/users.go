@@ -405,7 +405,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 
 	//检测校验码
 	if !s.CheckSmsCode(mobile, smscode) {
-		s.logger.Error("校验码不匹配")
+		s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", smscode))
 		return false
 	}
 
@@ -942,23 +942,27 @@ func (s *MysqlUsersRepository) GenerateSmsCode(mobile string) bool {
 	}
 
 	if isExists {
-		err = redisConn.Send("DEL", key) //删除key
+		_, err = redisConn.Do("DEL", key) //删除key
 	}
 
 	//TODO 调用短信接口发送  暂时固定为123456
 
-	err = redisConn.Send("SET", key, "123456") //增加key
+	_, err = redisConn.Do("SET", key, "123456") //增加key
+	if err != nil {
+		s.logger.Error("SET key失败", zap.Error(err))
+		return false
+	}
 
-	err = redisConn.Send("EXPIRE", key, 300) //设置有效期为300秒
+	_, err = redisConn.Do("EXPIRE", key, 600) //设置有效期为600秒
+	if err != nil {
+		s.logger.Error("EXPIRE key 失败", zap.Error(err))
+		return false
+	}
+
+	s.logger.Debug("GenerateSmsCode, 写入redis成功")
 
 	_ = err
 
-	//一次性写入到Redis
-	if err := redisConn.Flush(); err != nil {
-		s.logger.Error("写入redis失败", zap.Error(err))
-		return false
-	}
-	s.logger.Debug("GenerateSmsCode, 写入redis成功")
 	return true
 }
 
