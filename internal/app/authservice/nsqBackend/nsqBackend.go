@@ -28,7 +28,7 @@ type NsqOptions struct {
 	Broker       string //127.0.0.1:4161
 	ProducerAddr string //127.0.0.1:4150
 	Topics       string //以逗号隔开
-	Channel      string //channel
+	ChnanelName  string //channel
 }
 
 type nsqHandler struct {
@@ -132,8 +132,9 @@ func initProducer(addr string) (*nsqProducer, error) {
 func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
 	topics := strings.Split(o.Topics, ",")
 	for _, topic := range topics {
-		// channelName := fmt.Sprintf("%s", topic, index+1)
-		err := initConsumer(topic, topic, o.Broker, logger)
+		channelName := fmt.Sprintf("%s.%s", topic, o.ChnanelName)
+		logger.Info("channelName", zap.String("channelName", channelName))
+		err := initConsumer(topic, channelName, o.Broker, logger)
 		if err != nil {
 			logger.Error("InitConsumer Error ", zap.Error(err))
 			return nil
