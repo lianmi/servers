@@ -13,8 +13,8 @@ import (
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/kafka"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
+	"github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 )
 
 // Injectors from wire.go:
@@ -36,7 +36,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := kafka.NewKafkaOptions(viper)
+	nsqOptions, err := nsqclient.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +49,13 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	nsqMqttChannel := channel.NewChannnel()
-	kafkaClient := kafka.NewKafkaClient(kafkaOptions, pool, nsqMqttChannel, logger)
+	nsqClient := nsqclient.NewNsqClient(nsqOptions, pool, nsqMqttChannel, logger)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
 		return nil, err
 	}
 	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
-	application, err := dispatcher.NewApp(dispatcherOptions, logger, kafkaClient, mqttClient)
+	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient)
 	if err != nil {
 		return nil, err
 	}
@@ -64,4 +64,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, redis.ProviderSet, channel.ProviderSet, kafka.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, redis.ProviderSet, channel.ProviderSet, nsqclient.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet)
