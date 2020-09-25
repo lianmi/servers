@@ -30,6 +30,7 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
+	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing-contrib/go-gin v0.0.0-20190301172248-2e18f8b9c7d4
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
