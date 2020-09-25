@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/google/wire"
-	authKafka "github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	chatKafka "github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
 	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
 	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
@@ -24,8 +24,8 @@ type Application struct {
 	logger            *zap.Logger
 	httpServer        *http.Server
 	grpcServer        *grpc.Server
-	nsqClient         *nsqclient.Nsqlient
-	authKafkaClient   *authKafka.KafkaClient
+	nsqClient         *nsqclient.NsqClient
+	authNsqClient     *authNsq.NsqClient
 	chatKafkaClient   *chatKafka.KafkaClient
 	orderKafkaClient  *orderKafka.KafkaClient
 	walletKafkaClient *walletKafka.KafkaClient
@@ -58,18 +58,18 @@ func GrpcServerOption(svr *grpc.Server) Option {
 	}
 }
 
-func KafkaOption(kc *kafka.KafkaClient) Option {
+func NsqOption(nc *nsqclient.NsqClient) Option {
 	return func(app *Application) error {
-		kc.Application(app.name)
-		app.nsqClient = kc
+		nc.Application(app.name)
+		app.nsqClient = nc
 		return nil
 	}
 }
 
-func AuthKafkaOption(kbc *authKafka.KafkaClient) Option {
+func AuthNsqOption(kbc *authNsq.NsqClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
-		app.authKafkaClient = kbc
+		app.authNsqClient = kbc
 		return nil
 	}
 }
@@ -135,8 +135,8 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.authKafkaClient != nil {
-		if err := a.authKafkaClient.Start(); err != nil {
+	if a.authNsqClient != nil {
+		if err := a.authNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "authservice kafka backend client start error")
 		}
 	}
@@ -193,16 +193,16 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		if a.authKafkaClient != nil {
-			if err := a.authKafkaClient.Stop(); err != nil {
-				a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
-			}
+		if a.authNsqClient != nil {
+			// if err := a.authNsqClient.Stop(); err != nil {
+			// 	a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
+			// }
 		}
 
 		if a.nsqClient != nil {
-			if err := a.nsqClient.Stop(); err != nil {
-				a.logger.Warn("stop kafka client error", zap.Error(err))
-			}
+			// if err := a.nsqClient.Stop(); err != nil {
+			// 	a.logger.Warn("stop kafka client error", zap.Error(err))
+			// }
 		}
 
 		if a.mqttClient != nil {

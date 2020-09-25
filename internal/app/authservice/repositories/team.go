@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	"time"
+	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -251,7 +252,8 @@ func (s *MysqlUsersRepository) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := s.kafka.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
 			s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			s.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))

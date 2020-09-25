@@ -9,7 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/authservice"
 	"github.com/lianmi/servers/internal/app/authservice/controllers"
-	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/app/authservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -41,7 +41,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
+	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +61,12 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
 	httpOptions, err := http.NewOptions(viper)
 	if err != nil {
 		return nil, err
 	}
-	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool, kafkaClient)
+	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool, nsqClient)
 	usersService := services.NewUserService(logger, usersRepository)
 	usersController := controllers.NewUsersController(logger, usersService)
 	initControllers := controllers.CreateInitControllersFn(usersController)
@@ -91,7 +91,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	application, err := authservice.NewApp(authserviceOptions, logger, kafkaClient, server)
+	application, err := authservice.NewApp(authserviceOptions, logger, nsqClient, server)
 	if err != nil {
 		return nil, err
 	}
@@ -100,4 +100,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, http.ProviderSet, kafkaBackend.ProviderSet, authservice.ProviderSet, controllers.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, http.ProviderSet, nsqBackend.ProviderSet, authservice.ProviderSet, controllers.ProviderSet)

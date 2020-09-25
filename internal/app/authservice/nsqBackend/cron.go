@@ -1,4 +1,4 @@
-package kafkaBackend
+package nsqBackend
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (kc *KafkaClient) RunCron() {
+func (kc *NsqClient) RunCron() {
 	kc.logger.Info("RunCron start...")
 	c := cron.New()
 

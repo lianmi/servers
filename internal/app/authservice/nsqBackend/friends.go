@@ -11,11 +11,11 @@
 
 用户与商户互为好友或关注的有序集合是Business:%s
 */
-package kafkaBackend
+package nsqBackend
 
 import (
 	"time"
-	// "encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -51,7 +51,7 @@ import (
 5. 以有序集合存储所发生的系统通知， 当已经有了最终结果后，这个有序集合就会只保留最后一个结果，
    如果长时间离线再重新上线的其他端，会收到最后一个结果，而不会重现整个交互流程。
 */
-func (kc *KafkaClient) HandleFriendRequest(msg *models.Message) error {
+func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -693,7 +693,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -707,7 +708,7 @@ COMPLETE:
 3-5 移除好友,
 A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除消息，from:A，to:B,默认只支持双向删除
 */
-func (kc *KafkaClient) HandleDeleteFriend(msg *models.Message) error {
+func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -929,7 +930,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -942,7 +944,7 @@ COMPLETE:
 /*
 3-6 刷新好友资料
 */
-func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
+func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1082,7 +1084,8 @@ func (kc *KafkaClient) HandleUpdateFriend(msg *models.Message) error {
 
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
-				if err := kc.Produce(topic, targetMsg); err == nil {
+				rawData, _ := json.Marshal(targetMsg)
+				if err := kc.Producer.Public(topic, rawData); err == nil {
 					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
 					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -1111,7 +1114,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1124,7 +1128,7 @@ COMPLETE:
 /*
 3-8 增量同步好友列表
 */
-func (kc *KafkaClient) HandleGetFriends(msg *models.Message) error {
+func (kc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1218,7 +1222,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1231,7 +1236,7 @@ COMPLETE:
 /*
 3-9 关注商户
 */
-func (kc *KafkaClient) HandleWatchRequest(msg *models.Message) error {
+func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1333,7 +1338,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
@@ -1346,7 +1352,7 @@ COMPLETE:
 /*
 3-10 取消关注商户
 */
-func (kc *KafkaClient) HandleCancelWatchRequest(msg *models.Message) error {
+func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1427,7 +1433,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
@@ -1454,7 +1461,7 @@ func inArray(in string, exceptDeviceIDs []string) string {
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
 */
-func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
+func (kc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
 
 	data, _ := proto.Marshal(rsp)
 
@@ -1518,7 +1525,8 @@ func (kc *KafkaClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))

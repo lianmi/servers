@@ -1,10 +1,12 @@
-package kafkaBackend
+package nsqBackend
 
 import (
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -37,7 +39,7 @@ import (
 2. 用户达到建群上限后，不能再创建新群
 
 */
-func (kc *KafkaClient) HandleCreateTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -195,7 +197,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -215,7 +218,7 @@ COMPLETE:
 
 
 */
-func (kc *KafkaClient) HandleGetTeamMembers(msg *models.Message) error {
+func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -338,7 +341,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -352,7 +356,7 @@ COMPLETE:
 4-3 查询群信息
 该接口用于根据群id查询群的信息
 */
-func (kc *KafkaClient) HandleGetTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -474,7 +478,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -500,7 +505,7 @@ COMPLETE:
 2. 拉人入群设定
 3. 不是群成员
 */
-func (kc *KafkaClient) HandleInviteTeamMembers(msg *models.Message) error {
+func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -752,7 +757,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -762,7 +768,7 @@ COMPLETE:
 
 }
 
-func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, inviter, fromDeviceId, ps string, inviteUsername []string) []string {
+func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter, fromDeviceId, ps string, inviteUsername []string) []string {
 	var newSeq uint64
 	abortedUsers := make([]string, 0)
 
@@ -859,7 +865,7 @@ func (kc *KafkaClient) processInviteMembers(redisConn redis.Conn, teamID, invite
 管理员移除群成员
 */
 
-func (kc *KafkaClient) HandleRemoveTeamMembers(msg *models.Message) error {
+func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1101,7 +1107,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1121,7 +1128,7 @@ COMPLETE:
 
 */
 
-func (kc *KafkaClient) HandleAcceptTeamInvite(msg *models.Message) error {
+func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1410,7 +1417,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1426,7 +1434,7 @@ COMPLETE:
 1. 被拉的人系统通知有显示入群的通知, 点拒绝, 注意不能重复点拒绝
 
 */
-func (kc *KafkaClient) HandleRejectTeamInvitee(msg *models.Message) error {
+func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1589,7 +1597,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1610,7 +1619,7 @@ COMPLETE:
 2. 向所有群成员推送用户入群通知
 
 */
-func (kc *KafkaClient) HandleApplyTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1889,7 +1898,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -1906,7 +1916,7 @@ COMPLETE:
 只有群主及管理员才能批准通过群申请
 */
 
-func (kc *KafkaClient) HandlePassTeamApply(msg *models.Message) error {
+func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -2152,7 +2162,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -2169,7 +2180,7 @@ COMPLETE:
 只有群主及管理员才能否决加群申请
 */
 
-func (kc *KafkaClient) HandleRejectTeamApply(msg *models.Message) error {
+func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -2381,7 +2392,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -2397,7 +2409,7 @@ COMPLETE:
 需要 修改 sync:{用户} teamsAt
 */
 
-func (kc *KafkaClient) HandleUpdateTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -2611,7 +2623,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -2626,7 +2639,7 @@ COMPLETE:
 用户主动发起退群
 */
 
-func (kc *KafkaClient) HandleLeaveTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -2828,7 +2841,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -2848,7 +2862,7 @@ COMPLETE:
 
 */
 
-func (kc *KafkaClient) HandleAddTeamManagers(msg *models.Message) error {
+func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3076,7 +3090,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -3095,7 +3110,7 @@ COMPLETE:
 只有群主才能设置或删除
 
 */
-func (kc *KafkaClient) HandleRemoveTeamManagers(msg *models.Message) error {
+func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3328,7 +3343,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -3344,7 +3360,7 @@ COMPLETE:
 群主/管理修改群组发言模式, 全员禁言只能由群主设置
 
 */
-func (kc *KafkaClient) HandleMuteTeam(msg *models.Message) error {
+func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3525,7 +3541,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -3542,7 +3559,7 @@ COMPLETE:
 可以设置禁言时间，如果不设置mutedays，则永久禁言
 */
 
-func (kc *KafkaClient) HandleMuteTeamMember(msg *models.Message) error {
+func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3779,7 +3796,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -3794,7 +3812,7 @@ COMPLETE:
 群成员设置接收群消息的通知方式
 */
 
-func (kc *KafkaClient) HandleSetNotifyType(msg *models.Message) error {
+func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3917,7 +3935,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -3932,7 +3951,7 @@ COMPLETE:
 群成员设置自己群里的个人资料
 */
 
-func (kc *KafkaClient) HandleUpdateMyInfo(msg *models.Message) error {
+func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4098,7 +4117,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -4114,7 +4134,7 @@ COMPLETE:
 管理员设置群成员资料
 */
 
-func (kc *KafkaClient) HandleUpdateMemberInfo(msg *models.Message) error {
+func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4310,7 +4330,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -4326,7 +4347,7 @@ COMPLETE:
 根据群组用户ID获取最新群成员信息
 */
 
-func (kc *KafkaClient) HandlePullTeamMembers(msg *models.Message) error {
+func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4457,7 +4478,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -4473,7 +4495,7 @@ COMPLETE:
 增量同步群组信息
 */
 
-func (kc *KafkaClient) HandleGetMyTeams(msg *models.Message) error {
+func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4586,7 +4608,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -4608,7 +4631,7 @@ TODO
 3.  当同意后，需要将这个拉人入群事件向被邀请的用户发送
 4. 当拒绝后，需要向发起拉人入群的用户发送拒绝
 */
-func (kc *KafkaClient) HandleCheckTeamInvite(msg *models.Message) error {
+func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4875,7 +4898,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -4890,7 +4914,7 @@ COMPLETE:
 分页方式获取群成员信息，该接口仅支持在线获取，SDK不进行缓存
 */
 
-func (kc *KafkaClient) HandleGetTeamMembersPage(msg *models.Message) error {
+func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -5033,7 +5057,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
@@ -5044,7 +5069,7 @@ COMPLETE:
 }
 
 // 获取某个群的群主或管理员
-func (kc *KafkaClient) GetOwnerAndManagers(teamID string) ([]string, error) {
+func (kc *NsqClient) GetOwnerAndManagers(teamID string) ([]string, error) {
 	// var err error
 	var teamMemberType int
 

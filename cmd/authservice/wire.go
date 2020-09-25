@@ -9,7 +9,7 @@ import (
 	"github.com/lianmi/servers/internal/app/authservice/controllers"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/app/authservice/services"	
-	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -31,7 +31,7 @@ var providerSet = wire.NewSet(
 	jaeger.ProviderSet,
 	redis.ProviderSet,
 	http.ProviderSet,
-	kafkaBackend.ProviderSet,
+	nsqBackend.ProviderSet,
 	authservice.ProviderSet,
 	controllers.ProviderSet,
 )

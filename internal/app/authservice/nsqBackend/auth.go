@@ -10,10 +10,10 @@
 2-8 从设备被授权登录事件 SlaveDeviceAuthEvent
 2-9 获取所有主从设备  GetAllDevices
 */
-package kafkaBackend
+package nsqBackend
 
 import (
-	// "encoding/hex"
+	"encoding/json"
 	"fmt"
 	// "strings"
 	"time"
@@ -35,7 +35,7 @@ import (
 1. 主设备登出，需要删除从设备一切数据，踢出从设备
 2. 从设备登出，只删除自己的数据，并刷新此用户的在线设备列表
 */
-func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
+func (kc *NsqClient) HandleSignOut(msg *models.Message) error {
 	var err error
 	// var errorMsg string
 
@@ -80,7 +80,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 			businessSubType := 5 //KickedEvent
 
 			businessTypeName := "Auth"
-			kafkaTopic := businessTypeName + ".Frontend"
+			nsqTopic := businessTypeName + ".Frontend"
 			backendService := businessTypeName + "Service"
 
 			//向当前主设备及从设备发出踢下线
@@ -88,7 +88,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 			now := time.Now().UnixNano() / 1e6 //毫秒
 			kickMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			kickMsg.BuildRouter(businessTypeName, "", kafkaTopic)
+			kickMsg.BuildRouter(businessTypeName, "", nsqTopic)
 
 			kickMsg.SetJwtToken(jwtToken)
 			kickMsg.SetUserName(username)
@@ -113,7 +113,8 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 
 			//构建数据完成，向dispatcher发送
 			topic := "Auth.Frontend"
-			if err := kc.Produce(topic, kickMsg); err == nil {
+			rawData, _ := json.Marshal(kickMsg)
+			if err := kc.Producer.Public(topic, rawData); err == nil {
 				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 			} else {
 				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -198,11 +199,13 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 			targetMsg.SetCode(200) //成功的状态码
 			//构建数据完成，向dispatcher发送
 			topic := "Auth.Frontend"
-			if err := kc.Produce(topic, targetMsg); err == nil {
+			rawData, _ := json.Marshal(targetMsg)
+			if err := kc.Producer.Public(topic, rawData); err == nil {
 				kc.logger.Info("Succeed to send message to ProduceChannel", zap.String("topic", topic))
 			} else {
 				kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 			}
+
 		}
 
 	}
@@ -210,11 +213,13 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 	//向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	msg.SetCode(200) //成功的状态码
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed to send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
+
 	_ = err
 
 	kc.logger.Debug("登出成功", zap.Bool("isMaster", isMaster),
@@ -232,7 +237,7 @@ func (kc *KafkaClient) HandleSignOut(msg *models.Message) error {
 1. 主设备才能踢出从设备, 被踢的从设备收到被踢下线事件
 2. 从设备被踢后，只删除自己的数据，并发出多端登录状态变化事件
 */
-func (kc *KafkaClient) HandleKick(msg *models.Message) error {
+func (kc *NsqClient) HandleKick(msg *models.Message) error {
 	var err error
 	kickRsp := &Auth.KickRsp{}
 	errorCode := 200 //错误码， 200是正常，其它是错误
@@ -325,7 +330,8 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					beKickedMsg.SetCode(200)   //成功的状态码
 					//构建数据完成，向dispatcher发送
 					topic := "Auth.Frontend"
-					if err := kc.Produce(topic, beKickedMsg); err == nil {
+					rawData, _ := json.Marshal(beKickedMsg)
+					if err := kc.Producer.Public(topic, rawData); err == nil {
 						kc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 					} else {
 						kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
@@ -386,11 +392,13 @@ func (kc *KafkaClient) HandleKick(msg *models.Message) error {
 					targetMsg.SetCode(200) //成功的状态码
 					//构建数据完成，向dispatcher发送
 					topic := "Auth.Frontend"
-					if err := kc.Produce(topic, targetMsg); err == nil {
+					rawData, _ := json.Marshal(targetMsg)
+					if err := kc.Producer.Public(topic, rawData); err == nil {
 						kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 					} else {
 						kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 					}
+
 				}
 
 			}
@@ -422,11 +430,13 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("KickRsp message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send KickRsp message to ProduceChannel", zap.Error(err))
 	}
+
 	_ = err
 	return nil
 }
@@ -434,7 +444,7 @@ COMPLETE:
 /*
 2-9 获取所有主从设备
 */
-func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
+func (kc *NsqClient) HandleGetAllDevices(msg *models.Message) error {
 	var err error
 
 	redisConn := kc.redisPool.Get()
@@ -511,7 +521,8 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed to send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
@@ -524,7 +535,7 @@ func (kc *KafkaClient) HandleGetAllDevices(msg *models.Message) error {
 2-6 添加从设备
 1. 此接口是主设备批准从设备的授权
 */
-func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
+func (kc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 	var err error
 	errorCode := 200 //错误码， 200是正常，其它是错误
 	var errorMsg string
@@ -623,7 +634,8 @@ func (kc *KafkaClient) HandleAddSlaveDevice(msg *models.Message) error {
 			targetMsg.SetCode(200) //成功的状态码
 			//构建数据完成，向dispatcher发送
 			topic := "Auth.Frontend"
-			if err := kc.Produce(topic, targetMsg); err == nil {
+			rawData, _ := json.Marshal(targetMsg)
+			if err := kc.Producer.Public(topic, rawData); err == nil {
 				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 			} else {
 				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -648,7 +660,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed send AddSlaveDevice message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send AddSlaveDevice message to ProduceChannel", zap.Error(err))
@@ -661,7 +674,7 @@ COMPLETE:
 2-7 从设备申请授权码
 1. 此接口是从设备发起，从设备还没有JWT令牌，因此不能拦截
 */
-func (kc *KafkaClient) HandleAuthorizeCode(msg *models.Message) error {
+func (kc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 	var err error
 	rsp := &Auth.AuthorizeCodeRsp{}
 	errorCode := 200
@@ -738,7 +751,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Succeed to send AuthorizeCode message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send AuthorizeCode message to ProduceChannel", zap.Error(err))

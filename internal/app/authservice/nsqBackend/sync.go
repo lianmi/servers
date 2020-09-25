@@ -9,10 +9,10 @@
 1-3 同步当前用户资料事件
 
 */
-package kafkaBackend
+package nsqBackend
 
 import (
-	// "encoding/hex"
+	"encoding/json"
 	"fmt"
 	// "strings"
 	"github.com/pkg/errors"
@@ -34,7 +34,7 @@ import (
 )
 
 //处理myInfoAt
-func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -119,7 +119,8 @@ func (kc *KafkaClient) SyncMyInfoAt(username, token, deviceID string, req Sync.S
 
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
-				if err := kc.Produce(topic, targetMsg); err == nil {
+				rawData, _ := json.Marshal(targetMsg)
+				if err := kc.Producer.Public(topic, rawData); err == nil {
 					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
 					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -148,7 +149,7 @@ COMPLETE:
 }
 
 //处理friendsAt
-func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -264,7 +265,8 @@ func (kc *KafkaClient) SyncFriendsAt(username, token, deviceID string, req Sync.
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -288,7 +290,7 @@ COMPLETE:
 }
 
 //处理 friendUsersAt
-func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -386,7 +388,8 @@ func (kc *KafkaClient) SyncFriendUsersAt(username, token, deviceID string, req S
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -410,7 +413,7 @@ COMPLETE:
 }
 
 //处理 TeamsAt
-func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -523,7 +526,8 @@ func (kc *KafkaClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sy
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -547,7 +551,7 @@ COMPLETE:
 }
 
 //1-7 同步用户标签列表 处理 TagsAt
-func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -704,7 +708,8 @@ func (kc *KafkaClient) SyncTagsAt(username, token, deviceID string, req Sync.Syn
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -727,7 +732,7 @@ COMPLETE:
 	}
 }
 
-func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
+func (kc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
 
 	targetMsg := &models.Message{}
 
@@ -752,7 +757,8 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 
 	//构建数据完成，向dispatcher发送
 	topic := "Auth.Frontend"
-	go kc.Produce(topic, targetMsg)
+	rawData, _ := json.Marshal(targetMsg)
+	go kc.Producer.Public(topic, rawData)
 
 	kc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
 		zap.String("Username:", toUser),
@@ -763,7 +769,7 @@ func (kc *KafkaClient) SendOffLineMsg(toUser, token, deviceID string, data []byt
 }
 
 //处理 systemMsgAt
-func (kc *KafkaClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -863,7 +869,7 @@ COMPLETE:
 }
 
 //处理watchAt 7-8 同步关注的商户事件
-func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -938,7 +944,8 @@ func (kc *KafkaClient) SyncWatchAt(username, token, deviceID string, req Sync.Sy
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -962,7 +969,7 @@ COMPLETE:
 }
 
 //处理productAt 7-8 同步商品列表
-func (kc *KafkaClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1078,7 +1085,8 @@ func (kc *KafkaClient) SyncProductAt(username, token, deviceID string, req Sync.
 
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := kc.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := kc.Producer.Public(topic, rawData); err == nil {
 			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -1104,7 +1112,7 @@ COMPLETE:
 /*
 注意： syncCount 是所有需要同步的数量，最终是6个
 */
-func (kc *KafkaClient) HandleSync(msg *models.Message) error {
+func (kc *NsqClient) HandleSync(msg *models.Message) error {
 	var err error
 
 	errorCode := 200
@@ -1251,7 +1259,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("Sync message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send Sync message to ProduceChannel", zap.Error(err))
@@ -1261,7 +1270,7 @@ COMPLETE:
 
 }
 
-func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
+func (kc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
 	rsp := &Sync.SyncDoneEventRsp{
 		TimeTag: uint64(time.Now().UnixNano() / 1e6),
 	}
@@ -1284,7 +1293,8 @@ func (kc *KafkaClient) SendSyncDoneEventToUser(toUser, deviceID, token string) e
 
 	//构建数据完成，向dispatcher发送
 	topic := "Sync.Frontend"
-	if err := kc.Produce(topic, targetMsg); err == nil {
+	rawData, _ := json.Marshal(targetMsg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("SendSyncDoneEventToUser, Msg message succeed send to ProduceChannel",
 			zap.String("topic", topic),
 			zap.String("to", toUser),

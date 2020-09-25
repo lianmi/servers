@@ -7,7 +7,7 @@ import (
 )
 
 type NsqMqttChannel struct {
-	KafkaChan chan *models.Message
+	NsqChan chan *models.Message
 	MTChan    chan *models.Message
 }
 
@@ -25,7 +25,7 @@ func NewOptions(v *viper.Viper) (*Options, error) {
 //初始化 kafka 以及 mqtt通道, 用于发送到后端的业务处理服务器
 func NewChannnel() *NsqMqttChannel {
 	return &NsqMqttChannel{
-		KafkaChan: make(chan *models.Message, 10),
+		NsqChan: make(chan *models.Message, 10),
 		MTChan:    make(chan *models.Message, 10),
 	}
 }

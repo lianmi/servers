@@ -75,11 +75,11 @@ type MQTTClient struct {
 	WillQOS      byte
 	WillRetained bool
 	// tls config
-	TLSConfig        *tls.Config
-	client           *paho.Client //支持v5.0
+	TLSConfig      *tls.Config
+	client         *paho.Client //支持v5.0
 	nsqMqttChannel *channel.NsqMqttChannel
-	logger           *zap.Logger
-	redisPool        *redis.Pool
+	logger         *zap.Logger
+	redisPool      *redis.Pool
 }
 
 func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
@@ -118,7 +118,7 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMq
 		CleanSession:        true,
 		FileStorePath:       "memory",
 		WillTopic:           "", //no will topic.
-		nsqMqttChannel:    channel,
+		nsqMqttChannel:      channel,
 		logger:              logger.With(zap.String("type", "mqtt.Client")),
 		redisPool:           redisPool,
 	}
@@ -202,7 +202,7 @@ func (mc *MQTTClient) Start() error {
 
 			businessTypeName := Global.BusinessType_name[int32(businessType)]
 
-			kafkaTopic := businessTypeName + ".Backend"
+			nsqTopic := businessTypeName + ".Backend"
 			backendService := businessTypeName + "Service"
 
 			//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
@@ -210,7 +210,7 @@ func (mc *MQTTClient) Start() error {
 			now := time.Now().UnixNano() / 1e6
 			backendMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			backendMsg.BuildRouter(businessTypeName, "", kafkaTopic)
+			backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
 
 			backendMsg.SetJwtToken(jwtToken)
 			backendMsg.SetUserName(userName)
@@ -244,9 +244,9 @@ func (mc *MQTTClient) Start() error {
 				mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
 				return
 			}
-			mc.nsqMqttChannel.KafkaChan <- backendMsg //发送到kafka
-			mc.logger.Info("Message发送到kafka通道",
-				zap.String("kafkaTopic", kafkaTopic),
+			mc.nsqMqttChannel.NsqChan <- backendMsg //发送到Nsq
+			mc.logger.Info("Message发送到Nsq通道",
+				zap.String("nsqTopic", nsqTopic),
 				zap.String("backendService", backendService),
 				zap.Int("businessType", businessType),
 				zap.Int("businessSubType", businessSubType),
@@ -307,7 +307,7 @@ func (mc *MQTTClient) Close() {
 	// mc.client.Disconnect(250)
 }
 
-//主循环，从kafka读取消息，并发送到imsdk的某个设备
+//主循环，从Nsq读取消息，并发送到imsdk的某个设备
 func (mc *MQTTClient) Run() {
 	run := true
 	sigchan := make(chan os.Signal, 1)
@@ -324,7 +324,7 @@ func (mc *MQTTClient) Run() {
 			if err != nil {
 				mc.logger.Error("failed to send Disconnect", zap.Error(err))
 			}
-		case msg := <-mc.nsqMqttChannel.MTChan: //从kafka读取数据
+		case msg := <-mc.nsqMqttChannel.MTChan: //从Nsq读取数据
 			if msg != nil {
 				//向MQTT Broker发送，加入SDK订阅了此topic，则会收到
 				jwtToken := msg.GetJwtToken()

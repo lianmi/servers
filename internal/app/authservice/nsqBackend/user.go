@@ -7,10 +7,10 @@
 1-5 打标签 MarkTag
 1-6 同步其它端标签更改事件 SyncMarkTagEvent
 */
-package kafkaBackend
+package nsqBackend
 
 import (
-	// "encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -31,7 +31,7 @@ import (
 2. 注意，更新资料后，也需要同步更新 哈希表 userData:{username}
 哈希表 userData:{username} 的元素就是User的各个字段
 */
-func (kc *KafkaClient) HandleGetUsers(msg *models.Message) error {
+func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -150,7 +150,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("GetUsersResp message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send GetUsersResp message to ProduceChannel", zap.Error(err))
@@ -165,7 +166,7 @@ COMPLETE:
 将触发 1-4 同步其它端修改的用户资料
 
 */
-func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
+func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -394,7 +395,8 @@ func (kc *KafkaClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 			//构建数据完成，向dispatcher发送
 			topic := "Auth.Frontend"
-			if err := kc.Produce(topic, targetMsg); err == nil {
+			rawData, _ := json.Marshal(msg)
+			if err := kc.Producer.Public(topic, rawData); err == nil {
 				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 			} else {
 				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -420,7 +422,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("UpdateProfileRsp message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send UpdateProfileRsp message to ProduceChannel", zap.Error(err))
@@ -433,7 +436,7 @@ COMPLETE:
 /*
 1-5 打标签 MarkTag
 */
-func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
+func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -764,7 +767,8 @@ func (kc *KafkaClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetCode(200) //成功的状态码
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
-				if err := kc.Produce(topic, targetMsg); err == nil {
+				rawData, _ := json.Marshal(targetMsg)
+				if err := kc.Producer.Public(topic, rawData); err == nil {
 					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
 					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -786,7 +790,8 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
+	rawData, _ := json.Marshal(msg)
+	if err := kc.Producer.Public(topic, rawData); err == nil {
 		kc.logger.Info("MarkTag message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		kc.logger.Error("Failed to send MarkTag message to ProduceChannel", zap.Error(err))

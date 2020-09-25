@@ -7,7 +7,7 @@ package repositories
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -45,15 +45,15 @@ func CreateUserRepository(f string) (UsersRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
+	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
-	usersRepository := NewMysqlUsersRepository(logger, db, pool, kafkaClient)
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
+	usersRepository := NewMysqlUsersRepository(logger, db, pool, nsqClient)
 	return usersRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, kafkaBackend.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, nsqBackend.ProviderSet, ProviderSet)

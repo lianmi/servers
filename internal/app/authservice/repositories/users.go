@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	pb "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -79,16 +80,16 @@ type MysqlUsersRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	kafka     *kafkaBackend.KafkaClient
+	nsqClient *nsqBackend.NsqClient
 	base      *BaseRepository
 }
 
-func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, kc *kafkaBackend.KafkaClient) UsersRepository {
+func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqBackend.NsqClient) UsersRepository {
 	return &MysqlUsersRepository{
 		logger:    logger.With(zap.String("type", "UsersRepository")),
 		db:        db,
 		redisPool: redisPool,
-		kafka:     kc,
+		nsqClient: nc,
 		base:      NewBaseRepository(logger, db),
 	}
 }
@@ -606,7 +607,8 @@ func (s *MysqlUsersRepository) SendMultiLoginEventToOtherDevices(isOnline bool, 
 		targetMsg.SetCode(200) //成功的状态码
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
-		if err := s.kafka.Produce(topic, targetMsg); err == nil {
+		rawData, _ := json.Marshal(targetMsg)
+		if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
 			s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
@@ -905,7 +907,8 @@ func (s *MysqlUsersRepository) SendKickedMsgToDevice(jwtToken, username, eDevice
 
 	//构建数据完成，向dispatcher发送
 	topic := "Auth.Frontend"
-	if err := s.kafka.Produce(topic, kickMsg); err == nil {
+	rawData, _ := json.Marshal(kickMsg)
+	if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
 		s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		return err
 	} else {
