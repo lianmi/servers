@@ -130,18 +130,17 @@ func initProducer(addr string) (*nsqProducer, error) {
 }
 
 func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
-	topicArray := strings.Split(o.Topics, ",")
-	topics := make([]string, 0)
-	for _, topic := range topicArray {
-		topics = append(topics, topic)
-		err := initConsumer(topic, o.Channel, o.Broker, logger)
+	topics := strings.Split(o.Topics, ",")
+	for _, topic := range topics {
+		// channelName := fmt.Sprintf("%s", topic, index+1)
+		err := initConsumer(topic, topic, o.Broker, logger)
 		if err != nil {
 			logger.Error("InitConsumer Error ", zap.Error(err))
 			return nil
 		}
 	}
 
-	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.String("Topics", o.Topics))
+	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics))
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
