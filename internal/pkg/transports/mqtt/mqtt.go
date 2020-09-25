@@ -245,9 +245,13 @@ func (mc *MQTTClient) Start() error {
 				return
 			}
 			mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
-			mc.logger.Info("message has send to KafkaChan",
+			mc.logger.Info("Message发送到kafka通道",
 				zap.String("kafkaTopic", kafkaTopic),
-				zap.String("backendService", backendService))
+				zap.String("backendService", backendService),
+				zap.Int("businessType", businessType),
+				zap.Int("businessSubType", businessSubType),
+				zap.String("msgID", backendMsg.GetID()),
+			)
 		}),
 		Conn: conn,
 	})

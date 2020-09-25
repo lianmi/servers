@@ -204,6 +204,8 @@ func (kc *KafkaClient) ProcessProduceChan() {
 		case msg := <-kc.kafkamqttChannel.KafkaChan: //从KafkaChan通道里读取数据
 			//Target字段存储的是业务模块名称: "auth.Backend", "users.Backend" ...
 			topic := msg.GetTarget()
+			msgID := msg.GetID()
+			kc.logger.Debug("从KafkaChan通道里读取数据, 并且向发送Topic", zap.String("topic", topic), zap.String("msgID", msgID))
 			kc.Produce(topic, msg)
 		}
 	}
