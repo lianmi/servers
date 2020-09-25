@@ -7,29 +7,29 @@ import (
 	"syscall"
 
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/pkg/transports/grpc"
-	"github.com/lianmi/servers/internal/pkg/transports/http"
 	authKafka "github.com/lianmi/servers/internal/app/authservice/kafkaBackend"
 	chatKafka "github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
 	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
 	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
-	"github.com/lianmi/servers/internal/pkg/transports/kafka"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
+	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
+	"github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 
 	"go.uber.org/zap"
 )
 
 type Application struct {
-	name       string
-	logger     *zap.Logger
-	httpServer *http.Server
-	grpcServer *grpc.Server
-	kafkaClient *kafka.KafkaClient
-	authKafkaClient *authKafka.KafkaClient
-	chatKafkaClient *chatKafka.KafkaClient
-	orderKafkaClient *orderKafka.KafkaClient
+	name              string
+	logger            *zap.Logger
+	httpServer        *http.Server
+	grpcServer        *grpc.Server
+	nsqClient         *nsqclient.Nsqlient
+	authKafkaClient   *authKafka.KafkaClient
+	chatKafkaClient   *chatKafka.KafkaClient
+	orderKafkaClient  *orderKafka.KafkaClient
 	walletKafkaClient *walletKafka.KafkaClient
-	mqttClient *mqtt.MQTTClient
+	mqttClient        *mqtt.MQTTClient
 }
 
 type Option func(app *Application) error
@@ -61,7 +61,7 @@ func GrpcServerOption(svr *grpc.Server) Option {
 func KafkaOption(kc *kafka.KafkaClient) Option {
 	return func(app *Application) error {
 		kc.Application(app.name)
-		app.kafkaClient = kc
+		app.nsqClient = kc
 		return nil
 	}
 }
@@ -159,8 +159,8 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.kafkaClient != nil {
-		if err := a.kafkaClient.Start(); err != nil {
+	if a.nsqClient != nil {
+		if err := a.nsqClient.Start(); err != nil {
 			return errors.Wrap(err, "kafka client start error")
 		}
 	}
@@ -199,8 +199,8 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		if a.kafkaClient != nil {
-			if err := a.kafkaClient.Stop(); err != nil {
+		if a.nsqClient != nil {
+			if err := a.nsqClient.Stop(); err != nil {
 				a.logger.Warn("stop kafka client error", zap.Error(err))
 			}
 		}

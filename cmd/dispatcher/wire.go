@@ -9,7 +9,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/app/channel"
-	"github.com/lianmi/servers/internal/pkg/transports/kafka"
+	"github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/pkg/redis"
@@ -21,7 +21,7 @@ var providerSet = wire.NewSet(
 	config.ProviderSet,
 	redis.ProviderSet,
 	channel.ProviderSet,
-	kafka.ProviderSet,
+	nsqclient.ProviderSet,
 	mqtt.ProviderSet,
 	dispatcher.ProviderSet,
 

@@ -77,7 +77,7 @@ type MQTTClient struct {
 	// tls config
 	TLSConfig        *tls.Config
 	client           *paho.Client //支持v5.0
-	kafkamqttChannel *channel.KafkaMqttChannel
+	nsqMqttChannel *channel.NsqMqttChannel
 	logger           *zap.Logger
 	redisPool        *redis.Pool
 }
@@ -102,7 +102,7 @@ func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
 	return o, err
 }
 
-func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.KafkaMqttChannel, logger *zap.Logger) *MQTTClient {
+func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *MQTTClient {
 	mc := &MQTTClient{
 		o:                   o,
 		Addr:                o.Addr,
@@ -118,7 +118,7 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.Kafka
 		CleanSession:        true,
 		FileStorePath:       "memory",
 		WillTopic:           "", //no will topic.
-		kafkamqttChannel:    channel,
+		nsqMqttChannel:    channel,
 		logger:              logger.With(zap.String("type", "mqtt.Client")),
 		redisPool:           redisPool,
 	}
@@ -244,7 +244,7 @@ func (mc *MQTTClient) Start() error {
 				mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
 				return
 			}
-			mc.kafkamqttChannel.KafkaChan <- backendMsg //发送到kafka
+			mc.nsqMqttChannel.KafkaChan <- backendMsg //发送到kafka
 			mc.logger.Info("Message发送到kafka通道",
 				zap.String("kafkaTopic", kafkaTopic),
 				zap.String("backendService", backendService),
@@ -324,7 +324,7 @@ func (mc *MQTTClient) Run() {
 			if err != nil {
 				mc.logger.Error("failed to send Disconnect", zap.Error(err))
 			}
-		case msg := <-mc.kafkamqttChannel.MTChan: //从kafka读取数据
+		case msg := <-mc.nsqMqttChannel.MTChan: //从kafka读取数据
 			if msg != nil {
 				//向MQTT Broker发送，加入SDK订阅了此topic，则会收到
 				jwtToken := msg.GetJwtToken()

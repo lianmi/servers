@@ -48,13 +48,13 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaMqttChannel := channel.NewChannnel()
-	kafkaClient := kafka.NewKafkaClient(kafkaOptions, pool, kafkaMqttChannel, logger)
+	nsqMqttChannel := channel.NewChannnel()
+	kafkaClient := kafka.NewKafkaClient(kafkaOptions, pool, nsqMqttChannel, logger)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
 		return nil, err
 	}
-	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, kafkaMqttChannel, logger)
+	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
 	application, err := dispatcher.NewApp(dispatcherOptions, logger, kafkaClient, mqttClient)
 	if err != nil {
 		return nil, err

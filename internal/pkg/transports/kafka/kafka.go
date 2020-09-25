@@ -33,7 +33,7 @@ type KafkaClient struct {
 	o                *KafkaOptions
 	app              string
 	topics           []string
-	kafkamqttChannel *channel.KafkaMqttChannel
+	nsqMqttChannel *channel.NsqMqttChannel
 	consumer         *kafka.Consumer
 	producer         *kafka.Producer
 	logger           *zap.Logger
@@ -53,7 +53,7 @@ func NewKafkaOptions(v *viper.Viper) (*KafkaOptions, error) {
 	return o, err
 }
 
-func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, channel *channel.KafkaMqttChannel, logger *zap.Logger) *KafkaClient {
+func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *KafkaClient {
 	topicArray := strings.Split(o.Topics, ",")
 	topics := make([]string, 0)
 	for _, topic := range topicArray {
@@ -84,7 +84,7 @@ func NewKafkaClient(o *KafkaOptions, redisPool *redis.Pool, channel *channel.Kaf
 	return &KafkaClient{
 		o:                o,
 		topics:           topics,
-		kafkamqttChannel: channel,
+		nsqMqttChannel: channel,
 		consumer:         c,
 		producer:         p,
 		logger:           logger.With(zap.String("type", "kafka.Client")),
@@ -167,7 +167,7 @@ func (kc *KafkaClient) Start() error {
 						)
 
 						//向MTChan通道写入数据, 实现向客户端发送数据
-						kc.kafkamqttChannel.MTChan <- backendMessage
+						kc.nsqMqttChannel.MTChan <- backendMessage
 					} else {
 						continue
 					}
@@ -201,7 +201,7 @@ func (kc *KafkaClient) ProcessProduceChan() {
 			kc.logger.Info("Caught signal terminating")
 			_ = sig
 			run = false
-		case msg := <-kc.kafkamqttChannel.KafkaChan: //从KafkaChan通道里读取数据
+		case msg := <-kc.nsqMqttChannel.KafkaChan: //从KafkaChan通道里读取数据
 			//Target字段存储的是业务模块名称: "auth.Backend", "users.Backend" ...
 			topic := msg.GetTarget()
 			msgID := msg.GetID()

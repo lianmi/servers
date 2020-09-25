@@ -18,6 +18,6 @@ var testProviderSet = wire.NewSet(
 )
 
 
-func CreateChannel() (*channel.KafkaMqttChannel, error) {
+func CreateChannel() (*channel.NsqMqttChannel, error) {
 	panic(wire.Build(testProviderSet))
 }

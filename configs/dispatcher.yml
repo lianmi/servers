@@ -3,10 +3,11 @@ app:
 http:
   mode: release
   port: 0
-kafka:
-  broker: 127.0.0.1
-  group: im
+nsq:
+  broker: 127.0.0.1:4161
+  producerAddr: 127.0.0.1:4150
   topics: Auth.Frontend,User.Frontend,Friends.Frontend,Group.Frontend,Chat.Frontend,Sync.Frontend,Order.Frontend,Wallet.Frontend
+  chnanel: im
 mqtt:
   addr: 127.0.0.1:1883
   user: ""
