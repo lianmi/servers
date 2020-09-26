@@ -194,15 +194,15 @@ func (a *Application) AwaitSignal() {
 		}
 
 		if a.authNsqClient != nil {
-			// if err := a.authNsqClient.Stop(); err != nil {
-			// 	a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
-			// }
+			if err := a.authNsqClient.Stop(); err != nil {
+				a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
+			}
 		}
 
 		if a.nsqClient != nil {
-			// if err := a.nsqClient.Stop(); err != nil {
-			// 	a.logger.Warn("stop kafka client error", zap.Error(err))
-			// }
+			if err := a.nsqClient.Stop(); err != nil {
+				a.logger.Warn("stop kafka client error", zap.Error(err))
+			}
 		}
 
 		if a.mqttClient != nil {

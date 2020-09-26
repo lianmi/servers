@@ -239,8 +239,6 @@ func (nc *NsqClient) RedisInit() {
 func (nc *NsqClient) Start() error {
 	nc.logger.Info("NsqClient  Start()")
 
-	defer nc.Producer.Stop()
-
 	//redis初始化
 	go nc.RedisInit()
 
@@ -342,11 +340,10 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 	return nil
 }
 
-// func (nc *NsqClient) Stop() error {
-// 	nc.producer.Close()
-// 	nc.consumer.Close()
-// 	return nil
-// }
+func (nc *NsqClient) Stop() error {
+	nc.Producer.Stop()
+	return nil
+}
 
 func (nc *NsqClient) PrintRedisErr(err error) {
 	nc.logger.Error("Redis Error", zap.Error(err))

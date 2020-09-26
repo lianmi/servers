@@ -182,8 +182,6 @@ func (nc *NsqClient) Start() error {
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
-	defer nc.Producer.Stop()
-
 	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
 		nc.logger.Info("redisConn GET ", zap.String("bar", bar))
 	}
@@ -258,6 +256,11 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (nc *NsqClient) Stop() error {
+	nc.Producer.Stop()
 	return nil
 }
 
