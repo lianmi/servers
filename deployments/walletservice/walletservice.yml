@@ -12,7 +12,7 @@ nsq:
   Topics: Wallet.Backend
   chnanelName: im  
 redis:
-  addr: 127.0.0.1:6379
+  addr: redis:6379
   password: 
   db: 0
 log:
@@ -23,11 +23,11 @@ log:
   level: "debug"
   stdout: true
 consul:
-  addr: 127.0.0.1:8500
+  addr: consul:8500
 jaeger:
   serviceName: walletservice
   reporter:
-    localAgentHostPort: "127.0.0.1:6831"
+    localAgentHostPort: "jaeger-agent:6831"
   sampler:
     type: const
     param: 1
