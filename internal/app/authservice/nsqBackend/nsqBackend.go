@@ -261,23 +261,23 @@ func (nc *NsqClient) Start() error {
 		run     bool = true
 	)
 
-	go func() {
+	// go func() {
 
-		sigchan = make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	sigchan = make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-		for run == true {
-			select {
-			case sig := <-sigchan:
-				nc.logger.Info("Caught signal terminating")
-				_ = sig
-				run = false
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			nc.logger.Info("Caught signal terminating")
+			_ = sig
+			run = false
 
-			}
 		}
+	}
 
-		nc.logger.Info("Exiting Start()")
-	}()
+	nc.logger.Info("Exiting Start()")
+	// }()
 
 	return nil
 }
