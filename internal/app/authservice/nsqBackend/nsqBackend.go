@@ -265,13 +265,24 @@ func (nc *NsqClient) Start() error {
 
 	sigchan = make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
+	tiker := time.NewTicker(time.Second)
 	for run == true {
 		select {
 		case sig := <-sigchan:
 			nc.logger.Info("Caught signal terminating")
 			_ = sig
 			run = false
+		case <-tiker.C:
+
+			for _, consumer := range consumers {
+				stats := consumer.Stats()
+				nc.logger.Info("tiker.C: consumer.Stats",
+					zap.Int("Connections", stats.Connections),
+					zap.Uint64("MessagesReceived", stats.MessagesReceived), // 已接收总数
+					zap.Uint64("MessagesFinished", stats.MessagesFinished), // 已完成总数
+					zap.Uint64("MessagesRequeued", stats.MessagesRequeued), // 排队总数
+				)
+			}
 
 		}
 	}
@@ -349,6 +360,9 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 
 func (nc *NsqClient) Stop() error {
 	nc.Producer.Stop()
+	for _, consumer := range consumers {
+		consumer.Stop()
+	}
 	return nil
 }
 
