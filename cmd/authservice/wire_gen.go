@@ -20,6 +20,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
+	"go.uber.org/zap"
 )
 
 // Injectors from wire.go:
@@ -39,31 +40,38 @@ func CreateApp(cf string) (*app.Application, error) {
 	}
 	authserviceOptions, err := authservice.NewOptions(viper, logger)
 	if err != nil {
+		logger.Error("authserviceOptions", zap.Error(err))
 		return nil, err
 	}
 	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
 	if err != nil {
+		logger.Error("nsqOptions", zap.Error(err))
 		return nil, err
 	}
 	databaseOptions, err := database.NewOptions(viper, logger)
 	if err != nil {
+		logger.Error("databaseOptions", zap.Error(err))
 		return nil, err
 	}
 	db, err := database.New(databaseOptions)
 	if err != nil {
+		logger.Error("db", zap.Error(err))
 		return nil, err
 	}
 	redisOptions, err := redis.NewRedisOptions(viper, logger)
 	if err != nil {
+		logger.Error("redisOptions", zap.Error(err))
 		return nil, err
 	}
 	pool, err := redis.New(redisOptions)
 	if err != nil {
+		logger.Error("poll", zap.Error(err))
 		return nil, err
 	}
 	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
 	httpOptions, err := http.NewOptions(viper)
 	if err != nil {
+		logger.Error("httpOptions", zap.Error(err))
 		return nil, err
 	}
 	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool, nsqClient)
@@ -72,27 +80,33 @@ func CreateApp(cf string) (*app.Application, error) {
 	initControllers := controllers.CreateInitControllersFn(usersController)
 	configuration, err := jaeger.NewConfiguration(viper, logger)
 	if err != nil {
+		logger.Error("configuration", zap.Error(err))
 		return nil, err
 	}
 	tracer, err := jaeger.New(configuration)
 	if err != nil {
+		logger.Error("tracer", zap.Error(err))
 		return nil, err
 	}
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
 	consulOptions, err := consul.NewOptions(viper)
 	if err != nil {
+		logger.Error("consulOptions", zap.Error(err))
 		return nil, err
 	}
 	client, err := consul.New(consulOptions)
 	if err != nil {
+		logger.Error("client", zap.Error(err))
 		return nil, err
 	}
 	server, err := http.New(httpOptions, logger, engine, client)
 	if err != nil {
+		logger.Error("server", zap.Error(err))
 		return nil, err
 	}
 	application, err := authservice.NewApp(authserviceOptions, logger, nsqClient, server)
 	if err != nil {
+		logger.Error("application", zap.Error(err))
 		return nil, err
 	}
 	return application, nil

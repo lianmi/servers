@@ -278,7 +278,7 @@ func (mc *MQTTClient) Start() error {
 		ca, err := mc.client.Connect(context.Background(), cp)
 		if err == nil {
 			if ca.ReasonCode == 0 {
-				mc.logger.Info("Connected to broker server successfule.", zap.String("BrokerServer", mc.Addr))
+				mc.logger.Info("Connected to broker server successful.", zap.String("BrokerServer", mc.Addr))
 				if _, err := mc.client.Subscribe(context.Background(), &paho.Subscribe{
 					Subscriptions: map[string]paho.SubscribeOptions{
 						subTopic: paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
