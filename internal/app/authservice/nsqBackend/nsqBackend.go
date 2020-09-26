@@ -41,8 +41,6 @@ type nsqProducer struct {
 type NsqClient struct {
 	o             *NsqOptions
 	app           string
-	topics        []string
-	Consumers     []*nsq.Consumer
 	Producer      *nsqProducer
 	logger        *zap.Logger
 	db            *gorm.DB
@@ -120,6 +118,7 @@ func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 //初始化生产者
 func initProducer(addr string) (*nsqProducer, error) {
 	// fmt.Println("init producer address:", addr)
+
 	producer, err := nsq.NewProducer(addr, nsq.NewConfig())
 	if err != nil {
 		return nil, err
@@ -139,7 +138,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		consumers = append(consumers, consumer)
 	}
 
-	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics))
+	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics), zap.String("Broker", o.Broker))
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
@@ -156,11 +155,10 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		}
 
 	}
-	logger.Info("启动Nsq生产者成功")
+	logger.Info("启动Nsq生产者成功", zap.String("addr", o.ProducerAddr))
 
 	nsqClient := &NsqClient{
 		o:             o,
-		Consumers:     consumers,
 		Producer:      p,
 		logger:        logger.With(zap.String("type", "AuthService")),
 		db:            db,
