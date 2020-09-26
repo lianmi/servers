@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/lianmi/servers/internal/pkg/models"
+	// "github.com/lianmi/servers/internal/pkg/utils/netutil"
 	"github.com/lianmi/servers/util/randtool"
 
 	"github.com/nsqio/go-nsq"
@@ -137,6 +138,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		}
 		consumers = append(consumers, consumer)
 	}
+	// brokerIP := netutil.GetLocalIP4() //本容器ip
 
 	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics), zap.String("Broker", o.Broker))
 
