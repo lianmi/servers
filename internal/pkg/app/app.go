@@ -9,7 +9,7 @@ import (
 	"github.com/google/wire"
 	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
-	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
+	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
 	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
@@ -27,7 +27,7 @@ type Application struct {
 	nsqClient       *nsqclient.NsqClient
 	authNsqClient   *authNsq.NsqClient
 	chatNsqClient   *chatNsq.NsqClient
-	orderNsqClient  *orderKafka.KafkaClient
+	orderNsqClient  *orderNsq.NsqClient
 	walletNsqClient *walletKafka.KafkaClient
 	mqttClient      *mqtt.MQTTClient
 }
@@ -82,7 +82,7 @@ func ChatNsqOption(kbc *chatNsq.NsqClient) Option {
 	}
 }
 
-func OrderNsqOption(kbc *orderKafka.KafkaClient) Option {
+func OrderNsqOption(kbc *orderNsq.NsqClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
 		app.orderNsqClient = kbc

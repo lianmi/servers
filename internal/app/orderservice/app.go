@@ -2,7 +2,7 @@ package orderservice
 
 import (
 	"github.com/google/wire"
-	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
+	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -28,9 +28,9 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, kc *orderKafka.KafkaClient) (*app.Application, error) {
+func NewApp(o *Options, logger *zap.Logger, nc *orderNsq.NsqClient) (*app.Application, error) {
 
-	a, err := app.New(o.Name, logger, app.OrderKafkaOption(kc))
+	a, err := app.New(o.Name, logger, app.OrderNsqOption(nc))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "new app error")

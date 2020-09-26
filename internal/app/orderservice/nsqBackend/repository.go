@@ -1,4 +1,4 @@
-package kafkaBackend
+package nsqBackend
 
 import (
 	"github.com/jinzhu/gorm"
@@ -7,17 +7,17 @@ import (
 )
 
 //GetTransaction 获取事务
-func (kc *KafkaClient) GetTransaction() *gorm.DB {
-	return kc.db.Begin()
+func (nc *NsqClient) GetTransaction() *gorm.DB {
+	return nc.db.Begin()
 }
 
 //增加商品
-func (kc *KafkaClient) SaveProduct(product *models.Product) error {
+func (nc *NsqClient) SaveProduct(product *models.Product) error {
 	//使用事务同时更新增加商品
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(product).Error; err != nil {
-		kc.logger.Error("更新Product表失败", zap.Error(err))
+		nc.logger.Error("更新Product表失败", zap.Error(err))
 		tx.Rollback()
 		return err
 	}
@@ -29,27 +29,27 @@ func (kc *KafkaClient) SaveProduct(product *models.Product) error {
 }
 
 //删除商品
-func (kc *KafkaClient) DeleteProduct(productID, username string) error {
+func (nc *NsqClient) DeleteProduct(productID, username string) error {
 	where := models.Product{ProductID: productID, Username: username}
-	db := kc.db.Where(&where).Delete(models.Product{})
+	db := nc.db.Where(&where).Delete(models.Product{})
 	err := db.Error
 	if err != nil {
-		kc.logger.Error("DeleteProduct", zap.Error(err))
+		nc.logger.Error("DeleteProduct", zap.Error(err))
 		return err
 	}
 	count := db.RowsAffected
-	kc.logger.Debug("DeleteProduct成功", zap.Int64("count", count))
+	nc.logger.Debug("DeleteProduct成功", zap.Int64("count", count))
 	return nil
 }
 
 //保存商户的OPK, 批量
-func (kc *KafkaClient) SavePreKeys(prekeys []*models.Prekey) error {
+func (nc *NsqClient) SavePreKeys(prekeys []*models.Prekey) error {
 	//使用事务批量保存商户的OPK
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	for _, prekey := range prekeys {
 		if err := tx.Save(prekey).Error; err != nil {
-			kc.logger.Error("保存prekey表失败", zap.Error(err))
+			nc.logger.Error("保存prekey表失败", zap.Error(err))
 			tx.Rollback()
 			continue
 		}

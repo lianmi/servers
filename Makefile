@@ -1,5 +1,5 @@
 # apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
-apps = 'authservice' 'dispatcher' 'chatservice'
+apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice'
 # 
 .PHONY: run
 run: proto wire
