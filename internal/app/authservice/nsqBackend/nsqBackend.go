@@ -276,13 +276,16 @@ func (nc *NsqClient) Start() error {
 
 				for index, consumer := range consumers {
 					stats := consumer.Stats()
-					nc.logger.Info("tiker.C: consumer.Stats",
-						zap.String("Topic", topics[index]),
-						zap.Int("Connections", stats.Connections),
-						zap.Uint64("MessagesReceived", stats.MessagesReceived), // 已接收总数
-						zap.Uint64("MessagesFinished", stats.MessagesFinished), // 已完成总数
-						zap.Uint64("MessagesRequeued", stats.MessagesRequeued), // 排队总数
-					)
+					if stats.Connections > 0 {
+
+						nc.logger.Info("tiker.C: consumer.Stats",
+							zap.String("Topic", topics[index]),
+							zap.Int("Connections", stats.Connections),
+							zap.Uint64("MessagesReceived", stats.MessagesReceived), // 已接收总数
+							zap.Uint64("MessagesFinished", stats.MessagesFinished), // 已完成总数
+							zap.Uint64("MessagesRequeued", stats.MessagesRequeued), // 排队总数
+						)
+					}
 				}
 
 			}
