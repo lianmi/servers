@@ -5,7 +5,7 @@ http:
   port: 0
 nsq:
   broker: nsqlookupd:4161
-  producerAddr: nsqlookupd:4150
+  producerAddr: nsqd:4150
   topics: Auth.Frontend,User.Frontend,Friends.Frontend,Group.Frontend,Chat.Frontend,Sync.Frontend,Order.Frontend,Wallet.Frontend
   chnanel: im
 mqtt:

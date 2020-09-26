@@ -8,7 +8,7 @@ db:
   debug: false  
 nsq:
   broker: nsqlookupd:4161
-  producerAddr: nsqlookupd:4150
+  producerAddr: nsqd:4150
   Topics: Msg.Backend
   chnanelName: im  
 redis:
