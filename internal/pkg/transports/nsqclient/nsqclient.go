@@ -141,7 +141,6 @@ func initProducer(addr string) (*nsqProducer, error) {
 func NewNsqClient(o *NsqOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *NsqClient {
 	logger.Info("Topics", zap.String("Topics", o.Topics))
 	topics := strings.Split(o.Topics, ",")
-	// logger.Info("topicArray", zap.Strings("topics", topics))
 	for _, topic := range topics {
 		channelName := fmt.Sprintf("%s.%s", topic, o.ChnanelName)
 		logger.Info("channelName", zap.String("channelName", channelName))
@@ -159,6 +158,19 @@ func NewNsqClient(o *NsqOptions, redisPool *redis.Pool, channel *channel.NsqMqtt
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
 	}
+
+	//
+	for _, topic := range topics {
+
+		//目的是创建topic
+		if err := p.Publish(topic, []byte("a")); err != nil {
+			logger.Error("创建topic错误", zap.String("topic", topic))
+		} else {
+			logger.Info("创建topic", zap.String("topic", topic))
+		}
+
+	}
+
 	logger.Info("启动Nsq生产者成功")
 
 	return &NsqClient{

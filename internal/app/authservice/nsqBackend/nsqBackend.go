@@ -98,14 +98,17 @@ func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 	nh.logger.Debug(fmt.Sprintf("receive ID: %s, addr: %s", msg.ID, msg.NSQDAddress))
 
 	var kfaPayload models.Message
-
-	if err := json.Unmarshal(msg.Body, &kfaPayload); err == nil {
-
-		msgFromDispatcherChan <- &kfaPayload //将来自dispatcher的数据压入本地通道
-
+	if string(msg.Body) == "a" {
+		// 创建topic
 	} else {
-		nh.logger.Error("HandleMessage, json.Unmarshal Error", zap.Error(err))
-		return err
+		if err := json.Unmarshal(msg.Body, &kfaPayload); err == nil {
+
+			msgFromDispatcherChan <- &kfaPayload //将来自dispatcher的数据压入本地通道
+
+		} else {
+			nh.logger.Error("HandleMessage, json.Unmarshal Error", zap.Error(err))
+			return err
+		}
 	}
 
 	return nil
@@ -139,6 +142,16 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	if err != nil {
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
+	}
+	for _, topic := range topics {
+
+		//目的是创建topic
+		if err := p.Publish(topic, []byte("a")); err != nil {
+			logger.Error("创建topic错误", zap.String("topic", topic))
+		} else {
+			logger.Info("创建topic", zap.String("topic", topic))
+		}
+
 	}
 	logger.Info("启动Nsq生产者成功")
 
