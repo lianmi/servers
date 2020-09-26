@@ -288,6 +288,9 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 
 func (nc *NsqClient) Stop() error {
 	nc.Producer.Stop()
+	// for _, consumer := range consumers {
+	// 	consumer.Stop()
+	// }	
 	return nil
 }
 

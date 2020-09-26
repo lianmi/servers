@@ -128,40 +128,10 @@ func initProducer(addr string) (*nsqProducer, error) {
 }
 
 func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
-	topics = strings.Split(o.Topics, ",")
-	for _, topic := range topics {
-		channelName := fmt.Sprintf("%s.%s", topic, o.ChnanelName)
-		consumer, err := initConsumer(topic, channelName, o.Broker, logger)
-		if err != nil {
-			logger.Error("Init Consumer Error", zap.Error(err), zap.String("channelName", channelName))
-			return nil
-		}
-		consumers = append(consumers, consumer)
-	}
-	// brokerIP := netutil.GetLocalIP4() //本容器ip
-
-	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics), zap.String("Broker", o.Broker))
-
-	p, err := initProducer(o.ProducerAddr)
-	if err != nil {
-		logger.Error("init Producer error:", zap.Error(err))
-		return nil
-	}
-	for _, topic := range topics {
-
-		//目的是创建topic
-		if err := p.Publish(topic, []byte("a")); err != nil {
-			logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
-		} else {
-			logger.Info("创建topic成功", zap.String("topic", topic))
-		}
-
-	}
-	logger.Info("启动Nsq生产者成功", zap.String("addr", o.ProducerAddr))
 
 	nsqClient := &NsqClient{
-		o:             o,
-		Producer:      p,
+		o: o,
+		// Producer:      p,
 		logger:        logger.With(zap.String("type", "AuthService")),
 		db:            db,
 		redisPool:     redisPool,
@@ -247,6 +217,38 @@ func (nc *NsqClient) RedisInit() {
 func (nc *NsqClient) Start() error {
 	nc.logger.Info("AuthService NsqClient Start()")
 
+	topics = strings.Split(nc.o.Topics, ",")
+	for _, topic := range topics {
+		channelName := fmt.Sprintf("%s.%s", topic, nc.o.ChnanelName)
+		consumer, err := initConsumer(topic, channelName, nc.o.Broker, nc.logger)
+		if err != nil {
+			nc.logger.Error("Init Consumer Error", zap.Error(err), zap.String("channelName", channelName))
+			return nil
+		}
+		consumers = append(consumers, consumer)
+	}
+	// brokerIP := netutil.GetLocalIP4() //本容器ip
+
+	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics), zap.String("Broker", nc.o.Broker))
+
+	p, err := initProducer(nc.o.ProducerAddr)
+	if err != nil {
+		nc.logger.Error("init Producer error:", zap.Error(err))
+		return nil
+	}
+	for _, topic := range topics {
+
+		//目的是创建topic
+		if err := p.Publish(topic, []byte("a")); err != nil {
+			nc.logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
+		} else {
+			nc.logger.Info("创建topic成功", zap.String("topic", topic))
+		}
+
+	}
+	nc.Producer = p
+	nc.logger.Info("启动Nsq生产者成功", zap.String("addr", nc.o.ProducerAddr))
+
 	//redis初始化
 	go nc.RedisInit()
 
@@ -261,38 +263,38 @@ func (nc *NsqClient) Start() error {
 		run     bool = true
 	)
 
-	go func() {
+	// go func() {
 
-		sigchan = make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-		tiker := time.NewTicker(time.Second)
-		for run == true {
-			select {
-			case sig := <-sigchan:
-				nc.logger.Info("Caught signal terminating")
-				_ = sig
-				run = false
-			case <-tiker.C:
+	sigchan = make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	tiker := time.NewTicker(time.Second)
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			nc.logger.Info("Caught signal terminating")
+			_ = sig
+			run = false
+		case <-tiker.C:
 
-				for index, consumer := range consumers {
-					stats := consumer.Stats()
-					if stats.Connections > 0 {
+			for index, consumer := range consumers {
+				stats := consumer.Stats()
+				if stats.Connections > 0 {
 
-						nc.logger.Info("tiker.C: consumer.Stats",
-							zap.String("Topic", topics[index]),
-							zap.Int("Connections", stats.Connections),
-							zap.Uint64("MessagesReceived", stats.MessagesReceived), // 已接收总数
-							zap.Uint64("MessagesFinished", stats.MessagesFinished), // 已完成总数
-							zap.Uint64("MessagesRequeued", stats.MessagesRequeued), // 排队总数
-						)
-					}
+					nc.logger.Info("tiker.C: consumer.Stats",
+						zap.String("Topic", topics[index]),
+						zap.Int("Connections", stats.Connections),
+						zap.Uint64("MessagesReceived", stats.MessagesReceived), // 已接收总数
+						zap.Uint64("MessagesFinished", stats.MessagesFinished), // 已完成总数
+						zap.Uint64("MessagesRequeued", stats.MessagesRequeued), // 排队总数
+					)
 				}
-
 			}
-		}
 
-		nc.logger.Info("Exiting Start()")
-	}()
+		}
+	}
+
+	nc.logger.Info("Exiting Start()")
+	// }()
 
 	return nil
 }
