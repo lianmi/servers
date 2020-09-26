@@ -129,9 +129,26 @@ func initProducer(addr string) (*nsqProducer, error) {
 
 func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
 
+	p, err := initProducer(o.ProducerAddr)
+	if err != nil {
+		logger.Error("init Producer error:", zap.Error(err))
+		return nil
+	}
+	for _, topic := range topics {
+
+		//目的是创建topic
+		if err := p.Publish(topic, []byte("a")); err != nil {
+			logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
+		} else {
+			logger.Info("创建topic成功", zap.String("topic", topic))
+		}
+
+	}
+	logger.Info("启动Nsq生产者成功", zap.String("addr", o.ProducerAddr))
+
 	nsqClient := &NsqClient{
-		o: o,
-		// Producer:      p,
+		o:             o,
+		Producer:      p,
 		logger:        logger.With(zap.String("type", "AuthService")),
 		db:            db,
 		redisPool:     redisPool,
@@ -230,24 +247,6 @@ func (nc *NsqClient) Start() error {
 	// brokerIP := netutil.GetLocalIP4() //本容器ip
 
 	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics), zap.String("Broker", nc.o.Broker))
-
-	p, err := initProducer(nc.o.ProducerAddr)
-	if err != nil {
-		nc.logger.Error("init Producer error:", zap.Error(err))
-		return nil
-	}
-	for _, topic := range topics {
-
-		//目的是创建topic
-		if err := p.Publish(topic, []byte("a")); err != nil {
-			nc.logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
-		} else {
-			nc.logger.Info("创建topic成功", zap.String("topic", topic))
-		}
-
-	}
-	nc.Producer = p
-	nc.logger.Info("启动Nsq生产者成功", zap.String("addr", nc.o.ProducerAddr))
 
 	//redis初始化
 	go nc.RedisInit()

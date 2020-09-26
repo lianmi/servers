@@ -44,9 +44,9 @@ type nsqProducer struct {
 }
 
 type NsqClient struct {
-	o              *NsqOptions
-	app            string
-	topics         []string
+	o   *NsqOptions
+	app string
+	// topics         []string
 	nsqMqttChannel *channel.NsqMqttChannel
 
 	Producer *nsqProducer
@@ -54,6 +54,12 @@ type NsqClient struct {
 	logger    *zap.Logger
 	redisPool *redis.Pool
 }
+
+var (
+	// msgFromDispatcherChan = make(chan *models.Message, 10)
+	topics    = make([]string, 0)
+	consumers = make([]*nsq.Consumer, 0)
+)
 
 func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	var (
@@ -69,7 +75,7 @@ func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 }
 
 //初始化消费者
-func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttChannel, logger *zap.Logger) error {
+func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttChannel, logger *zap.Logger) (*nsq.Consumer, error) {
 	cfg := nsq.NewConfig()
 
 	//设置轮询时间间隔，最小10ms， 最大 5m， 默认60s
@@ -77,7 +83,7 @@ func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttCha
 
 	c, err := nsq.NewConsumer(topic, channelName, cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.SetLoggerLevel(nsq.LogLevelWarning) // 设置警告级别
 
@@ -90,9 +96,9 @@ func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttCha
 
 	err = c.ConnectToNSQLookupd(addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return c, nil
 }
 
 //处理后端服务发来的消息,JSON格式
@@ -139,49 +145,23 @@ func initProducer(addr string) (*nsqProducer, error) {
 }
 
 func NewNsqClient(o *NsqOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *NsqClient {
-	logger.Info("Topics", zap.String("Topics", o.Topics))
-	topics := strings.Split(o.Topics, ",")
-	for _, topic := range topics {
-		channelName := fmt.Sprintf("%s.%s", topic, o.ChnanelName)
-		logger.Info("channelName", zap.String("channelName", channelName))
-		err := initConsumer(topic, channelName, o.Broker, channel, logger)
-		if err != nil {
-			logger.Error("dispatcher, InitConsumer Error ", zap.Error(err), zap.String("topic", topic))
-			return nil
-		}
-	}
-
-	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.String("Topics", o.Topics))
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
-		logger.Error("init Producer error:", zap.Error(err))
+		logger.Error("init Producer error:", zap.Error(err), zap.String("ProducerAddr", o.ProducerAddr))
 		return nil
-	}
-
-	//
-	for _, topic := range topics {
-
-		//目的是创建topic
-		if err := p.Publish(topic, []byte("a")); err != nil {
-			logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
-		} else {
-			logger.Info("创建topic成功", zap.String("topic", topic))
-		}
-
 	}
 
 	logger.Info("启动Nsq生产者成功")
 
 	return &NsqClient{
 		o:              o,
-		topics:         topics,
 		nsqMqttChannel: channel,
-		// consumer:       c,
-		Producer:  p,
-		logger:    logger.With(zap.String("type", "nsqclient")),
-		redisPool: redisPool,
+		Producer:       p,
+		logger:         logger.With(zap.String("type", "nsqclient")),
+		redisPool:      redisPool,
 	}
+
 }
 
 func (nc *NsqClient) Application(name string) {
@@ -190,12 +170,38 @@ func (nc *NsqClient) Application(name string) {
 
 //启动Nsq实例
 func (nc *NsqClient) Start() error {
+	nc.logger.Info("Topics", zap.String("Topics", nc.o.Topics))
+	topics = strings.Split(nc.o.Topics, ",")
+	for _, topic := range topics {
+		channelName := fmt.Sprintf("%s.%s", topic, nc.o.ChnanelName)
+		nc.logger.Info("channelName", zap.String("channelName", channelName))
+		consumer, err := initConsumer(topic, channelName, nc.o.Broker, nc.nsqMqttChannel, nc.logger)
+		if err != nil {
+			nc.logger.Error("dispatcher, InitConsumer Error ", zap.Error(err), zap.String("topic", topic))
+			return nil
+		}
+		consumers = append(consumers, consumer)
+	}
+
+	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("Topics", topics))
+
+	for _, topic := range topics {
+
+		//目的是创建topic
+		if err := nc.Producer.Publish(topic, []byte("a")); err != nil {
+			nc.logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
+		} else {
+			nc.logger.Info("创建topic成功", zap.String("topic", topic))
+		}
+
+	}
+
 	//尝试读取redis
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
-		nc.logger.Info("redisConn GET ", zap.String("bar", bar))
+		nc.logger.Info("redisConn GET", zap.String("bar", bar))
 	}
 
 	//Go程
@@ -218,7 +224,6 @@ func (nc *NsqClient) Start() error {
 		}
 
 		nc.logger.Info("Closing nsqclient")
-		// nc.consumer.Close()
 	}()
 
 	return nil
@@ -273,9 +278,9 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 
 func (nc *NsqClient) Stop() error {
 	nc.Producer.Stop()
-	// for _, consumer := range consumers {
-	// 	consumer.Stop()
-	// }	
+	for _, consumer := range consumers {
+		consumer.Stop()
+	}
 	return nil
 }
 
