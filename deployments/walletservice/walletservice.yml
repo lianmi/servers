@@ -4,7 +4,7 @@ http:
   mode: release
   port: 0
 db:
-  url: lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
+  url: lianmidba:12345678@tcp(mariadb:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
   debug: false  
 nsq:
   broker: nsqlookupd:4161
