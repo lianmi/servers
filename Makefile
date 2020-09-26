@@ -1,7 +1,7 @@
-# apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
-apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice'
-# 
+apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
+ 
 .PHONY: run
+
 run: proto wire
 	for app in $(apps) ;\
 	do \

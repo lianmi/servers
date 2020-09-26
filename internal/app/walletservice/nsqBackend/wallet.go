@@ -1,23 +1,16 @@
-package kafkaBackend
+package nsqBackend
 
 import (
-	// "time"
-	// "encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	// "time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	// "github.com/pkg/errors"
 
-	// Friends "github.com/lianmi/servers/api/proto/friends"
-	// Global "github.com/lianmi/servers/api/proto/global"
-	// Msg "github.com/lianmi/servers/api/proto/msg"
-	// User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
-	// "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
-	// uuid "github.com/satori/go.uuid"
 
 	"go.uber.org/zap"
 )
@@ -30,19 +23,19 @@ import (
 4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
 
 */
-func (kc *KafkaClient) HandleRegisterWallet(msg *models.Message) error {
+func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleRegisterPreKeys start...",
+	nc.logger.Info("HandleRegisterPreKeys start...",
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
@@ -53,7 +46,7 @@ func (kc *KafkaClient) HandleRegisterWallet(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("HandleRegisterWallet",
+	nc.logger.Debug("HandleRegisterWallet",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -66,13 +59,13 @@ func (kc *KafkaClient) HandleRegisterWallet(msg *models.Message) error {
 	//解包body
 	var req Wallet.RegisterWalletReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RegisterWallet payload",
+		nc.logger.Debug("RegisterWallet payload",
 			zap.Int("index", int(req.GetIndex())),
 			zap.String("walletAddress", req.GetWalletAddress()),
 		)
@@ -112,10 +105,11 @@ COMPLETE:
 
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
-	if err := kc.Produce(topic, msg); err == nil {
-		kc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil

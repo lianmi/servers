@@ -9,7 +9,7 @@ import (
 	// "github.com/lianmi/servers/internal/app/walletservice/controllers"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	// "github.com/lianmi/servers/internal/app/walletservice/services"
-	"github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -30,7 +30,7 @@ var providerSet = wire.NewSet(
 	jaeger.ProviderSet,
 	redis.ProviderSet,
 	// http.ProviderSet,
-	kafkaBackend.ProviderSet,
+	nsqBackend.ProviderSet,
 	walletservice.ProviderSet,
 	// controllers.ProviderSet,
 )

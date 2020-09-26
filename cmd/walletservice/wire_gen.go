@@ -8,7 +8,7 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/walletservice"
-	"github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
@@ -38,7 +38,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaOptions, err := kafkaBackend.NewKafkaOptions(viper)
+	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	kafkaClient := kafkaBackend.NewKafkaClient(kafkaOptions, db, pool, logger)
-	application, err := walletservice.NewApp(walletserviceOptions, logger, kafkaClient)
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
+	application, err := walletservice.NewApp(walletserviceOptions, logger, nsqClient)
 	if err != nil {
 		return nil, err
 	}
@@ -68,4 +68,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, kafkaBackend.ProviderSet, walletservice.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqBackend.ProviderSet, walletservice.ProviderSet)

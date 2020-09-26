@@ -10,7 +10,7 @@ import (
 	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
 	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
-	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
+	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
@@ -28,7 +28,7 @@ type Application struct {
 	authNsqClient   *authNsq.NsqClient
 	chatNsqClient   *chatNsq.NsqClient
 	orderNsqClient  *orderNsq.NsqClient
-	walletNsqClient *walletKafka.KafkaClient
+	walletNsqClient *walletNsq.NsqClient
 	mqttClient      *mqtt.MQTTClient
 }
 
@@ -90,7 +90,7 @@ func OrderNsqOption(kbc *orderNsq.NsqClient) Option {
 	}
 }
 
-func WalletNsqOption(kbc *walletKafka.KafkaClient) Option {
+func WalletNsqOption(kbc *walletNsq.NsqClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
 		app.walletNsqClient = kbc
@@ -137,31 +137,31 @@ func (a *Application) Start() error {
 
 	if a.authNsqClient != nil {
 		if err := a.authNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "authservice kafka backend client start error")
+			return errors.Wrap(err, "authservice nsq backend client start error")
 		}
 	}
 
 	if a.chatNsqClient != nil {
 		if err := a.chatNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "chatservice kafka backend client start error")
+			return errors.Wrap(err, "chatservice nsq backend client start error")
 		}
 	}
 
 	if a.orderNsqClient != nil {
 		if err := a.orderNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "orderservice kafka backend client start error")
+			return errors.Wrap(err, "orderservice nsq backend client start error")
 		}
 	}
 
 	if a.walletNsqClient != nil {
 		if err := a.walletNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "walletservice kafka backend client start error")
+			return errors.Wrap(err, "walletservice nsq backend client start error")
 		}
 	}
 
 	if a.nsqClient != nil {
 		if err := a.nsqClient.Start(); err != nil {
-			return errors.Wrap(err, "kafka client start error")
+			return errors.Wrap(err, "nsq client start error")
 		}
 	}
 
@@ -195,13 +195,13 @@ func (a *Application) AwaitSignal() {
 
 		if a.authNsqClient != nil {
 			if err := a.authNsqClient.Stop(); err != nil {
-				a.logger.Warn("stop authservice  kafka client error", zap.Error(err))
+				a.logger.Warn("stop authservice  nsq client error", zap.Error(err))
 			}
 		}
 
 		if a.nsqClient != nil {
 			if err := a.nsqClient.Stop(); err != nil {
-				a.logger.Warn("stop kafka client error", zap.Error(err))
+				a.logger.Warn("stop nsq client error", zap.Error(err))
 			}
 		}
 
