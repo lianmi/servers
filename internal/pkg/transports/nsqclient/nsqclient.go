@@ -118,7 +118,7 @@ func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 		code := backendMessage.GetCode()
 
 		//根据目标target,  组装数据包， 向mqtt的channel写入
-		nh.logger.Info("Receive message Ffom backend service",
+		nh.logger.Info("Receive message from backend service",
 			zap.Uint32("taskId:", taskId),
 			zap.String("BusinessTypeName:", businessTypeName), //业务
 			zap.Uint32("businessType:", businessType),         // 业务类型
@@ -223,7 +223,7 @@ func (nc *NsqClient) Start() error {
 			}
 		}
 
-		nc.logger.Info("Closing nsqclient")
+		nc.logger.Info("Closing dispatcher nsqclient")
 	}()
 
 	return nil

@@ -319,8 +319,8 @@ func (nc *NsqClient) ProcessRecvPayload() {
 			//根据目标target,  组装数据包， 写入processChan
 			nc.logger.Info("msgFromDispatcherChan",
 				// zap.String("Topic:", payload.Topic),
-				zap.Uint32("taskId:", taskID),                     //SDK的任务ID
-				zap.String("BusinessTypeName:", businessTypeName), //业务名称
+				zap.Uint32("taskId:", taskID),                     // SDK的任务ID
+				zap.String("BusinessTypeName:", businessTypeName), // 业务名称
 				zap.Uint16("businessType:", businessType),         // 业务类型
 				zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
 				zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
@@ -338,6 +338,7 @@ func (nc *NsqClient) ProcessRecvPayload() {
 				rawData, _ := json.Marshal(msg)
 
 				topic := msg.GetSource() + ".Frontend"
+				
 				//向dispatcher发送
 				err := nc.Producer.Public(topic, rawData)
 				if err != nil {
