@@ -42,6 +42,7 @@ type NsqClient struct {
 	o             *NsqOptions
 	app           string
 	topics        []string
+	Consumers     []*nsq.Consumer
 	Producer      *nsqProducer
 	logger        *zap.Logger
 	db            *gorm.DB
@@ -51,6 +52,7 @@ type NsqClient struct {
 
 var (
 	msgFromDispatcherChan = make(chan *models.Message, 10)
+	consumers             = make([]*nsq.Consumer, 0)
 )
 
 func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
@@ -67,7 +69,7 @@ func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 }
 
 //初始化消费者
-func initConsumer(topic, channelName, addr string, logger *zap.Logger) error {
+func initConsumer(topic, channelName, addr string, logger *zap.Logger) (*nsq.Consumer, error) {
 	cfg := nsq.NewConfig()
 
 	//设置轮询时间间隔，最小10ms， 最大 5m， 默认60s
@@ -75,7 +77,7 @@ func initConsumer(topic, channelName, addr string, logger *zap.Logger) error {
 
 	c, err := nsq.NewConsumer(topic, channelName, cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.SetLoggerLevel(nsq.LogLevelWarning) // 设置警告级别
 
@@ -87,9 +89,9 @@ func initConsumer(topic, channelName, addr string, logger *zap.Logger) error {
 
 	err = c.ConnectToNSQLookupd(addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return c, nil
 }
 
 //处理消息
@@ -128,12 +130,12 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	topics := strings.Split(o.Topics, ",")
 	for _, topic := range topics {
 		channelName := fmt.Sprintf("%s.%s", topic, o.ChnanelName)
-		logger.Info("channelName", zap.String("channelName", channelName))
-		err := initConsumer(topic, channelName, o.Broker, logger)
+		consumer, err := initConsumer(topic, channelName, o.Broker, logger)
 		if err != nil {
-			logger.Error("InitConsumer Error ", zap.Error(err))
+			logger.Error("Init Consumer Error", zap.Error(err), zap.String("channelName", channelName))
 			return nil
 		}
+		consumers = append(consumers, consumer)
 	}
 
 	logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", topics))
@@ -158,6 +160,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient := &NsqClient{
 		o:             o,
 		topics:        topics,
+		Consumers:     consumers,
 		Producer:      p,
 		logger:        logger.With(zap.String("type", "AuthService")),
 		db:            db,
