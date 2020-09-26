@@ -12,9 +12,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
 	"github.com/jinzhu/gorm"
-	// "github.com/pkg/errors"
-
-	// uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -32,11 +29,9 @@ type NsqOptions struct {
 }
 
 type nsqHandler struct {
-	nsqConsumer       *nsq.Consumer
-	messagesReceived  int
-	recvFromFrontChan chan *models.Message //接收到payload
-
-	logger *zap.Logger
+	nsqConsumer      *nsq.Consumer
+	messagesReceived int
+	logger           *zap.Logger
 }
 
 type nsqProducer struct {
@@ -44,21 +39,18 @@ type nsqProducer struct {
 }
 
 type NsqClient struct {
-	o                 *NsqOptions
-	app               string
-	topics            []string
-	recvFromFrontChan chan *models.Message //接收到payload
-	// consumer          *nsq.Consumer
-	Producer  *nsqProducer
-	logger    *zap.Logger
-	db        *gorm.DB
-	redisPool *redis.Pool
-	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
-	handleFuncMap map[uint32]func(payload *models.Message) error
+	o             *NsqOptions
+	app           string
+	topics        []string
+	Producer      *nsqProducer
+	logger        *zap.Logger
+	db            *gorm.DB
+	redisPool     *redis.Pool
+	handleFuncMap map[uint32]func(payload *models.Message) error //定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 }
 
 var (
-	locaclChan = make(chan *models.Message, 10)
+	msgFromDispatcherChan = make(chan *models.Message, 10)
 )
 
 func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
@@ -109,7 +101,7 @@ func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 
 	if err := json.Unmarshal(msg.Body, &kfaPayload); err == nil {
 
-		locaclChan <- &kfaPayload //将来自dispatcher的数据压入本地通道
+		msgFromDispatcherChan <- &kfaPayload //将来自dispatcher的数据压入本地通道
 
 	} else {
 		nh.logger.Error("HandleMessage, json.Unmarshal Error", zap.Error(err))
@@ -154,7 +146,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		o:             o,
 		topics:        topics,
 		Producer:      p,
-		logger:        logger.With(zap.String("type", "nsq.Client")),
+		logger:        logger.With(zap.String("type", "AuthService")),
 		db:            db,
 		redisPool:     redisPool,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
@@ -237,7 +229,7 @@ func (nc *NsqClient) RedisInit() {
 
 //启动Nsq实例
 func (nc *NsqClient) Start() error {
-	nc.logger.Info("NsqClient  Start()")
+	nc.logger.Info("AuthService NsqClient Start()")
 
 	//redis初始化
 	go nc.RedisInit()
@@ -268,8 +260,7 @@ func (nc *NsqClient) Start() error {
 			}
 		}
 
-		nc.logger.Info("Closing consumer")
-		// nc.consumer.Close()
+		nc.logger.Info("Exiting Start()")
 	}()
 
 	return nil
@@ -287,14 +278,14 @@ func (nc *NsqClient) ProcessRecvPayload() {
 			nc.logger.Info("Caught signal terminating")
 			_ = sig
 			run = false
-		case msg := <-locaclChan: //读取来着dispatcher的数据
+		case msg := <-msgFromDispatcherChan: //读取来着dispatcher的数据
 			taskID := msg.GetTaskID()
 			businessType := uint16(msg.GetBusinessType())
 			businessSubType := uint16(msg.GetBusinessSubType())
 			businessTypeName := msg.GetBusinessTypeName()
 
 			//根据目标target,  组装数据包， 写入processChan
-			nc.logger.Info("kfaPayload",
+			nc.logger.Info("msgFromDispatcherChan",
 				// zap.String("Topic:", payload.Topic),
 				zap.Uint32("taskId:", taskID),                     //SDK的任务ID
 				zap.String("BusinessTypeName:", businessTypeName), //业务名称
@@ -310,15 +301,15 @@ func (nc *NsqClient) ProcessRecvPayload() {
 				//向SDK回包，业务号及业务子号无法匹配 404
 				msg.SetCode(int32(404))                                                          //状态码
 				msg.SetErrorMsg([]byte("Can not process this businessType and businessSubType")) //错误提示
-				//向dispatcher发送
-				topic := msg.GetSource() + ".Frontend"
 				msg.FillBody(nil)
 
 				rawData, _ := json.Marshal(msg)
+
+				topic := msg.GetSource() + ".Frontend"
+				//向dispatcher发送
 				err := nc.Producer.Public(topic, rawData)
 				if err != nil {
 					nc.logger.Error("nc.Producer.Public error", zap.Error(err))
-					continue
 				}
 
 				continue

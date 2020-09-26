@@ -34,13 +34,13 @@ import (
 )
 
 //处理myInfoAt
-func (kc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_myInfoAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -53,7 +53,7 @@ func (kc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 		redisConn.Do("HSET", syncKey, "myInfoAt", cur_myInfoAt)
 	}
 
-	kc.logger.Debug("SyncMyInfoAt",
+	nc.logger.Debug("SyncMyInfoAt",
 		zap.Uint64("cur_myInfoAt", cur_myInfoAt),
 		zap.Uint64("myInfoAt", myInfoAt),
 		zap.String("username", username),
@@ -67,7 +67,7 @@ func (kc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("错误：ScanStructt error[userKey=%s]", userKey)
 				goto COMPLETE
@@ -120,13 +120,13 @@ func (kc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
 				rawData, _ := json.Marshal(targetMsg)
-				if err := kc.Producer.Public(topic, rawData); err == nil {
-					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				if err := nc.Producer.Public(topic, rawData); err == nil {
+					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
-					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+					nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 				}
 
-				kc.logger.Info("Sync myInfoAt Succeed",
+				nc.logger.Info("Sync myInfoAt Succeed",
 					zap.String("Username:", username),
 					zap.String("DeviceID:", deviceID),
 					zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -149,13 +149,13 @@ COMPLETE:
 }
 
 //处理friendsAt
-func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_friendsAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -168,7 +168,7 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		redisConn.Do("HSET", syncKey, "friendsAt", cur_friendsAt)
 	}
 
-	kc.logger.Debug("SyncFriendsAt",
+	nc.logger.Debug("SyncFriendsAt",
 		zap.Uint64("cur_friendsAt", cur_friendsAt),
 		zap.Uint64("friendsAt", friendsAt),
 		zap.String("username", username),
@@ -186,7 +186,7 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		//从redis里读取username的好友列表
 		friends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
 		if err != nil {
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:1]", username)
 			goto COMPLETE
@@ -196,7 +196,7 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 
 			nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
 			if err != nil {
-				kc.logger.Error("HGET error", zap.Error(err))
+				nc.logger.Error("HGET error", zap.Error(err))
 				continue
 			}
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
@@ -216,7 +216,7 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		//从redis里读取username的删除的好友列表
 		RemoveFriends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:2", username), "-inf", "+inf"))
 		if err != nil {
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:2]", username)
 			goto COMPLETE
@@ -225,7 +225,7 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		for _, friendUsername := range RemoveFriends {
 			nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
 			if err != nil {
-				kc.logger.Error("HGET error", zap.Error(err))
+				nc.logger.Error("HGET error", zap.Error(err))
 				continue
 			}
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
@@ -266,13 +266,13 @@ func (kc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("Sync FriendsAt Succeed",
+		nc.logger.Info("Sync FriendsAt Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -290,13 +290,13 @@ COMPLETE:
 }
 
 //处理 friendUsersAt
-func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_friendUsersAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -309,7 +309,7 @@ func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		redisConn.Do("HSET", syncKey, "friendUsersAt", cur_friendUsersAt)
 	}
 
-	kc.logger.Debug("SyncFriendUsersAt",
+	nc.logger.Debug("SyncFriendUsersAt",
 		zap.Uint64("cur_friendUsersAt", cur_friendUsersAt),
 		zap.Uint64("friendUsersAt", friendUsersAt),
 		zap.String("username", username),
@@ -326,7 +326,7 @@ func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		//从redis里读取username的好友列表
 		fUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
 		if err != nil {
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:1]", username)
 			goto COMPLETE
@@ -337,7 +337,7 @@ func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("userData:%s", fuser))); err == nil {
 				if err := redis.ScanStruct(result, fUserData); err != nil {
 
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 
 				} else {
 					rsp.UInfos = append(rsp.UInfos, &User.User{
@@ -389,13 +389,13 @@ func (kc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("Sync FriendUsers Event Succeed",
+		nc.logger.Info("Sync FriendUsers Event Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -413,13 +413,13 @@ COMPLETE:
 }
 
 //处理 TeamsAt
-func (kc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_teamsAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -433,7 +433,7 @@ func (kc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 
 	}
 
-	kc.logger.Debug("SyncTeamsAt",
+	nc.logger.Debug("SyncTeamsAt",
 		zap.Uint64("cur_teamsAt", cur_teamsAt),
 		zap.Uint64("teamsAt", teamsAt),
 		zap.String("username", username),
@@ -451,27 +451,27 @@ func (kc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 		//从redis里读取username的群列表
 		teamIDs, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Team:%s", username), "-inf", "+inf"))
 		if err != nil {
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Team:%s]", username)
 			goto COMPLETE
 		}
 
 		for _, teamID := range teamIDs {
-			kc.logger.Debug("for..range teamIDs", zap.String("teamID", teamID))
+			nc.logger.Debug("for..range teamIDs", zap.String("teamID", teamID))
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamInfo:%s", teamID))); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err), zap.String("key", fmt.Sprintf("TeamInfo:%s", teamID)))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err), zap.String("key", fmt.Sprintf("TeamInfo:%s", teamID)))
 					continue
 				} else {
 					//计算群成员数量。
 					var count int
 					if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
-						kc.logger.Error("ZCARD Error", zap.Error(err))
+						nc.logger.Error("ZCARD Error", zap.Error(err))
 						continue
 					}
-					kc.logger.Debug("ZCARD 群成功总数", zap.Int("count", count))
+					nc.logger.Debug("ZCARD 群成功总数", zap.Int("count", count))
 
 					rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
 						TeamId:       teamInfo.TeamID,
@@ -527,13 +527,13 @@ func (kc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("Sync MyTeamsEvent  Succeed",
+		nc.logger.Info("Sync MyTeamsEvent  Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -551,13 +551,13 @@ COMPLETE:
 }
 
 //1-7 同步用户标签列表 处理 TagsAt
-func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_tagsAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -571,7 +571,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 
 	}
 
-	kc.logger.Debug("SyncTagsAt",
+	nc.logger.Debug("SyncTagsAt",
 		zap.Uint64("cur_tagsAt", cur_tagsAt),
 		zap.Uint64("tagsAt", tagsAt),
 		zap.String("username", username),
@@ -589,7 +589,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//遍历时间戳大于客户端上报的时间戳的黑名单
 		blackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的黑名单 ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的黑名单 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:1]", username)
 			goto COMPLETE
@@ -605,7 +605,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//遍历时间戳大于客户端上报的时间戳的免打扰
 		mutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的免打扰 ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的免打扰 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:1]", username)
 			goto COMPLETE
@@ -621,7 +621,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//遍历时间戳大于客户端上报的时间戳的置顶
 		stickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的置顶  ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的置顶  ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:1]", username)
 			goto COMPLETE
@@ -637,7 +637,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//遍历时间戳大于客户端上报的时间戳的移除黑名单
 		removeBlackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除黑名单 ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除黑名单 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:2]", username)
 			goto COMPLETE
@@ -653,7 +653,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//遍历时间戳大于客户端上报的时间戳的移除免打扰
 		removeMutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除免打扰 ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除免打扰 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:2]", username)
 			goto COMPLETE
@@ -670,7 +670,7 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		removeStickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
 
-			kc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除置顶 ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除置顶 ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:2]", username)
 			goto COMPLETE
@@ -709,13 +709,13 @@ func (kc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("Sync MyTeamsEvent  Succeed",
+		nc.logger.Info("Sync MyTeamsEvent  Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -732,7 +732,7 @@ COMPLETE:
 	}
 }
 
-func (kc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
+func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
 
 	targetMsg := &models.Message{}
 
@@ -758,9 +758,9 @@ func (kc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	//构建数据完成，向dispatcher发送
 	topic := "Auth.Frontend"
 	rawData, _ := json.Marshal(targetMsg)
-	go kc.Producer.Public(topic, rawData)
+	go nc.Producer.Public(topic, rawData)
 
-	kc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
+	nc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
 		zap.String("Username:", toUser),
 		zap.String("DeviceID:", deviceID),
 		zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -769,13 +769,13 @@ func (kc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 }
 
 //处理 systemMsgAt
-func (kc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_systemMsgAt uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -797,21 +797,21 @@ func (kc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 		//移除时间少于yesTime离线通知
 		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", yesTime)
 		if err != nil {
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=%s]", fmt.Sprintf("systemMsgAt:%s", username))
 			goto COMPLETE
 		} else {
-			kc.logger.Debug("移除时间少于yesTime离线通知", zap.Int64("yesTime", yesTime))
+			nc.logger.Debug("移除时间少于yesTime离线通知", zap.Int64("yesTime", yesTime))
 		}
 
 		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
 		for _, msgID := range msgIDs {
 			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
 			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-			err = kc.SendOffLineMsg(username, token, deviceID, data)
+			err = nc.SendOffLineMsg(username, token, deviceID, data)
 			if err == nil {
-				kc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
+				nc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
 			}
 		}
 
@@ -819,7 +819,7 @@ func (kc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 		//从大到小递减获取, 只获取最大的10条
 		msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "+inf", "-inf", "LIMIT", 0, 10))
 		if err != nil {
-			kc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
+			nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
 		} else {
 			if len(msgIDArray) > 0 {
 				//反转，数组变为从小到大排序
@@ -829,22 +829,22 @@ func (kc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 					if seq > maxSeq {
 						maxSeq = seq
 					}
-					kc.logger.Debug("同步离线期间最大的10条离线消息",
+					nc.logger.Debug("同步离线期间最大的10条离线消息",
 						zap.Int("seq", seq),
 						zap.String("msgID", string(msgID)),
 					)
 					key := fmt.Sprintf("offLineMsg:%s:%s", username, string(msgID))
 					data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
 
-					err = kc.SendOffLineMsg(username, token, deviceID, data)
+					err = nc.SendOffLineMsg(username, token, deviceID, data)
 					if err == nil {
-						kc.logger.Debug("成功发送离线消息",
+						nc.logger.Debug("成功发送离线消息",
 							zap.Int("seq", seq),
 							zap.String("msgID", string(msgID)),
 							zap.String("username", username),
 						)
 					} else {
-						kc.logger.Error("发送离线消息失败，Error", zap.Error(err))
+						nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
 					}
 
 				}
@@ -869,7 +869,7 @@ COMPLETE:
 }
 
 //处理watchAt 7-8 同步关注的商户事件
-func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -880,7 +880,7 @@ func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 		WatchingUsers:       make([]string, 0), //用户关注的商户
 		CancelWatchingUsers: make([]string, 0), //用户取消关注的商户
 	}
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -894,7 +894,7 @@ func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 
 	}
 
-	kc.logger.Debug("SyncWatchAt",
+	nc.logger.Debug("SyncWatchAt",
 		zap.Uint64("cur_watchAt", cur_watchAt),
 		zap.Uint64("watchAt", watchAt),
 		zap.String("username", username),
@@ -905,7 +905,7 @@ func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), watchAt, "+inf"))
 		if err != nil {
 
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
 			goto COMPLETE
@@ -945,13 +945,13 @@ func (kc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("SyncWatchEvent Succeed",
+		nc.logger.Info("SyncWatchEvent Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -969,7 +969,7 @@ COMPLETE:
 }
 
 //处理productAt 7-8 同步商品列表
-func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -981,7 +981,7 @@ func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 		RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
 
 	}
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
@@ -995,7 +995,7 @@ func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 
 	}
 
-	kc.logger.Debug("SyncProductAt",
+	nc.logger.Debug("SyncProductAt",
 		zap.Uint64("cur_productAt", cur_productAt),
 		zap.Uint64("productAt", productAt),
 		zap.String("username", username),
@@ -1007,7 +1007,7 @@ func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), "-inf", "+inf"))
 		if err != nil {
 
-			kc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
 			goto COMPLETE
@@ -1020,7 +1020,7 @@ func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 				productInfo := new(models.Product)
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 					if err := redis.ScanStruct(result, productInfo); err != nil {
-						kc.logger.Error("错误: ScanStruct", zap.Error(err))
+						nc.logger.Error("错误: ScanStruct", zap.Error(err))
 						continue
 					}
 				}
@@ -1086,13 +1086,13 @@ func (kc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("SyncProductAt Succeed",
+		nc.logger.Info("SyncProductAt Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -1112,20 +1112,20 @@ COMPLETE:
 /*
 注意： syncCount 是所有需要同步的数量，最终是6个
 */
-func (kc *NsqClient) HandleSync(msg *models.Message) error {
+func (nc *NsqClient) HandleSync(msg *models.Message) error {
 	var err error
 
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
 	token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleSync start...",
+	nc.logger.Info("HandleSync start...",
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
@@ -1136,7 +1136,7 @@ func (kc *NsqClient) HandleSync(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("HandleSync",
+	nc.logger.Debug("HandleSync",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1151,11 +1151,11 @@ func (kc *NsqClient) HandleSync(msg *models.Message) error {
 	if err := proto.Unmarshal(body, &req); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("Sync  payload",
+		nc.logger.Debug("Sync  payload",
 			zap.Uint64("MyInfoAt", req.MyInfoAt),
 			zap.Uint64("FriendsAt", req.FriendsAt),
 			zap.Uint64("FriendUsersAt", req.FriendUsersAt),
@@ -1174,66 +1174,66 @@ func (kc *NsqClient) HandleSync(msg *models.Message) error {
 
 		//异步
 		go func() {
-			if err := kc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
-				kc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
+			if err := nc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
+				nc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncMyInfoAt is done")
+				nc.logger.Debug("SyncMyInfoAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
-				kc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
+			if err := nc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
+				nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncFriendsAt is done")
+				nc.logger.Debug("SyncFriendsAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
-				kc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
+			if err := nc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
+				nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncFriendUsersAt is done")
+				nc.logger.Debug("SyncFriendUsersAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
-				kc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
+			if err := nc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
+				nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncTeamsAt is done")
+				nc.logger.Debug("SyncTeamsAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncTagsAt(username, token, deviceID, req, chs[4]); err != nil {
-				kc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
+			if err := nc.SyncTagsAt(username, token, deviceID, req, chs[4]); err != nil {
+				nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncTagsAt is done")
+				nc.logger.Debug("SyncTagsAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncSystemMsgAt(username, token, deviceID, req, chs[5]); err != nil {
-				kc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
+			if err := nc.SyncSystemMsgAt(username, token, deviceID, req, chs[5]); err != nil {
+				nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncSystemMsgAt is done")
+				nc.logger.Debug("SyncSystemMsgAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncWatchAt(username, token, deviceID, req, chs[6]); err != nil {
-				kc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
+			if err := nc.SyncWatchAt(username, token, deviceID, req, chs[6]); err != nil {
+				nc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncWatchAt is done")
+				nc.logger.Debug("SyncWatchAt is done")
 			}
 		}()
 
 		go func() {
-			if err := kc.SyncProductAt(username, token, deviceID, req, chs[7]); err != nil {
-				kc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
+			if err := nc.SyncProductAt(username, token, deviceID, req, chs[7]); err != nil {
+				nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
 			} else {
-				kc.logger.Debug("SyncProductAt is done")
+				nc.logger.Debug("SyncProductAt is done")
 			}
 		}()
 
@@ -1242,8 +1242,8 @@ func (kc *NsqClient) HandleSync(msg *models.Message) error {
 		}
 
 		//发送SyncDoneEvent
-		kc.SendSyncDoneEventToUser(username, deviceID, token)
-		kc.logger.Debug("All Sync done")
+		nc.SendSyncDoneEventToUser(username, deviceID, token)
+		nc.logger.Debug("All Sync done")
 
 	}
 
@@ -1260,17 +1260,17 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Sync message succeed send to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Sync message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send Sync message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send Sync message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
 
 }
 
-func (kc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
+func (nc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {
 	rsp := &Sync.SyncDoneEventRsp{
 		TimeTag: uint64(time.Now().UnixNano() / 1e6),
 	}
@@ -1294,15 +1294,15 @@ func (kc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) err
 	//构建数据完成，向dispatcher发送
 	topic := "Sync.Frontend"
 	rawData, _ := json.Marshal(targetMsg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("SendSyncDoneEventToUser, Msg message succeed send to ProduceChannel",
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("SendSyncDoneEventToUser, Msg message succeed send to ProduceChannel",
 			zap.String("topic", topic),
 			zap.String("to", toUser),
 			zap.String("toDeviceID:", deviceID),
 			zap.String("msgID:", targetMsg.GetID()),
 		)
 	} else {
-		kc.logger.Error("SendSyncDoneEventToUser, Failed to send message to ProduceChannel",
+		nc.logger.Error("SendSyncDoneEventToUser, Failed to send message to ProduceChannel",
 			zap.String("topic", topic),
 			zap.String("to", toUser),
 			zap.String("toDeviceID:", deviceID),

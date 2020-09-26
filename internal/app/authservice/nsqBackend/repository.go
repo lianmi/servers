@@ -7,17 +7,17 @@ import (
 )
 
 //GetTransaction 获取事务
-func (kc *NsqClient) GetTransaction() *gorm.DB {
-	return kc.db.Begin()
+func (nc *NsqClient) GetTransaction() *gorm.DB {
+	return nc.db.Begin()
 }
 
 //修改用户资料
-func (kc *NsqClient) SaveUser(user *models.User) error {
+func (nc *NsqClient) SaveUser(user *models.User) error {
 	//使用事务同时更新用户数据
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(user).Error; err != nil {
-		kc.logger.Error("更新用户表失败", zap.Error(err))
+		nc.logger.Error("更新用户表失败", zap.Error(err))
 		tx.Rollback()
 
 	}
@@ -28,12 +28,12 @@ func (kc *NsqClient) SaveUser(user *models.User) error {
 }
 
 //修改用户标签
-func (kc *NsqClient) SaveTag(tag *models.Tag) error {
+func (nc *NsqClient) SaveTag(tag *models.Tag) error {
 	//使用事务同时更新Tag数据
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(tag).Error; err != nil {
-		kc.logger.Error("更新tag表失败", zap.Error(err))
+		nc.logger.Error("更新tag表失败", zap.Error(err))
 		tx.Rollback()
 
 	}
@@ -44,12 +44,12 @@ func (kc *NsqClient) SaveTag(tag *models.Tag) error {
 }
 
 //更新好友
-func (kc *NsqClient) SaveFriend(pFriend *models.Friend) error {
+func (nc *NsqClient) SaveFriend(pFriend *models.Friend) error {
 	//使用事务同时更新好友数据
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(pFriend).Error; err != nil {
-		kc.logger.Error("更新好友表失败", zap.Error(err))
+		nc.logger.Error("更新好友表失败", zap.Error(err))
 		tx.Rollback()
 
 	}
@@ -60,26 +60,26 @@ func (kc *NsqClient) SaveFriend(pFriend *models.Friend) error {
 }
 
 //删除好友
-func (kc *NsqClient) DeleteFriend(userID, friendUserID uint64) error {
+func (nc *NsqClient) DeleteFriend(userID, friendUserID uint64) error {
 	where := models.Friend{UserID: userID, FriendUserID: friendUserID}
-	db := kc.db.Where(&where).Delete(models.Friend{})
+	db := nc.db.Where(&where).Delete(models.Friend{})
 	err := db.Error
 	if err != nil {
-		kc.logger.Error("DeleteFriend出错", zap.Error(err))
+		nc.logger.Error("DeleteFriend出错", zap.Error(err))
 		return err
 	}
 	count := db.RowsAffected
-	kc.logger.Debug("DeleteFriend成功", zap.Int64("count", count))
+	nc.logger.Debug("DeleteFriend成功", zap.Int64("count", count))
 	return nil
 }
 
 //创建群
-func (kc *NsqClient) SaveTeam(pTeam *models.Team) error {
+func (nc *NsqClient) SaveTeam(pTeam *models.Team) error {
 	//使用事务同时更新创建群数据
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(pTeam).Error; err != nil {
-		kc.logger.Error("更新群team表失败", zap.Error(err))
+		nc.logger.Error("更新群team表失败", zap.Error(err))
 		tx.Rollback()
 		return err
 	}
@@ -91,12 +91,12 @@ func (kc *NsqClient) SaveTeam(pTeam *models.Team) error {
 }
 
 //增加群成员
-func (kc *NsqClient) SaveTeamUser(pTeamUser *models.TeamUser) error {
+func (nc *NsqClient) SaveTeamUser(pTeamUser *models.TeamUser) error {
 	//使用事务同时更新增加群成员
-	tx := kc.GetTransaction()
+	tx := nc.GetTransaction()
 
 	if err := tx.Save(pTeamUser).Error; err != nil {
-		kc.logger.Error("更新TeamUser表失败", zap.Error(err))
+		nc.logger.Error("更新TeamUser表失败", zap.Error(err))
 		tx.Rollback()
 		return err
 	}
@@ -108,36 +108,36 @@ func (kc *NsqClient) SaveTeamUser(pTeamUser *models.TeamUser) error {
 }
 
 //删除群成员
-func (kc *NsqClient) DeleteTeamUser(teamID, username string) error {
+func (nc *NsqClient) DeleteTeamUser(teamID, username string) error {
 	where := models.TeamUser{TeamID: teamID, Username: username}
-	db := kc.db.Where(&where).Delete(models.TeamUser{})
+	db := nc.db.Where(&where).Delete(models.TeamUser{})
 	err := db.Error
 	if err != nil {
-		kc.logger.Error("DeleteTeamUser", zap.Error(err))
+		nc.logger.Error("DeleteTeamUser", zap.Error(err))
 		return err
 	}
 	count := db.RowsAffected
-	kc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	nc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }
 
 //设置群管理员
-func (kc *NsqClient) SetTeamManager(teamID, username string) error {
+func (nc *NsqClient) SetTeamManager(teamID, username string) error {
 	where := models.TeamUser{TeamID: teamID, Username: username}
-	db := kc.db.Where(&where).Save(models.TeamUser{})
+	db := nc.db.Where(&where).Save(models.TeamUser{})
 	err := db.Error
 	if err != nil {
-		kc.logger.Error("DeleteTeamUser", zap.Error(err))
+		nc.logger.Error("DeleteTeamUser", zap.Error(err))
 		return err
 	}
 	count := db.RowsAffected
-	kc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	nc.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }
 
 // GetPages 分页返回数据
-func (kc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
-	db := kc.db.Model(model).Where(model)
+func (nc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+	db := nc.db.Model(model).Where(model)
 	db = db.Where(where)
 	if len(orders) > 0 {
 		for _, order := range orders {
@@ -146,7 +146,7 @@ func (kc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pag
 	}
 	err := db.Count(totalCount).Error
 	if err != nil {
-		kc.logger.Error("查询总数出错", zap.Error(err))
+		nc.logger.Error("查询总数出错", zap.Error(err))
 		return err
 	}
 	if *totalCount == 0 {
@@ -156,17 +156,17 @@ func (kc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pag
 }
 
 //分页获取群成员
-func (kc *NsqClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+func (nc *NsqClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
-	if err := kc.GetPages(&models.TeamUser{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
-		kc.logger.Error("获取群成员信息失败", zap.Error(err))
+	if err := nc.GetPages(&models.TeamUser{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+		nc.logger.Error("获取群成员信息失败", zap.Error(err))
 	}
 	return teamUsers
 }
 
 //获取所有群组id， 返回一个切片
-func (kc *NsqClient) GetTeams() []string {
+func (nc *NsqClient) GetTeams() []string {
 	var teamIDs []string
-	kc.db.Model(&models.Team{}).Pluck("team_id", &teamIDs)
+	nc.db.Model(&models.Team{}).Pluck("team_id", &teamIDs)
 	return teamIDs
 }

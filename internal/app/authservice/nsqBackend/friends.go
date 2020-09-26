@@ -51,7 +51,7 @@ import (
 5. 以有序集合存储所发生的系统通知， 当已经有了最终结果后，这个有序集合就会只保留最后一个结果，
    如果长时间离线再重新上线的其他端，会收到最后一个结果，而不会重现整个交互流程。
 */
-func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
+func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -65,14 +65,14 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleFriendRequest start...",
+	nc.logger.Info("HandleFriendRequest start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -83,7 +83,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("FriendRequest",
+	nc.logger.Debug("FriendRequest",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -97,13 +97,13 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	//解包body
 	req := &Friends.FriendRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("FriendRequest body",
+		nc.logger.Debug("FriendRequest body",
 			zap.String("Username", req.GetUsername()),
 			zap.String("Ps", req.GetPs()),         // 附言
 			zap.String("Source", req.GetSource()), //来源
@@ -159,7 +159,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		}
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
-				kc.logger.Warn("用户已被对方拉黑， 不能加好友", zap.String("Username", req.GetUsername()))
+				nc.logger.Warn("用户已被对方拉黑， 不能加好友", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
 				goto COMPLETE
@@ -167,7 +167,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		}
 		//如果已经互为好友，就直接回复
 		if isAhaveB && isBhaveA {
-			kc.logger.Debug(fmt.Sprintf("已经互为好友，就直接回复, userA: %s, userB: %s", username, req.GetUsername()))
+			nc.logger.Debug(fmt.Sprintf("已经互为好友，就直接回复, userA: %s, userB: %s", username, req.GetUsername()))
 
 			err = nil
 			rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
@@ -180,48 +180,48 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 			{
 				userA := username          //此时username是被加的人
 				userB := req.GetUsername() //发起方
-				kc.logger.Debug(fmt.Sprintf("OptType_Fr_ApplyFriend, userA: %s, userB: %s", userA, userB))
+				nc.logger.Debug(fmt.Sprintf("OptType_Fr_ApplyFriend, userA: %s, userB: %s", userA, userB))
 
 				//拒绝任何人添加好友
 				if allowType == common.DenyAny {
-					kc.logger.Debug("拒绝任何人添加好友")
+					nc.logger.Debug("拒绝任何人添加好友")
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 					//允许人加为好友
 				} else if allowType == common.AllowAny {
 
-					kc.logger.Debug("允许人加为好友")
+					nc.logger.Debug("允许人加为好友")
 
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 					//在A的预审核好友列表里删除B ZREM
 					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
-						kc.logger.Error("ZREM Error", zap.Error(err))
+						nc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//在A的移除好友列表里删除B ZREM
 					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userA), userB); err != nil {
-						kc.logger.Error("ZREM Error", zap.Error(err))
+						nc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//在B的移除好友列表里删除A ZREM
 					if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
-						kc.logger.Error("ZREM Error", zap.Error(err))
+						nc.logger.Error("ZREM Error", zap.Error(err))
 					}
 
 					//直接让双方成为好友
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().UnixNano()/1e6, userB); err != nil {
-						kc.logger.Error("ZADD Error", zap.Error(err))
+						nc.logger.Error("ZADD Error", zap.Error(err))
 					}
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().UnixNano()/1e6, userA); err != nil {
-						kc.logger.Error("ZADD Error", zap.Error(err))
+						nc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
 					//如果userB是商户
 					if userType == int(User.UserType_Ut_Business) {
 						//在用户的关注有序列表里增加此商户
 						if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().UnixNano()/1e6, userB); err != nil {
-							kc.logger.Error("ZADD Error", zap.Error(err))
+							nc.logger.Error("ZADD Error", zap.Error(err))
 						}
 						//更新redis的sync:{用户账号} watchAt 时间戳
 						redisConn.Do("HSET",
@@ -266,8 +266,8 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.UserID = userID_A
 						pFriendA.FriendUserID = userID_B
 						pFriendA.FriendUsername = userB
-						if err := kc.SaveFriend(pFriendA); err != nil {
-							kc.logger.Error("Save Add Friend Error", zap.Error(err))
+						if err := nc.SaveFriend(pFriendA); err != nil {
+							nc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
@@ -277,8 +277,8 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.UserID = userID_B
 						pFriendB.FriendUserID = userID_A
 						pFriendB.FriendUsername = userA
-						if err := kc.SaveFriend(pFriendB); err != nil {
-							kc.logger.Error("Save Add Friend Error", zap.Error(err))
+						if err := nc.SaveFriend(pFriendB); err != nil {
+							nc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
@@ -290,7 +290,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					{
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
-							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "INCR Error"
 							goto COMPLETE
@@ -318,7 +318,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 
-						go kc.BroadcastMsgToAllDevices(eRsp, userA)
+						go nc.BroadcastMsgToAllDevices(eRsp, userA)
 					}
 
 					//下发通知给B所有端
@@ -326,7 +326,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					if !isBhaveA {
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
-							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "INCR Error"
 							goto COMPLETE
@@ -354,7 +354,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
-						go kc.BroadcastMsgToAllDevices(eRsp, userB)
+						go nc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
@@ -370,12 +370,12 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					//加好友设定是需要审核
 				} else if allowType == common.NeedConfirm {
-					kc.logger.Debug("加好友设定是需要审核")
+					nc.logger.Debug("加好友设定是需要审核")
 
 					//判断是否已经在预审核好友列表里
 					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", req.GetUsername()), username); err == nil {
 						if reply != nil {
-							kc.logger.Info("用户已经在预审核好友列表里", zap.String("Username", req.GetUsername()))
+							nc.logger.Info("用户已经在预审核好友列表里", zap.String("Username", req.GetUsername()))
 							//删除旧的
 							_, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", req.GetUsername()), username)
 						}
@@ -383,7 +383,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					//redis里增加A的预审核好友列表, 注意: 好友请求有效期
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:0", userA), time.Now().UnixNano()/1e6, userB); err != nil {
-						kc.logger.Error("ZADD Error", zap.Error(err))
+						nc.logger.Error("ZADD Error", zap.Error(err))
 					}
 
 					//生成工作流ID
@@ -393,7 +393,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					//构造回包里的数据
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 
 					}
 					//HandledAccount 最后处理人
@@ -426,22 +426,22 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					//A和B互相不为好友，B所有终端均会收到该消息。
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						kc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
-						go kc.BroadcastMsgToAllDevices(eRsp, userB)
+						nc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
+						go nc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
-						kc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
-						go kc.BroadcastMsgToAllDevices(eRsp, userB)
+						nc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
+						go nc.BroadcastMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
-						kc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
-						go kc.BroadcastMsgToAllDevices(eRsp, userA)
+						nc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
+						go nc.BroadcastMsgToAllDevices(eRsp, userA)
 					}
 
 				}
@@ -455,38 +455,38 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				//判断是否已经在预审核好友列表里
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
 					if reply == nil {
-						kc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
+						nc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
 						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
 						errorMsg = "FriendRequest timeout"
 						goto COMPLETE
 					}
 				}
 
-				kc.logger.Debug(fmt.Sprintf("对方同意加你为好友, OptType_Fr_PassFriendApply, userA: %s, userB: %s", userA, userB))
+				nc.logger.Debug(fmt.Sprintf("对方同意加你为好友, OptType_Fr_PassFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 				//在A的预审核好友列表里删除B ZREM
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
-					kc.logger.Error("ZREM Error", zap.Error(err))
+					nc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//在A的移除好友列表里删除B ZREM
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userA), userB); err != nil {
-					kc.logger.Error("ZREM Error", zap.Error(err))
+					nc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//在B的移除好友列表里删除A ZREM
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:2", userB), userA); err != nil {
-					kc.logger.Error("ZREM Error", zap.Error(err))
+					nc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//让双方成为好友
 				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userA), time.Now().UnixNano()/1e6, userB); err != nil {
-					kc.logger.Error("ZADD Error", zap.Error(err))
+					nc.logger.Error("ZADD Error", zap.Error(err))
 				}
 				if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:1", userB), time.Now().UnixNano()/1e6, userA); err != nil {
-					kc.logger.Error("ZADD Error", zap.Error(err))
+					nc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
 				//增加A的好友B的信息哈希表
@@ -519,7 +519,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				if userType == int(User.UserType_Ut_Business) {
 					//在用户的关注有序列表里增加此商户
 					if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", userA), time.Now().UnixNano()/1e6, userB); err != nil {
-						kc.logger.Error("ZADD Error", zap.Error(err))
+						nc.logger.Error("ZADD Error", zap.Error(err))
 					}
 					//更新redis的sync:{用户账号} watchAt 时间戳
 					redisConn.Do("HSET",
@@ -538,8 +538,8 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.UserID = userIDA
 					pFriendA.FriendUserID = userIDB
 					pFriendA.FriendUsername = userB
-					if err := kc.SaveFriend(pFriendA); err != nil {
-						kc.logger.Error("Save Add Friend Error", zap.Error(err))
+					if err := nc.SaveFriend(pFriendA); err != nil {
+						nc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
@@ -549,8 +549,8 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.UserID = userIDB
 					pFriendB.FriendUserID = userIDA
 					pFriendB.FriendUsername = userA
-					if err := kc.SaveFriend(pFriendB); err != nil {
-						kc.logger.Error("Save Add Friend Error", zap.Error(err))
+					if err := nc.SaveFriend(pFriendB); err != nil {
+						nc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
@@ -573,7 +573,7 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				{
 					//构造回包里的数据
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
 					body := &Msg.MessageNotificationBody{
@@ -608,10 +608,10 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						isSend = true
 					}
 					if isSend {
-						kc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
-						go kc.BroadcastMsgToAllDevices(eRsp, userA)
+						nc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
+						go nc.BroadcastMsgToAllDevices(eRsp, userA)
 					} else {
-						kc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
+						nc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
 					}
 				}
 
@@ -627,27 +627,27 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				//判断是否已经在预审核好友列表里
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
 					if reply == nil {
-						kc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
+						nc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
 						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
 						errorMsg = "FriendRequest timeout"
 						goto COMPLETE
 					}
 				}
 
-				kc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
+				nc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
 
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 				//在A的预审核好友列表里删除B ZREM
 				if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:0", userA), userB); err != nil {
-					kc.logger.Error("ZREM Error", zap.Error(err))
+					nc.logger.Error("ZREM Error", zap.Error(err))
 				}
 
 				//下发通知给A所有端
 				{
 					//构造回包里的数据
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					}
 
 					body := &Msg.MessageNotificationBody{
@@ -672,8 +672,8 @@ func (kc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					kc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
-					go kc.BroadcastMsgToAllDevices(eRsp, userA)
+					nc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
+					go nc.BroadcastMsgToAllDevices(eRsp, userA)
 				}
 
 			}
@@ -694,10 +694,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -708,7 +708,7 @@ COMPLETE:
 3-5 移除好友,
 A和B互为好友，A发起双向删除，则B所有在线终端会收到好友删除消息，from:A，to:B,默认只支持双向删除
 */
-func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
+func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -716,14 +716,14 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleDeleteFriend start...",
+	nc.logger.Info("HandleDeleteFriend start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -734,7 +734,7 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("FriendRequest",
+	nc.logger.Debug("FriendRequest",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -748,14 +748,14 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	//解包body
 	req := &Friends.DeleteFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
 		targetUsername := req.GetUsername() //对方的用户账号
-		kc.logger.Debug("FriendRequest body",
+		nc.logger.Debug("FriendRequest body",
 			zap.String("Username", targetUsername))
 
 		//检测目标用户是否存在及添加好友的设定
@@ -788,7 +788,7 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 		}
 		if isBhaveA {
-			kc.logger.Debug(fmt.Sprintf("%s的好友列表有%s", targetUsername, username))
+			nc.logger.Debug(fmt.Sprintf("%s的好友列表有%s", targetUsername, username))
 		}
 
 		//本地好友表，删除双方的好友关系
@@ -800,23 +800,23 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		}
 		//在A的好友列表里删除B ZREM
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:1", username), targetUsername); err != nil {
-			kc.logger.Error("ZREM Error", zap.Error(err))
+			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
 
 		//在B的好友列表里删除A ZREM
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Friend:%s:1", targetUsername), username); err != nil {
-			kc.logger.Error("ZREM Error", zap.Error(err))
+			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
 
 		//如果B是商户
 		if userType == int(User.UserType_Ut_Business) {
 			//在用户的关注有序列表里删除 此商户
 			if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), targetUsername); err != nil {
-				kc.logger.Error("ZREM Error", zap.Error(err))
+				nc.logger.Error("ZREM Error", zap.Error(err))
 			}
 			//增加用户的取消关注有序列表
 			if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
-				kc.logger.Error("ZADD Error", zap.Error(err))
+				nc.logger.Error("ZADD Error", zap.Error(err))
 			}
 			//更新redis的sync:{用户账号} watchAt 时间戳
 			redisConn.Do("HSET",
@@ -827,18 +827,18 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 		//增加到各自的删除好友列表
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", username), time.Now().UnixNano()/1e6, targetUsername); err != nil {
-			kc.logger.Error("ZADD Error", zap.Error(err))
+			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Friend:%s:2", targetUsername), time.Now().UnixNano()/1e6, username); err != nil {
-			kc.logger.Error("ZADD Error", zap.Error(err))
+			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
 		//删除数据库里的两条记录
 		userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
 		targetUserID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "ID"))
 
-		kc.DeleteFriend(userID, targetUserID)
-		kc.DeleteFriend(targetUserID, userID)
+		nc.DeleteFriend(userID, targetUserID)
+		nc.DeleteFriend(targetUserID, userID)
 
 		//更新redis的sync:{用户账号} friendsAt 时间戳
 		redisConn.Do("HSET",
@@ -856,7 +856,7 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 			//构造回包里的数据
 
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 			}
 
 			body := &Msg.MessageNotificationBody{
@@ -881,13 +881,13 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go kc.BroadcastMsgToAllDevices(eRsp, targetUsername)
+			go nc.BroadcastMsgToAllDevices(eRsp, targetUsername)
 		}
 
 		//向当前用户的其它端推送
 		{
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
 				goto COMPLETE
@@ -914,7 +914,7 @@ func (kc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go kc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
+			go nc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
 		}
 	}
 
@@ -931,10 +931,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -944,21 +944,21 @@ COMPLETE:
 /*
 3-6 刷新好友资料
 */
-func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
+func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var data []byte
 	rsp := &Friends.UpdateFriendRsp{}
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleUpdateFriend start...",
+	nc.logger.Info("HandleUpdateFriend start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -969,7 +969,7 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("UpdateFriend",
+	nc.logger.Debug("UpdateFriend",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -983,13 +983,13 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	//解包body
 	req := &Friends.UpdateFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug(" body",
+		nc.logger.Debug(" body",
 			zap.String("Username", req.GetUsername()))
 
 		userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
@@ -1011,8 +1011,8 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 		//查询出需要修改的好友信息
 		pFriend := new(models.Friend)
 		where := models.Friend{UserID: userID, FriendUsername: targetUsername}
-		if err = kc.db.Model(pFriend).Where(&where).First(pFriend).Error; err != nil {
-			kc.logger.Error("Query friend Error", zap.Error(err))
+		if err = nc.db.Model(pFriend).Where(&where).First(pFriend).Error; err != nil {
+			nc.logger.Error("Query friend Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query friend Error: %s", err.Error())
 			goto COMPLETE
@@ -1029,8 +1029,8 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 
 		}
 
-		if err := kc.SaveFriend(pFriend); err != nil {
-			kc.logger.Error("更新好友 失败", zap.Error(err))
+		if err := nc.SaveFriend(pFriend); err != nil {
+			nc.logger.Error("更新好友 失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("更新好友 失败[username=%s]", targetUsername)
 			goto COMPLETE
@@ -1061,7 +1061,7 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 				targetMsg := &models.Message{}
 				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-				kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+				nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 				targetMsg.UpdateID()
 				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
@@ -1085,13 +1085,13 @@ func (kc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
 				rawData, _ := json.Marshal(targetMsg)
-				if err := kc.Producer.Public(topic, rawData); err == nil {
-					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				if err := nc.Producer.Public(topic, rawData); err == nil {
+					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
-					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+					nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 				}
 
-				kc.logger.Info("Sync SyncUpdateFriendEvent Succeed",
+				nc.logger.Info("Sync SyncUpdateFriendEvent Succeed",
 					zap.String("Username:", username),
 					zap.String("DeviceID:", curDeviceKey),
 					zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -1115,10 +1115,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1128,21 +1128,21 @@ COMPLETE:
 /*
 3-8 增量同步好友列表
 */
-func (kc *NsqClient) HandleGetFriends(msg *models.Message) error {
+func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	rsp := &Friends.GetFriendsRsp{}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetFriends start...",
+	nc.logger.Info("HandleGetFriends start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1153,7 +1153,7 @@ func (kc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetFriends",
+	nc.logger.Debug("GetFriends",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1167,13 +1167,13 @@ func (kc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	//解包body
 	req := &Friends.GetFriendsReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetFriends body",
+		nc.logger.Debug("GetFriends body",
 			zap.Uint64("timeTag", req.GetTimeTag()))
 
 		rsp = &Friends.GetFriendsRsp{
@@ -1223,10 +1223,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1236,19 +1236,19 @@ COMPLETE:
 /*
 3-9 关注商户
 */
-func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
+func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleWatchRequest start...",
+	nc.logger.Info("HandleWatchRequest start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1259,7 +1259,7 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("WatchRequest",
+	nc.logger.Debug("WatchRequest",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1273,13 +1273,13 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	//解包body
 	req := &Friends.WatchRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("WatchRequest body",
+		nc.logger.Debug("WatchRequest body",
 			zap.String("username", req.GetUsername()),
 			zap.String("ps", req.GetPs()),
 			zap.String("source", req.GetSource()),
@@ -1287,13 +1287,13 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 
 		//判断是否封号，是否存在
 		if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetUsername()), "State")); err != nil {
-			kc.logger.Error("redisConn HGET Error", zap.Error(err))
+			nc.logger.Error("redisConn HGET Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 			goto COMPLETE
 		} else {
 			if state == common.UserBlocked {
-				kc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
+				nc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 				goto COMPLETE
@@ -1303,7 +1303,7 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 		//判断是否被对方拉黑
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
-				kc.logger.Warn("用户已被对方拉黑， 不能关注", zap.String("Username", req.GetUsername()))
+				nc.logger.Warn("用户已被对方拉黑， 不能关注", zap.String("Username", req.GetUsername()))
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
 				goto COMPLETE
@@ -1312,7 +1312,7 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 
 		//在用户的关注有序列表里增加此商户
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
-			kc.logger.Error("ZADD Error", zap.Error(err))
+			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
 		redisConn.Do("HSET",
@@ -1322,7 +1322,7 @@ func (kc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 
 		//在商户的被关注有序列表里增加此用户
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().UnixNano()/1e6, username); err != nil {
-			kc.logger.Error("ZADD Error", zap.Error(err))
+			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 	}
 
@@ -1339,10 +1339,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1352,19 +1352,19 @@ COMPLETE:
 /*
 3-10 取消关注商户
 */
-func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
+func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleCancelWatchRequest start...",
+	nc.logger.Info("HandleCancelWatchRequest start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1375,7 +1375,7 @@ func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("CancelWatchRequest",
+	nc.logger.Debug("CancelWatchRequest",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1389,13 +1389,13 @@ func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	//解包body
 	req := &Friends.WatchRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("CancelWatchRequest body",
+		nc.logger.Debug("CancelWatchRequest body",
 			zap.String("username", req.GetUsername()),
 			zap.String("ps", req.GetPs()),
 			zap.String("source", req.GetSource()),
@@ -1403,11 +1403,11 @@ func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 
 		//在用户的关注有序列表里移除此商户
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), req.GetUsername()); err != nil {
-			kc.logger.Error("ZREM Error", zap.Error(err))
+			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
 		//增加用户的取消关注有序列表
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
-			kc.logger.Error("ZADD Error", zap.Error(err))
+			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
 		redisConn.Do("HSET",
@@ -1416,7 +1416,7 @@ func (kc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 			time.Now().UnixNano()/1e6)
 		//在商户的关注有序列表里移除此用户
 		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
-			kc.logger.Error("ZREM Error", zap.Error(err))
+			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
 
 	}
@@ -1434,10 +1434,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1461,11 +1461,11 @@ func inArray(in string, exceptDeviceIDs []string) string {
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
 */
-func (kc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
+func (nc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
 
 	data, _ := proto.Marshal(rsp)
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//删除7天前的缓存系统消息
@@ -1476,7 +1476,7 @@ func (kc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser s
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
 	systemMsgAt := time.Now().UnixNano() / 1e6
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
-		kc.logger.Error("ZADD Error", zap.Error(err))
+		nc.logger.Error("ZADD Error", zap.Error(err))
 	}
 
 	//系统消息具体内容
@@ -1503,7 +1503,7 @@ func (kc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser s
 		targetMsg := &models.Message{}
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
@@ -1526,13 +1526,13 @@ func (kc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser s
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
-		if err := kc.Producer.Public(topic, rawData); err == nil {
-			kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			kc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		kc.logger.Info("BroadcastMsgToAllDevices Succeed",
+		nc.logger.Info("BroadcastMsgToAllDevices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))

@@ -31,7 +31,7 @@ import (
 2. 注意，更新资料后，也需要同步更新 哈希表 userData:{username}
 哈希表 userData:{username} 的元素就是User的各个字段
 */
-func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
+func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -41,14 +41,14 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 		Users: make([]*User.User, 0),
 	}
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetUsers start...",
+	nc.logger.Info("HandleGetUsers start...",
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
@@ -59,7 +59,7 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetUsers",
+	nc.logger.Debug("GetUsers",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -74,13 +74,13 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	if err := proto.Unmarshal(body, &getUsersReq); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
 
 		for _, username := range getUsersReq.GetUsernames() {
-			kc.logger.Debug("for .. range ...", zap.String("username", username))
+			nc.logger.Debug("for .. range ...", zap.String("username", username))
 			//先从Redis里读取，不成功再从 MySQL里读取
 			userKey := fmt.Sprintf("userData:%s", username)
 
@@ -91,16 +91,16 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
 
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						continue
 
 					}
 				}
 			} else {
-				kc.logger.Debug("尝试从 MySQL里读取")
+				nc.logger.Debug("尝试从 MySQL里读取")
 
-				if err = kc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
-					kc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
+				if err = nc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
+					nc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
 					// errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					// errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
 					// goto COMPLETE
@@ -109,7 +109,7 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 
 				//将数据写入redis，以防下次再从MySQL里读取, 如果错误也不会终止
 				if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(userData)...); err != nil {
-					kc.logger.Error("错误：HMSET", zap.Error(err))
+					nc.logger.Error("错误：HMSET", zap.Error(err))
 				}
 			}
 			user := &User.User{
@@ -133,7 +133,7 @@ func (kc *NsqClient) HandleGetUsers(msg *models.Message) error {
 
 		}
 
-		kc.logger.Info("GetUsers Succeed",
+		nc.logger.Info("GetUsers Succeed",
 			zap.String("Username:", username))
 
 	}
@@ -151,10 +151,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("GetUsersResp message succeed send to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("GetUsersResp message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send GetUsersResp message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send GetUsersResp message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -166,19 +166,19 @@ COMPLETE:
 将触发 1-4 同步其它端修改的用户资料
 
 */
-func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
+func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	rsp := &User.UpdateProfileRsp{}
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleUpdateUserProfile start...",
+	nc.logger.Info("HandleUpdateUserProfile start...",
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
@@ -189,7 +189,7 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("UpdateUserProfile",
+	nc.logger.Debug("UpdateUserProfile",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -203,7 +203,7 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	//解包body
 	var req User.UpdateUserProfileReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
@@ -211,8 +211,8 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	} else {
 		//查询出需要修改的用户
 		pUser := new(models.User)
-		if err = kc.db.Model(pUser).Where("username = ?", username).First(pUser).Error; err != nil {
-			kc.logger.Error("Query user Error", zap.Error(err))
+		if err = nc.db.Model(pUser).Where("username = ?", username).First(pUser).Error; err != nil {
+			nc.logger.Error("Query user Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user Error: %s", err.Error())
 			goto COMPLETE
@@ -287,8 +287,8 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		pUser.UpdatedAt = time.Now().UnixNano() / 1e6
 
-		if err := kc.SaveUser(pUser); err != nil {
-			kc.logger.Error("更新用户信息失败", zap.Error(err))
+		if err := nc.SaveUser(pUser); err != nil {
+			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Update user error[username=%d]", username)
 			goto COMPLETE
@@ -299,16 +299,16 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		userKey := fmt.Sprintf("userData:%s", username)
 		userData := new(models.User)
 
-		if err = kc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
-			kc.logger.Error("MySQL里读取错误", zap.Error(err))
+		if err = nc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
+			nc.logger.Error("MySQL里读取错误", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", username)
 			goto COMPLETE
 		}
 		if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(userData)...); err != nil {
-			kc.logger.Error("错误：HMSET", zap.Error(err))
+			nc.logger.Error("错误：HMSET", zap.Error(err))
 		} else {
-			kc.logger.Debug("刷新Redis的用户数据成功", zap.String("username", username))
+			nc.logger.Debug("刷新Redis的用户数据成功", zap.String("username", username))
 		}
 
 		//更新redis的sync:{用户账号} myInfoAt 时间戳
@@ -332,7 +332,7 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			TimeTag: uint64(time.Now().UnixNano() / 1e6),
 		}
 
-		kc.logger.Info("UpdateUserProfile Succeed",
+		nc.logger.Info("UpdateUserProfile Succeed",
 			zap.String("Username:", username))
 
 		//向自己的其它终端发送 1-4 同步其它端修改的用户资料事件
@@ -373,7 +373,7 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			targetMsg := &models.Message{}
 			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+			nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 			targetMsg.UpdateID()
 			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
@@ -396,13 +396,13 @@ func (kc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			//构建数据完成，向dispatcher发送
 			topic := "Auth.Frontend"
 			rawData, _ := json.Marshal(msg)
-			if err := kc.Producer.Public(topic, rawData); err == nil {
-				kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			if err := nc.Producer.Public(topic, rawData); err == nil {
+				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 			} else {
-				kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+				nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 			}
 
-			kc.logger.Info("Sync myInfoAt Succeed",
+			nc.logger.Info("Sync myInfoAt Succeed",
 				zap.String("Username:", username),
 				zap.String("DeviceID:", curDeviceKey),
 				zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -423,10 +423,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("UpdateProfileRsp message succeed send to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("UpdateProfileRsp message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send UpdateProfileRsp message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send UpdateProfileRsp message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -436,19 +436,19 @@ COMPLETE:
 /*
 1-5 打标签 MarkTag
 */
-func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
+func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //当前用户账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID() //当前设备id
 
-	kc.logger.Info("HandleMarkTag start...",
+	nc.logger.Info("HandleMarkTag start...",
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
@@ -459,7 +459,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("MarkTag",
+	nc.logger.Debug("MarkTag",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -473,13 +473,13 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	//解包body
 	var req User.MarkTagReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = "Protobuf Unmarshal Error"
 		goto COMPLETE
 	} else {
 
-		kc.logger.Debug("MarkTag  payload",
+		nc.logger.Debug("MarkTag  payload",
 			zap.String("Username", req.GetUsername()),  //要打标签的用户
 			zap.Int("MarkTagType", int(req.GetType())), //标签类型
 			zap.Bool("IsAdd", req.GetIsAdd()),          //是否是添加操作，true表示添加，false表示移除
@@ -493,7 +493,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, accountData); err != nil {
 
-				kc.logger.Error("错误: ScanStruct", zap.Error(err))
+				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not exists[Username=%s]", account)
 				goto COMPLETE
@@ -527,8 +527,8 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := kc.SaveTag(pTag); err != nil {
-					kc.logger.Error("MarkTag增加失败", zap.Error(err))
+				if err := nc.SaveTag(pTag); err != nil {
+					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"
 					goto COMPLETE
@@ -559,14 +559,14 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("增加黑名单成功")
+				nc.logger.Debug("增加黑名单成功")
 
 			} else { //删除
 				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
-				db := kc.db.Where(&where).Delete(models.Tag{})
+				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
-					kc.logger.Error("删除实体出错", zap.Error(err))
+					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
 					goto COMPLETE
@@ -596,7 +596,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("删除黑名单成功", zap.Int64("count", count))
+				nc.logger.Debug("删除黑名单成功", zap.Int64("count", count))
 
 			}
 		case User.MarkTagType_Mtt_Muted: //免打扰， 对方发消息，不接收
@@ -618,8 +618,8 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := kc.SaveTag(pTag); err != nil {
-					kc.logger.Error("MarkTag增加失败", zap.Error(err))
+				if err := nc.SaveTag(pTag); err != nil {
+					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"
 					goto COMPLETE
@@ -635,14 +635,14 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("增加免打扰成功")
+				nc.logger.Debug("增加免打扰成功")
 
 			} else { //删除
 				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
-				db := kc.db.Where(&where).Delete(models.Tag{})
+				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
-					kc.logger.Error("删除实体出错", zap.Error(err))
+					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
 					goto COMPLETE
@@ -663,7 +663,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("删除免打扰成功", zap.Int64("count", count))
+				nc.logger.Debug("删除免打扰成功", zap.Int64("count", count))
 
 			}
 		case User.MarkTagType_Mtt_Sticky: //置顶
@@ -675,8 +675,8 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := kc.SaveTag(pTag); err != nil {
-					kc.logger.Error("MarkTag增加失败", zap.Error(err))
+				if err := nc.SaveTag(pTag); err != nil {
+					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"
 					goto COMPLETE
@@ -692,14 +692,14 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("增加置顶成功")
+				nc.logger.Debug("增加置顶成功")
 
 			} else { //删除
 				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
-				db := kc.db.Where(&where).Delete(models.Tag{})
+				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
-					kc.logger.Error("删除实体出错", zap.Error(err))
+					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
 					goto COMPLETE
@@ -718,7 +718,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				redisConn.Flush()
 
-				kc.logger.Debug("删除置顶成功", zap.Int64("count", count))
+				nc.logger.Debug("删除置顶成功", zap.Int64("count", count))
 
 			}
 		}
@@ -738,7 +738,7 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg := &models.Message{}
 				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-				kc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+				nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 				targetMsg.UpdateID()
 				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
@@ -768,10 +768,10 @@ func (kc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				//构建数据完成，向dispatcher发送
 				topic := "Auth.Frontend"
 				rawData, _ := json.Marshal(targetMsg)
-				if err := kc.Producer.Public(topic, rawData); err == nil {
-					kc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				if err := nc.Producer.Public(topic, rawData); err == nil {
+					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
 				} else {
-					kc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+					nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 				}
 			}
 		}
@@ -791,10 +791,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("MarkTag message succeed send to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("MarkTag message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send MarkTag message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send MarkTag message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil

@@ -39,7 +39,7 @@ import (
 2. 用户达到建群上限后，不能再创建新群
 
 */
-func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -48,14 +48,14 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	rsp := &Team.CreateTeamRsp{}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleCreateTeam start...",
+	nc.logger.Info("HandleCreateTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -66,7 +66,7 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("CreateTeam",
+	nc.logger.Debug("CreateTeam",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -80,13 +80,13 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.CreateTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("CreateTeam body",
+		nc.logger.Debug("CreateTeam body",
 			zap.String("群主账号", req.GetOwner()),
 			zap.Int("群类型", int(req.GetType())), // Normal(1) - 普通群 Advanced(2) - vip群
 			zap.String("群组名称", req.GetName()),
@@ -118,7 +118,7 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 
 			//用户拥有的群的总数量是否已经达到上限
 			if count, err := redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("Team:%s", teamOwner))); err != nil {
-				kc.logger.Error("ZCARD Error", zap.Error(err))
+				nc.logger.Error("ZCARD Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Can not query team count ")
 				goto COMPLETE
@@ -133,7 +133,7 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			//写入MySQL数据库
 			var newTeamIndex uint64
 			if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
-				kc.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
+				nc.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("serType is not business type [userType=%d]", userType)
 				goto COMPLETE
@@ -156,8 +156,8 @@ func (kc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			pTeam.MuteType = 1   //None(1) - 所有人可发言
 			pTeam.InviteMode = 1 //邀请模式,初始为1
 
-			if err = kc.SaveTeam(pTeam); err != nil {
-				kc.logger.Error("Save CreateTeam Error", zap.Error(err))
+			if err = nc.SaveTeam(pTeam); err != nil {
+				nc.logger.Error("Save CreateTeam Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到数据库"
 				goto COMPLETE
@@ -198,10 +198,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -218,7 +218,7 @@ COMPLETE:
 
 
 */
-func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
+func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -231,14 +231,14 @@ func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetTeamMembers start...",
+	nc.logger.Info("HandleGetTeamMembers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -249,7 +249,7 @@ func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetTeamMembers",
+	nc.logger.Debug("GetTeamMembers",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -263,13 +263,13 @@ func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	//解包body
 	req := &Team.GetTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetTeamMembers body",
+		nc.logger.Debug("GetTeamMembers body",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Int("timeAt", int(req.GetTimeAt())), //毫秒
 		)
@@ -296,7 +296,7 @@ func (kc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 					if err := redis.ScanStruct(result, teamUser); err != nil {
 
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						continue
 					}
 				}
@@ -342,10 +342,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -356,7 +356,7 @@ COMPLETE:
 4-3 查询群信息
 该接口用于根据群id查询群的信息
 */
-func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -366,14 +366,14 @@ func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	rsp := &Team.GetTeamRsp{}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetTeam start...",
+	nc.logger.Info("HandleGetTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -384,7 +384,7 @@ func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetTeam",
+	nc.logger.Debug("GetTeam",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -398,20 +398,20 @@ func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.GetTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetTeam body",
+		nc.logger.Debug("GetTeam body",
 			zap.String("teamId", req.GetTeamId()),
 		)
 
 		teamID := req.GetTeamId()
 
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS TeamInfo Error", zap.Error(err))
+			nc.logger.Error("EXISTS TeamInfo Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -425,7 +425,7 @@ func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
-				kc.logger.Error("ZCARD Error", zap.Error(err))
+				nc.logger.Error("ZCARD Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -435,7 +435,7 @@ func (kc *NsqClient) HandleGetTeam(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamInfo:%s", teamID))); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -479,10 +479,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -505,7 +505,7 @@ COMPLETE:
 2. 拉人入群设定
 3. 不是群成员
 */
-func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
+func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -518,14 +518,14 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleInviteTeamMembers start...",
+	nc.logger.Info("HandleInviteTeamMembers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -536,7 +536,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("InviteTeamMembers",
+	nc.logger.Debug("InviteTeamMembers",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -550,13 +550,13 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	//解包body
 	req := &Team.InviteTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("InviteTeamMembers payload",
+		nc.logger.Debug("InviteTeamMembers payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("ps", req.GetPs()),
 			zap.Strings("usernames", req.GetUsernames()),
@@ -566,7 +566,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -583,7 +583,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -592,7 +592,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -603,7 +603,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			yesTime := nTime.AddDate(0, 0, -1).Unix()
 
 			if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("TeamUsers:%s", teamID), yesTime, "+inf")); err != nil {
-				kc.logger.Error("ZCOUNT Error", zap.Error(err))
+				nc.logger.Error("ZCOUNT Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -619,7 +619,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			switch Team.InviteMode(teamInfo.InviteMode) {
 			case Team.InviteMode_Invite_All: //所有人都可以邀请其他人入群
 				//处理待入群用户列表
-				abortUsers := kc.processInviteMembers(redisConn, teamID, username, deviceID, req.GetPs(), req.GetUsernames())
+				abortUsers := nc.processInviteMembers(redisConn, teamID, username, deviceID, req.GetPs(), req.GetUsernames())
 				for _, abortUser := range abortUsers {
 					rsp.AbortedUsers = append(rsp.AbortedUsers, abortUser)
 				}
@@ -630,7 +630,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 				opUser := new(models.TeamUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 					if err := redis.ScanStruct(result, opUser); err != nil {
-						kc.logger.Error("TeamUser is not exist", zap.Error(err))
+						nc.logger.Error("TeamUser is not exist", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, username)
 						goto COMPLETE
@@ -640,21 +640,21 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 				if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 					//pass
 				} else {
-					kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
+					nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is not team owner or manager[Username=%s]", username)
 					goto COMPLETE
 				}
 
 				//处理待入群用户列表
-				abortUsers := kc.processInviteMembers(redisConn, teamID, username, deviceID, req.GetPs(), req.GetUsernames())
+				abortUsers := nc.processInviteMembers(redisConn, teamID, username, deviceID, req.GetPs(), req.GetUsernames())
 				for _, abortUser := range abortUsers {
 					rsp.AbortedUsers = append(rsp.AbortedUsers, abortUser)
 				}
 
 			case Team.InviteMode_Invite_Check: //邀请用户入群时需要管理员审核，需要向所有群管理员发送系统通知，管理员利用4-26 回复
 				//向群主或管理员推送此用户的主动加群通知
-				managers, _ := kc.GetOwnerAndManagers(teamInfo.TeamID)
+				managers, _ := nc.GetOwnerAndManagers(teamInfo.TeamID)
 				for _, manager := range managers {
 					//遍历整个被邀请加群用户列表, 注意：每个用户都必须有独立的工作流ID
 					for _, inviteUsername := range req.GetUsernames() {
@@ -665,11 +665,11 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 							} else {
 								//是否被封禁
 								if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviteUsername), "State")); err != nil {
-									kc.logger.Error("redisConn HGET Error", zap.Error(err))
+									nc.logger.Error("redisConn HGET Error", zap.Error(err))
 									continue
 								} else {
 									if state == common.UserBlocked {
-										kc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
+										nc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
 										rsp.AbortedUsers = append(rsp.AbortedUsers, inviteUsername)
 										continue
 									}
@@ -680,7 +680,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 						//将被邀请方存入InviteTeamMembers:{teamID}里，以便被邀请方同意或拒绝的时候校验，其它人没被邀请，则直接退出
 						if _, err = redisConn.Do("ZADD", fmt.Sprintf("InviteTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, inviteUsername); err != nil {
-							kc.logger.Error("ZADD Error", zap.Error(err))
+							nc.logger.Error("ZADD Error", zap.Error(err))
 						}
 
 						//将此工作流ID作为key保存此加群事件的哈希表, InviteWorkflow:{member}:{workflowID}
@@ -694,19 +694,19 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 						)
 
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
-							kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = fmt.Sprintf("INCR error[Owner=%s]", manager)
 							goto COMPLETE
 						}
 						nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
 						if err != nil {
-							kc.logger.Error("获取用户呢称错误", zap.Error(err))
+							nc.logger.Error("获取用户呢称错误", zap.Error(err))
 							continue
 						}
 						inviteeNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviteUsername), "Nick"))
 						if err != nil {
-							kc.logger.Error("获取受邀请用户呢称错误", zap.Error(err))
+							nc.logger.Error("获取受邀请用户呢称错误", zap.Error(err))
 							continue
 						}
 
@@ -735,7 +735,7 @@ func (kc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
-						go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+						go nc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
 					}
 
 				}
@@ -758,17 +758,17 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
 
 }
 
-func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter, fromDeviceId, ps string, inviteUsername []string) []string {
+func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter, fromDeviceId, ps string, inviteUsername []string) []string {
 	var newSeq uint64
 	abortedUsers := make([]string, 0)
 
@@ -782,11 +782,11 @@ func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 			} else {
 				//是否被封禁
 				if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviteUsername), "State")); err != nil {
-					kc.logger.Error("redisConn HGET Error", zap.Error(err))
+					nc.logger.Error("redisConn HGET Error", zap.Error(err))
 					continue
 				} else {
 					if state == common.UserBlocked {
-						kc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
+						nc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
 						abortedUsers = append(abortedUsers, inviteUsername)
 						continue
 					}
@@ -797,13 +797,13 @@ func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 				serverMsgId := uuid.NewV4().String()
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", inviteUsername))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
 
 				//将被邀请方存入InviteTeamMembers:{teamID}里，以便被邀请方同意或拒绝的时候校验，其它人没被邀请，则直接退出
 				if _, err = redisConn.Do("ZADD", fmt.Sprintf("InviteTeamMembers:%s", teamID), time.Now().UnixNano()/1e6, inviteUsername); err != nil {
-					kc.logger.Error("ZADD Error", zap.Error(err))
+					nc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
 				//将此工作流ID作为key保存此加群事件的哈希表, InviteWorkflow:{member}:{workflowID}
@@ -817,12 +817,12 @@ func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 				)
 				nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviter), "Nick"))
 				if err != nil {
-					kc.logger.Error("获取用户呢称错误", zap.Error(err))
+					nc.logger.Error("获取用户呢称错误", zap.Error(err))
 					continue
 				}
 				inviteeNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviteUsername), "Nick"))
 				if err != nil {
-					kc.logger.Error("获取受邀请用户呢称错误", zap.Error(err))
+					nc.logger.Error("获取受邀请用户呢称错误", zap.Error(err))
 					continue
 				}
 
@@ -853,7 +853,7 @@ func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 				}
 
 				//向被邀请加群的用户推送系统通知
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, inviteUsername)
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, inviteUsername)
 			}
 		}
 	}
@@ -865,7 +865,7 @@ func (kc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 管理员移除群成员
 */
 
-func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
+func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -877,14 +877,14 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleRemoveTeamMembers start...",
+	nc.logger.Info("HandleRemoveTeamMembers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -895,7 +895,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("RemoveTeamMembers",
+	nc.logger.Debug("RemoveTeamMembers",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -909,13 +909,13 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	//解包body
 	req := &Team.RemoveTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RemoveTeamMembersReq payload",
+		nc.logger.Debug("RemoveTeamMembersReq payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Strings("usernames", req.GetUsernames()),
 		)
@@ -924,7 +924,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -941,7 +941,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -949,7 +949,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -969,7 +969,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				//管理员或群主
 			} else {
-				kc.logger.Error("无权删除群成员", zap.Error(err))
+				nc.logger.Error("无权删除群成员", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not owner or manager[username=%s]", username)
 				goto COMPLETE
@@ -985,7 +985,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, removedUsername))); err == nil {
 							if err := redis.ScanStruct(result, removeUser); err != nil {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, removedUsername)
-								kc.logger.Error("TeamUser is not exist", zap.Error(err))
+								nc.logger.Error("TeamUser is not exist", zap.Error(err))
 
 								//增加到无法移除列表
 								rsp.AbortedUsers = append(rsp.AbortedUsers, removedUsername)
@@ -996,7 +996,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 
 						if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 							//管理员或群主
-							kc.logger.Error("无权移除管理员或群主", zap.Error(err))
+							nc.logger.Error("无权移除管理员或群主", zap.Error(err))
 
 							//增加到无法移除列表
 							rsp.AbortedUsers = append(rsp.AbortedUsers, removedUsername)
@@ -1004,8 +1004,8 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 							continue
 						} else {
 							//删除此用户在群里的数据
-							if err := kc.DeleteTeamUser(teamID, removedUsername); err != nil {
-								kc.logger.Error("移除群成员失败", zap.Error(err))
+							if err := nc.DeleteTeamUser(teamID, removedUsername); err != nil {
+								nc.logger.Error("移除群成员失败", zap.Error(err))
 
 								//增加到无法移除列表
 								rsp.AbortedUsers = append(rsp.AbortedUsers, removedUsername)
@@ -1023,7 +1023,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									time.Now().UnixNano()/1e6)
 
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+									nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 									continue
 								}
 
@@ -1056,7 +1056,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(time.Now().UnixNano() / 1e6),
 								}
-								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+								go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
 
@@ -1079,7 +1079,7 @@ func (kc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 
 							//一次性写入到Redis
 							err = redisConn.Flush()
-							kc.PrintRedisErr(err)
+							nc.PrintRedisErr(err)
 
 						}
 
@@ -1108,10 +1108,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1128,7 +1128,7 @@ COMPLETE:
 
 */
 
-func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
+func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1139,14 +1139,14 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	rsp := &Team.AcceptTeamInviteRsp{}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleAcceptTeamInvite start...",
+	nc.logger.Info("HandleAcceptTeamInvite start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1157,7 +1157,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("AcceptTeamInvite",
+	nc.logger.Debug("AcceptTeamInvite",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1171,13 +1171,13 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	//解包body
 	req := &Team.AcceptTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("AcceptTeamInvite payload",
+		nc.logger.Debug("AcceptTeamInvite payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("from", req.GetFrom()),             //邀请方
 			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
@@ -1188,7 +1188,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 		//获取邀请方的呢称
 		fromNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetFrom()), "Nick"))
 		if err != nil {
-			kc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
+			nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("HGET error[from=%s]", req.GetFrom())
 			goto COMPLETE
@@ -1200,7 +1200,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), username)
 
 			} else {
-				kc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
+				nc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Not in invited list")
 				goto COMPLETE
@@ -1209,7 +1209,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -1226,7 +1226,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -1234,7 +1234,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -1242,13 +1242,13 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			//判断username是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State")); err != nil {
-				kc.logger.Error("redisConn HGET Error", zap.Error(err))
+				nc.logger.Error("redisConn HGET Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", username)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
-					kc.logger.Debug("User is blocked", zap.String("Username", username))
+					nc.logger.Debug("User is blocked", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", username)
 					goto COMPLETE
@@ -1260,7 +1260,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
 				if reply != nil { //是群成员
 					err = nil
-					kc.logger.Debug("User is already member", zap.String("Username", username))
+					nc.logger.Debug("User is already member", zap.String("Username", username))
 					goto COMPLETE
 				}
 			}
@@ -1270,7 +1270,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 				if err := redis.ScanStruct(result, userData); err != nil {
 
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 					goto COMPLETE
@@ -1299,8 +1299,8 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamUser.Street = userData.Street                             //街道
 			teamUser.Address = userData.Address                           //地址
 
-			if err := kc.SaveTeamUser(teamUser); err != nil {
-				kc.logger.Error("更新teamUser失败", zap.Error(err))
+			if err := nc.SaveTeamUser(teamUser); err != nil {
+				nc.logger.Error("更新teamUser失败", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新teamUser失败[Username=%s]", username)
 				goto COMPLETE
@@ -1333,7 +1333,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			//一次性写入到Redis
 			err = redisConn.Flush()
-			kc.PrintRedisErr(err)
+			nc.PrintRedisErr(err)
 
 			//向群推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -1347,7 +1347,7 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			for _, teamMember := range teamMembers {
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
 				body := Msg.MessageNotificationBody{
@@ -1373,12 +1373,12 @@ func (kc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
-				kc.logger.Error("ZCARD Error", zap.Error(err))
+				nc.logger.Error("ZCARD Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -1418,10 +1418,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1434,20 +1434,20 @@ COMPLETE:
 1. 被拉的人系统通知有显示入群的通知, 点拒绝, 注意不能重复点拒绝
 
 */
-func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
+func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleRejectTeamInvitee start...",
+	nc.logger.Info("HandleRejectTeamInvitee start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1458,7 +1458,7 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("RejectTeamInvitee",
+	nc.logger.Debug("RejectTeamInvitee",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1472,13 +1472,13 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	//解包body
 	req := &Team.RejectTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RejectTeamInvitee payload",
+		nc.logger.Debug("RejectTeamInvitee payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("from", req.GetFrom()),             //邀请方
 			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
@@ -1493,7 +1493,7 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				//曾经被人拉入群 , 删除有序集合
 				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), username)
 			} else {
-				kc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
+				nc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Not Invite for this team")
 				goto COMPLETE
@@ -1502,7 +1502,7 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -1519,7 +1519,7 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -1527,14 +1527,14 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
 			}
 
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamInfo.Owner))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("INCR error[Owner=%s]", teamInfo.Owner)
 				goto COMPLETE
@@ -1549,7 +1549,7 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			//获取当前用户的呢称
 			nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
 			if err != nil {
-				kc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
+				nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("HGET error[from=%s]", req.GetFrom())
 				goto COMPLETE
@@ -1577,10 +1577,10 @@ func (kc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
+			go nc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
 
 			//向自己的其它端推送
-			go kc.BroadcastMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
+			go nc.BroadcastMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
 
 		}
 	}
@@ -1598,10 +1598,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1619,21 +1619,21 @@ COMPLETE:
 2. 向所有群成员推送用户入群通知
 
 */
-func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 	// var count int
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleApplyTeam start...",
+	nc.logger.Info("HandleApplyTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1644,7 +1644,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("ApplyTeam",
+	nc.logger.Debug("ApplyTeam",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1658,13 +1658,13 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.ApplyTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("ApplyTeam payload",
+		nc.logger.Debug("ApplyTeam payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("ps", req.GetPs()),
 		)
@@ -1676,7 +1676,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
 				goto COMPLETE
@@ -1692,7 +1692,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -1709,7 +1709,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -1717,7 +1717,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -1725,13 +1725,13 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 
 			//判断username是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State")); err != nil {
-				kc.logger.Error("redisConn HGET Error", zap.Error(err))
+				nc.logger.Error("redisConn HGET Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", username)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
-					kc.logger.Debug("User is blocked", zap.String("Username", username))
+					nc.logger.Debug("User is blocked", zap.String("Username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
 					goto COMPLETE
@@ -1744,7 +1744,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
 				if reply != nil { //是群成员
 					err = nil
-					kc.logger.Debug("User is already team member", zap.String("Username", username))
+					nc.logger.Debug("User is already team member", zap.String("Username", username))
 					errorCode = http.StatusFound //302
 					errorMsg = fmt.Sprintf("User is already team member[Username=%s]", username)
 					goto COMPLETE
@@ -1779,7 +1779,7 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.Street = userData.Street                             //街道
 				teamUser.Address = userData.Address                           //地址
 
-				kc.SaveTeamUser(teamUser)
+				nc.SaveTeamUser(teamUser)
 
 				/*
 					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -1803,14 +1803,14 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 					time.Now().UnixNano()/1e6)
 
 				err = redisConn.Flush()
-				kc.PrintRedisErr(err)
+				nc.PrintRedisErr(err)
 
 				//向群推送此用户的入群通知
 				teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 				for _, teamMember := range teamMembers {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
 						goto COMPLETE
@@ -1837,16 +1837,16 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+					go nc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				}
 
 			case Team.VerifyType_Vt_Apply: //需要审核加入
 
 				//向群主或管理员推送此用户的主动加群通知
-				managers, _ := kc.GetOwnerAndManagers(teamInfo.TeamID)
+				managers, _ := nc.GetOwnerAndManagers(teamInfo.TeamID)
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Owner=%s]", manager)
 						goto COMPLETE
@@ -1873,11 +1873,11 @@ func (kc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+					go nc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
 				}
 
 			case Team.VerifyType_Vt_Private: //仅限邀请加入
-				kc.logger.Warn("此群仅限邀请加入")
+				nc.logger.Warn("此群仅限邀请加入")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is private, not support apply join")
 				goto COMPLETE
@@ -1899,10 +1899,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1916,21 +1916,21 @@ COMPLETE:
 只有群主及管理员才能批准通过群申请
 */
 
-func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
+func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 	// var count int
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandlePassTeamApply start...",
+	nc.logger.Info("HandlePassTeamApply start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1941,7 +1941,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("PassTeamApply ",
+	nc.logger.Debug("PassTeamApply ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1955,13 +1955,13 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	//解包body
 	req := &Team.PassTeamApplyReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("PassTeamApply  payload",
+		nc.logger.Debug("PassTeamApply  payload",
 			zap.String("teamId", req.GetTeamId()),         // 群组ID
 			zap.String("from", req.GetFrom()),             //申请方账号
 			zap.String("workflowID", req.GetWorkflowID()), //工作流ID
@@ -1977,7 +1977,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -1994,7 +1994,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -2002,7 +2002,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2010,13 +2010,13 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
-				kc.logger.Error("redisConn HGET Error", zap.Error(err))
+				nc.logger.Error("redisConn HGET Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
-					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
+					nc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -2029,7 +2029,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), targetUsername); err == nil {
 				if reply != nil { //是群成员
 					err = nil
-					kc.logger.Debug("User is already member", zap.String("Username", targetUsername))
+					nc.logger.Debug("User is already member", zap.String("Username", targetUsername))
 					goto COMPLETE
 				}
 			}
@@ -2038,7 +2038,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			opUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, opUser); err != nil {
-					kc.logger.Error("TeamUser is not exist", zap.Error(err))
+					nc.logger.Error("TeamUser is not exist", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, username)
 					goto COMPLETE
@@ -2048,7 +2048,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				//pass
 			} else {
-				kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
+				nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2059,7 +2059,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 				if err := redis.ScanStruct(result, userData); err != nil {
 
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -2086,7 +2086,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.Street = userData.Street                             //街道
 			teamUser.Address = userData.Address                           //地址
 
-			kc.SaveTeamUser(teamUser)
+			nc.SaveTeamUser(teamUser)
 
 			handledMsg := fmt.Sprintf("管理员: %s 同意 %s 入群申请", opUser.Nick, userData.Nick)
 
@@ -2095,7 +2095,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			for _, teamMember := range teamMembers {
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
 					goto COMPLETE
@@ -2122,7 +2122,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 			}
 			/*
 				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -2145,7 +2145,7 @@ func (kc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				time.Now().UnixNano()/1e6)
 
 			err = redisConn.Flush()
-			kc.PrintRedisErr(err)
+			nc.PrintRedisErr(err)
 
 		}
 	}
@@ -2163,10 +2163,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -2180,20 +2180,20 @@ COMPLETE:
 只有群主及管理员才能否决加群申请
 */
 
-func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
+func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleRejectTeamApply start...",
+	nc.logger.Info("HandleRejectTeamApply start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -2204,7 +2204,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("RejectTeamApply",
+	nc.logger.Debug("RejectTeamApply",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -2218,13 +2218,13 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	//解包body
 	req := &Team.RejectTeamApplyReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RejectTeamApply  payload",
+		nc.logger.Debug("RejectTeamApply  payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("from", req.GetFrom()),
 			zap.String("workflowID", req.GetWorkflowID()),
@@ -2242,7 +2242,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -2259,7 +2259,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -2267,7 +2267,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2275,13 +2275,13 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
-				kc.logger.Error("redisConn HGET Error", zap.Error(err))
+				nc.logger.Error("redisConn HGET Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
 				goto COMPLETE
 			} else {
 				if state == common.UserBlocked {
-					kc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
+					nc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
 					goto COMPLETE
@@ -2292,7 +2292,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			opUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, opUser); err != nil {
-					kc.logger.Error("Operate User is not exist", zap.Error(err))
+					nc.logger.Error("Operate User is not exist", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Operate is not exists[teamID=%s, teamUser=%s]", teamID, username)
 					goto COMPLETE
@@ -2302,7 +2302,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				//pass
 			} else {
-				kc.logger.Warn("Operate User is not team owner or manager", zap.String("Username", username))
+				nc.logger.Warn("Operate User is not team owner or manager", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Operate User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2313,7 +2313,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 
 			//向此用户推送拒绝入群的通知
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("INCR error[Username=%s]", targetUsername)
 				goto COMPLETE
@@ -2340,16 +2340,16 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go kc.BroadcastMsgToAllDevices(inviteEventRsp, targetUsername)
+			go nc.BroadcastMsgToAllDevices(inviteEventRsp, targetUsername)
 
 			//向群的群主及管理员发送拒绝入群消息
-			managers, _ := kc.GetOwnerAndManagers(teamID)
+			managers, _ := nc.GetOwnerAndManagers(teamID)
 			for _, manager := range managers {
 				if manager == opUser.Username { //不发给当前管理员
 					continue
 				}
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
 
@@ -2374,7 +2374,7 @@ func (kc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向群的群主及管理员广播
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向群的群主及管理员广播
 			}
 
 		}
@@ -2393,10 +2393,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -2409,21 +2409,21 @@ COMPLETE:
 需要 修改 sync:{用户} teamsAt
 */
 
-func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var data []byte
 	rsp := &Team.UpdateTeamRsp{}
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleUpdateTeam start...",
+	nc.logger.Info("HandleUpdateTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -2434,7 +2434,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("UpdateTeam",
+	nc.logger.Debug("UpdateTeam",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -2448,13 +2448,13 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.UpdateTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("UpdateTeam payload",
+		nc.logger.Debug("UpdateTeam payload",
 			zap.String("teamId", req.GetTeamId()),
 		)
 
@@ -2462,7 +2462,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -2479,7 +2479,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -2487,7 +2487,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2500,7 +2500,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				//管理员或群主
 
 			} else {
-				kc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
+				nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner or manager [Username=%s]", username)
 				goto COMPLETE
@@ -2549,13 +2549,13 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			}
 
 			//保存到MySQL
-			kc.SaveTeam(teamInfo)
+			nc.SaveTeam(teamInfo)
 
 			//更新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-				kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+				nc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
 			} else {
-				kc.logger.Debug("4-11 更新群组信息 更新redis成功")
+				nc.logger.Debug("4-11 更新群组信息 更新redis成功")
 
 			}
 
@@ -2566,7 +2566,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			for _, teamMember := range teamMembers {
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
 				userNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
@@ -2593,7 +2593,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(curAt),
 				}
-				go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+				go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 				//更新redis的sync:{用户账号} teamsAt 时间戳
 				redisConn.Send("HSET",
@@ -2604,7 +2604,7 @@ func (kc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 
 			//一次性写入到Redis
 			err = redisConn.Flush()
-			kc.PrintRedisErr(err)
+			nc.PrintRedisErr(err)
 
 			rsp.TeamId = teamID
 			rsp.TimeAt = uint64(time.Now().UnixNano() / 1e6)
@@ -2624,10 +2624,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -2639,21 +2639,21 @@ COMPLETE:
 用户主动发起退群
 */
 
-func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 	var teamID string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleLeaveTeam start...",
+	nc.logger.Info("HandleLeaveTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -2664,7 +2664,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("LeaveTeam ",
+	nc.logger.Debug("LeaveTeam ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -2678,13 +2678,13 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.LeaveTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("LeaveTeam  payload",
+		nc.logger.Debug("LeaveTeam  payload",
 			zap.String("teamId", req.GetTeamId()),
 		)
 
@@ -2698,7 +2698,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -2715,7 +2715,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -2724,7 +2724,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2737,7 +2737,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 					removeUser := new(models.TeamUser)
 					if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 						if err := redis.ScanStruct(result, removeUser); err != nil {
-							kc.logger.Error("TeamUser is not exist", zap.Error(err))
+							nc.logger.Error("TeamUser is not exist", zap.Error(err))
 							errorCode = http.StatusBadRequest //错误码，400
 							errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, username)
 							goto COMPLETE
@@ -2747,7 +2747,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 
 					if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 						//管理员或群主
-						kc.logger.Error("管理员或群主不能退群，必须由群主删除")
+						nc.logger.Error("管理员或群主不能退群，必须由群主删除")
 						errorCode = http.StatusBadRequest //错误码，400
 						errorMsg = fmt.Sprintf("管理员或群主不能退群，必须由群主删除")
 						goto COMPLETE
@@ -2755,8 +2755,8 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 					} else {
 
 						//删除此用户在群里的数据
-						if err := kc.DeleteTeamUser(teamID, username); err != nil {
-							kc.logger.Error("移除群成员失败", zap.Error(err))
+						if err := nc.DeleteTeamUser(teamID, username); err != nil {
+							nc.logger.Error("移除群成员失败", zap.Error(err))
 							errorCode = http.StatusBadRequest //错误码，400
 							errorMsg = fmt.Sprintf("移除群成员失败")
 							goto COMPLETE
@@ -2769,7 +2769,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 						for _, teamMember := range teamMembers {
 
 							if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-								kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+								nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 								continue
 							}
 
@@ -2795,7 +2795,7 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 								Time:         uint64(curAt),
 							}
-							go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+							go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 						}
 
@@ -2813,9 +2813,9 @@ func (kc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 
 						//一次性写入到Redis
 						err = redisConn.Flush()
-						kc.PrintRedisErr(err)
+						nc.PrintRedisErr(err)
 
-						kc.logger.Info("HandleLeaveTeam succeed",
+						nc.logger.Info("HandleLeaveTeam succeed",
 							zap.String("username", username),
 							zap.String("deviceId", deviceID))
 
@@ -2832,7 +2832,7 @@ COMPLETE:
 	if errorCode == 200 {
 		//200
 		msg.FillBody(nil)
-		kc.logger.Info("退群成功", zap.String("teamID", teamID))
+		nc.logger.Info("退群成功", zap.String("teamID", teamID))
 
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
@@ -2842,10 +2842,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -2862,7 +2862,7 @@ COMPLETE:
 
 */
 
-func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
+func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -2871,14 +2871,14 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleAddTeamManagers start...",
+	nc.logger.Info("HandleAddTeamManagers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -2889,7 +2889,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("AddTeamManagers ",
+	nc.logger.Debug("AddTeamManagers ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -2903,13 +2903,13 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	//解包body
 	req := &Team.AddTeamManagersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("AddTeamManagers  payload",
+		nc.logger.Debug("AddTeamManagers  payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Strings("usernames", req.GetUsernames()),
 		)
@@ -2918,7 +2918,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -2935,7 +2935,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -2943,7 +2943,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2951,7 +2951,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 
 			//判断操作者是不是群主
 			if username != teamInfo.Owner {
-				kc.logger.Warn("User is not team owner", zap.String("Username", username))
+				nc.logger.Warn("User is not team owner", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -2963,13 +2963,13 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 					if reply != nil { //是群成员
 						//判断是否封号，是否存在
 						if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", manager), "State")); err != nil {
-							kc.logger.Error("redisConn HGET Error", zap.Error(err))
+							nc.logger.Error("redisConn HGET Error", zap.Error(err))
 							//增加到放弃列表
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 							continue
 						} else {
 							if state == common.UserBlocked {
-								kc.logger.Debug("User is blocked", zap.String("Username", manager))
+								nc.logger.Debug("User is blocked", zap.String("Username", manager))
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 								continue
@@ -2980,7 +2980,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, manager))); err == nil {
 							if err := redis.ScanStruct(result, managerUser); err != nil {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, manager)
-								kc.logger.Error("TeamUser is not exists", zap.Error(err), zap.String("errorMsg", errorMsg))
+								nc.logger.Error("TeamUser is not exists", zap.Error(err), zap.String("errorMsg", errorMsg))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -2991,7 +2991,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 
 						if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 							//管理员或群主
-							kc.logger.Error("已经是管理员或群主", zap.Error(err))
+							nc.logger.Error("已经是管理员或群主", zap.Error(err))
 
 							//增加到放弃列表
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3000,8 +3000,8 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 							//将用户设置为管理员
 							managerUser.TeamMemberType = 2 //管理员
 
-							if err := kc.SaveTeamUser(managerUser); err != nil {
-								kc.logger.Error("SaveTeamUser error", zap.Error(err))
+							if err := nc.SaveTeamUser(managerUser); err != nil {
+								nc.logger.Error("SaveTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3011,9 +3011,9 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 							//刷新redis
 							managerKey := fmt.Sprintf("TeamUser:%s:%s", teamID, manager)
 							if _, err = redisConn.Do("HSET", managerKey, "TeamMemberType", 2); err != nil {
-								kc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
+								nc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
 							} else {
-								kc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
+								nc.logger.Debug("用户被群主设为管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
 							//更新时间戳
 							_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, manager)
@@ -3031,7 +3031,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 									curAt)
 
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+									nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 									continue
 								}
 
@@ -3057,7 +3057,7 @@ func (kc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(curAt),
 								}
-								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+								go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
 
@@ -3091,10 +3091,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -3110,7 +3110,7 @@ COMPLETE:
 只有群主才能设置或删除
 
 */
-func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
+func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -3121,14 +3121,14 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	// var newSeq uint64
 	// var count int
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleRemoveTeamManagers start...",
+	nc.logger.Info("HandleRemoveTeamManagers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3139,7 +3139,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("RemoveTeamManagers",
+	nc.logger.Debug("RemoveTeamManagers",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3153,13 +3153,13 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	//解包body
 	req := &Team.RemoveTeamManagersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("RemoveTeamManagers payload",
+		nc.logger.Debug("RemoveTeamManagers payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Strings("usernames", req.GetUsernames()),
 		)
@@ -3168,7 +3168,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -3185,7 +3185,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -3193,7 +3193,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -3201,7 +3201,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 
 			//判断操作者是不是群主
 			if username != teamInfo.Owner {
-				kc.logger.Warn("User is not team owner", zap.String("Username", username))
+				nc.logger.Warn("User is not team owner", zap.String("Username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
 				goto COMPLETE
@@ -3212,13 +3212,13 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 					if reply != nil { //是群成员
 						//判断是否封号，是否存在
 						if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", manager), "State")); err != nil {
-							kc.logger.Error("redisConn HGET Error", zap.Error(err))
+							nc.logger.Error("redisConn HGET Error", zap.Error(err))
 							//增加到放弃列表
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 							continue
 						} else {
 							if state == common.UserBlocked {
-								kc.logger.Debug("User is blocked", zap.String("Username", manager))
+								nc.logger.Debug("User is blocked", zap.String("Username", manager))
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 								continue
@@ -3229,7 +3229,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, manager))); err == nil {
 							if err := redis.ScanStruct(result, managerUser); err != nil {
 								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUser=%s]", teamID, manager)
-								kc.logger.Error("TeamUser is not exists", zap.Error(err))
+								nc.logger.Error("TeamUser is not exists", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3244,8 +3244,8 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							//撤销管理员
 							managerUser.TeamMemberType = 3 //普通成员
 
-							if err := kc.SaveTeamUser(managerUser); err != nil {
-								kc.logger.Error("SaveTeamUser error", zap.Error(err))
+							if err := nc.SaveTeamUser(managerUser); err != nil {
+								nc.logger.Error("SaveTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3255,9 +3255,9 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							//刷新redis
 							managerKey := fmt.Sprintf("TeamUser:%s:%s", teamID, manager)
 							if _, err = redisConn.Do("HSET", managerKey, "TeamMemberType", 3); err != nil {
-								kc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
+								nc.logger.Error("刷新redis错误：HSET TeamUser", zap.Error(err), zap.String("managerKey", managerKey))
 							} else {
-								kc.logger.Debug("用户被群主撤销管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
+								nc.logger.Debug("用户被群主撤销管理员", zap.String("manager", manager), zap.String("managerKey", managerKey))
 							}
 							//更新时间戳
 							_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, manager)
@@ -3277,7 +3277,7 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									curAt)
 
 								if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-									kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+									nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 									continue
 								}
 
@@ -3303,14 +3303,14 @@ func (kc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(curAt),
 								}
-								go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+								go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 							}
 							redisConn.Flush()
 
 						} else {
 
-							kc.logger.Error("传参不是是管理员或群主", zap.Error(err))
+							nc.logger.Error("传参不是是管理员或群主", zap.Error(err))
 
 							//增加到放弃列表
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3344,10 +3344,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -3360,19 +3360,19 @@ COMPLETE:
 群主/管理修改群组发言模式, 全员禁言只能由群主设置
 
 */
-func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
+func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleMuteTeam start...",
+	nc.logger.Info("HandleMuteTeam start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3383,7 +3383,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("MuteTeam ",
+	nc.logger.Debug("MuteTeam ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3397,13 +3397,13 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	//解包body
 	req := &Team.MuteTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("MuteTeam  payload",
+		nc.logger.Debug("MuteTeam  payload",
 			zap.String("teamId", req.GetTeamId()),
 		)
 
@@ -3412,7 +3412,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -3429,7 +3429,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -3437,7 +3437,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -3447,7 +3447,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamUser); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 					goto COMPLETE
@@ -3463,22 +3463,22 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 				if mute != 2 { // MuteALL
 					teamInfo.MuteType = int(mute)
 				} else {
-					kc.logger.Warn("管理员无权设置全体禁言")
+					nc.logger.Warn("管理员无权设置全体禁言")
 					errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("管理员无权设置全体禁言[username=%s]", username)
 					goto COMPLETE
 				}
 			} else {
 				//其它成员无权设置
-				kc.logger.Warn("其它成员无权设置禁言")
+				nc.logger.Warn("其它成员无权设置禁言")
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("其它成员无权设置禁言[username=%s]", username)
 				goto COMPLETE
 			}
 
 			//写入MySQL
-			if err = kc.SaveTeam(teamInfo); err != nil {
-				kc.logger.Error("Save Team Error", zap.Error(err))
+			if err = nc.SaveTeam(teamInfo); err != nil {
+				nc.logger.Error("Save Team Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到Team"
 				goto COMPLETE
@@ -3486,7 +3486,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 
 			//刷新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-				kc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+				nc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
 			}
 
 			//向所有群成员推送
@@ -3497,7 +3497,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			for _, teamMember := range teamMembers {
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					continue
 				}
 
@@ -3523,7 +3523,7 @@ func (kc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(curAt),
 				}
-				go kc.BroadcastMsgToAllDevices(mrsp, teamMember)
+				go nc.BroadcastMsgToAllDevices(mrsp, teamMember)
 
 			}
 		}
@@ -3542,10 +3542,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -3559,21 +3559,21 @@ COMPLETE:
 可以设置禁言时间，如果不设置mutedays，则永久禁言
 */
 
-func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
+func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleMuteTeamMember start...",
+	nc.logger.Info("HandleMuteTeamMember start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3584,7 +3584,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("MuteTeamMember",
+	nc.logger.Debug("MuteTeamMember",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3598,13 +3598,13 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	//解包body
 	req := &Team.MuteTeamMemberReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("MuteTeamMember payload",
+		nc.logger.Debug("MuteTeamMember payload",
 			zap.String("teamId", req.GetTeamId()),       //所在群组
 			zap.String("username", req.GetUsername()),   //被禁言的群成员
 			zap.Bool("Mute", req.GetMute()),             //是否禁言,false/true
@@ -3613,7 +3613,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 		teamID := req.GetTeamId()
 		if req.GetMutedays() < 0 {
-			kc.logger.Error("Mutedays Error")
+			nc.logger.Error("Mutedays Error")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Mutedays must greater than 0[Mutedays=%d]", req.GetMutedays())
 			goto COMPLETE
@@ -3627,7 +3627,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -3644,7 +3644,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -3653,7 +3653,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -3664,7 +3664,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			opTeamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, opTeamUser); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 					goto COMPLETE
@@ -3678,7 +3678,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				curTeamUser := new(models.TeamUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 					if err := redis.ScanStruct(result, curTeamUser); err != nil {
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
 						goto COMPLETE
@@ -3687,7 +3687,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 				//判断是否处于解禁状态
 				if curTeamUser.IsMute == false && req.GetMute() == curTeamUser.IsMute {
-					kc.logger.Warn("警告: 不能重复解禁")
+					nc.logger.Warn("警告: 不能重复解禁")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is already disMute[username=%s]", req.GetUsername())
 					goto COMPLETE
@@ -3698,8 +3698,8 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				curTeamUser.Mutedays = int(req.GetMutedays())
 
 				//写入MySQL
-				if err = kc.SaveTeamUser(curTeamUser); err != nil {
-					kc.logger.Error("Save curTeamUser Error", zap.Error(err))
+				if err = nc.SaveTeamUser(curTeamUser); err != nil {
+					nc.logger.Error("Save curTeamUser Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "无法保存到TeamUser"
 					goto COMPLETE
@@ -3732,7 +3732,7 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				for _, teamMember := range teamMembers {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
 						goto COMPLETE
@@ -3770,12 +3770,12 @@ func (kc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
+					go nc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
 				}
 
 			} else {
 				//其它成员无权设置
-				kc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", username))
+				nc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", username))
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("其它成员无权设置禁言时长[username=%s]", username)
 				goto COMPLETE
@@ -3797,10 +3797,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -3812,19 +3812,19 @@ COMPLETE:
 群成员设置接收群消息的通知方式
 */
 
-func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
+func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleSetNotifyType start...",
+	nc.logger.Info("HandleSetNotifyType start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3835,7 +3835,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("SetNotifyType ",
+	nc.logger.Debug("SetNotifyType ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3849,13 +3849,13 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	//解包body
 	req := &Team.SetNotifyTypeReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("SetNotifyType payload",
+		nc.logger.Debug("SetNotifyType payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Int("notifyType", int(req.GetNotifyType())),
 		)
@@ -3865,7 +3865,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -3882,7 +3882,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -3890,7 +3890,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -3900,7 +3900,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamUser); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 					goto COMPLETE
@@ -3909,8 +3909,8 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 
 			teamUser.NotifyType = int(req.GetNotifyType())
 			//写入MySQL
-			if err = kc.SaveTeamUser(teamUser); err != nil {
-				kc.logger.Error("Save teamUser Error", zap.Error(err))
+			if err = nc.SaveTeamUser(teamUser); err != nil {
+				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
 				goto COMPLETE
@@ -3918,7 +3918,7 @@ func (kc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 
 			//刷新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
-				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+				nc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
 		}
 	}
@@ -3936,10 +3936,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -3951,20 +3951,20 @@ COMPLETE:
 群成员设置自己群里的个人资料
 */
 
-func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
+func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleUpdateMyInfo start...",
+	nc.logger.Info("HandleUpdateMyInfo start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -3975,7 +3975,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("UpdateMyInfo ",
+	nc.logger.Debug("UpdateMyInfo ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -3989,13 +3989,13 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	//解包body
 	req := &Team.UpdateMyInfoReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("UpdateMyInfo  payload",
+		nc.logger.Debug("UpdateMyInfo  payload",
 			zap.String("teamId", req.GetTeamId()),
 		)
 
@@ -4003,7 +4003,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -4020,7 +4020,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -4028,7 +4028,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -4038,7 +4038,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			teamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamUser); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is not exists[teamID=%s, username=%s]", teamID, username)
 					goto COMPLETE
@@ -4057,8 +4057,8 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			}
 
 			//写入MySQL
-			if err = kc.SaveTeamUser(teamUser); err != nil {
-				kc.logger.Error("Save teamUser Error", zap.Error(err))
+			if err = nc.SaveTeamUser(teamUser); err != nil {
+				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
 				goto COMPLETE
@@ -4066,14 +4066,14 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 
 			//刷新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, username)).AddFlat(teamUser)...); err != nil {
-				kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+				nc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 			}
 			//更新时间戳
 			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, username)
 
 			//向其它端推送修改
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
-				kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
 				goto COMPLETE
@@ -4101,7 +4101,7 @@ func (kc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go kc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
+			go nc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
 		}
 	}
 
@@ -4118,10 +4118,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -4134,19 +4134,19 @@ COMPLETE:
 管理员设置群成员资料
 */
 
-func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
+func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleUpdateMemberInfo start...",
+	nc.logger.Info("HandleUpdateMemberInfo start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -4157,7 +4157,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("UpdateMemberInfo ",
+	nc.logger.Debug("UpdateMemberInfo ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4171,13 +4171,13 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	//解包body
 	req := &Team.UpdateMemberInfoReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("UpdateMemberInfo  payload",
+		nc.logger.Debug("UpdateMemberInfo  payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.String("username", req.GetUsername()),
 		)
@@ -4186,7 +4186,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -4203,7 +4203,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -4211,7 +4211,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -4222,7 +4222,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			opTeamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, opTeamUser); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 					goto COMPLETE
@@ -4238,7 +4238,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
 				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 					if err := redis.ScanStruct(result, teamUser); err != nil {
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
 						goto COMPLETE
@@ -4257,8 +4257,8 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				}
 
 				//写入MySQL
-				if err = kc.SaveTeamUser(teamUser); err != nil {
-					kc.logger.Error("Save teamUser Error", zap.Error(err))
+				if err = nc.SaveTeamUser(teamUser); err != nil {
+					nc.logger.Error("Save teamUser Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "无法保存到teamUser"
 					goto COMPLETE
@@ -4266,7 +4266,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 				//刷新redis
 				if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername())).AddFlat(teamUser)...); err != nil {
-					kc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+					nc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 				}
 				//更新时间戳
 				_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamInfo.TeamID), time.Now().UnixNano()/1e6, req.GetUsername())
@@ -4277,7 +4277,7 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				for _, teamMember := range teamMembers {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
 						goto COMPLETE
@@ -4304,12 +4304,12 @@ func (kc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
+					go nc.BroadcastMsgToAllDevices(eRsp, teamMember) //向群成员广播
 				}
 
 			} else {
 				//其它成员无权设置
-				kc.logger.Warn("其它成员无权设置群成员资料")
+				nc.logger.Warn("其它成员无权设置群成员资料")
 				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("其它成员无权设置群成员资料[username=%s]", username)
 				goto COMPLETE
@@ -4331,10 +4331,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -4347,7 +4347,7 @@ COMPLETE:
 根据群组用户ID获取最新群成员信息
 */
 
-func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
+func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4356,14 +4356,14 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandlePullTeamMembers start...",
+	nc.logger.Info("HandlePullTeamMembers start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -4374,7 +4374,7 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("PullTeamMembers ",
+	nc.logger.Debug("PullTeamMembers ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4388,13 +4388,13 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	//解包body
 	req := &Team.PullTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("PullTeamMembers  payload",
+		nc.logger.Debug("PullTeamMembers  payload",
 			zap.String("teamId", req.GetTeamId()),
 			zap.Strings("usernames", req.GetAccounts()),
 		)
@@ -4403,7 +4403,7 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			kc.logger.Error("EXISTS Error", zap.Error(err))
+			nc.logger.Error("EXISTS Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
 			goto COMPLETE
@@ -4420,7 +4420,7 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 					goto COMPLETE
@@ -4428,7 +4428,7 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
-				kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -4437,12 +4437,12 @@ func (kc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 			for _, account := range req.GetAccounts() {
 
 				key = fmt.Sprintf("TeamUser:%s:%s", teamID, account)
-				kc.logger.Debug("查询群成员TeamUser", zap.String("key", key))
+				nc.logger.Debug("查询群成员TeamUser", zap.String("key", key))
 
 				teamUser := new(models.TeamUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 					if err := redis.ScanStruct(result, teamUser); err != nil {
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						continue
 					}
 				}
@@ -4479,10 +4479,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -4495,7 +4495,7 @@ COMPLETE:
 增量同步群组信息
 */
 
-func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
+func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4505,14 +4505,14 @@ func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	}
 	var data []byte
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetMyTeams start...",
+	nc.logger.Info("HandleGetMyTeams start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -4523,7 +4523,7 @@ func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetMyTeams ",
+	nc.logger.Debug("GetMyTeams ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4537,13 +4537,13 @@ func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	//解包body
 	req := &Team.GetMyTeamsReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetMyTeams  payload",
+		nc.logger.Debug("GetMyTeams  payload",
 			zap.Uint64("timeAt", req.GetTimeAt()),
 		)
 
@@ -4555,7 +4555,7 @@ func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 			teamInfo := new(models.Team)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					kc.logger.Error("错误：ScanStruct", zap.Error(err))
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 					continue
 				}
 			}
@@ -4563,7 +4563,7 @@ func (kc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 			//计算群成员数量。
 			var count int
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
-				kc.logger.Error("ZCARD Error", zap.Error(err))
+				nc.logger.Error("ZCARD Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -4609,10 +4609,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -4631,20 +4631,20 @@ TODO
 3.  当同意后，需要将这个拉人入群事件向被邀请的用户发送
 4. 当拒绝后，需要向发起拉人入群的用户发送拒绝
 */
-func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
+func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleCheckTeamInvite start...",
+	nc.logger.Info("HandleCheckTeamInvite start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -4655,7 +4655,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("CheckTeamInvite",
+	nc.logger.Debug("CheckTeamInvite",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4669,13 +4669,13 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	//解包body
 	req := &Team.CheckTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("CheckTeamInvite payload",
+		nc.logger.Debug("CheckTeamInvite payload",
 			zap.String("TeamId", req.GetTeamId()),
 			zap.String("WorkflowID", req.GetWorkflowID()), //工作流ID
 			zap.String("Inviter", req.GetInviter()),       //邀请人
@@ -4694,7 +4694,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		teamInfo := new(models.Team)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamInfo); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -4703,7 +4703,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 
 		//此群是否是正常的
 		if teamInfo.Status != 2 {
-			kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Team status is not normal")
 			goto COMPLETE
@@ -4713,7 +4713,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		teamUser := new(models.TeamUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamUser); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 				goto COMPLETE
@@ -4730,7 +4730,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
 
-						kc.logger.Error("错误：ScanStruct", zap.Error(err))
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetInvitee())
 						goto COMPLETE
@@ -4740,7 +4740,7 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 
 				//向受邀请人发送邀请加群通知
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInvitee()))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
 					goto COMPLETE
@@ -4769,13 +4769,13 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetInvitee()) //向受邀请人推送
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetInvitee()) //向受邀请人推送
 
 				//向其它管理员推送
-				managers, _ := kc.GetOwnerAndManagers(teamID)
+				managers, _ := nc.GetOwnerAndManagers(teamID)
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Username=%s]", manager)
 						goto COMPLETE
@@ -4803,14 +4803,14 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					go nc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
 				}
 
 			} else { //拒绝了
 
 				//向邀请人 及 其它管理员发送通知
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInviter()))); err != nil {
-					kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
 					goto COMPLETE
@@ -4839,13 +4839,13 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go kc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetInviter()) //向邀请人推送
+				go nc.BroadcastMsgToAllDevices(inviteEventRsp, req.GetInviter()) //向邀请人推送
 
 				//向其它管理员推送
-				managers, _ := kc.GetOwnerAndManagers(teamID)
+				managers, _ := nc.GetOwnerAndManagers(teamID)
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
-						kc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("INCR error[Username=%s]", manager)
 						goto COMPLETE
@@ -4872,13 +4872,13 @@ func (kc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go kc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					go nc.BroadcastMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
 				}
 			}
 
 		} else {
 			//其它成员无权设置
-			kc.logger.Warn("其它成员无权审核用户入群申请")
+			nc.logger.Warn("其它成员无权审核用户入群申请")
 			errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("其它成员无权审核用户入群申请[username=%s]", username)
 			goto COMPLETE
@@ -4899,10 +4899,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -4914,7 +4914,7 @@ COMPLETE:
 分页方式获取群成员信息，该接口仅支持在线获取，SDK不进行缓存
 */
 
-func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
+func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -4926,14 +4926,14 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		Members: make([]*Team.Tmember, 0),
 	}
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	kc.logger.Info("HandleGetTeamMembersPage start...",
+	nc.logger.Info("HandleGetTeamMembersPage start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -4944,7 +4944,7 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	kc.logger.Debug("GetTeamMembersPage ",
+	nc.logger.Debug("GetTeamMembersPage ",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -4958,13 +4958,13 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	//解包body
 	req := &Team.GetTeamMembersPageReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
-		kc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
 
 	} else {
-		kc.logger.Debug("GetTeamMembersPage  payload",
+		nc.logger.Debug("GetTeamMembersPage  payload",
 			zap.String("TeamId", req.GetTeamId()),
 			zap.Int("QueryType", int(req.GetQueryType())),
 			zap.Int32("Page", req.GetPage()),
@@ -4977,7 +4977,7 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		teamInfo := new(models.Team)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamInfo); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
 				goto COMPLETE
@@ -4986,7 +4986,7 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 
 		//此群是否是正常的
 		if teamInfo.Status != 2 {
-			kc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Team status is not normal")
 			goto COMPLETE
@@ -4996,7 +4996,7 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		teamUser := new(models.TeamUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamUser); err != nil {
-				kc.logger.Error("错误：ScanStruct", zap.Error(err))
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
 				goto COMPLETE
@@ -5015,11 +5015,11 @@ func (kc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		}
 
 		var total uint64
-		teamUsers := kc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
-		kc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
+		teamUsers := nc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		nc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {
-			kc.logger.Debug("for...range: teamUser",
+			nc.logger.Debug("for...range: teamUser",
 				zap.String("TeamId", teamID),
 				zap.String("Username", teamUser.Username),
 				zap.String("Invitedusername", teamUser.InvitedUsername),
@@ -5058,10 +5058,10 @@ COMPLETE:
 	//处理完成，向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
-	if err := kc.Producer.Public(topic, rawData); err == nil {
-		kc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
-		kc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -5069,11 +5069,11 @@ COMPLETE:
 }
 
 // 获取某个群的群主或管理员
-func (kc *NsqClient) GetOwnerAndManagers(teamID string) ([]string, error) {
+func (nc *NsqClient) GetOwnerAndManagers(teamID string) ([]string, error) {
 	// var err error
 	var teamMemberType int
 
-	redisConn := kc.redisPool.Get()
+	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	userNames := make([]string, 0)

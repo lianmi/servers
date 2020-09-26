@@ -9,7 +9,7 @@ import (
 	// "github.com/lianmi/servers/internal/app/chatservice/controllers"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
 	// "github.com/lianmi/servers/internal/app/chatservice/services"	
-	"github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
+	"github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -31,7 +31,7 @@ var providerSet = wire.NewSet(
 	jaeger.ProviderSet,
 	redis.ProviderSet,
 	// http.ProviderSet,
-	kafkaBackend.ProviderSet,
+	nsqBackend.ProviderSet,
 	chatservice.ProviderSet,
 	// controllers.ProviderSet,
 )

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/wire"
 	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
-	chatKafka "github.com/lianmi/servers/internal/app/chatservice/kafkaBackend"
+	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
 	orderKafka "github.com/lianmi/servers/internal/app/orderservice/kafkaBackend"
 	walletKafka "github.com/lianmi/servers/internal/app/walletservice/kafkaBackend"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
@@ -20,16 +20,16 @@ import (
 )
 
 type Application struct {
-	name              string
-	logger            *zap.Logger
-	httpServer        *http.Server
-	grpcServer        *grpc.Server
-	nsqClient         *nsqclient.NsqClient
-	authNsqClient     *authNsq.NsqClient
-	chatKafkaClient   *chatKafka.KafkaClient
-	orderKafkaClient  *orderKafka.KafkaClient
-	walletKafkaClient *walletKafka.KafkaClient
-	mqttClient        *mqtt.MQTTClient
+	name            string
+	logger          *zap.Logger
+	httpServer      *http.Server
+	grpcServer      *grpc.Server
+	nsqClient       *nsqclient.NsqClient
+	authNsqClient   *authNsq.NsqClient
+	chatNsqClient   *chatNsq.NsqClient
+	orderNsqClient  *orderKafka.KafkaClient
+	walletNsqClient *walletKafka.KafkaClient
+	mqttClient      *mqtt.MQTTClient
 }
 
 type Option func(app *Application) error
@@ -74,26 +74,26 @@ func AuthNsqOption(kbc *authNsq.NsqClient) Option {
 	}
 }
 
-func ChatKafkaOption(kbc *chatKafka.KafkaClient) Option {
+func ChatNsqOption(kbc *chatNsq.NsqClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
-		app.chatKafkaClient = kbc
+		app.chatNsqClient = kbc
 		return nil
 	}
 }
 
-func OrderKafkaOption(kbc *orderKafka.KafkaClient) Option {
+func OrderNsqOption(kbc *orderKafka.KafkaClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
-		app.orderKafkaClient = kbc
+		app.orderNsqClient = kbc
 		return nil
 	}
 }
 
-func WalletKafkaOption(kbc *walletKafka.KafkaClient) Option {
+func WalletNsqOption(kbc *walletKafka.KafkaClient) Option {
 	return func(app *Application) error {
 		kbc.Application(app.name)
-		app.walletKafkaClient = kbc
+		app.walletNsqClient = kbc
 		return nil
 	}
 }
@@ -141,20 +141,20 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.chatKafkaClient != nil {
-		if err := a.chatKafkaClient.Start(); err != nil {
+	if a.chatNsqClient != nil {
+		if err := a.chatNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "chatservice kafka backend client start error")
 		}
 	}
 
-	if a.orderKafkaClient != nil {
-		if err := a.orderKafkaClient.Start(); err != nil {
+	if a.orderNsqClient != nil {
+		if err := a.orderNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "orderservice kafka backend client start error")
 		}
 	}
 
-	if a.walletKafkaClient != nil {
-		if err := a.walletKafkaClient.Start(); err != nil {
+	if a.walletNsqClient != nil {
+		if err := a.walletNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "walletservice kafka backend client start error")
 		}
 	}
