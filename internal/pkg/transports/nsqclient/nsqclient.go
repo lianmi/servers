@@ -44,22 +44,17 @@ type nsqProducer struct {
 }
 
 type NsqClient struct {
-	o   *NsqOptions
-	app string
-	// topics         []string
+	o              *NsqOptions
+	app            string
+	topics         []string
 	nsqMqttChannel *channel.NsqMqttChannel
 
-	Producer *nsqProducer
+	Producer  *nsqProducer    // 生产者
+	consumers []*nsq.Consumer // 消费者
 
 	logger    *zap.Logger
 	redisPool *redis.Pool
 }
-
-var (
-	// msgFromDispatcherChan = make(chan *models.Message, 10)
-	topics    = make([]string, 0)
-	consumers = make([]*nsq.Consumer, 0)
-)
 
 func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	var (
@@ -158,6 +153,7 @@ func NewNsqClient(o *NsqOptions, redisPool *redis.Pool, channel *channel.NsqMqtt
 		o:              o,
 		nsqMqttChannel: channel,
 		Producer:       p,
+		consumers:      make([]*nsq.Consumer, 0),
 		logger:         logger.With(zap.String("type", "nsqclient")),
 		redisPool:      redisPool,
 	}
@@ -171,8 +167,8 @@ func (nc *NsqClient) Application(name string) {
 //启动Nsq实例
 func (nc *NsqClient) Start() error {
 	nc.logger.Info("Topics", zap.String("Topics", nc.o.Topics))
-	topics = strings.Split(nc.o.Topics, ",")
-	for _, topic := range topics {
+	nc.topics = strings.Split(nc.o.Topics, ",")
+	for _, topic := range nc.topics {
 		channelName := fmt.Sprintf("%s.%s", topic, nc.o.ChnanelName)
 		nc.logger.Info("channelName", zap.String("channelName", channelName))
 		consumer, err := initConsumer(topic, channelName, nc.o.Broker, nc.nsqMqttChannel, nc.logger)
@@ -180,12 +176,12 @@ func (nc *NsqClient) Start() error {
 			nc.logger.Error("dispatcher, InitConsumer Error ", zap.Error(err), zap.String("topic", topic))
 			return nil
 		}
-		consumers = append(consumers, consumer)
+		nc.consumers = append(nc.consumers, consumer)
 	}
 
-	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("Topics", topics))
+	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("Topics", nc.topics))
 
-	for _, topic := range topics {
+	for _, topic := range nc.topics {
 
 		//目的是创建topic
 		if err := nc.Producer.Publish(topic, []byte("a")); err != nil {
@@ -278,7 +274,7 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 
 func (nc *NsqClient) Stop() error {
 	nc.Producer.Stop()
-	for _, consumer := range consumers {
+	for _, consumer := range nc.consumers {
 		consumer.Stop()
 	}
 	return nil
