@@ -147,7 +147,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 
 		//目的是创建topic
 		if err := p.Publish(topic, []byte("a")); err != nil {
-			logger.Error("创建topic错误", zap.String("topic", topic))
+			logger.Error("创建topic错误", zap.String("topic", topic), zap.Error(err))
 		} else {
 			logger.Info("创建topic", zap.String("topic", topic))
 		}
