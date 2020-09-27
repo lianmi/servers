@@ -9,7 +9,7 @@ db:
 nsq:
   broker: nsqlookupd:4161
   producerAddr: nsqd:4150
-  Topics: Auth.Backend,User.Backend,Friends.Backend,Group.Backend,Sync.Backend
+  Topics: Auth.Backend,User.Backend,Friends.Backend,Team.Backend,Sync.Backend
   chnanelName: im
 redis:
   addr: redis:6379

@@ -10,7 +10,7 @@ db:
 nsq:
   broker: 127.0.0.1:4161
   producerAddr: 127.0.0.1:4150
-  Topics: Auth.Backend,User.Backend,Friends.Backend,Group.Backend,Sync.Backend
+  Topics: Auth.Backend,User.Backend,Friends.Backend,Team.Backend,Sync.Backend
   chnanelName: im
 redis:
   addr: 127.0.0.1:6379
