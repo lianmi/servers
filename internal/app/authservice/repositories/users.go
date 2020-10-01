@@ -983,7 +983,7 @@ func (s *MysqlUsersRepository) CheckSmsCode(mobile, smscode string) bool {
 		return false
 	} else {
 		if !isExists {
-			s.logger.Warn("smscode is expire")
+			s.logger.Warn("isExists=false, smscode is expire", zap.String("key", key))
 			return false
 		} else {
 			if smscodeInRedis, err := redis.String(redisConn.Do("GET", key)); err != nil {

@@ -34,13 +34,6 @@ type Application struct {
 
 type Option func(app *Application) error
 
-// func RedisOption(redisPool *redis.Pool) Option {
-// 	return func(app *Application) error {
-// 		app.redisPool = redisPool
-// 		return nil
-// 	}
-// }
-
 func HttpServerOption(svr *http.Server) Option {
 	return func(app *Application) error {
 		svr.Application(app.name)
@@ -90,10 +83,10 @@ func OrderNsqOption(kbc *orderNsq.NsqClient) Option {
 	}
 }
 
-func WalletNsqOption(kbc *walletNsq.NsqClient) Option {
+func WalletNsqOption(nsqclient *walletNsq.NsqClient) Option {
 	return func(app *Application) error {
-		kbc.Application(app.name)
-		app.walletNsqClient = kbc
+		nsqclient.Application(app.name)
+		app.walletNsqClient = nsqclient
 		return nil
 	}
 }
@@ -211,6 +204,23 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
+		if a.chatNsqClient != nil {
+			if err := a.chatNsqClient.Stop(); err != nil {
+				a.logger.Warn("stop chatNsqClient error", zap.Error(err))
+			}
+		}
+
+		if a.orderNsqClient != nil {
+			if err := a.orderNsqClient.Stop(); err != nil {
+				a.logger.Warn("stop orderNsqClient error", zap.Error(err))
+			}
+		}
+
+		if a.walletNsqClient != nil {
+			if err := a.walletNsqClient.Stop(); err != nil {
+				a.logger.Warn("stop walletservice error", zap.Error(err))
+			}
+		}
 		os.Exit(0)
 	}
 }

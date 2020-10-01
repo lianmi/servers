@@ -299,3 +299,14 @@ le.pl --key account.key --csr domain.csr --csr-key domain.key --crt domain.crt -
 cd /root/developments/lianmi/work/keys_and_certs
 openssl req -new -x509 -sha256 -key domain.key -out domain.crt -days 3650
 ```
+
+# 区块链 blockchain
+开发目录：
+## 1. 发币合约
+```
+/Users/mac/developments/lianmi/blockchain/ethereum-simplenode-erc20/erc20_demo
+```
+## 2. 多签合约
+```
+/Users/mac/developments/lianmi/blockchain/ethereum-simplenode-erc20/erc20_multisig
+```

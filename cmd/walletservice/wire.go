@@ -18,6 +18,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
 	// "github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 )
 
 var providerSet = wire.NewSet(
@@ -33,6 +34,7 @@ var providerSet = wire.NewSet(
 	nsqBackend.ProviderSet,
 	walletservice.ProviderSet,
 	// controllers.ProviderSet,
+	blockchain.ProviderSet,
 )
 
 func CreateApp(cf string) (*app.Application, error) {

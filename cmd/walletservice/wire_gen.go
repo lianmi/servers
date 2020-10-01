@@ -11,6 +11,7 @@ import (
 	"github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
@@ -58,8 +59,16 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
-	application, err := walletservice.NewApp(walletserviceOptions, logger, nsqClient)
+	blockchainOptions, err := blockchain.NewEthClientProviderOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	service, err := blockchain.New(blockchainOptions, logger)
+	if err != nil {
+		return nil, err
+	}
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger, service)
+	application, err := walletservice.NewApp(walletserviceOptions, logger, nsqClient, service)
 	if err != nil {
 		return nil, err
 	}
@@ -68,4 +77,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqBackend.ProviderSet, walletservice.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqBackend.ProviderSet, walletservice.ProviderSet, blockchain.ProviderSet)

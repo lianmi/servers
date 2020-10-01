@@ -280,4 +280,5 @@ func (nc *NsqClient) Stop() error {
 	return nil
 }
 
+
 var ProviderSet = wire.NewSet(NewNsqOptions, NewNsqClient)

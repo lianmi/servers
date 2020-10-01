@@ -3,6 +3,7 @@ package walletservice
 import (
 	"github.com/google/wire"
 	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -11,7 +12,7 @@ import (
 
 type Options struct {
 	Name     string
-	Addr     string `yaml:"addr"` //127.0.0.1:9092
+	Addr     string `yaml:"addr"` 
 	Password string `yaml:"password"`
 	Db       int    `yaml:"db"`
 }
@@ -28,9 +29,9 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, nc *walletNsq.NsqClient) (*app.Application, error) {
+func NewApp(o *Options, logger *zap.Logger, nc *walletNsq.NsqClient, ethereumService *blockchain.Service) (*app.Application, error) {
 
-	a, err := app.New(o.Name, logger, app.WalletNsqOption(nc))
+	a, err := app.New(o.Name, logger, app.WalletNsqOption(nc), )
 
 	if err != nil {
 		return nil, errors.Wrap(err, "new app error")

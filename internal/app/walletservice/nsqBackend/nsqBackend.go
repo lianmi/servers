@@ -24,6 +24,8 @@ import (
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"github.com/nsqio/go-nsq"
+
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 )
 
 type NsqOptions struct {
@@ -52,9 +54,10 @@ type NsqClient struct {
 	Producer  *nsqProducer    // 生产者
 	consumers []*nsq.Consumer // 消费者
 
-	logger    *zap.Logger
-	db        *gorm.DB
-	redisPool *redis.Pool
+	logger     *zap.Logger
+	db         *gorm.DB
+	redisPool  *redis.Pool
+	ethService *blockchain.Service //连接以太坊geth的websocket
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 	handleFuncMap map[uint32]func(payload *models.Message) error
 }
@@ -64,7 +67,7 @@ var (
 )
 
 //初始化消费者
-func initConsumer(topic, channelName, addr string, logger *zap.Logger) (*nsq.Consumer, error)  {
+func initConsumer(topic, channelName, addr string, logger *zap.Logger) (*nsq.Consumer, error) {
 	cfg := nsq.NewConfig()
 
 	//设置轮询时间间隔，最小10ms， 最大 5m， 默认60s
@@ -133,7 +136,7 @@ func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	return o, err
 }
 
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
+func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger, ethService *blockchain.Service) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
@@ -149,6 +152,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		logger:        logger.With(zap.String("type", "ChatService")),
 		db:            db,
 		redisPool:     redisPool,
+		ethService:    ethService,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
 	//注册每个业务子类型的处理方法, BusinessType = 10
@@ -165,7 +169,6 @@ func (nc *NsqClient) Application(name string) {
 func (nc *NsqClient) Start() error {
 	nc.logger.Info("WalletService NsqClient Start()")
 
-
 	nc.topics = strings.Split(nc.o.Topics, ",")
 	for _, topic := range nc.topics {
 
@@ -177,7 +180,7 @@ func (nc *NsqClient) Start() error {
 		}
 
 	}
-	
+
 	for _, topic := range nc.topics {
 		channelName := fmt.Sprintf("%s.%s", topic, nc.o.ChnanelName)
 		nc.logger.Info("channelName", zap.String("channelName", channelName))
@@ -193,6 +196,9 @@ func (nc *NsqClient) Start() error {
 
 	//Go程，处理dispatcher发来的业务数据
 	go nc.ProcessRecvPayload()
+
+	// 测试，创建系统HD钱包
+	nc.ethService.CreateHDWallet()
 
 	go func() {
 		run := true

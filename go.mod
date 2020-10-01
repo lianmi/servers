@@ -3,10 +3,12 @@ module github.com/lianmi/servers
 go 1.12
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.1.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/bingjian-zhu/gin-vue-admin v0.0.0-20200506131022-dcbf95f91663
 	github.com/bitly/go-simplejson v0.5.0
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/confluentinc/confluent-kafka-go v1.4.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -30,6 +32,7 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing-contrib/go-gin v0.0.0-20190301172248-2e18f8b9c7d4
 	github.com/opentracing/opentracing-go v1.1.0
@@ -38,12 +41,15 @@ require (
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/shopspring/decimal v1.2.0
+	github.com/spf13/cobra v1.0.0
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.5.1
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	github.com/unrolled/secure v1.0.8
+	github.com/urfave/cli v1.22.1
 	go.uber.org/zap v1.12.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect

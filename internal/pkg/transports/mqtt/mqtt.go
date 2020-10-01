@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"strconv"
 
-	"encoding/hex"
-	"strings"
+	// "encoding/hex"
+	// "strings"
 	"syscall"
 	"time"
 
@@ -223,8 +223,8 @@ func (mc *MQTTClient) Start() error {
 			backendMsg.BuildHeader(backendService, now)
 			backendMsg.FillBody(m.Payload) //承载真正的业务数据
 
-			bodyReqHex := strings.ToUpper(hex.EncodeToString(m.Payload))
-			mc.logger.Info("GetContent ok", zap.String("bodyReqHex", bodyReqHex))
+			// bodyReqHex := strings.ToUpper(hex.EncodeToString(m.Payload))
+			// mc.logger.Info("GetContent ok", zap.String("bodyReqHex", bodyReqHex))
 
 			//分发到后端的各自的服务器
 			switch Global.BusinessType(businessType) {
@@ -272,8 +272,7 @@ func (mc *MQTTClient) Start() error {
 	}
 
 	//订阅的topic， 客户端发送这个topic
-	// subTopic := "lianmi/cloud/dispatcher"
-	subTopic := mc.o.ResponseTopic
+	subTopic := mc.o.ResponseTopic //lianmi/cloud/dispatcher
 	for i := 0; i < retryCount; i++ {
 		ca, err := mc.client.Connect(context.Background(), cp)
 		if err == nil {
@@ -309,10 +308,10 @@ func (mc *MQTTClient) Close() {
 
 //主循环，从Nsq读取消息，并发送到imsdk的某个设备
 func (mc *MQTTClient) Run() {
-	run := true
+	var run bool
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
+	run = true
 	for run == true {
 		select {
 		case sig := <-sigchan:
@@ -334,7 +333,7 @@ func (mc *MQTTClient) Run() {
 				businessSubTypeStr := fmt.Sprintf("%d", msg.GetBusinessSubType())
 				taskIdStr := fmt.Sprintf("%d", msg.GetTaskID())
 				codeStr := fmt.Sprintf("%d", msg.GetCode())
-				mc.logger.Info("Consume backend kafak message",
+				mc.logger.Info("Consume backend nsq message",
 					zap.String("topic", topic),
 					zap.String("deviceId", msg.GetDeviceID()),
 					zap.String("businessType", businessTypeStr),
@@ -350,6 +349,7 @@ func (mc *MQTTClient) Run() {
 						CorrelationData: []byte(jwtToken),   //jwt令牌
 						ResponseTopic:   mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
 						User: map[string]string{
+							"deviceId":        msg.GetDeviceID(),
 							"businessType":    businessTypeStr,
 							"businessSubType": businessSubTypeStr,
 							"taskId":          taskIdStr,
@@ -484,6 +484,7 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 				CorrelationData: []byte("error"), //jwt令牌，填error，客户端必须重新登录进行认证
 				ResponseTopic:   mc.o.ResponseTopic,
 				User: map[string]string{
+					"deviceId":        deviceID,
 					"businessType":    businessTypeStr,
 					"businessSubType": businessSUbTypeStr,
 					"taskId":          taskIDStr,
