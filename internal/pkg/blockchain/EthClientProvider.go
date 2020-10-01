@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,11 +20,13 @@ import (
 	"io/ioutil"
 	"math/big"
 	// "regexp"
+	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
+	MultiSig "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/MultiSig"
 )
 
 const (
-	// KEY      = "UTC--2020-09-29T09-27-24.693765000Z--b18db89641d2ec807104258e2205e6ac6264bf25"
-
+	//发币合约地址
+	LNMCContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
 	// PASSWORD = "LianmiSky8900388"
 	GASLIMIT = 3000000 //30000000000
 )
@@ -448,11 +451,207 @@ func (s *Service) TransferEthFromCoinbaseToOtherAccount(targetAccount string, am
 		}
 		s.logger.Info("交易完成", zap.String("交易哈希: ", tx.Hash().Hex()), zap.Bool("isPending: ", isPending))
 		return nil
-		
+
 	} else {
 		s.logger.Error("交易失败")
 		return errors.New("交易失败")
 	}
+
+}
+
+//获取 LNMC余额,  传参： 账户地址
+func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
+
+	//使用合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(LNMCContractAddress), s.WsClient)
+	if err != nil {
+		s.logger.Error("conn contracts failed ", zap.Error(err))
+		return 0, err
+	}
+
+	//余额查询
+	accountLNMCBalance, err := contract.BalanceOf(nil, common.HexToAddress(accountAddress))
+	if err != nil {
+		s.logger.Error("get LNMC Balances failed ", zap.Error(err))
+		return 0, err
+	}
+	// fmt.Println("Token of LNMC:", accountLNMCBalance)
+	return accountLNMCBalance.Uint64(), nil
+
+}
+
+//从ERC20代币总账号转账到目标普通账号
+func (s *Service) TransferLNMCToNormalAddress(contractAddress, target string, amount int64) error {
+	//查询转账之前的LNMC余额
+	amountCurrent, err := s.GetLNMCTokenBalance(target)
+	if err != nil {
+		s.logger.Error("GetLNMCTokenBalance failed ", zap.Error(err))
+		return err
+	} else {
+		s.logger.Info("查询转账之前的LNMC余额", zap.Uint64("amountCurrent", amountCurrent))
+	}
+
+	//使用合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(contractAddress), s.WsClient)
+	if err != nil {
+		// log.Fatalf("conn contract: %v \n", err)
+		s.logger.Error("conn contracts failed ", zap.Error(err))
+		return err
+	}
+	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	if err != nil {
+		s.logger.Error("HexToECDSA failed ", zap.Error(err))
+		return err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		return err
+	}
+
+	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
+		return err
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)      // in wei
+	auth.GasLimit = uint64(3000000) // in units
+	auth.GasPrice = gasPrice
+
+	//调用合约里的转账函数
+	contractTx, err := contract.Transfer(&bind.TransactOpts{
+		From:   auth.From,
+		Signer: auth.Signer,
+		Value:  nil,
+	}, common.HexToAddress(target), big.NewInt(amount))
+	if err != nil {
+		// log.Fatalf("TransferFrom err: %v \n", err)
+		s.logger.Error("TransferFrom failed ", zap.Error(err))
+		return err
+	}
+	s.logger.Info("tx sent", zap.String("Hash", contractTx.Hash().Hex()))
+
+	//监听交易直到打包完成
+	done := s.WaitForBlockCompletation(contractTx.Hash().Hex())
+	if done == 1 {
+
+		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), contractTx.Hash())
+		if err != nil {
+			s.logger.Error("SendTransaction failed ", zap.Error(err))
+		}
+
+		//查询转账之后的LNMC余额
+		amountAfter, err := s.GetLNMCTokenBalance(target)
+		if err != nil {
+			s.logger.Error("GetLNMCTokenBalance failed ", zap.Error(err))
+		}
+
+		s.logger.Info("交易完成",
+			zap.String("交易哈希: ", tx.Hash().Hex()),
+			zap.Bool("isPending: ", isPending),
+			zap.Uint64("amountAfter: ", amountAfter),
+		)
+		return nil
+
+	} else {
+		s.logger.Error("交易失败")
+		return errors.New("交易失败")
+	}
+}
+
+//部署多签合约
+func (s *Service) DeployMultiSig() error {
+
+	// 合约部署
+	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	if err != nil {
+		s.logger.Error("HexToECDSA failed ", zap.Error(err))
+		return err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		return err
+	}
+
+	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
+		return err
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)      // in wei
+	auth.GasLimit = uint64(3000000) // in units
+	auth.GasPrice = gasPrice
+
+	//A的私钥
+	privateKeyA, err := crypto.HexToECDSA("91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1")
+	if err != nil {
+		s.logger.Error("HexToECDSA failed ", zap.Error(err))
+		return err
+	}
+	publicKeyA := privateKeyA.Public()
+	publicKeyECDSAA, ok := publicKeyA.(*ecdsa.PublicKey)
+	if !ok {
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+
+	}
+	fromAddressA := crypto.PubkeyToAddress(*publicKeyECDSAA)
+
+	//B的私钥
+	privateKeyB, err := crypto.HexToECDSA("b65e1f6e3b449c35c18518cfdf8de3c361ccf6f4a51817e0709a917fac688423")
+	if err != nil {
+		s.logger.Error("HexToECDSA failed ", zap.Error(err))
+		return err
+	}
+	publicKeyB := privateKeyB.Public()
+	publicKeyECDSAB, ok := publicKeyB.(*ecdsa.PublicKey)
+	if !ok {
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+
+	}
+	fromAddressB := crypto.PubkeyToAddress(*publicKeyECDSAB)
+	fmt.Println(fromAddressA.String(), fromAddressB.String())
+	//return
+	address, tx, _, err := MultiSig.DeployMultiSig(
+		auth,
+		s.WsClient,
+		fromAddressA, //A 账号地址
+		fromAddressB, //B 账号地址
+		common.HexToAddress("0xdeb284d75f757ce5e3c5de349732c05baa53584f"), //ERC20发币地址
+	)
+	if err != nil {
+		s.logger.Error("deploy failed ", zap.Error(err))
+		return err
+	}
+	fmt.Println("Contract pending deploy: ", address.String(), tx.Hash().String())
+
+	//TODO 监听，直到合约部署成功,如果失败，则提示
+
+	return nil
 
 }
 

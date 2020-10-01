@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lianmi/servers/internal/pkg/blockchain/erc20_demo/contracts"
+	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	// "io/ioutil"
 	"log"
 	"math/big"
@@ -57,10 +57,10 @@ func deploy(privateKeyHex string) {
 	auth.GasLimit = uint64(3000000) // in units
 	auth.GasPrice = gasPrice
 
-	address, _, _, err := contracts.DeployERC20Token(
+	address, _, _, err := ERC20.DeployERC20Token(
 		auth,
 		client,
-		big.NewInt(10000000000), //100亿
+		big.NewInt(1000000000000), //10000亿枚，一枚等于1分钱
 		"LianmiCoin",
 		"LNMC",
 	)
@@ -103,7 +103,7 @@ func getTokenBalance(contractAddress, accountAddress string) {
 	}
 
 	//使用合约地址
-	contract, err := contracts.NewERC20Token(common.HexToAddress(contractAddress), client)
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(contractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -119,68 +119,90 @@ func getTokenBalance(contractAddress, accountAddress string) {
 
 //ERC20代币转账, 从合约账号转到目标账号
 func transfer(contractAddress, target string, amount int64) {
-	/*
-		blockchain, err := ethclient.Dial("http://127.0.0.1:8545")
-		if err != nil {
-			log.Fatalf("Unable to connect to network:%v \n", err)
-		}
 
-		//使用合约地址
-		contract, err := contracts.NewERC20Token(common.HexToAddress(contractAddress), blockchain)
-		if err != nil {
-			log.Fatalf("conn contract: %v \n", err)
-		}
+	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	if err != nil {
+		log.Fatalf("Unable to connect to network:%v \n", err)
+	}
 
-		data, _ := ioutil.ReadFile(key)
-		auth, err := bind.NewTransactor(strings.NewReader(string(data)), "123456")
-		if err != nil {
-			log.Fatalf("Failed to create authorized transactor:%v \n", err)
-		}
+	//使用合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(contractAddress), client)
+	if err != nil {
+		log.Fatalf("conn contract: %v \n", err)
+	}
+	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	if err != nil {
+		log.Fatal(err)
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
 
-		//调用合约里的转账函数
-		tx, err := contract.Transfer(&bind.TransactOpts{
-			From:   auth.From,
-			Signer: auth.Signer,
-			Value:  nil,
-		}, common.HexToAddress(target), big.NewInt(amount))
-		if err != nil {
-			log.Fatalf("TransferFrom err: %v \n", err)
-		}
-		fmt.Printf("tx sent: %s \n", tx.Hash().Hex())
-	*/
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)      // in wei
+	auth.GasLimit = uint64(3000000) // in units
+	auth.GasPrice = gasPrice
+
+	//调用合约里的转账函数
+	tx, err := contract.Transfer(&bind.TransactOpts{
+		From:   auth.From,
+		Signer: auth.Signer,
+		Value:  nil,
+	}, common.HexToAddress(target), big.NewInt(amount))
+	if err != nil {
+		log.Fatalf("TransferFrom err: %v \n", err)
+	}
+	fmt.Printf("tx sent: %s \n", tx.Hash().Hex())
+
 }
 
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive(sender, receiver string) {
-	/*
-		blockchain, err := ethclient.Dial("http://127.0.0.1:8545")
-		if err != nil {
-			log.Fatalf("Unable to connect to network:%v \n", err)
-		}
 
-		//使用合约地址
-		contract, err := contracts.NewERC20Token(common.HexToAddress(sender), blockchain)
-		if err != nil {
-			log.Fatalf("conn contract: %v \n", err)
-		}
-		data, _ := ioutil.ReadFile(key)
-		auth, err := bind.NewTransactor(strings.NewReader(string(data)), "123456")
-		if err != nil {
-			log.Fatalf("Failed to create authorized transactor:%v \n", err)
-		}
+	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	if err != nil {
+		log.Fatalf("Unable to connect to network:%v \n", err)
+	}
 
-		var accountBalance = big.NewInt(0)
-		if accountBalance, err = contract.BalanceOf(nil, auth.From); err != nil {
-			log.Fatalf("get Balances err: %v \n", err)
-		}
-		fmt.Println("发送方余额: ", accountBalance)
+	//使用合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(sender), client)
+	if err != nil {
+		log.Fatalf("conn contract: %v \n", err)
+	}
+	// data, _ := ioutil.ReadFile(key)
+	// auth, err := bind.NewTransactor(strings.NewReader(string(data)), "123456")
+	// if err != nil {
+	// 	log.Fatalf("Failed to create authorized transactor:%v \n", err)
+	// }
 
-		// target是接收地址
-		if accountBalance, err = contract.BalanceOf(nil, common.HexToAddress(receiver)); err != nil {
-			log.Fatalf("get Balances err: %v \n", err)
-		}
+	// var accountBalance = big.NewInt(0)
+	// if accountBalance, err = contract.BalanceOf(nil, auth.From); err != nil {
+	// 	log.Fatalf("get Balances err: %v \n", err)
+	// }
+	// fmt.Println("发送方余额: ", accountBalance)
+
+	// target是接收地址
+	if accountBalance, err := contract.BalanceOf(nil, common.HexToAddress(receiver)); err != nil {
+		log.Fatalf("get Balances err: %v \n", err)
+	} else {
+
 		fmt.Println("接收方余额: ", accountBalance)
-	*/
+	}
+
 }
 
 func queryTx(txHex string) {
@@ -222,13 +244,16 @@ func main() {
 	//输出: Contract pending deploy: 0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce
 
 	//查询第1号叶子的LNMC余额
+	// getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
+	//输出: Token of LNMC: 10000000000
+
+	// transfer("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545", 400)
+	//tx sent: 0x12139bdd617f66da7d123e20228e09092c5a55ebd2da9986c88fb1ec3cc55122
+
 	getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	// transfer("0xdeb284d75f757ce5e3c5de349732c05baa53584f", "0x8159077856ca85b20479f6ac6694ffed1d27fdf3", 400)
-	//tx sent: 0x12139bdd617f66da7d123e20228e09092c5a55ebd2da9986c88fb1ec3cc55122
-	// 发送方余额:  9999998960
-	// 接收方余额:  1040
+	getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545")
 
 	//向HD钱包第0号索引派生的账号：  0xe14d151e0511b61357dde1b35a74e9c043c34c47 转账eth
 	//向HD钱包第1号索引派生的账号：  0x4acea697f366C47757df8470e610a2d9B559DbBE 转账LNMC
