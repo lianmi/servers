@@ -10,6 +10,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"go.uber.org/zap"
@@ -17,9 +18,9 @@ import (
 
 /*
 10-1 钱包账号注册
-1. 钱包账号注册，生成助记词，并设置支付密码
+1. 钱包账号注册流程，SDK生成助记词，并设置支付密码
 2. 用户支付的时候，输入6位支付密码，就代表用私钥签名
-3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送到服务端，服务端在链上创建用户的私人钱包。
+3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送第0号叶子的地址到服务端，服务端在链上创建用户的私人钱包。
 4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
 
 */
@@ -66,30 +67,59 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("RegisterWallet payload",
-			zap.Int("index", int(req.GetIndex())),
 			zap.String("walletAddress", req.GetWalletAddress()),
 		)
 
-		if req.GetIndex() < 0 {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Index must >= 0")
-			goto COMPLETE
-		}
 		if req.GetWalletAddress() == "" {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("WalletAddress must not empty")
 			goto COMPLETE
 		}
 
-		//检测用户合法性
-
 		//检测钱包地址是否合法
+		if nc.ethService.CheckIsvalidAddress(req.GetWalletAddress()) == false {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("WalletAddress is not valid")
+			goto COMPLETE
+		}
 
-		//保存到MySQL
+		//检测是否已经注册过了，不能重复注册
+		if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", username), "WalletAddress")); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HEXISTS error")
+			goto COMPLETE
+		} else {
+			if isExists {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Wallet had registered")
+				goto COMPLETE
+			}
+		}
+
+		//给用户钱包发送3000000个gas
+		if err := nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), LMCommon.GASLIMIT); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Wallet register error")
+			goto COMPLETE
+		}
+
+		//TODO 保存到MySQL
 
 		//保存到redis
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"WalletAddress",
+			req.GetWalletAddress())
 
-		//给用户钱包发送0.01个代币及1个gas
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"EthAmount",
+			LMCommon.GASLIMIT)
+
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"LNMCAmount",
+			0)
 
 	}
 

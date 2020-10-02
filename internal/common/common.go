@@ -59,7 +59,8 @@ const (
 const (
 
 	//运营方的助记词
-	MnemonicServer = "job gravity goose boring filter lyrics source giant throw dismiss film emotion margin depend ostrich peanut exist version unfold logic cause protect section drama"
+	// MnemonicServer = "job gravity goose boring filter lyrics source giant throw dismiss film emotion margin depend ostrich peanut exist version unfold logic cause protect section drama"
+	MnemonicServer = "element urban soda endless beach celery scheme wet envelope east glory retire"
 
 	/*
 
@@ -78,6 +79,9 @@ const (
 
 
 	*/
+	ETHINDEX  = 0 // 第0号叶子存储eth
+	LNMCINDEX = 1 //第1号存储LNMC
 
-	
+	//gas最低消耗
+	GASLIMIT = 3000000
 )

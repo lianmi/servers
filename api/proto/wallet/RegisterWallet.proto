@@ -4,10 +4,9 @@ package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message RegisterWalletReq{
-    //用户HD钱包的第0号索引，用于存储Eth
-    string accountETH=1;
-    //用户HD钱包的第1号索引，用于存储连米币
-    string accountLNMC=2;
+    //用户HD钱包的第0号索引对应的子地址, 同时存储eth及LNMC
+    string walletAddress=1;
+
 }
 
 //code=200

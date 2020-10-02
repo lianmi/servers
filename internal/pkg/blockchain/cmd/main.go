@@ -340,8 +340,8 @@ func queryTransactionByBlockNumber(number uint64) {
 	log.Println("=========queryTransactionByBlockNumber end==========")
 }
 
-//从总账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
-func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) {
+//从总账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei amount 是字符型
+func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount string) {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
 	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
@@ -373,16 +373,11 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) {
 		log.Fatal(err)
 	}
 
-	value := big.NewInt(amount)  // in wei (1 eth)
+	value := new(big.Int)
+	value.SetString(amount, 10) // in wei sets the value to eth
+
 	gasLimit := uint64(GASLIMIT) // in units
-	/*
-		gasPrice, err := client.SuggestGasPrice(context.Background())
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			log.Println("gasPrice: ", gasPrice)
-		}
-	*/
+
 	gasPrice := getGasPrice()
 
 	//接收账号
@@ -408,13 +403,85 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) {
 
 	fmt.Printf("tx sent: %s\n", signedTx.Hash().Hex())
 
-	wsClient, err := ethclient.Dial("ws://127.0.0.1:8546")
+	/*
+		等待检测交易是否完成，挖矿工需要工作才能出块
+		> miner.start()
+		> var account2="0x4acea697f366C47757df8470e610a2d9B559DbBE"
+		> web3.fromWei(web3.eth.getBalance(account2), 'ether')
+		输出： 1
+	*/
+
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
+	if done == 1 {
+		log.Println("交易完成")
+		tx, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			log.Fatal(err)
+		}
+		// txHash := common.HexToHash(tx.Hash().Hex())
+		log.Println("交易哈希: ", tx.Hash().Hex()) //
+		log.Println("isPending: ", isPending)  // false
+	} else {
+		log.Println("交易失败")
+	}
+
+}
+
+//从第0号叶子地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei amount 是字符型
+func transferEthFromLeaf0ToOtherAccount(targetAccount string, amount string) {
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatal(err)
-	} else {
-
-		fmt.Println("Succeed Connect to Server")
 	}
+
+	//第0号叶子私钥
+	privKeyHex := "4c88e6ccffec59b6c3df5ab51a4e6c42c421f58274d653d716aafd4aff376f5b"
+
+	privateKey, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		log.Fatal(err)
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	value := new(big.Int)
+	value.SetString(amount, 10) // sets the value to eth
+
+	gasLimit := uint64(GASLIMIT) // in units
+
+	gasPrice := getGasPrice()
+
+	//接收账号
+	toAddress := common.HexToAddress(targetAccount)
+
+	var data []byte
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("tx sent: %s\n", signedTx.Hash().Hex())
 
 	/*
 		等待检测交易是否完成，挖矿工需要工作才能出块
@@ -424,7 +491,7 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) {
 		输出： 1
 	*/
 
-	done := WaitForBlockCompletation(wsClient, signedTx.Hash().Hex())
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
 	if done == 1 {
 		log.Println("交易完成")
 		tx, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
@@ -442,12 +509,17 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) {
 
 func main() {
 	// 以wei为单位输出某个地址的eth
-	getWeiBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
+	getWeiBalance("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538")
 
-	getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
+	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 
-	//第1个叶子: 0x4acea697f366C47757df8470e610a2d9B559DbBE  1000000000000000000
-	transferEthFromCoinbaseToOtherAccount("0x4acea697f366C47757df8470e610a2d9B559DbBE", 1000000000000000000)
+	// transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "1000000000000000000000")
+
+	//从第0号叶子向普通用户账号A转eth 1eth
+	// transferEthFromLeaf0ToOtherAccount("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538", "1000000000000000000")
+
+	//从第0号叶子向普通用户账号B转eth 1eth
+	// transferEthFromLeaf0ToOtherAccount("0xac243c2FED19d085bF682d0D74e677c1d9911e83", "1000000000000000000")
 
 	number, _ := getLatestBlockNumber()
 	log.Println("number", number)

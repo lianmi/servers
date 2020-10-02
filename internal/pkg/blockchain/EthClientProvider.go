@@ -5,6 +5,10 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"regexp"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,34 +16,34 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/pkg/blockchain/util"
+
 	"github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"math/big"
-	// "regexp"
+
+	LMCommon "github.com/lianmi/servers/internal/common"
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	MultiSig "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/MultiSig"
+	"github.com/lianmi/servers/internal/pkg/blockchain/util"
 )
 
-const (
-	//发币合约地址
-	LNMCContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
-	// PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 3000000 //30000000000
-)
+type KeyPair struct {
+	PrivateKeyHex string //hex格式的私钥
+	AddressHex    string //hex格式的地址
+}
 
 // Service service
 type Service struct {
+	o        *Options
 	WsClient *ethclient.Client
 	logger   *zap.Logger
 }
 
 // Options service options
 type Options struct {
-	WsURI string //websocket的 uri ws://127.0.0.1:8546
+	WsURI                      string //websocket的 uri ws://127.0.0.1:8546
+	ERC20DeployContractAddress string
 }
 
 func NewEthClientProviderOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
@@ -50,7 +54,7 @@ func NewEthClientProviderOptions(v *viper.Viper, logger *zap.Logger) (*Options, 
 		return nil, errors.Wrap(err, "unmarshal ethereum option error")
 	}
 	wsUri := fmt.Sprintf("%s", o.WsURI)
-	logger.Info("load ethereum options success", zap.String("WsUri", wsUri))
+	logger.Info("load ethereum options success", zap.String("WsUri", wsUri), zap.String("ERC20DeployContractAddress", o.ERC20DeployContractAddress))
 
 	return o, err
 }
@@ -65,6 +69,7 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 		return nil, err
 	}
 	return &Service{
+		o:        opts,
 		WsClient: client,
 		logger:   logger,
 	}, nil
@@ -77,8 +82,7 @@ func (s *Service) Stop() {
 
 //创建系统HD钱包
 func (s *Service) CreateHDWallet() {
-	// mnemonic := "tag volcano eight thank tide danger coast health above argue embrace heavy"
-	mnemonic := "element urban soda endless beach celery scheme wet envelope east glory retire"
+	mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	// fmt.Println("mnemonic:", mnemonic)
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
@@ -153,6 +157,64 @@ func (s *Service) CreateHDWallet() {
 
 		_ = privateKey1
 	}
+	/*
+		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Account address": "0xe14D151e0511b61357DDe1B35a74E9c043c34C47"}
+		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Private key": "4c88e6ccffec59b6c3df5ab51a4e6c42c421f58274d653d716aafd4aff376f5b"}
+		2020-10-02T00:18:25.722+0800	INFO	m/44'/60'/0'/0/0	{"Public key": "b97cf13c8758594fb59c14765f365d05b9e67539e8f50721f8f6b8401f13af93e623ee620d9de8058b4043a0bc8be99e9135b6aa1c10e9ca8e85e0c4828e3070"}
+		2020-10-02T00:18:25.722+0800	INFO	m/44'/60'/0'/0/1	{"Account1 address": "0x4acea697f366C47757df8470e610a2d9B559DbBE"}
+		2020-10-02T00:18:25.723+0800	INFO	m/44'/60'/0'/0/1	{"Private key": "fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"}
+		2020-10-02T00:18:25.723+0800	INFO	m/44'/60'/0'/0/1	{"Public key": "553d2e5a5ad1ac9b2ae2dab3ddc28df74e1a549a753706715ec238e3e5c55008e45995b0d3271f8120890c74acc3602829207cefd432cfe1c1ca25767fd7a439"}
+	*/
+}
+
+//根据叶子索引号获取到公私钥对
+func (s *Service) GetKeyPairsFromLeafIndex(index int) *KeyPair {
+	mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
+	// fmt.Println("mnemonic:", mnemonic)
+
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		return nil
+	}
+	leaf := fmt.Sprintf("m/44'/60'/0'/0/%d", index)
+	path := hdwallet.MustParseDerivationPath(leaf)
+	account, err := wallet.Derive(path, true)
+	if err != nil {
+		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		return nil
+	}
+	// s.logger.Info(fmt.Sprintf("m/44'/60'/0'/0/%d", index), zap.String("Account address", account.Address.Hex()))
+
+	privateKey, err := wallet.PrivateKey(account)
+	if err != nil {
+		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		return nil
+	}
+	privateKeyHex, err := wallet.PrivateKeyHex(account)
+	if err != nil {
+		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		return nil
+	}
+	// fmt.Printf("Private key m/44'/60'/0'/0/0 in hex: %s\n", privateKeyHex)
+	// s.logger.Info(fmt.Sprintf("m/44'/60'/0'/0/%d", index), zap.String("Private key", privateKeyHex))
+
+	publicKeyHex, _ := wallet.PublicKeyHex(account)
+	if err != nil {
+		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		return nil
+	}
+
+	// s.logger.Info(fmt.Sprintf("m/44'/60'/0'/0/%d", index), zap.String("Public key", publicKeyHex))
+
+	_ = privateKey
+	_ = publicKeyHex
+
+	return &KeyPair{
+		PrivateKeyHex: privateKeyHex,         //hex格式的私钥
+		AddressHex:    account.Address.Hex(), //hex格式的地址
+	}
+
 }
 
 // GetLatestBlockNumber get the latest block number
@@ -222,8 +284,16 @@ func (s *Service) GetEthBalance(address string) float64 {
 	return f64
 }
 
-//CheckAddressIsvalid 返回地址(普通地址或合约地址) 是否合法
-func (s *Service) CheckAddressIsvalid(addressHex string) bool {
+//CheckIsvalidAddress 返回地址(普通  地址) 是否合法, 无须链上查询
+func (s *Service) CheckIsvalidAddress(addressHex string) bool {
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+
+	return re.MatchString(addressHex)
+
+}
+
+//CheckAddressIsvalidContract 返回地址(合约地址) 是否合法, 需要链上查找
+func (s *Service) CheckAddressIsvalidContract(addressHex string) bool {
 
 	address := common.HexToAddress(addressHex)
 	bytecode, err := s.WsClient.CodeAt(context.Background(), address, nil) // nil is latest block
@@ -317,20 +387,9 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 	}
 	// log.Println("=========queryTransactionByBlockNumber start==========")
 	for _, tx := range block.Transactions() {
-		// log.Println("tx.Hash: ", tx.Hash().Hex())            //
-		// log.Println("tx.Value: ", tx.Value().String())       // 10000000000000000
-		// log.Println("tx.Gas: ", tx.Gas())                    // 3000000
-		// log.Println("tx.GasPrice: ", tx.GasPrice().Uint64()) // 1000000000
-
-		// cost := tx.Gas() * tx.GasPrice().Uint64() //计算交易所需要支付的总费用
 		gasCost := util.CalcGasCost(tx.Gas(), tx.GasPrice()) //计算交易所需要支付的总费用
-		// log.Println("交易总费用(Wei): ", gasCost)                 //3000000000000000Wei
 		ethAmount := util.ToDecimal(gasCost, 18)
 		ethAmountF64, _ := ethAmount.Float64()
-		// log.Println("交易总费用(eth): ", ethAmount) //0.003Eth
-		// log.Println("tx.Nonce: ", tx.Nonce())
-		// log.Println("tx.Data: ", tx.Data())
-		// log.Println("tx.To: ", tx.To().Hex()) //目标地址
 
 		chainID, err := s.WsClient.NetworkID(context.Background())
 		if err != nil {
@@ -361,22 +420,19 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 			zap.ByteString("Data", tx.Data()),
 			zap.String("To", tx.To().Hex()),
 			zap.String("From", msg.From().Hex()),
-			zap.Uint64("Status", receipt.Status),
+			zap.Uint64("Status", receipt.Status), //1-succeed
 		)
-
-		// log.Println(receipt.Status) // 1
 
 	}
 
 	// log.Println("=========queryTransactionByBlockNumber end==========")
 }
 
-//从总账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
-func (s *Service) TransferEthFromCoinbaseToOtherAccount(targetAccount string, amount int64) error {
+//从第0号叶子账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
+func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) error {
 
-	//主账号私钥
-	privKeyHex := "bc2f812f1f534c9e8a3b3cfb628b0ea5d41967d4f18391c6489737d743b1ee7a"
-
+	//第0号叶子私钥
+	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
 		s.logger.Error("BlockByNumber failed ", zap.Error(err))
@@ -396,16 +452,8 @@ func (s *Service) TransferEthFromCoinbaseToOtherAccount(targetAccount string, am
 		return err
 	}
 
-	value := big.NewInt(amount)  // in wei (1 eth)
-	gasLimit := uint64(GASLIMIT) // in units
-	/*
-		gasPrice, err := client.SuggestGasPrice(context.Background())
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			log.Println("gasPrice: ", gasPrice)
-		}
-	*/
+	value := big.NewInt(amount)           // in wei (1 eth)
+	gasLimit := uint64(LMCommon.GASLIMIT) // in units
 	gasPrice := s.GetGasPrice()
 
 	//接收账号
@@ -463,7 +511,7 @@ func (s *Service) TransferEthFromCoinbaseToOtherAccount(targetAccount string, am
 func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(LNMCContractAddress), s.WsClient)
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
 		s.logger.Error("conn contracts failed ", zap.Error(err))
 		return 0, err
@@ -481,7 +529,10 @@ func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
 }
 
 //从ERC20代币总账号转账到目标普通账号
-func (s *Service) TransferLNMCToNormalAddress(contractAddress, target string, amount int64) error {
+func (s *Service) TransferLNMCToNormalAddress(target string, amount int64) error {
+	var privateKeyHex string
+	privateKeyHex = s.GetKeyPairsFromLeafIndex(LMCommon.LNMCINDEX).PrivateKeyHex //使用1号叶子
+
 	//查询转账之前的LNMC余额
 	amountCurrent, err := s.GetLNMCTokenBalance(target)
 	if err != nil {
@@ -491,14 +542,15 @@ func (s *Service) TransferLNMCToNormalAddress(contractAddress, target string, am
 		s.logger.Info("查询转账之前的LNMC余额", zap.Uint64("amountCurrent", amountCurrent))
 	}
 
-	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(contractAddress), s.WsClient)
+	//使用第1号叶子的发币合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
 		// log.Fatalf("conn contract: %v \n", err)
 		s.logger.Error("conn contracts failed ", zap.Error(err))
 		return err
 	}
-	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	// 第1号叶子私钥
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
 		s.logger.Error("HexToECDSA failed ", zap.Error(err))
 		return err
@@ -525,8 +577,8 @@ func (s *Service) TransferLNMCToNormalAddress(contractAddress, target string, am
 
 	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)      // in wei
-	auth.GasLimit = uint64(3000000) // in units
+	auth.Value = big.NewInt(0)                // in wei
+	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
 	auth.GasPrice = gasPrice
 
 	//调用合约里的转账函数
@@ -570,15 +622,19 @@ func (s *Service) TransferLNMCToNormalAddress(contractAddress, target string, am
 	}
 }
 
-//部署多签合约
-func (s *Service) DeployMultiSig() error {
+/*
+部署多签合约
+约定： 使用1号叶子地址作为发币的私钥
+*/
+func (s *Service) DeployMultiSig(addressHexA, addressHexB string) error {
 
-	// 合约部署
-	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	privateKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.LNMCINDEX).PrivateKeyHex //使用1号叶子
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
 		s.logger.Error("HexToECDSA failed ", zap.Error(err))
 		return err
 	}
+
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -599,59 +655,215 @@ func (s *Service) DeployMultiSig() error {
 		return err
 	}
 
-	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
+	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)      // in wei
-	auth.GasLimit = uint64(3000000) // in units
+	auth.Value = big.NewInt(0)                // in wei
+	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
 	auth.GasPrice = gasPrice
 
-	//A的私钥
-	privateKeyA, err := crypto.HexToECDSA("91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1")
-	if err != nil {
-		s.logger.Error("HexToECDSA failed ", zap.Error(err))
-		return err
-	}
-	publicKeyA := privateKeyA.Public()
-	publicKeyECDSAA, ok := publicKeyA.(*ecdsa.PublicKey)
-	if !ok {
-		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-
-	}
-	fromAddressA := crypto.PubkeyToAddress(*publicKeyECDSAA)
-
-	//B的私钥
-	privateKeyB, err := crypto.HexToECDSA("b65e1f6e3b449c35c18518cfdf8de3c361ccf6f4a51817e0709a917fac688423")
-	if err != nil {
-		s.logger.Error("HexToECDSA failed ", zap.Error(err))
-		return err
-	}
-	publicKeyB := privateKeyB.Public()
-	publicKeyECDSAB, ok := publicKeyB.(*ecdsa.PublicKey)
-	if !ok {
-		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-
-	}
-	fromAddressB := crypto.PubkeyToAddress(*publicKeyECDSAB)
-	fmt.Println(fromAddressA.String(), fromAddressB.String())
-	//return
-	address, tx, _, err := MultiSig.DeployMultiSig(
+	address, deployMultiSigTx, _, err := MultiSig.DeployMultiSig(
 		auth,
 		s.WsClient,
-		fromAddressA, //A 账号地址
-		fromAddressB, //B 账号地址
-		common.HexToAddress("0xdeb284d75f757ce5e3c5de349732c05baa53584f"), //ERC20发币地址
+		common.HexToAddress(addressHexA), //A 账号地址
+		common.HexToAddress(addressHexB), //B 账号地址
+		common.HexToAddress(s.o.ERC20DeployContractAddress), //ERC20发币地址
 	)
 	if err != nil {
-		s.logger.Error("deploy failed ", zap.Error(err))
+		s.logger.Error("DeployMultiSig failed ", zap.Error(err))
 		return err
 	}
-	fmt.Println("Contract pending deploy: ", address.String(), tx.Hash().String())
 
-	//TODO 监听，直到合约部署成功,如果失败，则提示
+	s.logger.Info("Contract pending deploy succeed",
+		zap.String("deploy", address.String()),
+		zap.String("Hash", deployMultiSigTx.Hash().String()),
+	)
 
-	return nil
+	//监听，直到合约部署成功,如果失败，则提示
+	done := s.WaitForBlockCompletation(deployMultiSigTx.Hash().Hex())
+	if done == 1 {
+
+		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), deployMultiSigTx.Hash())
+		if err != nil {
+			s.logger.Error("TransactionByHash failed ", zap.Error(err))
+			return err
+		}
+		s.logger.Info("多签合约部署成功",
+			zap.String("Hash", tx.Hash().Hex()),
+			zap.Bool("isPending", isPending),
+		)
+		return nil
+
+	} else {
+		s.logger.Error("多签合约部署失败")
+		return errors.New("多签合约部署失败")
+	}
+
+}
+
+/*
+代币转账到多签合约账户, sourcePrivateKey是发起转账的用户
+发币合约地址由walletservice.yml指定
+一般用于发币账户转到 多签智能合约及其它账号
+如果是充值，则第一个参数是第1号叶子的私钥
+*/
+func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, amount int64) error {
+
+	//使用总发币的合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	if err != nil {
+		s.logger.Error("NewERC20Token failed ", zap.Error(err))
+		return err
+	}
+
+	//发起转账的用户的私钥
+	privateKey, err := crypto.HexToECDSA(sourcePrivateKey)
+	if err != nil {
+		s.logger.Error("HexToECDSA failed ", zap.Error(err))
+		return err
+	}
+	auth := bind.NewKeyedTransactor(privateKey)
+
+	//调用合约里的转账函数
+	transferTx, err := contract.Transfer(&bind.TransactOpts{
+		From:   auth.From,   //发起转账的用户账户地址
+		Signer: auth.Signer, //签名
+		Value:  nil,
+	}, common.HexToAddress(target), big.NewInt(amount))
+	if err != nil {
+
+		s.logger.Error("TransferFrom failed ", zap.Error(err))
+		return err
+	}
+	// fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
+
+	//监听，直到转账成功,如果失败，则提示
+	done := s.WaitForBlockCompletation(transferTx.Hash().Hex())
+	if done == 1 {
+		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferTx.Hash())
+		if err != nil {
+			s.logger.Error("TransferFrom failed ", zap.Error(err))
+			return err
+		}
+		s.logger.Info("转账成功",
+			zap.String("Hash", tx.Hash().Hex()),
+			zap.Bool("isPending", isPending),
+		)
+
+		return nil
+	} else {
+		s.logger.Error("代币转账到多签合约账户失败")
+		return errors.New("代币转账到多签合约账户失败")
+	}
+
+}
+
+//ERC20代币余额查询， 传参: 账号地址
+func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
+
+	//使用发币合约地址
+	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	if err != nil {
+		s.logger.Error("NewERC20Token failed ", zap.Error(err))
+		return 0, err
+	}
+
+	if accountBalance, err := contract.BalanceOf(nil, common.HexToAddress(addressHex)); err != nil {
+		s.logger.Error("BalanceOf failed ", zap.Error(err))
+		return 0, err
+	} else {
+
+		// fmt.Printf("账号[%s]的LNMC余额: %s LNMC\n", addressHex, accountBalance.String())
+		return accountBalance.Int64(), nil
+	}
+
+}
+
+/*
+多签合约, 从合约账号转到目标账号
+传参：
+  1. multiSigContractAddress 第一步部署的多签智能合约， A+B => C
+  2. privateKeySource A或B的私钥，用来签名
+  3. target 目标地址C, 在本系统里，需要派生一个子地址来接收
+
+*/
+func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySource, target string, amount int64) error {
+
+	cAddr := common.HexToAddress(multiSigContractAddress)
+	// fmt.Println(cAddr.String())
+
+	//调用多签智能合约地址
+	contract, err := MultiSig.NewMultiSig(cAddr, s.WsClient)
+	if err != nil {
+		s.logger.Error("NewMultiSig failed ", zap.Error(err))
+		return err
+	}
+	fmt.Println(contract.Name(&bind.CallOpts{Pending: true}))
+
+	privateKey, err := crypto.HexToECDSA(privateKeySource) //A或B私钥
+	if err != nil {
+		return err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		// log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		return err
+	}
+
+	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
+		return err
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey)
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)                // in wei
+	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
+	auth.GasPrice = gasPrice
+
+	//调用合约里的转账函数
+	transferMultiSigTx, err := contract.Transfer(&bind.TransactOpts{
+		From:   auth.From,
+		Signer: auth.Signer,
+		Value:  nil,
+	}, common.HexToAddress(target), big.NewInt(amount)) //LNMC
+	if err != nil {
+
+		s.logger.Error("Transfer failed ", zap.Error(err))
+		return err
+	}
+	// fmt.Printf("tx of multisig contract sent: %s \n", transferMultiSigTx.Hash().Hex())
+
+	done := s.WaitForBlockCompletation(transferMultiSigTx.Hash().Hex())
+	if done == 1 {
+		tx2, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferMultiSigTx.Hash())
+		if err != nil {
+
+			s.logger.Error("TransactionByHash failed", zap.Error(err))
+			return err
+		}
+
+		s.logger.Info("multisig contract 打包成功",
+			zap.String("Hash", tx2.Hash().Hex()),
+			zap.Bool("isPending", isPending),
+		)
+		return nil
+
+	} else {
+		s.logger.Error("multisig contract 打包失败")
+		return errors.New("multisig contract 打包失败")
+	}
 
 }
 

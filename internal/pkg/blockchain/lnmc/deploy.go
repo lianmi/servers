@@ -117,23 +117,18 @@ func getTokenBalance(contractAddress, accountAddress string) {
 
 }
 
-//ERC20代币转账, 从合约账号转到目标账号
-func transfer(contractAddress, target string, amount int64) {
-
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
-	if err != nil {
-		log.Fatalf("Unable to connect to network:%v \n", err)
-	}
-
-	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(contractAddress), client)
-	if err != nil {
-		log.Fatalf("conn contract: %v \n", err)
-	}
-	privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+//Eth转账, 从第0号叶子转到目标账号, amount  单位是 wei
+func transferEth(sourcePrivateKey, target string, amount string) {
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	privateKey, err := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -146,34 +141,41 @@ func transfer(contractAddress, target string, amount int64) {
 		log.Fatal(err)
 	}
 
+	value := new(big.Int)
+	value.SetString(amount, 10) // in wei sets the value to eth
+
+	gasLimit := uint64(21000) // in units
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)      // in wei
-	auth.GasLimit = uint64(3000000) // in units
-	auth.GasPrice = gasPrice
+	toAddress := common.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
+	var data []byte
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
 
-	//调用合约里的转账函数
-	tx, err := contract.Transfer(&bind.TransactOpts{
-		From:   auth.From,
-		Signer: auth.Signer,
-		Value:  nil,
-	}, common.HexToAddress(target), big.NewInt(amount))
+	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
-		log.Fatalf("TransferFrom err: %v \n", err)
+		log.Fatal(err)
 	}
-	fmt.Printf("tx sent: %s \n", tx.Hash().Hex())
 
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
 }
 
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive(sender, receiver string) {
 
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -207,12 +209,12 @@ func querySendAndReceive(sender, receiver string) {
 
 func queryTx(txHex string) {
 	txHash := common.HexToHash(txHex)
-	blockchain, err := ethclient.Dial("http://127.0.0.1:8545")
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
 
-	tx, isPending, err := blockchain.TransactionByHash(context.Background(), txHash)
+	tx, isPending, err := client.TransactionByHash(context.Background(), txHash)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -224,13 +226,13 @@ func queryTx(txHex string) {
 //查询Eth余额
 func queryETH(accountHex string) {
 
-	blockchain, err := ethclient.Dial("http://127.0.0.1:8545")
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
 
 	account := common.HexToAddress(accountHex)
-	balance, err := blockchain.BalanceAt(context.Background(), account, nil)
+	balance, err := client.BalanceAt(context.Background(), account, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -239,7 +241,7 @@ func queryETH(accountHex string) {
 }
 
 func main() {
-	//部署合约
+	//部署合约,获取发币地址
 	// deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
 	//输出: Contract pending deploy: 0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce
 
@@ -255,12 +257,6 @@ func main() {
 
 	getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545")
 
-	//向HD钱包第0号索引派生的账号：  0xe14d151e0511b61357dde1b35a74e9c043c34c47 转账eth
-	//向HD钱包第1号索引派生的账号：  0x4acea697f366C47757df8470e610a2d9B559DbBE 转账LNMC
-	// transfer("0xc5597646fe9a9fd5057fff15df28af4ac78e992e", "0x4acea697f366C47757df8470e610a2d9B559DbBE", 200)
-	//输出： 0x40aa1ed6e2af939a9cc2f711a51cea0f21bdba3f146530f270956dbe3b454dd8
-
-	//查询 Tx
 	// queryTx("0x40aa1ed6e2af939a9cc2f711a51cea0f21bdba3f146530f270956dbe3b454dd8")
 
 	// 查询ERC20余额
