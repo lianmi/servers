@@ -158,6 +158,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	//注册每个业务子类型的处理方法, BusinessType = 10
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet //10-1 钱包账号注册
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit        //10-2 充值
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer    //10-3 发起转账
 
 	return nsqClient
 }
@@ -194,6 +195,8 @@ func (nc *NsqClient) Start() error {
 	}
 
 	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("topics", nc.topics))
+
+	nc.RedisInit()
 
 	//Go程，处理dispatcher发来的业务数据
 	go nc.ProcessRecvPayload()
@@ -292,6 +295,25 @@ func (nc *NsqClient) Stop() error {
 		consumer.Stop()
 	}
 	return nil
+}
+
+/*
+判断redis是否存在键值，如果没，则创建
+*/
+func (nc *NsqClient) RedisInit() (err error) {
+
+	nc.logger.Info("RedisInit start...")
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	//判断平台HD钱包的派生叶子索引是否存在，如果不存在，则创建key，value: 1
+	isExists, _ := redis.Bool(redisConn.Do("EXISTS", "Bip32Index"))
+	if !isExists {
+		_, err = redisConn.Do("SET", "Bip32Index", 1) //0， 1 的索引号已经用了
+	}
+
+	return nil
+
 }
 
 var ProviderSet = wire.NewSet(NewNsqOptions, NewNsqClient)

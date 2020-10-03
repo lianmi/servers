@@ -168,7 +168,7 @@ func (s *Service) CreateHDWallet() {
 }
 
 //根据叶子索引号获取到公私钥对
-func (s *Service) GetKeyPairsFromLeafIndex(index int) *KeyPair {
+func (s *Service) GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
 	mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	// fmt.Println("mnemonic:", mnemonic)
 
@@ -497,7 +497,7 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) 
 		if err != nil {
 			s.logger.Error("SendTransaction failed ", zap.Error(err))
 		}
-		
+
 		s.logger.Info("交易完成",
 			zap.Uint64("区块高度: ", blockNumber),
 			zap.String("交易哈希: ", tx.Hash().Hex()),
@@ -631,33 +631,33 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 部署多签合约
 约定： 使用1号叶子地址作为发币的私钥
 */
-func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (blockNumber uint64, hash string, err error) {
+func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddress string, blockNumber uint64, hash string, err error) {
 
 	privateKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.LNMCINDEX).PrivateKeyHex //使用1号叶子
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
 		s.logger.Error("HexToECDSA failed ", zap.Error(err))
-		return 0, "", err
+		return "", 0, "", err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-		return 0, "", errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return "", 0, "", errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
-		return 0, "", err
+		return "", 0, "", err
 	}
 
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
 	if err != nil {
 		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
-		return 0, "", err
+		return "", 0, "", err
 	}
 
 	auth := bind.NewKeyedTransactor(privateKey)
@@ -669,14 +669,16 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (blockNumber u
 	address, deployMultiSigTx, _, err := MultiSig.DeployMultiSig(
 		auth,
 		s.WsClient,
-		common.HexToAddress(addressHexA), //A 账号地址
-		common.HexToAddress(addressHexB), //B 账号地址
+		common.HexToAddress(addressHexA), //A 账号地址  发起者
+		common.HexToAddress(addressHexB), //B 账号地址  证明人
 		common.HexToAddress(s.o.ERC20DeployContractAddress), //ERC20发币地址
 	)
 	if err != nil {
 		s.logger.Error("DeployMultiSig failed ", zap.Error(err))
-		return 0, "", err
+		return "", 0, "", err
 	}
+
+	contractAddress = address.String()
 
 	s.logger.Info("Contract pending deploy succeed",
 		zap.String("deploy", address.String()),
@@ -690,17 +692,18 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (blockNumber u
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), deployMultiSigTx.Hash())
 		if err != nil {
 			s.logger.Error("TransactionByHash failed ", zap.Error(err))
-			return 0, "", err
+			return "", 0, "", err
 		}
 		s.logger.Info("多签合约部署成功",
+			zap.String("contractAddress", contractAddress),
 			zap.String("Hash", tx.Hash().Hex()),
 			zap.Bool("isPending", isPending),
 		)
-		return blockNumber, tx.Hash().Hex(), nil
+		return contractAddress, blockNumber, tx.Hash().Hex(), nil
 
 	} else {
 		s.logger.Error("多签合约部署失败")
-		return 0, "", errors.New("多签合约部署失败")
+		return "", 0, "", errors.New("多签合约部署失败")
 	}
 
 }

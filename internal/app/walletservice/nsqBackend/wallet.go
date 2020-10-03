@@ -158,7 +158,7 @@ COMPLETE:
 	if err := nc.Producer.Public(topic, rawData); err == nil {
 		nc.logger.Info(" Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -175,7 +175,6 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 	var errorMsg string
 	var walletAddress string //用户钱包地址
 	var amountLNMC int64     //用户当前代币数量
-	// var accountLNMCBalance uint64 //用户充值之后的代币数量
 	var blockNumber uint64
 	var hash string
 	var amountAfter uint64 //用户充值之后的代币数量
@@ -323,7 +322,223 @@ COMPLETE:
 	if err := nc.Producer.Public(topic, rawData); err == nil {
 		nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
+10-3 发起转账
+1. 用户下单需要支付或者手工转账时，向服务端发起一个转账申请, 接收者也必须开通钱包 。
+2. 服务端收到请求后，判断发起方的余额是否足够支付，如果足够，则动态部署一个多签合约。
+3. 证明人为一个平台派生地址，3方分别是发起方、接收方、平台方(要记录BIP44对应的index, 因为每个转账的index都自动递增，不能相同，用来区分每笔转账 )
+4. 服务端向发起方返回合约地址及Tx裸交易二进制序列
+
+*/
+func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var walletAddress string //用户钱包地址
+	var amountLNMC int64     //用户当前代币数量
+	var blockNumber uint64
+	var contractAddress string //多签智能合约地址
+	var hash string
+	var newBip32Index uint64 //自增的平台HD钱包派生索引号
+	var amountAfter uint64   //用户充值之后的代币数量
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandlePreTransfer start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandlePreTransfer",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Wallet.PreTransferReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("PreTransferReq payload",
+			zap.String("username", username),
+			zap.String("targetUserName", req.GetTargetUserName()),
+			zap.Float64("amount", req.GetAmount()), //人民币格式 ，有小数点
+		)
+
+		if req.GetAmount() <= 0 {
+
+			nc.logger.Warn("金额错误，必须大于0 ", zap.Float64("amount", req.GetAmount()))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("amount must gather than 0")
+			goto COMPLETE
+		}
+
+		//检测钱包是否注册, 如果没注册， 则不能转账
+		if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", username), "WalletAddress")); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HEXISTS error")
+			goto COMPLETE
+		} else {
+			if !isExists {
+				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Wallet had not registered")
+				goto COMPLETE
+			}
+		}
+
+		//检测接收者钱包是否注册, 如果没注册， 则不能转账
+		if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress")); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HEXISTS error")
+			goto COMPLETE
+		} else {
+			if !isExists {
+				nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", req.GetTargetUserName()))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Target Wallet had not registered")
+				goto COMPLETE
+			}
+		}
+
+		walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET error")
+			goto COMPLETE
+		}
+
+		if nc.ethService.CheckIsvalidAddress(walletAddress) == false {
+			nc.logger.Warn("非法钱包地址", zap.String("WalletAddress", walletAddress))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("WalletAddress is not valid")
+			goto COMPLETE
+		}
+
+		//当前用户的代币余额
+		amountLNMC, err = redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "LNMCAmount"))
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET error")
+			goto COMPLETE
+		}
+		nc.logger.Info("当前用户的钱包信息",
+			zap.String("username", username),
+			zap.String("walletAddress", walletAddress),
+			zap.Int64("当前余额 amountLNMC", amountLNMC),
+		)
+
+		//amount是人民币格式（单位是 元），要转为int64
+		if amountLNMC < int64(req.GetAmount()*100) {
+			nc.logger.Warn("余额不足")
+			errorCode = http.StatusInternalServerError     //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Not sufficient funds") //  余额不足
+			goto COMPLETE
+		}
+
+		//平台HD钱包利用bip32派生一个子私钥及子地址，作为证明人 - B签
+		newBip32Index, err = redis.Uint64(redisConn.Do("INCR", "Bip32Index"))
+		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
+
+		nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
+			zap.String("username", username),
+			zap.Uint64("newBip32Index", newBip32Index),
+			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
+			zap.String("AddressHex", newKeyPair.AddressHex),
+		)
+
+		//向此新地址转入若干gas用来运行合约
+		blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
+		if err != nil {
+			nc.logger.Error("向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Transfer Eth error")
+			goto COMPLETE
+		} else {
+			nc.logger.Info("向此新地址转入若干gas用来运行合约成功",
+				zap.String("AddressHex", newKeyPair.AddressHex),
+				zap.Uint64("blockNumber", blockNumber),
+				zap.String("hash", hash),
+			)
+
+		}
+
+		//调用eth接口， 部署多签合约, A-发起者， B-证明人
+		contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(walletAddress, newKeyPair.AddressHex)
+		if err != nil {
+			nc.logger.Error("部署多签合约 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Deploy MultiSig Contract error")
+			goto COMPLETE
+		} else {
+			nc.logger.Info("部署多签合约成功",
+				zap.String("AddressHex", newKeyPair.AddressHex),
+				zap.String("contractAddress", contractAddress),
+				zap.Uint64("blockNumber", blockNumber),
+				zap.String("hash", hash),
+			)
+
+		}
+
+		//保存预审核转账记录到 MySQL
+
+		//保存预审核转账记录到 redis
+
+		// redisConn.Do("HSET",
+		// 	fmt.Sprintf("userWallet:%s", username),
+		// 	"LNMCAmount",
+		// 	amountAfter)
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		rsp := &Wallet.DepositRsp{
+			BlockNumber: blockNumber,
+			Hash:        hash,
+			AmountLNMC:  amountAfter,
+			Time:        uint64(time.Now().UnixNano() / 1e6), // 当前时间
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data) //网络包的body，承载真正的业务数据
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
