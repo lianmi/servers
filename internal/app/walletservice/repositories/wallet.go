@@ -17,7 +17,7 @@ type MysqlWalletRepository struct {
 	db        *gorm.DB
 	redisPool *redis.Pool
 	// nsq     *nsqBackend.NsqClient
-	base      *BaseRepository
+	base *BaseRepository
 }
 
 func NewMysqlWalletRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool) WalletRepository {
@@ -26,7 +26,6 @@ func NewMysqlWalletRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		db:        db,
 		redisPool: redisPool,
 		// nsq:     nc,
-		base:      NewBaseRepository(logger, db),
+		base: NewBaseRepository(logger, db),
 	}
 }
-

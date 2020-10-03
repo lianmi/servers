@@ -13,8 +13,8 @@ import (
 // RegisterWalletCmd represents the RegisterWallet command
 var RegisterWalletCmd = &cobra.Command{
 	Use:   "RegisterWallet",
-	Short: "用户利用钱包SDK生成的地址(约定第0号叶子的地址)",
-	Long:  `A用户利用钱包SDK生成的地址(约定第0号叶子的地址)`,
+	Short: "./lmSdkClient wallet RegisterWallet",
+	Long:  `A用户利用钱包SDK生成的地址(约定第0号叶子的地址),  例子： ./lmSdkClient wallet RegisterWallet`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("RegisterWallet called")
 		walletAddress, _ := cmd.PersistentFlags().GetString("walletAddress")
@@ -31,6 +31,6 @@ var RegisterWalletCmd = &cobra.Command{
 func init() {
 	// 子命令
 	walletCmd.AddCommand(RegisterWalletCmd)
-	loginCmd.PersistentFlags().StringP("walletAddress", "w", "", "your walletAddress, like: 0x---------")
+	RegisterWalletCmd.PersistentFlags().StringP("walletAddress", "w", "", "your walletAddress, like: 0x---------")
 
 }

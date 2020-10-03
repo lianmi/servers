@@ -149,7 +149,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient := &NsqClient{
 		o:             o,
 		Producer:      p,
-		logger:        logger.With(zap.String("type", "ChatService")),
+		logger:        logger.With(zap.String("type", "WalletService")),
 		db:            db,
 		redisPool:     redisPool,
 		ethService:    ethService,
@@ -157,6 +157,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	}
 	//注册每个业务子类型的处理方法, BusinessType = 10
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet //10-1 钱包账号注册
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit        //10-2 充值
 
 	return nsqClient
 }

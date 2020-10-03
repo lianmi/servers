@@ -1,0 +1,22 @@
+syntax = "proto3";
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+
+message PreTransferReq{
+    //收款方的用户账号
+    string targetUserName=1;
+
+    //金额(人民币格式)， 服务端要转换为代币格式
+    double amount=2;
+}
+
+
+message PreTransferRsp{
+    //合约地址
+    string contractAddress=1;
+
+    //裸交易二进制序列
+    string rawTx=2;
+}
+

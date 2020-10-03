@@ -9,8 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"golang.org/x/crypto/sha3"
 	"github.com/shopspring/decimal"
+	"golang.org/x/crypto/sha3"
 )
 
 // PublicKeyBytesToAddress ...
@@ -55,7 +55,7 @@ func IsZeroAddress(iaddress interface{}) bool {
 	return reflect.DeepEqual(addressBytes, zeroAddressBytes)
 }
 
-// ToDecimal wei to decimals
+// ToDecimal wei to decimals, 将以wei为单位的大数转为小数点
 func ToDecimal(ivalue interface{}, decimals int) decimal.Decimal {
 	value := new(big.Int)
 	switch v := ivalue.(type) {
@@ -72,7 +72,7 @@ func ToDecimal(ivalue interface{}, decimals int) decimal.Decimal {
 	return result
 }
 
-// ToWei decimals to wei
+// ToWei decimals to wei 将小数转为以wei为单位的大数
 func ToWei(iamount interface{}, decimals int) *big.Int {
 	amount := decimal.NewFromFloat(0)
 	switch v := iamount.(type) {
