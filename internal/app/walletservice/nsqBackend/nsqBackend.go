@@ -156,9 +156,10 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
 	//注册每个业务子类型的处理方法, BusinessType = 10
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet //10-1 钱包账号注册
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit        //10-2 充值
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer    //10-3 发起转账
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet  //10-1 钱包账号注册
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit         //10-2 充值
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer     //10-3 发起转账
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer //10-4 确认转账
 
 	return nsqClient
 }

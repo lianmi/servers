@@ -38,10 +38,13 @@ message PreTransferReq{
 
 message PreTransferRsp{
 
-    //裸交易结构体
-    RawTx rawTx=1;
+    //向多签合约转账的裸交易结构体
+    RawTx rawTxToMulsig=1;
+
+    //从多签合约转账到目标接收者的裸交易结构体
+    RawTx rawTxToTarget=2;
 
     //时间
-    fixed64 time=2;
+    fixed64 time=3;
 }
 

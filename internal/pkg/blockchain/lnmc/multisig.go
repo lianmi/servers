@@ -683,8 +683,6 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
-	// rawTx, err := tx.MarshalJSON()
-	// tx_bak := tx.UnmarshalJSON(rawTx)
 
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
@@ -723,7 +721,7 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 
 }
 
-///
+//
 
 func GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) ([]byte, error) {
 	client, err := ethclient.Dial("ws://127.0.0.1:8546")
@@ -791,6 +789,186 @@ func GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) ([]by
 	return tx.MarshalJSON()
 }
 
+/*
+一个普通用户账号转账，目标是多签合约地址
+*/
+func transferLNMCTokenToContractAddress(privKey, target, tokens string) ([]byte, error) {
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//A私钥
+	privateKey, err := crypto.HexToECDSA(privKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("nonce:", int64(nonce))
+
+	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("gasPrice", gasPrice)
+
+	//接收者地址：多签合约地址
+	toAddress := common.HexToAddress(target)
+
+	//注意，这里需要填写发币合约地址
+	tokenAddress := common.HexToAddress(ERC20DeployContractAddress)
+
+	transferFnSignature := []byte("transfer(address,uint256)")
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(transferFnSignature)
+	methodID := hash.Sum(nil)[:4]
+	fmt.Println(hexutil.Encode(methodID)) // 0xa9059cbb
+
+	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
+	fmt.Println(hexutil.Encode(paddedAddress))
+
+	amount := new(big.Int)
+	amount.SetString(tokens, 10) //代币数量
+
+	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
+	fmt.Println(hexutil.Encode(paddedAmount))
+
+	var data []byte
+	data = append(data, methodID...)
+	data = append(data, paddedAddress...)
+	data = append(data, paddedAmount...)
+
+	fmt.Println("data:", data)
+	fmt.Println("data hex:", hex.EncodeToString(data))
+
+	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
+	fmt.Println("gasLimit:", gasLimit)
+
+	//构造代币转账的交易裸数据
+	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("chainID:", chainID.String())
+
+	//对裸交易数据签名
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
+
+	//等待打包完成的回调
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
+	if done == 1 {
+		//获取交易哈希里的打包状态，如果打包完成，isPending = false
+		tx2, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("打包成功, 交易哈希: ", tx2.Hash().Hex()) //
+		log.Println("isPending: ", isPending)         // false
+
+	} else {
+		log.Println(" 打包失败")
+	}
+
+	return nil, nil
+}
+
+/*
+构造一个普通用户账号转账的裸交易数据，目标是多签合约地址
+source - 发起方账号
+target - 多签合约地址
+tokens - 代币数量，字符串格式
+*/
+func generateTransferLNMCTokenTx(source, target, tokens string) ([]byte, error) {
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fromAddress := common.HexToAddress(source)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("nonce:", int64(nonce))
+
+	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("gasPrice", gasPrice)
+
+	//接收者地址：多签合约地址
+	toAddress := common.HexToAddress(target)
+
+	//注意，这里需要填写发币合约地址
+	tokenAddress := common.HexToAddress(ERC20DeployContractAddress)
+
+	transferFnSignature := []byte("transfer(address,uint256)")
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(transferFnSignature)
+	methodID := hash.Sum(nil)[:4]
+	fmt.Println(hexutil.Encode(methodID)) // 0xa9059cbb
+
+	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
+	fmt.Println(hexutil.Encode(paddedAddress))
+
+	amount := new(big.Int)
+	amount.SetString(tokens, 10) //代币数量
+
+	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
+	fmt.Println(hexutil.Encode(paddedAmount))
+
+	var data []byte
+	data = append(data, methodID...)
+	data = append(data, paddedAddress...)
+	data = append(data, paddedAmount...)
+
+	fmt.Println("data:", data)
+	fmt.Println("data hex:", hex.EncodeToString(data))
+
+	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
+	fmt.Println("gasLimit:", gasLimit)
+
+	//构造代币转账的交易裸数据
+	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("chainID:", chainID.String())
+
+	_ = tx
+	return nil, nil
+}
+
 func main() {
 	//第一步: 部署 多签合约 使用第1片叶子部署合约
 	// deployMultiSig("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
@@ -804,6 +982,7 @@ func main() {
 
 	// 第二步:  从A账户将若干代币转账到刚刚部署的多签合约
 	// sendTokenToMultisigContractAddress(PrivateKeyAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+	// transferLNMCTokenToContractAddress(PrivateKeyAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
@@ -812,7 +991,7 @@ func main() {
 	//查询用户A的余额
 	queryLNMCBalance(AddressAHEX)
 	//查询用户B的余额
-	queryLNMCBalance(AddressBHEX)
+	// queryLNMCBalance(AddressBHEX)
 
 	fmt.Println("========")
 
@@ -832,7 +1011,7 @@ func main() {
 	// 	50)
 
 	//查询用户C的余额
-	queryLNMCBalance(AddressCHEX)
+	// queryLNMCBalance(AddressCHEX)
 
 	// re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 	// addressHex := "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55"
@@ -867,20 +1046,24 @@ func main() {
 	// 从第1号叶子转账10代币给D
 	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x59aC768b416C035c8DB50B4F54faaa1E423c070D", 10)
 
-	rawTx, err := GenerateRawTx(
-		"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
-		AddressAHEX, //from
-		AddressDHEX, //D账号地址
-		"50",
-	)
-	if err != nil {
-		fmt.Println("GenerateRawTx error :", err)
+	/*
+		rawTx, err := GenerateRawTx(
+			"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
+			AddressAHEX, //from
+			AddressDHEX, //D账号地址
+			"50",
+		)
+		if err != nil {
+			fmt.Println("GenerateRawTx error :", err)
 
-		return
-	}
-	log.Println("rawTx:", rawTx)
+			return
+		}
+		log.Println("rawTx:", rawTx)
+	*/
 
 	//查询用户D的余额
-	queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
+	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
 
+	//构造普通用户转账到多签合约的裸交易数据
+	generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
 }

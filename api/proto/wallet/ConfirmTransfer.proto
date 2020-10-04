@@ -1,0 +1,21 @@
+syntax = "proto3";
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message ConfirmTransferReq{
+    //多签合约地址
+    string contractAddress=1;
+
+    //签名后的转账到多签合约的Tx
+    bytes signedTxToMultisig=2;
+
+    //签名后的从多签合约转给目标接收者的Tx(A签)
+    bytes signedTxToTarget=3;
+}
+
+
+message ConfirmTransferRsp{
+    //时间
+    fixed64 time=1;
+}
+

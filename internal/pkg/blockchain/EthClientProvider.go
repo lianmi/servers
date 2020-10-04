@@ -768,6 +768,85 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 
 }
 
+/*
+构造一个普通用户账号转账的裸交易数据，目标是多签合约地址
+source - 发起方账号
+target - 多签合约地址
+tokens - 代币数量，字符串格式
+*/
+func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*models.RawTx, error) {
+
+	fromAddress := common.HexToAddress(source)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		return nil, err
+	}
+	// fmt.Println("nonce:", int64(nonce))
+
+	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
+	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
+		return nil, err
+	}
+
+	// fmt.Println("gasPrice", gasPrice)
+
+	//接收者地址：多签合约地址
+	toAddress := common.HexToAddress(target)
+
+	//注意，这里需要填写发币合约地址
+	tokenAddress := common.HexToAddress(s.o.ERC20DeployContractAddress)
+
+	transferFnSignature := []byte("transfer(address,uint256)")
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(transferFnSignature)
+	methodID := hash.Sum(nil)[:4]
+	// fmt.Println(hexutil.Encode(methodID)) // 0xa9059cbb
+
+	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
+	// fmt.Println(hexutil.Encode(paddedAddress))
+
+	amount := new(big.Int)
+	amount.SetString(tokens, 10) //代币数量
+
+	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
+	// fmt.Println(hexutil.Encode(paddedAmount))
+
+	var data []byte
+	data = append(data, methodID...)
+	data = append(data, paddedAddress...)
+	data = append(data, paddedAmount...)
+
+	// fmt.Println("data:", data)
+	// fmt.Println("data hex:", hex.EncodeToString(data))
+
+	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
+	// fmt.Println("gasLimit:", gasLimit)
+
+	//构造代币转账的交易裸数据
+	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := s.WsClient.NetworkID(context.Background())
+	if err != nil {
+		s.logger.Error("NetworkID failed ", zap.Error(err))
+		return nil, err
+	}
+	// fmt.Println("chainID:", chainID.String())
+
+	_ = tx
+	return &models.RawTx{
+		Nonce:           nonce,
+		GasPrice:        gasPrice.Uint64(),
+		GasLimit:        gasLimit,
+		ChainID:         chainID.Uint64(),
+		Txdata:          data,
+		ContractAddress: "",
+		Value:           0,
+	}, nil
+}
+
 //ERC20代币余额查询， 传参: 账号地址
 func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
 
@@ -942,12 +1021,13 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 	// rawData, _ := tx.MarshalJSON()
 
 	_ = tx
+
 	return &models.RawTx{
 		Nonce:           nonce,
 		GasPrice:        gasPrice.Uint64(),
 		GasLimit:        gasLimit,
 		ChainID:         chainID.Uint64(),
-		Txdata:          []byte("xxx"),
+		Txdata:          data,
 		ContractAddress: contractAddress,
 		Value:           0,
 	}, nil
