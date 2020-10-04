@@ -27,7 +27,7 @@ import (
 const (
 	KEY      = "UTC--2020-09-29T09-27-24.693765000Z--b18db89641d2ec807104258e2205e6ac6264bf25"
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 3000000 //30000000000
+	GASLIMIT = 6000000 
 )
 
 func createHDWallet() {
@@ -309,12 +309,12 @@ func queryTransactionByBlockNumber(number uint64) {
 	for _, tx := range block.Transactions() {
 		log.Println("tx.Hash: ", tx.Hash().Hex())            //
 		log.Println("tx.Value: ", tx.Value().String())       // 10000000000000000
-		log.Println("tx.Gas: ", tx.Gas())                    // 3000000
+		log.Println("tx.Gas: ", tx.Gas())                    
 		log.Println("tx.GasPrice: ", tx.GasPrice().Uint64()) // 1000000000
 
 		// cost := tx.Gas() * tx.GasPrice().Uint64() //计算交易所需要支付的总费用
 		gasCost := util.CalcGasCost(tx.Gas(), tx.GasPrice()) //计算交易所需要支付的总费用
-		log.Println("交易总费用(Wei): ", gasCost)                 //3000000000000000Wei
+		log.Println("交易总费用(Wei): ", gasCost)                 //6000000000000000Wei
 		ethAmount := util.ToDecimal(gasCost, 18)
 		log.Println("交易总费用(eth): ", ethAmount) //0.003Eth
 		log.Println("tx.Nonce: ", tx.Nonce())

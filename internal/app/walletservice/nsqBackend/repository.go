@@ -49,3 +49,37 @@ func (nc *NsqClient) SaveDepositHistory(lnmcDepositHistory *models.LnmcDepositHi
 
 	return nil
 }
+
+//用户转账预审核,  新增记录
+func (nc *NsqClient) SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
+
+	tx := nc.GetTransaction()
+
+	if err := tx.Save(lmnccTransferHistory).Error; err != nil {
+		nc.logger.Error("更新用户转账预审核表失败", zap.Error(err))
+		tx.Rollback()
+		return err
+
+	}
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
+//9-11，为某个订单支付，查询出contractAddress对应的记录，然后更新 orderID 及 signedTx, 将State修改为1
+func (nc *NsqClient) UpdateLnmcTransferHistoryByContractAddress(contractAddress, orderID, SignedTx string) (err error) {
+
+	// tx := nc.GetTransaction()
+
+	// if err := tx.Save(lmnccTransferHistory).Error; err != nil {
+	// 	nc.logger.Error("更新用户转账预审核表失败", zap.Error(err))
+	// 	tx.Rollback()
+	// 	return err
+
+	// }
+	// //提交
+	// tx.Commit()
+
+	return nil
+}

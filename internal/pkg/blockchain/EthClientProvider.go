@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"regexp"
 
+	"github.com/lianmi/servers/internal/pkg/models"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,8 +18,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/wire"
-
 	"github.com/miguelmota/go-ethereum-hdwallet"
+	"golang.org/x/crypto/sha3"
+	// "github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -875,8 +878,80 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 
 }
 
-//将uint64类型的wei装维
-// func (s *Service)ToWeiString() string {
+//根据多签合约生成裸交易数据
+func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) (*models.RawTx, error) {
+	fromAddress := common.HexToAddress(fromAddressHex)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed", zap.Error(err))
+		return nil, err
+	}
+	// fmt.Println("nonce:", int64(nonce))
 
-// }
+	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
+	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		s.logger.Error("SuggestGasPrice failed", zap.Error(err))
+		return nil, err
+	}
+
+	// fmt.Println("gasPrice", gasPrice)
+
+	//接收者地址：用户D
+	toAddress := common.HexToAddress(target)
+
+	//注意，这里需要填写多签合约地址
+	tokenAddress := common.HexToAddress(contractAddress)
+
+	transferFnSignature := []byte("transfer(address,uint256)")
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(transferFnSignature)
+	methodID := hash.Sum(nil)[:4]
+	// fmt.Println(hexutil.Encode(methodID)) // 0xa9059cbb
+
+	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
+	// fmt.Println(hexutil.Encode(paddedAddress)) // 0x00000000000000000000000059ac768b416c035c8db50b4f54faaa1e423c070d
+
+	amount := new(big.Int)
+	amount.SetString(tokens, 10) //代币数量
+
+	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
+	// fmt.Println(hexutil.Encode(paddedAmount)) // 0x00000000000000000000000000000000000000000000003635c9adc5dea00000
+
+	var data []byte
+	data = append(data, methodID...)
+	data = append(data, paddedAddress...)
+	data = append(data, paddedAmount...)
+
+	// fmt.Println("data:", data)
+	// fmt.Println("data hex:", hex.EncodeToString(data))
+
+	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
+	// fmt.Println("gasLimit:", gasLimit)
+
+	//构造代币转账的交易裸数据
+	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := s.WsClient.NetworkID(context.Background())
+	if err != nil {
+		s.logger.Error("NetworkID failed", zap.Error(err))
+		return nil, err
+	}
+	// fmt.Println("chainID:", chainID.String())
+
+	// rawData, _ := tx.MarshalJSON()
+
+	_ = tx
+	return &models.RawTx{
+		Nonce:           nonce,
+		GasPrice:        gasPrice.Uint64(),
+		GasLimit:        gasLimit,
+		ChainID:         chainID.Uint64(),
+		Txdata:          []byte("xxx"),
+		ContractAddress: contractAddress,
+		Value:           0,
+	}, nil
+
+}
+
 var ProviderSet = wire.NewSet(New, NewEthClientProviderOptions)

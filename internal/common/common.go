@@ -83,5 +83,5 @@ const (
 	LNMCINDEX = 1 //第1号存储LNMC
 
 	//gas最低消耗
-	GASLIMIT = 3000000
+	GASLIMIT = 6000000
 )

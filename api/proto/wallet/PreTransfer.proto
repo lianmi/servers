@@ -2,6 +2,30 @@ syntax = "proto3";
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
+//裸交易结构体
+message RawTx {
+   //nonce
+   fixed64 nonce=1;
+
+   // gas价格
+   fixed64 gasPrice=2;
+
+   // 最低gas
+   fixed64 gasLimit=3;
+
+   //链id
+   fixed64 chainID=4;
+
+   // 交易数据 
+   bytes txdata=5;
+
+   //多签合约地址 
+   string contractAddress=6;
+
+   //ether，设为0
+   fixed64 value=7;
+
+}
 
 message PreTransferReq{
     //收款方的用户账号
@@ -13,10 +37,11 @@ message PreTransferReq{
 
 
 message PreTransferRsp{
-    //合约地址
-    string contractAddress=1;
 
-    //裸交易二进制序列
-    string rawTx=2;
+    //裸交易结构体
+    RawTx rawTx=1;
+
+    //时间
+    fixed64 time=2;
 }
 

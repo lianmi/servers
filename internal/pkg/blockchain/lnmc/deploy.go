@@ -3,12 +3,18 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	
 	"fmt"
+
+	// "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	
+
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	// "io/ioutil"
 	"log"
@@ -54,7 +60,7 @@ func deploy(privateKeyHex string) {
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)      // in wei
-	auth.GasLimit = uint64(3000000) // in units
+	auth.GasLimit = uint64(6000000) // in units
 	auth.GasPrice = gasPrice
 
 	address, _, _, err := ERC20.DeployERC20Token(
@@ -259,11 +265,9 @@ func main() {
 
 	// queryTx("0x40aa1ed6e2af939a9cc2f711a51cea0f21bdba3f146530f270956dbe3b454dd8")
 
-	// 查询ERC20余额
-	// querySendAndReceive("0xdeb284d75f757ce5e3c5de349732c05baa53584f", "0x8159077856ca85b20479f6ac6694ffed1d27fdf3")
-	//
 	//查询Eth余额
 	// queryETH("0xe14d151e0511b61357dde1b35a74e9c043c34c47")
+
 
 }
 
