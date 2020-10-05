@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/google/wire"
 	"github.com/miguelmota/go-ethereum-hdwallet"
 	"golang.org/x/crypto/sha3"
@@ -748,8 +749,8 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 	// fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
 
 	//监听，直到转账成功,如果失败，则提示
-	done := s.WaitForBlockCompletation(transferTx.Hash().Hex())
-	if done == 1 {
+	blockNumber := s.WaitForBlockCompletation(transferTx.Hash().Hex())
+	if blockNumber > 0 {
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferTx.Hash())
 		if err != nil {
 			s.logger.Error("TransferFrom failed ", zap.Error(err))
@@ -770,11 +771,11 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 
 /*
 构造一个普通用户账号转账的裸交易数据，目标是多签合约地址
-source - 发起方账号
+source - 发起方钱包账号
 target - 多签合约地址
 tokens - 代币数量，字符串格式
 */
-func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*models.RawTx, error) {
+func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*models.RawDesc, error) {
 
 	fromAddress := common.HexToAddress(source)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
@@ -836,7 +837,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 	// fmt.Println("chainID:", chainID.String())
 
 	_ = tx
-	return &models.RawTx{
+	return &models.RawDesc{
 		Nonce:           nonce,
 		GasPrice:        gasPrice.Uint64(),
 		GasLimit:        gasLimit,
@@ -866,6 +867,45 @@ func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
 		return accountBalance.Int64(), nil
 	}
 
+}
+
+//根据客户端SDK签名后的裸交易数据，广播到链上
+func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
+
+	rawTxBytes, err := hex.DecodeString(rawTxHex)
+
+	signedTx := new(types.Transaction)
+	rlp.DecodeBytes(rawTxBytes, &signedTx)
+
+	err = s.WsClient.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		s.logger.Error("SendTransaction failed ", zap.Error(err))
+		return 0, "", err
+	}
+
+	// fmt.Printf("signedTx sent: %s", signedTx.Hash().Hex())
+
+	//等待打包完成的回调
+	blockNumber := s.WaitForBlockCompletation(signedTx.Hash().Hex())
+	if blockNumber > 0 {
+		//获取交易哈希里的打包状态，如果打包完成，isPending = false
+		tx2, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			s.logger.Error("TransactionByHash failed ", zap.Error(err))
+			return 0, "", err
+		}
+
+		s.logger.Info("SendSignedTxToGeth",
+			zap.String("Hash", tx2.Hash().Hex()),
+			zap.Bool("isPending", isPending),
+		)
+
+	} else {
+		// log.Println(" 打包失败")
+		s.logger.Error("SendSignedTxToGeth失败")
+		return 0, "", errors.New("SendSignedTxToGeth failed")
+	}
+	return blockNumber, signedTx.Hash().Hex(), nil
 }
 
 /*
@@ -958,7 +998,7 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 }
 
 //根据多签合约生成裸交易数据
-func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) (*models.RawTx, error) {
+func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) (*models.RawDesc, error) {
 	fromAddress := common.HexToAddress(fromAddressHex)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
@@ -1022,7 +1062,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 
 	_ = tx
 
-	return &models.RawTx{
+	return &models.RawDesc{
 		Nonce:           nonce,
 		GasPrice:        gasPrice.Uint64(),
 		GasLimit:        gasLimit,

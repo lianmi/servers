@@ -3,6 +3,7 @@ package nsqBackend
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -68,18 +69,29 @@ func (nc *NsqClient) SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTr
 }
 
 //9-11，为某个订单支付，查询出contractAddress对应的记录，然后更新 orderID 及 signedTx, 将State修改为1
-func (nc *NsqClient) UpdateLnmcTransferHistoryByContractAddress(contractAddress, orderID, SignedTx string) (err error) {
+//确认转账后，更新转账历史记录
+func (nc *NsqClient) UpdateLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
+	p := new(models.LnmcTransferHistory)
+	if err := nc.db.Model(p).Where("contract_address = ?", lmnccTransferHistory.ContractAddress).First(p).Error; err != nil {
+		return errors.Wrapf(err, "Get LnmcTransferHistory error[ContractAddress=%s]", lmnccTransferHistory.ContractAddress)
+	}
+	p.State = lmnccTransferHistory.State
+	p.SignedTx = lmnccTransferHistory.SignedTx
+	p.SucceedBlockNumber = lmnccTransferHistory.SucceedBlockNumber
+	p.SucceedHash = lmnccTransferHistory.SucceedHash
+	if lmnccTransferHistory.OrderID != "" {
+		p.OrderID = lmnccTransferHistory.OrderID
+	}
 
-	// tx := nc.GetTransaction()
+	tx := nc.GetTransaction()
 
-	// if err := tx.Save(lmnccTransferHistory).Error; err != nil {
-	// 	nc.logger.Error("更新用户转账预审核表失败", zap.Error(err))
-	// 	tx.Rollback()
-	// 	return err
-
-	// }
-	// //提交
-	// tx.Commit()
+	if err := tx.Save(p).Error; err != nil {
+		nc.logger.Error("更新用户转账预审核表失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+	//提交
+	tx.Commit()
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package nsqBackend
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -517,14 +518,6 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				zap.Uint64("blockNumber", blockNumber),
 				zap.String("hash", hash),
 			)
-			//发起者钱包账户向多签合约账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向多签合约账户转账
-			txData, err := nc.ethService.GenerateTransferLNMCTokenTx(contractAddress, amount)
-			if err != nil {
-				nc.logger.Error("构造发起者向多签合约转账的交易 失败", zap.String("walletAddress", walletAddress), zap.String("contractAddress", contractAddress), zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("GenerateTransferLNMCTokenTx error")
-				goto COMPLETE
-			}
 
 		}
 
@@ -545,13 +538,13 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		}
 		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
 
+		//发起者钱包账户向多签合约账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向多签合约账户转账
 		tokens := fmt.Sprintf("%d", amountLNMC)
-		//转账到多签合约账号
 		rawTxToMulsig, err := nc.ethService.GenerateTransferLNMCTokenTx(walletAddress, contractAddress, tokens)
 		if err != nil {
-			nc.logger.Error("GenerateTransferLNMCTokenTx 失败", zap.String("walletAddress", walletAddress), zap.String("contractAddress", contractAddress), zap.Error(err))
+			nc.logger.Error("构造发起者向多签合约转账的交易 失败", zap.String("walletAddress", walletAddress), zap.String("contractAddress", contractAddress), zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Generate transferLNMCTokenTx error")
+			errorMsg = fmt.Sprintf("GenerateTransferLNMCTokenTx error")
 			goto COMPLETE
 		}
 
@@ -560,12 +553,12 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		if err != nil {
 			nc.logger.Error("GenerateRawTx 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Generate RawTx error")
+			errorMsg = fmt.Sprintf("Generate RawDesc error")
 			goto COMPLETE
 		}
 
 		rsp := &Wallet.PreTransferRsp{
-			RawTxToMulsig: &Wallet.RawTx{
+			RawTxToMulsig: &Wallet.RawDesc{
 				Nonce:           rawTxToMulsig.Nonce,
 				GasPrice:        rawTxToMulsig.GasPrice,
 				GasLimit:        rawTxToMulsig.GasLimit,
@@ -574,7 +567,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				ContractAddress: contractAddress, //多签合约
 				Value:           0,
 			},
-			RawTxToTarget: &Wallet.RawTx{
+			RawTxToTarget: &Wallet.RawDesc{
 				Nonce:           rawTxToTarget.Nonce,
 				GasPrice:        rawTxToTarget.GasPrice,
 				GasLimit:        rawTxToTarget.GasLimit,
@@ -634,8 +627,6 @@ COMPLETE:
 1. 发起方收到服务端的预审核10-3回包后 ，需要对返回的裸交易哈希进行签名(A签)
 2. 服务端收到后， 如果是普通转账，则进行B签, 并广播到链上，完成转账， 接收方将收到代币
 3. 与9-11 的区别是请求参数没有携带 订单id
-
-
 */
 func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var err error
@@ -780,21 +771,66 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		)
 
 		//调用eth接口，将发起方签名的转账给多签的交易数据广播到链上
+		nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToMultisig()))
 
 		//调用eth接口，将发起方签名的从多签合约转到目标接收者的交易数据广播到链上- A签
+		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToTarget()))
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("SendSignedTxToGeth error")
+			goto COMPLETE
+		}
 
 		//更新转账记录到 MySQL
+		lnmcTransferHistory := &models.LnmcTransferHistory{
+			Username: username, //发起支付
+			// ToUsername:          req.GetTargetUserName(), //接收者
+			WalletAddress: walletAddress, // 发起方钱包账户
+			// ToWalletAddress:     toWalletAddress,         //接收者钱包账户
+			AmountLNMC:          amountLNMC,                                    //本次转账的用户连米币数量
+			AmountLNMCBefore:    amountLNMCBefore,                              //发送方用户在转账时刻的连米币数量
+			Bip32Index:          newBip32Index,                                 //平台HD钱包Bip32派生索引号
+			ContractAddress:     contractAddress,                               //多签合约地址
+			ContractBlockNumber: blockNumber,                                   //多签合约所在区块高度
+			ContractHash:        hash,                                          //多签合约的哈希
+			State:               1,                                             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
+			SignedTx:            hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
+			SucceedBlockNumber:  blockNumber,
+			SucceedHash:         hash,
+		}
+		nc.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
-		// nc.UpdateLnmcTransferHistory(lnmcTransferHistory)
+		//更新转账记录到 redis  HSET
+		_, err = redisConn.Do("HSET",
+			fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress),
+			"State", 1,
+		)
 
-		//更新转账记录到 redis
+		_, err = redisConn.Do("HSET",
+			fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress),
+			"SignedTx", hex.EncodeToString(req.GetSignedTxToTarget()),
+		)
+		_, err = redisConn.Do("HSET",
+			fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress),
+			"SucceedBlockNumber", blockNumber,
+		)
+		_, err = redisConn.Do("HSET",
+			fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress),
+			"SucceedHash", hash,
+		)
+
+		rsp := &Wallet.ConfirmTransferRsp{
+			BlockNumber: blockNumber,
+			Hash:        hash,
+			Time:        uint64(time.Now().UnixNano() / 1e6),
+		}
+		data, _ = proto.Marshal(rsp)
 
 	}
 
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 
 	} else {

@@ -15,9 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/lianmi/servers/internal/pkg/blockchain/util"
 	"golang.org/x/crypto/sha3"
-
 	// "io/ioutil"
 	// "strings"
 	LMCommon "github.com/lianmi/servers/internal/common"
@@ -37,6 +37,24 @@ const (
 	AddressCHEX = "0xBa8d69ba4D65802039cfE2ae373072639026D457" //用户C地址
 	AddressDHEX = "0x59aC768b416C035c8DB50B4F54faaa1E423c070D" //用户D地址
 )
+
+//裸交易结构体
+type RawDesc struct {
+	//nonce
+	Nonce uint64 `protobuf:"fixed64,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// gas价格
+	GasPrice uint64 `protobuf:"fixed64,2,opt,name=gasPrice,proto3" json:"gasPrice,omitempty"`
+	// 最低gas
+	GasLimit uint64 `protobuf:"fixed64,3,opt,name=gasLimit,proto3" json:"gasLimit,omitempty"`
+	//链id
+	ChainID uint64 `protobuf:"fixed64,4,opt,name=chainID,proto3" json:"chainID,omitempty"`
+	// 交易数据
+	Txdata []byte `protobuf:"bytes,5,opt,name=txdata,proto3" json:"txdata,omitempty"`
+	//多签合约地址
+	ContractAddress string `protobuf:"bytes,6,opt,name=contractAddress,proto3" json:"contractAddress,omitempty"`
+	//ether，设为0
+	Value uint64 `protobuf:"fixed64,7,opt,name=value,proto3" json:"value,omitempty"`
+}
 
 //检查交易打包状态
 func checkTransactionReceipt(_txHash string) int {
@@ -723,7 +741,7 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 
 //
 
-func GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) ([]byte, error) {
+func GenerateRawDesc(contractAddress, fromAddressHex, target, tokens string) ([]byte, error) {
 	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatal(err)
@@ -792,14 +810,14 @@ func GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) ([]by
 /*
 一个普通用户账号转账，目标是多签合约地址
 */
-func transferLNMCTokenToContractAddress(privKey, target, tokens string) ([]byte, error) {
+func transferLNMCTokenToContractAddress(privKeyHex, target, tokens string) ([]byte, error) {
 	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//A私钥
-	privateKey, err := crypto.HexToECDSA(privKey)
+	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -904,7 +922,7 @@ source - 发起方账号
 target - 多签合约地址
 tokens - 代币数量，字符串格式
 */
-func generateTransferLNMCTokenTx(source, target, tokens string) ([]byte, error) {
+func generateTransferLNMCTokenTx(source, target, tokens string) (*RawDesc, error) {
 	client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	if err != nil {
 		log.Fatal(err)
@@ -966,7 +984,108 @@ func generateTransferLNMCTokenTx(source, target, tokens string) ([]byte, error) 
 	fmt.Println("chainID:", chainID.String())
 
 	_ = tx
-	return nil, nil
+
+	return &RawDesc{
+		Nonce:           nonce,
+		GasPrice:        gasPrice.Uint64(),
+		GasLimit:        gasLimit,
+		ChainID:         chainID.Uint64(),
+		Txdata:          data,
+		ContractAddress: target, //合约地址
+		Value:           0,
+	}, nil
+}
+
+//传入Rawtx， 构造一个已经签名的hex裸交易
+func buildTx(rawDesc *RawDesc, privKeyHex string) (string, error) {
+	// client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return "", err
+	// }
+
+	//A私钥
+	privateKey, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// publicKey := privateKey.Public()
+	// publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	// if !ok {
+	// 	log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	// }
+
+	// fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	//接收者地址：多签合约地址
+	// toAddress := common.HexToAddress(rawDesc.ContractAddress)
+
+	//注意，这里需要填写发币合约地址
+	tokenAddress := common.HexToAddress(ERC20DeployContractAddress)
+
+	//构造代币转账的交易裸数据
+	tx := types.NewTransaction(
+		rawDesc.Nonce,
+		tokenAddress,
+		big.NewInt(int64(rawDesc.Value)),
+		rawDesc.GasLimit,
+		big.NewInt(int64(rawDesc.GasPrice)),
+		rawDesc.Txdata,
+	)
+
+	//对裸交易数据签名
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(int64(rawDesc.ChainID))), privateKey)
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+	ts := types.Transactions{signedTx}
+	rawTxBytes := ts.GetRlp(0)
+	rawTxHex := hex.EncodeToString(rawTxBytes)
+
+	log.Println("rawTxHex:", rawTxHex)
+	return rawTxHex, nil
+}
+
+//根据客户端SDK签名后的裸交易数据，广播到链上
+// rawTxHex := "f86d8202b28477359400825208944592d8f8d7b001e72cb26a73e4fa1806a51ac79d880de0b6b3a7640000802ca05924bde7ef10aa88db9c66dd4f5fb16b46dff2319b9968be983118b57bb50562a001b24b31010004f13d9a26b320845257a6cfc2bf819a3d55e3fc86263c5f0772"
+func sendSignedTxToGeth(rawTxHex string) error {
+	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rawTxBytes, err := hex.DecodeString(rawTxHex)
+
+	signedTx := new(types.Transaction)
+	rlp.DecodeBytes(rawTxBytes, &signedTx)
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	fmt.Printf("signedTx sent: %s", signedTx.Hash().Hex())
+
+	//等待打包完成的回调
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
+	if done == 1 {
+		//获取交易哈希里的打包状态，如果打包完成，isPending = false
+		tx2, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+
+		log.Println("打包成功, 交易哈希: ", tx2.Hash().Hex()) //
+		log.Println("isPending: ", isPending)         // false
+
+	} else {
+		log.Println(" 打包失败")
+	}
+	return nil
 }
 
 func main() {
@@ -1064,6 +1183,25 @@ func main() {
 	//查询用户D的余额
 	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
 
-	//构造普通用户转账到多签合约的裸交易数据
-	generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+	/*
+		//构造普通用户转账到多签合约的裸交易数据
+		rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+
+		//模仿SDK，进行签名
+		rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX)
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+		err = sendSignedTxToGeth(rawTxHex)
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+
+	*/
 }

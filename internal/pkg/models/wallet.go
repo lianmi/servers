@@ -97,7 +97,7 @@ func (w *LnmcTransferHistory) BeforeUpdate(scope *gorm.Scope) error {
 }
 
 //裸交易结构体
-type RawTx struct {
+type RawDesc struct {
 	//nonce
 	Nonce uint64 `protobuf:"fixed64,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// gas价格
