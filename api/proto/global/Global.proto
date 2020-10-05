@@ -141,16 +141,26 @@ enum OrderSubType {
     ChangeOrderState  =  5;     /**< 9-5. 对订单进行状态更改*/
     GetPreKeysCount   =  6;     /**< 9-6. 商户获取OPK存量*/
     OPKLimitAlert     =  10;    /**< 9-10. 商户OPK存量不足事件*/
+    PayOrder          =  11;    /**< 9-11. 确认支付订单*/
+    OrderPayDoneEvent =  12;    /**< 9-12. 支付订单完成的事件*/
 }
 
 //钱包模块子模块定义
 enum WalletSubType {
-    WST_undefined     =  0;    //proto3必须从0开始
-    RegisterWallet   =  1;     /**< 10-1 钱包账号注册*/
-    Deposit          =  2;     /**< 10-2 充值*/
-    WithDraw         =  3;     /**< 10-4 提现*/
-    Balance          =  4;     /**< 10-6 查询链上账号余额*/
-    QueryCommission  =  5;     /**< 10-9 佣金收益明细*/
+    WST_undefined               =  0;    //proto3必须从0开始
+    RegisterWallet              =  1;     /**< 10-1 钱包账号注册*/
+    Deposit                     =  2;     /**< 10-2 充值*/
+    PreTransfer                 =  3;     /**< 10-3 发起转账*/
+    ConfirmTransfer             =  4;     /**< 10-4 确认转账*/
+    Balance                     =  5;     /**< 10-5 查询账号余额*/
+    PreWithDraw                 =  6;     /**< 10-6 发起提现预审核*/
+    WithDraw                    =  7;     /**< 10-7 确认提现*/
+    WithDrawBankCompleteEvent   =  8;     /**< 10-8 提现银行转账通知事件*/
+    SyncCollectionHistory       =  9;     /**< 10-9 同步收款历史*/
+    SyncDepositHistory          =  10;    /**< 10-10 同步充值历史*/
+    SyncWithdrawHistory         =  11;    /**< 10-11 同步提现历史*/
+    SyncTransferHistory         =  12;    /**< 10-12 同步转账历史*/
+    UserSignIn                  =  13;    /**< 10-13 签到*/
 }
 
 
