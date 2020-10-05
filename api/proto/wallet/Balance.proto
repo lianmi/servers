@@ -11,7 +11,13 @@ message BalanceReq{
 }
 
 message BalanceRsp{
-    //余额
-    double amount=1;
+    //链上账号代币余额, 无小数点
+    fixed64 amountLNMC=1;
+    
+    //链上账号以太币余额, 无小数点
+    fixed64 amountETH=2;
+
+    //时间 
+    fixed64 time=3;
 
 }

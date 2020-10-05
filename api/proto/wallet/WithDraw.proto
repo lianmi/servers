@@ -1,25 +1,28 @@
+
 syntax = "proto3";
 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message WithDrawReq{
-    //用户账号
-    string userName=1;
-    //钱包地址
-    string walletAddress=2;
-    // 提现金额
-    double amount=3;
-    //银行名称 
-    string bank=4;
-    //银行卡号
-    string bankCard=5;
-    //银行开卡人姓名
-    string bankName=6;
+    //交易哈希
+    string txHash=1;
+
+    //签名后的转账到平台方的Tx交易数据
+    bytes signedTxToPlatform=2;
+  
 }
 
 message WithDrawRsp{
-    //是否成功
-    bool isOk=1;
+    // 区块高度 
+    fixed64 blockNumber=1;
 
+    // 交易哈希hex
+    string hash=2;
+
+    //充值之后的连米币余额
+    fixed64 balanceLNMC=3;
+
+    //打包完成时间
+    fixed64 time=4;
 }

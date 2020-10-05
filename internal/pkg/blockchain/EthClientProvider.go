@@ -259,17 +259,17 @@ func (s *Service) GetGasPrice() *big.Int {
 }
 
 // 输出wei为单位的账户余额
-func (s *Service) GetWeiBalance(address string) *big.Int {
+func (s *Service) GetWeiBalance(address string) uint64 {
 
 	account := common.HexToAddress(address)
 	balance, err := s.WsClient.BalanceAt(context.Background(), account, nil)
 	if err != nil {
 		// log.Fatal(err)
 		s.logger.Error("BalanceAt ", zap.Error(err))
-		return nil
+		return 0
 	}
 	// fmt.Println("balance: ", balance)
-	return balance
+	return balance.Uint64()
 
 }
 
@@ -836,7 +836,6 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 	}
 	// fmt.Println("chainID:", chainID.String())
 
-	_ = tx
 	return &models.RawDesc{
 		Nonce:           nonce,
 		GasPrice:        gasPrice.Uint64(),
@@ -845,6 +844,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 		Txdata:          data,
 		ContractAddress: "",
 		Value:           0,
+		TxHash:          tx.Hash().Hex(), //已经生成的
 	}, nil
 }
 
@@ -1060,7 +1060,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 
 	// rawData, _ := tx.MarshalJSON()
 
-	_ = tx
+	// _ = tx
 
 	return &models.RawDesc{
 		Nonce:           nonce,
@@ -1070,6 +1070,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 		Txdata:          data,
 		ContractAddress: contractAddress,
 		Value:           0,
+		TxHash:          tx.Hash().Hex(),
 	}, nil
 
 }

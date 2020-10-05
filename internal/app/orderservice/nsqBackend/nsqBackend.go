@@ -166,6 +166,8 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 5)] = nsqClient.HandleChangeOrderState //9-5 对订单进行状态更改
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 6)] = nsqClient.HandleGetPreKeysCount  //9-8 商户获取OPK存量
+	
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder  //9-11 确认支付订单
 
 	return nsqClient
 }

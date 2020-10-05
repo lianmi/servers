@@ -18,13 +18,16 @@ message PayOrderReq{
 
 
 message PayOrderRsp{
+     //订单ID
+    string orderID =1;
+
       // 区块高度 
-    fixed64 blockNumber=1;
+    fixed64 blockNumber=2;
 
     // 交易哈希hex
-    string hash=2;
+    string hash=3;
 
     //时间
-    fixed64 time=3;
+    fixed64 time=4;
 }
 

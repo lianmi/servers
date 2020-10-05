@@ -160,6 +160,11 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit         //10-2 充值
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer     //10-3 发起转账
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer //10-4 确认转账
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 5)] = nsqClient.HandleBalance         //10-5 查询账号余额
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 6)] = nsqClient.HandlePreWithDraw     //10-6 发起提现预审核
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 7)] = nsqClient.HandleWithDraw        //10-7 确认提现
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder //9-11 确认支付订单
 
 	return nsqClient
 }

@@ -1932,3 +1932,15 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 
 	return nil
 }
+
+/*
+9-11 确认支付订单, 转发到钱包服务进行下一步处理
+*/
+func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
+	msg.BuildRouter("Wallet", "", "Wallet.Backend")
+	topic := "Wallet.Backend"
+
+	rawData, _ := json.Marshal(msg)
+	go nc.Producer.Public(topic, rawData)
+	return nil
+}

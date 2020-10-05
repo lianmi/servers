@@ -25,6 +25,9 @@ message RawDesc {
    //ether，设为0
    fixed64 value=7;
 
+   //交易哈希 
+   string txHash=8;
+
 }
 
 message PreTransferReq{
