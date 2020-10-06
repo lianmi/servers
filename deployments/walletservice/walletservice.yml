@@ -15,6 +15,9 @@ redis:
   addr: redis:6379
   password: 
   db: 0
+ethereum:
+  wsURI: ws://172.16.0.14:8546
+  erc20DeployContractAddress: "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
 log:
   filename: /tmp/walletservice.log
   maxSize: 500
