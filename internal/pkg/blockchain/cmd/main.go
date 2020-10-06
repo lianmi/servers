@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	KEY      = "UTC--2020-09-29T09-27-24.693765000Z--b18db89641d2ec807104258e2205e6ac6264bf25"
-	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 6000000 
+	KEY             = "UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
+	COINBASEACCOUNT = "0x7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
+	PASSWORD        = "LianmiSky8900388"
+	GASLIMIT        = 6000000
 )
 
 func createHDWallet() {
@@ -307,9 +308,9 @@ func queryTransactionByBlockNumber(number uint64) {
 	}
 	log.Println("=========queryTransactionByBlockNumber start==========")
 	for _, tx := range block.Transactions() {
-		log.Println("tx.Hash: ", tx.Hash().Hex())            //
-		log.Println("tx.Value: ", tx.Value().String())       // 10000000000000000
-		log.Println("tx.Gas: ", tx.Gas())                    
+		log.Println("tx.Hash: ", tx.Hash().Hex())      //
+		log.Println("tx.Value: ", tx.Value().String()) // 10000000000000000
+		log.Println("tx.Gas: ", tx.Gas())
 		log.Println("tx.GasPrice: ", tx.GasPrice().Uint64()) // 1000000000
 
 		// cost := tx.Gas() * tx.GasPrice().Uint64() //计算交易所需要支付的总费用
@@ -509,7 +510,7 @@ func transferEthFromLeaf0ToOtherAccount(targetAccount string, amount string) {
 
 func main() {
 	// 以wei为单位输出某个地址的eth
-	getWeiBalance("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538")
+	getWeiBalance(COINBASEACCOUNT)
 
 	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 

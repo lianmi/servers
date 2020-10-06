@@ -310,3 +310,43 @@ openssl req -new -x509 -sha256 -key domain.key -out domain.crt -days 3650
 ```
 /Users/mac/developments/lianmi/blockchain/ethereum-simplenode-erc20/erc20_multisig
 ```
+
+#  腾讯云服务器部署 
+## 单节点
+### 1. 初始化
+```
+$ cd /store/blockchain/localnode
+$ geth init --datadir mychain genesis.json
+```
+
+### 2. 创建新账号
+
+```
+$ geth account new --password passwd --datadir mychain
+Your new key was generated
+
+Public address of the key:   0x7562B4D3B08b2373e68D4e89F69F6fB731B308E1
+Path of the secret key file: mychain/keystore/UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1
+
+```
+### 3. 运行geth
+```
+nohup geth --allow-insecure-unlock --syncmode "fast" --verbosity=5 --nousb --networkid 150 --nodiscover  --nat none --maxpeers=0 --datadir=./mychain --rpc --rpcaddr=127.0.0.1 --rpcport=8545 --rpccorsdomain='*' --rpcapi=admin,debug,eth,miner,net,personal,txpool,web3 --ws --wsaddr 127.0.0.1 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --gasprice 0  --mine --miner.threads 1 >/dev/null 2>&1 &
+```
+
+## 步骤二 控制台
+```
+$ geth attach ipc:./mychain/geth.ipc
+```
+
+###  运行web3的命令
+```
+> account1 = web3.eth.coinbase
+> web3.eth.getBalance(account1)
+> web3.fromWei(web3.eth.getBalance(account1), 'ether')
+#挖矿
+> miner.start()
+#停止挖矿
+> miner.stop()
+
+```
