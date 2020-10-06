@@ -22,9 +22,9 @@ var DepositCmd = &cobra.Command{
 		rechargeAmount, _ := cmd.PersistentFlags().GetFloat64("rechargeAmount")
 		err := wallet.Deposit(rechargeAmount)
 		if err != nil {
-			log.Println("RegisterWallet failed")
+			log.Println("Deposit failed")
 		} else {
-			log.Println("RegisterWallet succeed")
+			log.Println("Deposit succeed")
 		}
 	},
 }

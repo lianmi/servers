@@ -1838,24 +1838,24 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+		targetMsg.BuildRouter("Wallet", "", "Wallet.Frontend")
 
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
 		// opkAlertMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessTypeName("Wallet")
 		targetMsg.SetBusinessType(businessType)       //业务号
 		targetMsg.SetBusinessSubType(businessSubType) //业务子号
 
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("WalletService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
-		topic := "Order.Frontend"
+		topic := "Wallet.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
 			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
@@ -2430,7 +2430,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 	currDate := dateutil.GetDateString()
 	key := fmt.Sprintf("userSignin:%s", username)
 
-	isExists, err = redis.Bool(redisConn.Do("HEXISTS", key, "CurrDate"))
+	isExists, err = redis.Bool(redisConn.Do("HEXISTS", key, "LatestDate"))
 	if err != nil {
 		nc.logger.Error("redisConn EXISTS Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -2451,11 +2451,12 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 		errorMsg = fmt.Sprintf("WalletAddress is not valid")
 		goto COMPLETE
 	}
+
 	//不存在则表示首次签到
 	if !isExists {
 		_, err = redisConn.Do("HMSET",
 			key,
-			"CurrDate", currDate,
+			"LatestDate", currDate,
 			"Count", 1, //如果达到2次则奖励
 			"Total", 1,
 		)
@@ -2463,13 +2464,15 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 		rsp.TotalSignIn = 1
 
 	} else {
-		latestDate, _ = redis.String(redisConn.Do("HGET", key, "CurrDate"))
+		latestDate, _ = redis.String(redisConn.Do("HGET", key, "LatestDate"))
 		if currDate == latestDate {
 			nc.logger.Warn("每天只能签到一次")
 			errorCode = http.StatusGone //错误码 410
 			errorMsg = fmt.Sprintf("Today already signineed: %s", latestDate)
 			goto COMPLETE
 		}
+
+		_, err = redisConn.Do("HSET", key, "LatestDate", currDate)
 		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
 		total, _ = redis.Uint64(redisConn.Do("HINCRBY", key, "Total", 1))
 		rsp.Count = int32(count)
@@ -2478,24 +2481,26 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 		//如果count累计大于或等于2次，则奖励并重置为0
 		if count == 2 {
 			redisConn.Do("HSET", key, "Count", 0)
+			go func() {
+				balanceEthBefore = nc.ethService.GetWeiBalance(walletAddress)
+				awardEth = uint64(2 * LMCommon.GASLIMIT)
+				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
+				balanceEth = nc.ethService.GetWeiBalance(walletAddress)
+				nc.logger.Info("奖励ETH",
+					zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
+					zap.Uint64("奖励之后用户的eth数量", balanceEth),
+				)
 
-			balanceEthBefore = nc.ethService.GetWeiBalance(walletAddress)
-			awardEth = uint64(2 * LMCommon.GASLIMIT)
-			nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
-			balanceEth = nc.ethService.GetWeiBalance(walletAddress)
-			nc.logger.Info("奖励ETH",
-				zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
-				zap.Uint64("奖励之后用户的eth数量", balanceEth),
-			)
+				//向用户推送10-15 ETH奖励到账通知事件
+				ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
+					AmountETH: awardEth,
+					Time:      uint64(time.Now().UnixNano() / 1e6),
+				}
+				awardData, _ = proto.Marshal(ethReceivedEventRsp)
 
-			//向用户推送10-15 ETH奖励到账通知事件
-			ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
-				AmountETH: awardEth,
-				Time:      uint64(time.Now().UnixNano() / 1e6),
-			}
-			awardData, _ = proto.Marshal(ethReceivedEventRsp)
+				nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
 
-			go nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
+			}()
 		}
 
 	}
@@ -2503,8 +2508,13 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
+		nc.logger.Info("UserSignInRsp回包",
+			zap.Int("Count", count),
+			zap.Uint64("Total", total),
+		)
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
+
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)

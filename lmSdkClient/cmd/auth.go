@@ -4,7 +4,7 @@ auth模块
 package cmd
 
 import (
-	"fmt"
+	// "fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -13,9 +13,9 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "auth模块",
-	Long: `auth模块`,
+	Long:  `auth模块`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("auth called")
+		// fmt.Println("auth called")
 	},
 }
 
