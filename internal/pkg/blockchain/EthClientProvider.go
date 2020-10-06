@@ -70,6 +70,7 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 	}
 	client, err := ethclient.Dial(opts.WsURI)
 	if err != nil {
+		logger.Error("ethclient.Dial Failed", zap.String("WsUri", opts.WsURI), zap.Error(err))
 		return nil, err
 	}
 	return &Service{
