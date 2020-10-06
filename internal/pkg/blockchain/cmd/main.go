@@ -158,7 +158,8 @@ func getGasPrice() *big.Int {
 
 // 输出wei为单位的账户余额
 func getWeiBalance(address string) *big.Int {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial("ws://172.17.0.1:8546")
+	// client, err := ethclient.Dial("ws://127.0.0.1:8546")
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
 	if err != nil {
 		log.Fatal(err)
@@ -515,7 +516,7 @@ func main() {
 	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 
 	//从挖矿账号转账到第0号叶子
-	transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "994000000000000000000")
+	// transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "994000000000000000000")
 
 	//从第0号叶子向普通用户账号A转eth 1eth
 	// transferEthFromLeaf0ToOtherAccount("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538", "1000000000000000000")
