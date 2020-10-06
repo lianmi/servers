@@ -15,6 +15,7 @@ import (
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/dateutil"
 
 	"go.uber.org/zap"
 )
@@ -289,7 +290,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 			Username:          username,
 			WalletAddress:     walletAddress,
 			BalanceLNMCBefore: balanceLNMC,
-			DepositAmount:     amount, //以分为单位
+			RechargeAmount:    req.GetRechargeAmount(), //充值金额，单位是人民币
 			PaymentType:       int(req.GetPaymentType()),
 		}
 
@@ -761,7 +762,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		)
 
 		toUsername, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress), "ToUsername"))
-		
+
 		// 接收者用户的代币余额
 		toBalanceLNMC, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", toUsername), "LNMCAmount"))
 		if err != nil {
@@ -1870,4 +1871,654 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 	}
 
 	return nil
+}
+
+/*
+10-9 同步收款历史
+此接口 支持分页查询，默认是全量查询
+*/
+func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data []byte
+	var maps string
+	var page, pageSize int
+	var total uint64
+
+	rsp := &Wallet.SyncCollectionHistoryPageRsp{
+		Total:       0,
+		Collections: make([]*Wallet.Collection, 0),
+	}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleSyncCollectionHistoryPage start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleSyncCollectionHistoryPage ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Wallet.SyncCollectionHistoryPageReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("SyncCollectionHistoryPageReq  payload",
+			zap.String("FromUsername", req.FromUsername),
+			zap.Uint64("StartAt", req.StartAt),
+			zap.Uint64("EndAt", req.EndAt),
+			zap.Int32("Page", req.Page),
+			zap.Int32("PageSize", req.PageSize),
+		)
+		page = int(req.Page)
+		pageSize = int(req.PageSize)
+
+		// GetPages 分页返回数据
+
+		if req.StartAt > 0 && req.EndAt > 0 {
+
+			maps = fmt.Sprintf("created_at >= %d and  created_at <= %d", req.StartAt, req.EndAt)
+		}
+
+		collections := nc.GetCollectionHistorys(page, pageSize, &total, maps)
+		nc.logger.Debug("GetCollectionHistorys", zap.Uint64("total", total))
+
+		rsp.Total = int32(total) //总页数
+		for _, collection := range collections {
+			nc.logger.Debug("for...range: collections",
+				zap.Uint64("id", collection.ID),
+				zap.String("Username", collection.Username),
+			)
+			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
+				Id:                 collection.ID,                 //ID
+				CreatedAt:          uint64(collection.CreatedAt),  //创建时间
+				FromUsername:       collection.FromUsername,       //发送方用户注册号
+				AmountLNMC:         collection.AmountLNMC,         //本次转账的用户连米币数量
+				ContractAddress:    collection.ContractAddress,    //多签合约地址
+				OrderID:            collection.OrderID,            //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+				SignedTx:           collection.SignedTx,           //A签
+				SucceedBlockNumber: collection.SucceedBlockNumber, //成功执行合约的所在区块高度
+				SucceedHash:        collection.SucceedHash,        //交易哈希
+			})
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+10-10 同步充值历史
+此接口 支持分页查询，默认是全量查询
+*/
+func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data []byte
+	var maps string
+	var page, pageSize int
+	var total uint64
+
+	rsp := &Wallet.SyncDepositHistoryPageRsp{
+		Total:    0,
+		Deposits: make([]*Wallet.Deposit, 0),
+	}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleSyncDepositHistoryPage start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleSyncDepositHistoryPage ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Wallet.SyncDepositHistoryPageReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("SyncDepositHistoryPageReq  payload",
+			zap.Int("depositRecharge", int(req.DepositRecharge)),
+			zap.Uint64("StartAt", req.StartAt),
+			zap.Uint64("EndAt", req.EndAt),
+			zap.Int32("Page", req.Page),
+			zap.Int32("PageSize", req.PageSize),
+		)
+		page = int(req.Page)
+		pageSize = int(req.PageSize)
+
+		/*
+				 DR_100         = 1;     //100元
+			     DR_200         = 2;     //200元
+			     DR_300         = 3;     //300元
+			     DR_500         = 4;     //500元
+			     DR_1000        = 5;    //1000元
+			     DR_3000        = 6;    //3000元
+			     DR_10000       = 7;   //10000元
+		*/
+		var depositRecharge float64
+		switch req.DepositRecharge {
+		case 1:
+			depositRecharge = 100.00
+		case 2:
+			depositRecharge = 200.00
+		case 3:
+			depositRecharge = 300.00
+		case 4:
+			depositRecharge = 500.00
+		case 5:
+			depositRecharge = 1000.00
+		case 6:
+			depositRecharge = 3000.00
+		case 7:
+			depositRecharge = 10000.00
+		default:
+			depositRecharge = 0.0
+
+		}
+
+		maps = fmt.Sprintf("deposit_amount >= %f", depositRecharge)
+
+		if req.StartAt > 0 && req.EndAt > 0 {
+
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and deposit_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
+
+		}
+
+		deposits := nc.GetDepositHistorys(page, pageSize, &total, maps)
+		nc.logger.Debug("GetDepositHistorys", zap.Uint64("total", total))
+
+		rsp.Total = int32(total) //总页数
+		for _, deposit := range deposits {
+			nc.logger.Debug("for...range: deposits",
+				zap.Uint64("id", deposit.ID),
+				zap.String("Username", deposit.Username),
+			)
+			amountLNMC := uint64(deposit.RechargeAmount * 100)
+			rsp.Deposits = append(rsp.Deposits, &Wallet.Deposit{
+				Id:                 deposit.ID,                //ID
+				CreatedAt:          uint64(deposit.CreatedAt), //创建时间
+				PaymentType:        Global.ThirdPartyPaymentType(deposit.PaymentType),
+				Recharge:           deposit.RechargeAmount,      //充值金额，单位是人民币
+				AmountLNMC:         amountLNMC,                  //换算为连米币的数量, 无小数点
+				SucceedBlockNumber: uint64(deposit.BlockNumber), //成功执行合约的所在区块高度
+				SucceedHash:        deposit.TxHash,              //交易哈希
+			})
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+10-11 同步提现历史
+此接口 支持分页查询，默认是全量查询
+*/
+func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data []byte
+	var maps string
+	var page, pageSize int
+	var total uint64
+
+	rsp := &Wallet.SyncWithdrawHistoryPageRsp{
+		Total:     0,
+		Withdraws: make([]*Wallet.Withdraw, 0),
+	}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleSyncWithdrawHistoryPage start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleSyncWithdrawHistoryPage ",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Wallet.SyncWithdrawHistoryPageReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("SyncWithdrawHistoryPage  payload",
+			zap.Uint64("StartAt", req.StartAt),
+			zap.Uint64("EndAt", req.EndAt),
+			zap.Int32("Page", req.Page),
+			zap.Int32("PageSize", req.PageSize),
+		)
+		page = int(req.Page)
+		pageSize = int(req.PageSize)
+
+		if req.StartAt > 0 && req.EndAt > 0 {
+
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
+
+		}
+
+		withdraws := nc.GetWithdrawHistorys(page, pageSize, &total, maps)
+		nc.logger.Debug("GetWithdrawHistorys", zap.Uint64("total", total))
+
+		rsp.Total = int32(total) //总页数
+		for _, withdraw := range withdraws {
+			nc.logger.Debug("for...range: deposits",
+				zap.Uint64("id", withdraw.ID),
+				zap.String("Username", withdraw.Username),
+			)
+			rsp.Withdraws = append(rsp.Withdraws, &Wallet.Withdraw{
+				Id:                 withdraw.ID,                //ID
+				CreatedAt:          uint64(withdraw.CreatedAt), //创建时间
+				Bank:               withdraw.Bank,
+				BankCard:           withdraw.BankCard,
+				CardOwner:          withdraw.CardOwner,
+				State:              int32(withdraw.State),
+				SignedTx:           withdraw.SignedTx,                   //用户私钥签名后的数据，hex格式
+				SucceedBlockNumber: uint64(withdraw.SucceedBlockNumber), //成功执行合约的所在区块高度
+				SucceedHash:        withdraw.SucceedHash,                //交易哈希
+			})
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+10-12 同步转账历史
+此接口 支持分页查询，默认是全量查询
+*/
+func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data []byte
+	var maps string
+	var page, pageSize int
+	var total uint64
+
+	rsp := &Wallet.SyncTransferHistoryPageRsp{
+		Total:     0,
+		Transfers: make([]*Wallet.Transfer, 0),
+	}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleSyncTransferHistoryPage start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleSyncTransferHistoryPage",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	req := &Wallet.SyncTransferHistoryPageReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("SyncTransferHistoryPage payload",
+			zap.Uint64("StartAt", req.StartAt),
+			zap.Uint64("EndAt", req.EndAt),
+			zap.Int32("Page", req.Page),
+			zap.Int32("PageSize", req.PageSize),
+		)
+		page = int(req.Page)
+		pageSize = int(req.PageSize)
+
+		if req.StartAt > 0 && req.EndAt > 0 {
+
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
+
+		}
+
+		transfers := nc.GetTransferHistorys(page, pageSize, &total, maps)
+		nc.logger.Debug("GetTransferHistorys", zap.Uint64("total", total))
+
+		rsp.Total = int32(total) //总页数
+		for _, transfer := range transfers {
+			nc.logger.Debug("for...range: deposits",
+				zap.Uint64("id", transfer.ID),
+				zap.String("Username", transfer.Username),
+			)
+			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
+				Id:                 transfer.ID,                //ID
+				CreatedAt:          uint64(transfer.CreatedAt), //创建时间
+				ToUsername:         transfer.ToUsername,
+				AmountLNMC:         transfer.AmountLNMC,
+				ContractAddress:    transfer.ContractAddress,
+				State:              int32(transfer.State),
+				OrderID:            transfer.OrderID,
+				SignedTx:           transfer.SignedTx,                   //用户私钥签名后的数据，hex格式
+				SucceedBlockNumber: uint64(transfer.SucceedBlockNumber), //成功执行合约的所在区块高度
+				SucceedHash:        transfer.SucceedHash,                //交易哈希
+			})
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+10-13 签到
+用户每天签到，每成功签到2次，送若干1千万wei的以太币
+*/
+func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data, awardData []byte
+	var isExists bool
+	var count int
+	var total uint64
+	var latestDate string
+	var walletAddress string    //用户钱包地址
+	var awardEth uint64         //奖励的eth
+	var balanceEthBefore uint64 //奖励之前用户的eth数量 ，wei为单位
+	var balanceEth uint64       //奖励之后的eth数量
+
+	rsp := &Wallet.UserSignInRsp{}
+	ethReceivedEventRsp := &Wallet.EthReceivedEventRsp{}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleUserSignIn start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleUserSignIn",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	currDate := dateutil.GetDateString()
+	key := fmt.Sprintf("userSignin:%s", username)
+
+	isExists, err = redis.Bool(redisConn.Do("HEXISTS", key, "CurrDate"))
+	if err != nil {
+		nc.logger.Error("redisConn EXISTS Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("redis Error: %s", err.Error())
+		goto COMPLETE
+
+	}
+	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+	if err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("HGET error")
+		goto COMPLETE
+	}
+
+	if nc.ethService.CheckIsvalidAddress(walletAddress) == false {
+		nc.logger.Warn("非法钱包地址", zap.String("WalletAddress", walletAddress))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("WalletAddress is not valid")
+		goto COMPLETE
+	}
+	//不存在则表示首次签到
+	if !isExists {
+		_, err = redisConn.Do("HMSET",
+			key,
+			"CurrDate", currDate,
+			"Count", 1, //如果达到2次则奖励
+			"Total", 1,
+		)
+		rsp.Count = 1
+		rsp.TotalSignIn = 1
+
+	} else {
+		latestDate, _ = redis.String(redisConn.Do("HGET", key, "CurrDate"))
+		if currDate == latestDate {
+			nc.logger.Warn("每天只能签到一次")
+			errorCode = http.StatusGone //错误码 410
+			errorMsg = fmt.Sprintf("Today already signineed: %s", latestDate)
+			goto COMPLETE
+		}
+		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
+		total, _ = redis.Uint64(redisConn.Do("HINCRBY", key, "Total", 1))
+		rsp.Count = int32(count)
+		rsp.TotalSignIn = total
+
+		//如果count累计大于或等于2次，则奖励并重置为0
+		if count == 2 {
+			redisConn.Do("HSET", key, "Count", 0)
+
+			balanceEthBefore = nc.ethService.GetWeiBalance(walletAddress)
+			awardEth = uint64(2 * LMCommon.GASLIMIT)
+			nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
+			balanceEth = nc.ethService.GetWeiBalance(walletAddress)
+			nc.logger.Info("奖励ETH",
+				zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
+				zap.Uint64("奖励之后用户的eth数量", balanceEth),
+			)
+
+			//向用户推送10-15 ETH奖励到账通知事件
+			ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
+				AmountETH: awardEth,
+				Time:      uint64(time.Now().UnixNano() / 1e6),
+			}
+			awardData, _ = proto.Marshal(ethReceivedEventRsp)
+
+			go nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
 }

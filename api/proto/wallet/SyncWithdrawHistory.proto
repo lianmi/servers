@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "api/proto/wallet/Wallet.proto";
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message SyncWithdrawHistoryPageReq {
+    //开始时间
+    fixed64 startAt=1;
+    //结束时间
+    fixed64 endAt=2;
+    //页数,第几页
+    int32 page=3;
+    //每页记录数量
+    int32 pageSize=4;
+}
+
+message SyncWithdrawHistoryPageRsp {
+    //提现记录列表
+    repeated Withdraw withdraws=1;
+   
+    //按请求参数的pageSize计算出来的总页数
+    int32 total=2;
+}

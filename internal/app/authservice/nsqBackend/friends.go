@@ -695,7 +695,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
@@ -932,7 +932,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
@@ -1116,7 +1116,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
@@ -1224,7 +1224,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
@@ -1340,7 +1340,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
@@ -1435,7 +1435,7 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Succeed succeed send message to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}

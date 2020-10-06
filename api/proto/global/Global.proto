@@ -143,6 +143,7 @@ enum OrderSubType {
     OPKLimitAlert     =  10;    /**< 9-10. 商户OPK存量不足事件*/
     PayOrder          =  11;    /**< 9-11. 确认支付订单*/
     OrderPayDoneEvent =  12;    /**< 9-12. 支付订单完成的事件*/
+   
 }
 
 //钱包模块子模块定义
@@ -161,6 +162,8 @@ enum WalletSubType {
     SyncWithdrawHistory         =  11;    /**< 10-11 同步提现历史*/
     SyncTransferHistory         =  12;    /**< 10-12 同步转账历史*/
     UserSignIn                  =  13;    /**< 10-13 签到*/
+    TxHashInfo                  =  14;    /**< 10-14查询交易哈希详情*/
+    EthReceivedEvent            =  15;    /**< 10-15 ETH奖励到账通知事件*/
 }
 
 
@@ -221,4 +224,16 @@ enum ThirdPartyPaymentType {
      TPPT_AliPay        = 1;     //支付宝
      TPPT_WeChatPay     = 2;     //微信
      TPPT_Bank          = 3;     //银行卡
+}
+
+//充值金额枚举
+enum DepositRecharge {
+     DR_Undefined   = 0;          //proto3必须从0开始
+     DR_100         = 1;     //100元 
+     DR_200         = 2;     //200元 
+     DR_300         = 3;     //300元 
+     DR_500         = 4;     //500元 
+     DR_1000        = 5;    //1000元 
+     DR_3000        = 6;    //3000元 
+     DR_10000       = 7;   //10000元 
 }

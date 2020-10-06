@@ -156,13 +156,18 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
 	//注册每个业务子类型的处理方法, BusinessType = 10
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet  //10-1 钱包账号注册
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit         //10-2 充值
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer     //10-3 发起转账
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer //10-4 确认转账
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 5)] = nsqClient.HandleBalance         //10-5 查询账号余额
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 6)] = nsqClient.HandlePreWithDraw     //10-6 发起提现预审核
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 7)] = nsqClient.HandleWithDraw        //10-7 确认提现
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet            //10-1 钱包账号注册
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit                   //10-2 充值
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer               //10-3 发起转账
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer           //10-4 确认转账
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 5)] = nsqClient.HandleBalance                   //10-5 查询账号余额
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 6)] = nsqClient.HandlePreWithDraw               //10-6 发起提现预审核
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 7)] = nsqClient.HandleWithDraw                  //10-7 确认提现
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 9)] = nsqClient.HandleSyncCollectionHistoryPage //10-9 同步收款历史
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 10)] = nsqClient.HandleSyncDepositHistoryPage   //10-10 同步充值历史
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 11)] = nsqClient.HandleSyncWithdrawHistoryPage  //10-11 同步提现历史
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 12)] = nsqClient.HandleSyncTransferHistoryPage  //10-12 同步转账历史
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 13)] = nsqClient.HandleUserSignIn               //10-13 签到
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder //9-11 确认支付订单
 

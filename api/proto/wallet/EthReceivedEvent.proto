@@ -1,0 +1,12 @@
+syntax = "proto3";
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message EthReceivedEventRsp {
+    //wei为单位
+    fixed64 amountETH=1;
+
+    //到账时间
+    fixed64 time=2;
+
+}

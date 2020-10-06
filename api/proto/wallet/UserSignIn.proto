@@ -1,0 +1,15 @@
+syntax = "proto3";
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+message UserSignInReq{
+
+}
+
+message UserSignInRsp{
+    //最新签到次数
+   int32 count=1; 
+
+   //总签到数
+   fixed64 totalSignIn=2; 
+}

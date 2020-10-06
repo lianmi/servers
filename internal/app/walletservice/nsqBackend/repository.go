@@ -159,3 +159,59 @@ func (nc *NsqClient) SaveCollectionHistory(lnmcCollectionHistory *models.LnmcCol
 
 	return nil
 }
+
+// GetPages 分页返回数据
+func (nc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+	db := nc.db.Model(model).Where(model)
+	db = db.Where(where)
+	if len(orders) > 0 {
+		for _, order := range orders {
+			db = db.Order(order)
+		}
+	}
+	err := db.Count(totalCount).Error
+	if err != nil {
+		nc.logger.Error("查询总数出错", zap.Error(err))
+		return err
+	}
+	if *totalCount == 0 {
+		return nil
+	}
+	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+}
+
+//分页获取收款历史
+func (nc *NsqClient) GetCollectionHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcCollectionHistory {
+	var collections []*models.LnmcCollectionHistory
+	if err := nc.GetPages(&models.LnmcCollectionHistory{}, &collections, PageNum, PageSize, total, where); err != nil {
+		nc.logger.Error("获取收款历史失败", zap.Error(err))
+	}
+	return collections
+}
+
+//分页获取充值历史
+func (nc *NsqClient) GetDepositHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcDepositHistory {
+	var deposits []*models.LnmcDepositHistory
+	if err := nc.GetPages(&models.LnmcDepositHistory{}, &deposits, PageNum, PageSize, total, where); err != nil {
+		nc.logger.Error("获取充值历史失败", zap.Error(err))
+	}
+	return deposits
+}
+
+//分页获取提现历史
+func (nc *NsqClient) GetWithdrawHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcWithdrawHistory {
+	var withdraws []*models.LnmcWithdrawHistory
+	if err := nc.GetPages(&models.LnmcWithdrawHistory{}, &withdraws, PageNum, PageSize, total, where); err != nil {
+		nc.logger.Error("获取提现历史失败", zap.Error(err))
+	}
+	return withdraws
+}
+
+//分页获取转账历史
+func (nc *NsqClient) GetTransferHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcTransferHistory {
+	var transfers []*models.LnmcTransferHistory
+	if err := nc.GetPages(&models.LnmcTransferHistory{}, &transfers, PageNum, PageSize, total, where); err != nil {
+		nc.logger.Error("获取转账历史失败", zap.Error(err))
+	}
+	return transfers
+}

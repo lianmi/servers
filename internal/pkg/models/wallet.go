@@ -36,17 +36,17 @@ func (w *UserWallet) BeforeUpdate(scope *gorm.Scope) error {
 //此表是用于保存用户充值记录
 //TODO
 type LnmcDepositHistory struct {
-	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
-	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`    //更新时刻,毫秒
-	Username          string `json:"username" validate:"required"`              //用户注册号，自动生成，字母 + 数字
-	WalletAddress     string `json:"wallet_address" validate:"required"`        //用户链上地址，默认是用户HD钱包的第0号索引，用于存储Eth及连米币
-	BalanceLNMCBefore int64  `json:"amount_lnmc_before" validate:"required"`    //充值前用户连米币数量
-	DepositAmount     int64  `json:"deposit_amount" validate:"required"`        //充值金额，单位是人民币
-	PaymentType       int    `json:"payment_type" validate:"required"`          //第三方支付方式 1- 支付宝， 2-微信 3-银行卡
-	BalanceLNMCAfter  int64  `json:"amount_lnmc_after" validate:"required"`     //充值后用户连米币数量
-	BlockNumber       int64  `json:"block_number" validate:"required"`          //交易成功打包的区块高度
-	TxHash            string `json:"tx_hash" validate:"required"`               //交易成功打包的区块哈希
+	ID                uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
+	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
+	UpdatedAt         int64   `form:"updated_at" json:"updated_at,omitempty"`    //更新时刻,毫秒
+	Username          string  `json:"username" validate:"required"`              //用户注册号，自动生成，字母 + 数字
+	WalletAddress     string  `json:"wallet_address" validate:"required"`        //用户链上地址，默认是用户HD钱包的第0号索引，用于存储Eth及连米币
+	BalanceLNMCBefore int64   `json:"amount_lnmc_before" validate:"required"`    //充值前用户连米币数量
+	RechargeAmount    float64 `json:"recharge_amount" validate:"required"`       //充值金额，单位是人民币
+	PaymentType       int     `json:"payment_type" validate:"required"`          //第三方支付方式 1- 支付宝， 2-微信 3-银行卡
+	BalanceLNMCAfter  int64   `json:"amount_lnmc_after" validate:"required"`     //充值后用户连米币数量
+	BlockNumber       int64   `json:"block_number" validate:"required"`          //交易成功打包的区块高度
+	TxHash            string  `json:"tx_hash" validate:"required"`               //交易成功打包的区块哈希
 }
 
 //BeforeCreate CreatedAt赋值
