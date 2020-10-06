@@ -83,5 +83,8 @@ const (
 	LNMCINDEX = 1 //第1号存储LNMC
 
 	//gas最低消耗
-	GASLIMIT = 5000000
+	GASLIMIT = 8000000
+
+	// 每签到2次奖励的gas
+	AWARDGAS = 10000000
 )

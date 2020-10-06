@@ -6,8 +6,8 @@ package cmd
 import (
 	"log"
 
-	"github.com/spf13/cobra"
 	"github.com/lianmi/servers/lmSdkClient/business/wallet"
+	"github.com/spf13/cobra"
 )
 
 // PreTransferCmd represents the PreTransfer command
@@ -17,8 +17,10 @@ var PreTransferCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("PreTransfer called")
+		
+		targetUserName, _ := cmd.PersistentFlags().GetString("targetUserName")
+		amount, _ := cmd.PersistentFlags().GetFloat64("amount")
 
-		rechargeAmount, _ := cmd.PersistentFlags().GetFloat64("rechargeAmount")
 		err := wallet.PreTransfer(targetUserName, amount)
 		if err != nil {
 			log.Println("Balance failed")

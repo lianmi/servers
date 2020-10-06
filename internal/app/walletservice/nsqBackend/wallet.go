@@ -498,20 +498,20 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		)
 
 		//向此新地址转入若干gas用来运行合约
-		blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
-		if err != nil {
-			nc.logger.Error("向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Transfer Eth error")
-			goto COMPLETE
-		} else {
-			nc.logger.Info("向此新地址转入若干gas用来运行合约成功",
-				zap.String("AddressHex", newKeyPair.AddressHex),
-				zap.Uint64("blockNumber", blockNumber),
-				zap.String("hash", hash),
-			)
+		go func() {
+			blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
+			if err != nil {
+				nc.logger.Error("HandlePreTransfer, 向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
 
-		}
+			} else {
+				nc.logger.Info("HandlePreTransfer, 向此新地址转入若干gas用来运行合约成功",
+					zap.String("AddressHex", newKeyPair.AddressHex),
+					zap.Uint64("blockNumber", blockNumber),
+					zap.String("hash", hash),
+				)
+			}
+
+		}()
 
 		//调用eth接口， 部署多签合约, A-发起者， B-证明人
 		contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(walletAddress, newKeyPair.AddressHex)
@@ -1179,21 +1179,21 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			zap.String("AddressHex", newKeyPair.AddressHex),
 		)
 
-		//向此新地址转入若干gas用来运行合约
-		blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
-		if err != nil {
-			nc.logger.Error("向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Transfer Eth error")
-			goto COMPLETE
-		} else {
-			nc.logger.Info("向此新地址转入若干gas用来运行合约成功",
-				zap.String("AddressHex", newKeyPair.AddressHex),
-				zap.Uint64("blockNumber", blockNumber),
-				zap.String("hash", hash),
-			)
+		go func() {
+			//向此新地址转入若干gas用来运行合约
+			blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
+			if err != nil {
+				nc.logger.Error("向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
 
-		}
+			} else {
+				nc.logger.Info("向此新地址转入若干gas用来运行合约成功",
+					zap.String("AddressHex", newKeyPair.AddressHex),
+					zap.Uint64("blockNumber", blockNumber),
+					zap.String("hash", hash),
+				)
+
+			}
+		}()
 
 		//调用eth接口， 构造用户转账给平台方子地址的裸交易数据
 		tokens := fmt.Sprintf("%d", amountLNMC)
@@ -2483,7 +2483,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 			redisConn.Do("HSET", key, "Count", 0)
 			go func() {
 				balanceEthBefore = nc.ethService.GetWeiBalance(walletAddress)
-				awardEth = uint64(2 * LMCommon.GASLIMIT)
+				awardEth = uint64(LMCommon.AWARDGAS)
 				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
 				balanceEth = nc.ethService.GetWeiBalance(walletAddress)
 				nc.logger.Info("奖励ETH",

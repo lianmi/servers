@@ -422,7 +422,7 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 			zap.Float64("交易总费用(Eth)", ethAmountF64),
 			zap.Uint64("Nonce", tx.Nonce()),
 			zap.ByteString("Data", tx.Data()),
-			zap.String("To", tx.To().Hex()),
+			// zap.String("To", tx.To().Hex()),
 			zap.String("From", msg.From().Hex()),
 			zap.Uint64("Status", receipt.Status), //1-succeed
 		)
@@ -784,6 +784,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 		return nil, err
 	}
 	// fmt.Println("nonce:", int64(nonce))
+	s.logger.Debug("GenerateTransferLNMCTokenTx", zap.Int64("nonce", int64(nonce)))
 
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())

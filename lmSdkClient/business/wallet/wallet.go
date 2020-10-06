@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -18,7 +19,10 @@ import (
 )
 
 const (
-	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct" //id2的助记词
+
+	mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform" //id3的助记词
+
 )
 
 //创建 用户 HD钱包
@@ -217,7 +221,7 @@ func RegisterWallet(walletAddress string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -385,7 +389,7 @@ func Deposit(rechargeAmount float64) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -508,15 +512,33 @@ func PreTransfer(targetUserName string, amount float64) error {
 
 				} else {
 
-					log.Println("10-3 发起转账 回包内容 PreTransferRsp---------------------")
-					log.Println("rawDescToMulsig: ", rsq.RawTxToMulsig.Nonce)
-					log.Println("rawDescToTarget: ", rsq.RawTxToTarget)
+					log.Println("10-3 发起转账 回包内容 : \nrawDescToMulsig---------------------")
+					log.Println("rawDescToMulsig.Nonce: ", rsq.RawTxToMulsig.Nonce)
+					log.Println("rawDescToMulsig.GasPrice: ", rsq.RawTxToMulsig.GasPrice)
+					log.Println("rawDescToMulsig.GasLimit: ", rsq.RawTxToMulsig.GasLimit)
+					log.Println("rawDescToMulsig.ChainID: ", rsq.RawTxToMulsig.ChainID)
+					log.Println("rawDescToMulsig.ContractAddress: ", rsq.RawTxToMulsig.ContractAddress)
+					log.Println("rawDescToMulsig.Value: ", rsq.RawTxToMulsig.Value)
+					log.Println("rawDescToMulsig.TxHash: ", rsq.RawTxToMulsig.TxHash)
+					log.Println("rawDescToMulsig.Txdata: ", hex.EncodeToString(rsq.RawTxToMulsig.Txdata))
+
+					log.Println("")
+					log.Println("rawDescToTarget---------------------")
+					log.Println("rawDescToTarget.Nonce: ", rsq.RawTxToTarget.Nonce)
+					log.Println("rawDescToTarget.GasPrice: ", rsq.RawTxToTarget.GasPrice)
+					log.Println("rawDescToTarget.GasLimit: ", rsq.RawTxToTarget.GasLimit)
+					log.Println("rawDescToTarget.ChainID: ", rsq.RawTxToTarget.ChainID)
+					log.Println("rawDescToTarget.ContractAddress: ", rsq.RawTxToTarget.ContractAddress)
+					log.Println("rawDescToTarget.Value: ", rsq.RawTxToTarget.Value)
+					log.Println("rawDescToTarget.TxHash: ", rsq.RawTxToTarget.TxHash)
+					log.Println("rawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawTxToTarget.Txdata))
+					log.Println("")
 					log.Println("Time: ", rsq.Time)
 
 				}
 
 			} else {
-				log.Println("Deposit failed")
+				log.Println("Cmd failed, code: ", code)
 			}
 
 		}),
@@ -554,7 +576,7 @@ func PreTransfer(targetUserName string, amount float64) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -563,7 +585,7 @@ func PreTransfer(targetUserName string, amount float64) error {
 		}
 
 	}
-	log.Println("Deposit is Done.")
+	log.Println("Cmd is Done.")
 
 	return nil
 
@@ -710,7 +732,7 @@ func Balance() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -866,7 +888,7 @@ func UserSignIn() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
