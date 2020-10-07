@@ -776,7 +776,7 @@ source - 发起方钱包账号
 target - 多签合约地址
 tokens - 代币数量，字符串格式
 */
-func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*models.RawDesc, error) {
+func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int64) (*models.RawDesc, error) {
 
 	fromAddress := common.HexToAddress(source)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
@@ -785,7 +785,8 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 		return nil, err
 	}
 	// fmt.Println("nonce:", int64(nonce))
-	s.logger.Debug("GenerateTransferLNMCTokenTx", zap.Int64("nonce", int64(nonce)))
+	// nonce = nonce
+	s.logger.Debug("GenerateTransferLNMCTokenTx", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
 
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
@@ -811,8 +812,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target, tokens string) (*m
 	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
 	// fmt.Println(hexutil.Encode(paddedAddress))
 
-	amount := new(big.Int)
-	amount.SetString(tokens, 10) //代币数量
+	amount := big.NewInt(tokens) //代币数量
 
 	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
 	// fmt.Println(hexutil.Encode(paddedAmount))
@@ -1000,7 +1000,7 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 }
 
 //根据多签合约生成裸交易数据
-func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens string) (*models.RawDesc, error) {
+func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, tokens int64) (*models.RawDesc, error) {
 	fromAddress := common.HexToAddress(fromAddressHex)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
@@ -1008,7 +1008,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 		return nil, err
 	}
 	// fmt.Println("nonce:", int64(nonce))
-
+	// nonce = nonce + 1
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
 	if err != nil {
@@ -1033,8 +1033,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target, tokens 
 	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
 	// fmt.Println(hexutil.Encode(paddedAddress)) // 0x00000000000000000000000059ac768b416c035c8db50b4f54faaa1e423c070d
 
-	amount := new(big.Int)
-	amount.SetString(tokens, 10) //代币数量
+	amount := big.NewInt(tokens) //代币数量
 
 	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
 	// fmt.Println(hexutil.Encode(paddedAmount)) // 0x00000000000000000000000000000000000000000000003635c9adc5dea00000

@@ -547,13 +547,15 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//由于amout是人民币，以元为单位，因此，需要乘以100
+		amountLNMC = uint64(req.GetAmount() * 100)
+
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
 			zap.Uint64("当前余额 amountLNMCBefore", amountLNMCBefore),
+			zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
 		)
-
-		amountLNMC = uint64(req.GetAmount() * 100)
 
 		//amount是人民币格式（单位是 元），要转为int64
 		if amountLNMCBefore < amountLNMC {
@@ -580,25 +582,6 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		*/
 		// }()
 
-		//TODO  取消 调用eth接口， 部署多签合约, A-发起者， B-证明人
-		/*
-			contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(walletAddress, newKeyPair.AddressHex)
-			if err != nil {
-				nc.logger.Error("部署多签合约 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Deploy MultiSig Contract error")
-				goto COMPLETE
-			} else {
-				nc.logger.Info("部署多签合约成功",
-					zap.String("AddressHex", newKeyPair.AddressHex),
-					zap.String("contractAddress", contractAddress),
-					zap.Uint64("blockNumber", blockNumber),
-					zap.String("hash", hash),
-				)
-
-			}
-		*/
-
 		//保存预审核转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
 			Username:          username,                //发起支付
@@ -614,7 +597,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
 
 		//发起者钱包账户向多签合约账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向多签合约账户转账
-		tokens := fmt.Sprintf("%d", amountLNMC)
+		tokens := int64(amountLNMC)
 		rawTxToMulsig, err := nc.ethService.GenerateTransferLNMCTokenTx(walletAddress, contractAddress, tokens)
 		if err != nil {
 			nc.logger.Error("构造发起者向多签合约转账的交易 失败", zap.String("walletAddress", walletAddress), zap.String("contractAddress", contractAddress), zap.Error(err))
@@ -622,7 +605,18 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("GenerateTransferLNMCTokenTx error")
 			goto COMPLETE
 		}
+		/*
+			//TODO 测试专用，马上用id1的私钥进行签名，然后广播到链上，看看是否还发送nonce too low的错误
+			privKeyHex := "privKeyHex" //id2私钥
+			rawTxHex, err := buildTx(rawTxToMulsig, privKeyHex, ERC20DeployContractAddress)
+			if err != nil {
+				nc.logger.Error("buildTx 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("buildTx error")
+				goto COMPLETE
 
+			}
+		*/
 		//从多签合约账号转到目标接收者账号
 		rawTxToTarget, err := nc.ethService.GenerateRawTx(contractAddress, walletAddress, toWalletAddress, tokens)
 		if err != nil {
@@ -869,28 +863,58 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		)
 
 		//调用eth接口，将发起方签名的转账给多签的交易数据广播到链上
-		nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToMultisig()))
+		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToMultisig()))
+		if err != nil {
+			nc.logger.Error("SendSignedTxToGeth Failed", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("SendSignedTxToGeth error")
+			goto COMPLETE
+		} else {
+			nc.logger.Info("发起方普通账号转到多签地址的交易数据广播到链上  成功 ",
+				zap.String("username", username),
+				zap.String("walletAddress", walletAddress),
+				zap.String("contractAddress", contractAddress),
+				zap.Uint64("blockNumber", blockNumber),
+				zap.String("hash", hash),
+			)
+		}
 
 		//调用eth接口，将发起方签名的从多签合约转到目标接收者的交易数据广播到链上- A签
-		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToTarget()))
+		blockNumber, hash, err = nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToTarget()))
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("SendSignedTxToGeth error")
 			goto COMPLETE
+		} else {
+			nc.logger.Info("发起方的多签合约转到目标接收者的交易数据广播到链上  成功 ",
+				zap.String("username", username),
+				zap.String("contractAddress", contractAddress),
+				zap.String("toWalletAddress", toWalletAddress),
+				zap.Uint64("blockNumber", blockNumber),
+				zap.String("hash", hash),
+			)
 		}
+
+		//TODO B签
+
+		
 		// 获取链上代币余额
-		balanceAfter = nc.ethService.GetWeiBalance(walletAddress)
+		balanceAfter, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("GetLNMCTokenBalance error")
+			goto COMPLETE
+		}
 
 		//更新转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
-			Username:           username,                                      //发起支付
-			WalletAddress:      walletAddress,                                 // 发起方钱包账户
-			BalanceLNMCBefore:  balanceLNMC,                                   //发送方用户在转账时刻的连米币数量
-			AmountLNMC:         amountLNMC,                                    //本次转账的用户连米币数量
-			BalanceLNMCAfter:   balanceAfter,                                  //发送方用户在转账之后的连米币数量
-			Bip32Index:         newBip32Index,                                 //平台HD钱包Bip32派生索引号
-			State:              1,                                             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
-			SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
+			Username:           username,      //发起支付
+			WalletAddress:      walletAddress, // 发起方钱包账户
+			BalanceLNMCBefore:  balanceLNMC,   //发送方用户在转账时刻的连米币数量
+			AmountLNMC:         amountLNMC,    //本次转账的用户连米币数量
+			BalanceLNMCAfter:   balanceAfter,  //发送方用户在转账之后的连米币数量
+			Bip32Index:         newBip32Index, //平台HD钱包Bip32派生索引号
+			State:              1,             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
 			SucceedBlockNumber: blockNumber,
 			SucceedHash:        hash,
 		}
@@ -921,21 +945,29 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			"LNMCAmount",
 			balanceAfter)
 
-		nc.logger.Info("转账之后钱包信息",
-			zap.String("username", username),
-			zap.String("walletAddress", walletAddress),
-			zap.Uint64("当前余额", balanceAfter),
-			zap.Uint64("代币减少的数量", balanceAfter-uint64(balanceLNMC)),
-		)
-
 		//更新接收者的收款历史记录
 		//刷新接收者redis里的代币数量
-		toBalanceAfter := nc.ethService.GetWeiBalance(toWalletAddress)
+		toBalanceAfter, err := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("toBalanceAfter, GetLNMCTokenBalance error")
+			goto COMPLETE
+		}
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", toUsername),
 			"LNMCAmount",
 			toBalanceAfter)
 
+		//代币减少的数量
+		exchangeLNMC := balanceLNMC - balanceAfter
+
+		nc.logger.Info("转账之后钱包信息",
+			zap.String("username", username),
+			zap.String("walletAddress", walletAddress),
+			zap.Uint64("发起者当前余额", balanceAfter),
+			zap.Uint64("代币减少的数量", exchangeLNMC),
+			zap.Uint64("接收者当前余额", toBalanceAfter),
+		)
 		//更新接收者的收款历史表
 		lnmcCollectionHistory := &models.LnmcCollectionHistory{
 			Username:           toUsername, //接收者
@@ -946,7 +978,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			BalanceLNMCAfter:   toBalanceAfter, //接收方用户在转账之后的连米币数量
 			Bip32Index:         newBip32Index,  //平台HD钱包Bip32派生索引号
 			ContractAddress:    contractAddress,
-			SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
 			SucceedBlockNumber: blockNumber,
 			SucceedHash:        hash,
 		}
@@ -1270,7 +1301,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		// }()
 
 		//调用eth接口， 构造用户转账给平台方子地址的裸交易数据
-		tokens := fmt.Sprintf("%d", amountLNMC)
+		tokens := int64(amountLNMC)
 		rawDesc, err := nc.ethService.GenerateTransferLNMCTokenTx(walletAddress, newKeyPair.AddressHex, tokens)
 		if err != nil {
 			nc.logger.Error("构造用户转账给平台方子地址的裸交易数据 失败", zap.String("walletAddress", walletAddress), zap.String("Plaform Address", newKeyPair.AddressHex), zap.Error(err))
@@ -1492,7 +1523,7 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 		}
 
 		// 获取链上代币余额
-		balanceAfter = nc.ethService.GetWeiBalance(walletAddress)
+		balanceAfter, _ = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		nc.logger.Info("提现之后钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
@@ -1502,14 +1533,14 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 
 		//保存提现记录到 MySQL
 		lnmcWithdrawHistory := &models.LnmcWithdrawHistory{
-			Username:           username,                                        //发起支付
-			WalletAddress:      walletAddress,                                   //发起方钱包账户
-			BalanceLNMCBefore:  balanceLNMC,                                     //发送方用户在提现时刻的连米币数量
-			AmountLNMC:         amountLNMC,                                      //本次提现的用户连米币数量
-			BalanceLNMCAfter:   balanceAfter,                                    //本次提现之后的用户连米币数量
-			Bip32Index:         newBip32Index,                                   //平台HD钱包Bip32派生索引号
-			State:              1,                                               //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
-			SignedTx:           hex.EncodeToString(req.GetSignedTxToPlatform()), //hex格式
+			Username:          username,      //发起支付
+			WalletAddress:     walletAddress, //发起方钱包账户
+			BalanceLNMCBefore: balanceLNMC,   //发送方用户在提现时刻的连米币数量
+			AmountLNMC:        amountLNMC,    //本次提现的用户连米币数量
+			BalanceLNMCAfter:  balanceAfter,  //本次提现之后的用户连米币数量
+			Bip32Index:        newBip32Index, //平台HD钱包Bip32派生索引号
+			State:             1,             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
+			// SignedTx:           hex.EncodeToString(req.GetSignedTxToPlatform()), //hex格式
 			SucceedBlockNumber: blockNumber,
 			SucceedHash:        hash,
 		}
@@ -1738,7 +1769,7 @@ func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
 		)
 
 		toWalletAddress, _ = redis.String(redisConn.Do("HGET", fmt.Sprintf("PreTransfer:%s:%s", username, contractAddress), "ToWalletAddress"))
-		toBalanceLNMC = nc.ethService.GetWeiBalance(toWalletAddress)
+		toBalanceLNMC, _ = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 
 		//调用eth接口，将发起方签名的转账给多签的交易数据广播到链上
 		nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToMultisig()))
@@ -1751,19 +1782,19 @@ func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
 			goto COMPLETE
 		}
 		// 获取链上代币余额
-		balanceAfter = nc.ethService.GetWeiBalance(walletAddress)
+		balanceAfter, _ = nc.ethService.GetLNMCTokenBalance(walletAddress)
 
 		//更新转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
-			Username:           username, //发起支付
-			OrderID:            req.GetOrderID(),
-			WalletAddress:      walletAddress,                                 // 发起方钱包账户
-			BalanceLNMCBefore:  balanceLNMC,                                   //发送方用户在转账时刻的连米币数量
-			AmountLNMC:         amountLNMC,                                    //本次转账的用户连米币数量
-			BalanceLNMCAfter:   balanceAfter,                                  //发送方用户在转账之后的连米币数量
-			Bip32Index:         newBip32Index,                                 //平台HD钱包Bip32派生索引号
-			State:              1,                                             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
-			SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
+			Username:          username, //发起支付
+			OrderID:           req.GetOrderID(),
+			WalletAddress:     walletAddress, // 发起方钱包账户
+			BalanceLNMCBefore: balanceLNMC,   //发送方用户在转账时刻的连米币数量
+			AmountLNMC:        amountLNMC,    //本次转账的用户连米币数量
+			BalanceLNMCAfter:  balanceAfter,  //发送方用户在转账之后的连米币数量
+			Bip32Index:        newBip32Index, //平台HD钱包Bip32派生索引号
+			State:             1,             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
+			// SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
 			SucceedBlockNumber: blockNumber,
 			SucceedHash:        hash,
 		}
@@ -1814,7 +1845,7 @@ func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
 		}
 		data, _ = proto.Marshal(rsp)
 
-		//TODO 9-12 支付订单完成的事件
+		// 9-12 支付订单完成的事件
 		orderPayDoneEventRsp := &Order.OrderPayDoneEventRsp{
 			OrderID:         req.GetOrderID(),
 			ContractAddress: contractAddress,
@@ -1832,7 +1863,7 @@ func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			//刷新接收者redis里的代币数量
-			toBalanceAfter := nc.ethService.GetWeiBalance(toWalletAddress)
+			toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 			redisConn.Do("HSET",
 				fmt.Sprintf("userWallet:%s", toUsername),
 				"LNMCAmount",
@@ -1840,16 +1871,16 @@ func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
 
 			//更新接收者的收款历史表
 			lnmcCollectionHistory := &models.LnmcCollectionHistory{
-				Username:           toUsername, //接收者
-				FromUsername:       username,   //发送者
-				FromWalletAddress:  walletAddress,
-				OrderID:            req.GetOrderID(),
-				BalanceLNMCBefore:  toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
-				AmountLNMC:         amountLNMC,     //本次转账的用户连米币数量
-				BalanceLNMCAfter:   toBalanceAfter, //接收方用户在转账之后的连米币数量
-				Bip32Index:         newBip32Index,  //平台HD钱包Bip32派生索引号
-				ContractAddress:    contractAddress,
-				SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
+				Username:          toUsername, //接收者
+				FromUsername:      username,   //发送者
+				FromWalletAddress: walletAddress,
+				OrderID:           req.GetOrderID(),
+				BalanceLNMCBefore: toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
+				AmountLNMC:        amountLNMC,     //本次转账的用户连米币数量
+				BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
+				Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
+				ContractAddress:   contractAddress,
+				// SignedTx:           hex.EncodeToString(req.GetSignedTxToTarget()), //hex格式
 				SucceedBlockNumber: blockNumber,
 				SucceedHash:        hash,
 			}
@@ -2030,13 +2061,13 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 				zap.String("Username", collection.Username),
 			)
 			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
-				Id:                 collection.ID,                 //ID
-				CreatedAt:          uint64(collection.CreatedAt),  //创建时间
-				FromUsername:       collection.FromUsername,       //发送方用户注册号
-				AmountLNMC:         collection.AmountLNMC,         //本次转账的用户连米币数量
-				ContractAddress:    collection.ContractAddress,    //多签合约地址
-				OrderID:            collection.OrderID,            //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-				SignedTx:           collection.SignedTx,           //A签
+				Id:              collection.ID,                //ID
+				CreatedAt:       uint64(collection.CreatedAt), //创建时间
+				FromUsername:    collection.FromUsername,      //发送方用户注册号
+				AmountLNMC:      collection.AmountLNMC,        //本次转账的用户连米币数量
+				ContractAddress: collection.ContractAddress,   //多签合约地址
+				OrderID:         collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+				// SignedTx:           collection.SignedTx,           //A签
 				SucceedBlockNumber: collection.SucceedBlockNumber, //成功执行合约的所在区块高度
 				SucceedHash:        collection.SucceedHash,        //交易哈希
 			})
@@ -2298,13 +2329,13 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 				zap.String("Username", withdraw.Username),
 			)
 			rsp.Withdraws = append(rsp.Withdraws, &Wallet.Withdraw{
-				Id:                 withdraw.ID,                //ID
-				CreatedAt:          uint64(withdraw.CreatedAt), //创建时间
-				Bank:               withdraw.Bank,
-				BankCard:           withdraw.BankCard,
-				CardOwner:          withdraw.CardOwner,
-				State:              int32(withdraw.State),
-				SignedTx:           withdraw.SignedTx,                   //用户私钥签名后的数据，hex格式
+				Id:        withdraw.ID,                //ID
+				CreatedAt: uint64(withdraw.CreatedAt), //创建时间
+				Bank:      withdraw.Bank,
+				BankCard:  withdraw.BankCard,
+				CardOwner: withdraw.CardOwner,
+				State:     int32(withdraw.State),
+				// SignedTx:           withdraw.SignedTx,                   //用户私钥签名后的数据，hex格式
 				SucceedBlockNumber: uint64(withdraw.SucceedBlockNumber), //成功执行合约的所在区块高度
 				SucceedHash:        withdraw.SucceedHash,                //交易哈希
 			})
@@ -2416,14 +2447,14 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 				zap.String("Username", transfer.Username),
 			)
 			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
-				Id:                 transfer.ID,                //ID
-				CreatedAt:          uint64(transfer.CreatedAt), //创建时间
-				ToUsername:         transfer.ToUsername,
-				AmountLNMC:         transfer.AmountLNMC,
-				ContractAddress:    transfer.ContractAddress,
-				State:              int32(transfer.State),
-				OrderID:            transfer.OrderID,
-				SignedTx:           transfer.SignedTx,                   //用户私钥签名后的数据，hex格式
+				Id:              transfer.ID,                //ID
+				CreatedAt:       uint64(transfer.CreatedAt), //创建时间
+				ToUsername:      transfer.ToUsername,
+				AmountLNMC:      transfer.AmountLNMC,
+				ContractAddress: transfer.ContractAddress,
+				State:           int32(transfer.State),
+				OrderID:         transfer.OrderID,
+				// SignedTx:           transfer.SignedTx,                   //用户私钥签名后的数据，hex格式
 				SucceedBlockNumber: uint64(transfer.SucceedBlockNumber), //成功执行合约的所在区块高度
 				SucceedHash:        transfer.SucceedHash,                //交易哈希
 			})

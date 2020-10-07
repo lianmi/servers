@@ -24,9 +24,9 @@ import (
 
 const (
 	//id2的助记词
-	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
 	//id3的助记词
-	mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
+	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
 
 	ERC20DeployContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
 )
@@ -508,6 +508,8 @@ func PreTransfer(targetUserName string, amount float64) error {
 	}
 	if amount < 0 {
 		return errors.New("amount must gather than 0")
+	} else {
+		log.Println("amount:", amount)
 	}
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
@@ -633,7 +635,7 @@ func PreTransfer(targetUserName string, amount float64) error {
 					log.Println("Time: ", rsq.Time)
 
 					//对裸交易进行签名,  并发送到服务端
-					nonce := rsq.RawTxToMulsig.Nonce + 1
+					nonce := rsq.RawTxToMulsig.Nonce
 					rawTxToMulsig := &models.RawDesc{
 						Nonce: nonce,
 						// gas价格
@@ -643,16 +645,19 @@ func PreTransfer(targetUserName string, amount float64) error {
 						//链id
 						ChainID: rsq.RawTxToMulsig.ChainID,
 						// 交易数据
-						Txdata: rsq.RawTxToTarget.Txdata,
+						Txdata: rsq.RawTxToMulsig.Txdata,
 						//多签合约地址
-						ContractAddress: rsq.RawTxToTarget.ContractAddress,
+						ContractAddress: rsq.RawTxToMulsig.ContractAddress,
 						//ether，设为0
 						Value: 0,
 						//交易哈希
 						TxHash: rsq.RawTxToMulsig.TxHash,
 					}
+					log.Println(rawTxToMulsig)
 
-					nonce2 := rsq.RawTxToTarget.Nonce + 1
+					log.Println("=======")
+
+					nonce2 := rsq.RawTxToTarget.Nonce
 					rawTxToTarget := &models.RawDesc{
 						Nonce: nonce2,
 						// gas价格
@@ -670,8 +675,6 @@ func PreTransfer(targetUserName string, amount float64) error {
 						//交易哈希
 						TxHash: rsq.RawTxToTarget.TxHash,
 					}
-					log.Println(rawTxToMulsig)
-					log.Println("=======")
 
 					log.Println(rawTxToTarget)
 

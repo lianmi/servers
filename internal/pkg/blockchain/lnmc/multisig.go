@@ -1168,25 +1168,30 @@ func main() {
 	//查询用户D的余额
 	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
 
-	//构造普通用户转账到多签合约的裸交易数据
-	rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
-	if err != nil {
-		log.Fatalln(err)
+	/*
+		//构造普通用户转账到多签合约的裸交易数据
+		rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+		if err != nil {
+			log.Fatalln(err)
 
-	}
+		}
 
-	//模仿SDK，进行签名，注意：第三个参数必须是erc20发币合约地址
-	rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX, ERC20DeployContractAddress)
-	if err != nil {
-		log.Fatalln(err)
+		//模仿SDK，进行签名，注意：第三个参数必须是erc20发币合约地址
+		rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX, ERC20DeployContractAddress)
+		if err != nil {
+			log.Fatalln(err)
 
-	}
-	err = sendSignedTxToGeth(rawTxHex)
-	if err != nil {
-		log.Fatalln(err)
+		}
+		err = sendSignedTxToGeth(rawTxHex)
+		if err != nil {
+			log.Fatalln(err)
 
-	}
-	//查询刚刚部署多签合约的余额， 应该是150
-	queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
+		}
+		//查询刚刚部署多签合约的余额， 应该是150
+		queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
+	*/
+
+	//查询id2的多签合约的余额
+	queryLNMCBalance("0x9d8D057020C6d5e2994520a74298ACB80aAdDB55")
 
 }

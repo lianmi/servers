@@ -79,7 +79,7 @@ type LnmcTransferHistory struct {
 	ContractHash        string `json:"contract_hash" validate:"required"`         //多签合约的哈希
 	State               int    `json:"state" validate:"required"`                 //多签合约执行状态，0-默认未执行，1-已执行
 	OrderID             string `json:"order_id"`                                  //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-	SignedTx            string `json:"signed_tx"`                                 //A签
+	// SignedTx            string `json:"signed_tx"`                                 //A签
 	SucceedBlockNumber  uint64 `json:"succeed_block_number"`                      //成功执行合约的所在区块高度
 	SucceedHash         string `json:"succeed_hash" `                             //成功执行合约的哈希
 }
@@ -111,7 +111,7 @@ type LnmcWithdrawHistory struct {
 	BalanceLNMCAfter   uint64 `json:"amount_lnmc_after" validate:"required"`     //本次提现之后的用户连米币数量
 	Bip32Index         uint64 `json:"bip32_index" validate:"required"`           //平台HD钱包Bip32派生索引号
 	State              int    `json:"state" validate:"required"`                 //提现进度状态，0-默认未执行，1-已执行
-	SignedTx           string `json:"signed_tx"`                                 //用户私钥签名后的数据，hex格式
+	// SignedTx           string `json:"signed_tx"`                                 //用户私钥签名后的数据，hex格式
 	SucceedBlockNumber uint64 `json:"succeed_block_number"`                      //成功执行提现的所在区块高度
 	SucceedHash        string `json:"succeed_hash" `                             //成功执行提现的哈希
 }
@@ -142,7 +142,7 @@ type LnmcCollectionHistory struct {
 	Bip32Index         uint64 `json:"bip32_index" validate:"required"`           //平台HD钱包Bip32派生索引号
 	ContractAddress    string `json:"contract_address" validate:"required"`      //多签合约地址
 	OrderID            string `json:"order_id"`                                  //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-	SignedTx           string `json:"signed_tx"`                                 //A签
+	// SignedTx           string `json:"signed_tx"`                                 //A签
 	SucceedBlockNumber uint64 `json:"succeed_block_number"`                      //成功执行合约的所在区块高度
 	SucceedHash        string `json:"succeed_hash" `                             //成功执行合约的哈希
 }
@@ -178,3 +178,4 @@ type RawDesc struct {
 	//交易哈希
 	TxHash string `protobuf:"bytes,6,opt,name=txHash,proto3" json:"txHash,omitempty"`
 }
+

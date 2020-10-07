@@ -76,7 +76,7 @@ func (nc *NsqClient) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcT
 		return errors.Wrapf(err, "Get LnmcTransferHistory error[ContractAddress=%s]", lmncTransferHistory.ContractAddress)
 	}
 	p.State = lmncTransferHistory.State
-	p.SignedTx = lmncTransferHistory.SignedTx
+	// p.SignedTx = lmncTransferHistory.SignedTx
 	p.SucceedBlockNumber = lmncTransferHistory.SucceedBlockNumber
 	p.SucceedHash = lmncTransferHistory.SucceedHash
 	if lmncTransferHistory.OrderID != "" {
@@ -123,7 +123,7 @@ func (nc *NsqClient) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcW
 		return errors.Wrapf(err, "Get lnmcWithdrawHistory error[Bip32Index=%s]", lnmcWithdrawHistory.Bip32Index)
 	}
 	p.State = lnmcWithdrawHistory.State
-	p.SignedTx = lnmcWithdrawHistory.SignedTx
+	// p.SignedTx = lnmcWithdrawHistory.SignedTx
 	p.SucceedBlockNumber = lnmcWithdrawHistory.SucceedBlockNumber
 	p.SucceedHash = lnmcWithdrawHistory.SucceedHash
 	p.BalanceLNMCBefore = lnmcWithdrawHistory.BalanceLNMCBefore
