@@ -481,7 +481,7 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) 
 
 	err = s.WsClient.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		s.logger.Error("SendTransaction failed ", zap.Error(err))
+		s.logger.Error("TransferEthToOtherAccount(), SendTransaction failed ", zap.Error(err))
 		return 0, "", err
 	}
 
@@ -500,7 +500,7 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) 
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
-			s.logger.Error("SendTransaction failed ", zap.Error(err))
+			s.logger.Error("TransferEthToOtherAccount(), TransactionByHash failed ", zap.Error(err))
 		}
 
 		s.logger.Info("交易完成",
@@ -517,7 +517,7 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) 
 
 }
 
-//获取 LNMC余额,  传参： 账户地址
+//获取 LNMC余额, 以分为单位，无小数点, 传参： 账户地址
 func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
 
 	//使用合约地址
@@ -610,7 +610,7 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), contractTx.Hash())
 		if err != nil {
-			s.logger.Error("SendTransaction failed ", zap.Error(err))
+			s.logger.Error("TransactionByHash failed ", zap.Error(err))
 		}
 
 		//查询转账之后的LNMC余额
@@ -881,7 +881,7 @@ func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
 
 	err = s.WsClient.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		s.logger.Error("SendTransaction failed ", zap.Error(err))
+		s.logger.Error("SendSignedTxToGeth(), SendTransaction failed ", zap.Error(err))
 		return 0, "", err
 	}
 

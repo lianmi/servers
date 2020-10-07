@@ -27,12 +27,16 @@ import (
 3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送第0号叶子的地址到服务端，服务端在链上创建用户的私人钱包。
 4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
 
+为提高效率，每个用户只部署一个多签转账智能合约，在注册时生成, 用来做证明人的系统HD钱包叶子也是与用户一一对应，
+系统的HD钱包的叶子递增, 也就是说每个用户的多签证明人，对应一个系统HD叶子索引号
 */
 func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	var blockNumber uint64 //区块高度
+	var newBip32Index uint64 //自增的平台HD钱包派生索引号
+	var blockNumber uint64
+	var contractAddress string //多签智能合约地址
 	var hash string
 
 	redisConn := nc.redisPool.Get()
@@ -106,12 +110,48 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 			}
 		}
 
-		//给用户钱包发送6000000个gas
-		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), LMCommon.GASLIMIT); err != nil {
+		//HD派生出一个叶子索引号，与此用户一一对应
+		//平台HD钱包利用bip32派生一个子私钥及子地址，作为证明人 - B签
+		newBip32Index, err = redis.Uint64(redisConn.Do("INCR", "Bip32Index"))
+		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
+
+		nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
+			zap.String("username", username),
+			zap.Uint64("newBip32Index", newBip32Index),
+			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
+			zap.String("AddressHex", newKeyPair.AddressHex),
+		)
+
+		//生成多签
+		//调用eth接口， 部署多签合约, A-发起者， B-证明人
+		contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(req.GetWalletAddress(), newKeyPair.AddressHex)
+		if err != nil {
+			nc.logger.Error("部署多签合约 失败",
+				zap.String("walletAddress", req.GetWalletAddress()),
+				zap.String("AddressHex", newKeyPair.AddressHex),
+				zap.Error(err))
+
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Wallet register error")
+			errorMsg = fmt.Sprintf("Deploy MultiSig Contract error")
 			goto COMPLETE
+		} else {
+			nc.logger.Info("部署多签合约成功",
+				zap.String("AddressHex", newKeyPair.AddressHex),
+				zap.String("contractAddress", contractAddress),
+				zap.Uint64("blockNumber", blockNumber),
+				zap.String("hash", hash),
+			)
+
 		}
+
+		//TODO 给用户钱包发送6000000个gas
+		/*
+			if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), LMCommon.GASLIMIT); err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Wallet register error")
+				goto COMPLETE
+			}
+		*/
 
 		//保存到MySQL 表 UserWallet
 		ethAmountString := fmt.Sprintf("%d", LMCommon.GASLIMIT)
@@ -129,13 +169,24 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
 			"EthAmount",
-			LMCommon.GASLIMIT)
+			0) //LMCommon.GASLIMIT
 
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
 			"LNMCAmount",
 			0)
 
+		// 保存叶子Index
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"Bip32Index",
+			newBip32Index)
+
+		//保存用户的多签智能合约地址，重复使用
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"ContractAddress",
+			contractAddress)
 	}
 
 COMPLETE:
@@ -448,6 +499,31 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("HGET error")
 			goto COMPLETE
 		}
+		//从redis里获取用户对应的叶子编号，作为证明人 - B签
+		newBip32Index, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
+		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
+
+		nc.logger.Info("用户对应的叶子编号、子私钥及子地址",
+			zap.String("username", username),
+			zap.Uint64("newBip32Index", newBip32Index),
+			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
+			zap.String("AddressHex", newKeyPair.AddressHex),
+		)
+
+		//获取用户注册钱包时部署的多签转账智能合约地址，重复使用
+		contractAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "ContractAddress"))
+		if err != nil {
+			nc.logger.Error("HGET error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET error")
+			goto COMPLETE
+		}
+		if contractAddress == "" {
+			nc.logger.Error("contractAddress is empty")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("contractAddress is empty")
+			goto COMPLETE
+		}
 
 		toWalletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress"))
 		if err != nil {
@@ -470,6 +546,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("HGET error")
 			goto COMPLETE
 		}
+
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
@@ -486,19 +563,9 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//平台HD钱包利用bip32派生一个子私钥及子地址，作为证明人 - B签
-		newBip32Index, err = redis.Uint64(redisConn.Do("INCR", "Bip32Index"))
-		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
-
-		nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
-			zap.String("username", username),
-			zap.Uint64("newBip32Index", newBip32Index),
-			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
-			zap.String("AddressHex", newKeyPair.AddressHex),
-		)
-
 		//向此新地址转入若干gas用来运行合约
-		go func() {
+		// go func() {
+		/*
 			blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
 			if err != nil {
 				nc.logger.Error("HandlePreTransfer, 向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
@@ -510,25 +577,27 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 					zap.String("hash", hash),
 				)
 			}
+		*/
+		// }()
 
-		}()
+		//TODO  取消 调用eth接口， 部署多签合约, A-发起者， B-证明人
+		/*
+			contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(walletAddress, newKeyPair.AddressHex)
+			if err != nil {
+				nc.logger.Error("部署多签合约 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Deploy MultiSig Contract error")
+				goto COMPLETE
+			} else {
+				nc.logger.Info("部署多签合约成功",
+					zap.String("AddressHex", newKeyPair.AddressHex),
+					zap.String("contractAddress", contractAddress),
+					zap.Uint64("blockNumber", blockNumber),
+					zap.String("hash", hash),
+				)
 
-		//调用eth接口， 部署多签合约, A-发起者， B-证明人
-		contractAddress, blockNumber, hash, err = nc.ethService.DeployMultiSig(walletAddress, newKeyPair.AddressHex)
-		if err != nil {
-			nc.logger.Error("部署多签合约 失败", zap.String("walletAddress", walletAddress), zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Deploy MultiSig Contract error")
-			goto COMPLETE
-		} else {
-			nc.logger.Info("部署多签合约成功",
-				zap.String("AddressHex", newKeyPair.AddressHex),
-				zap.String("contractAddress", contractAddress),
-				zap.Uint64("blockNumber", blockNumber),
-				zap.String("hash", hash),
-			)
-
-		}
+			}
+		*/
 
 		//保存预审核转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
@@ -916,7 +985,7 @@ COMPLETE:
 
 /*
 10-5 查询账号余额
-查询链上账号余额， 包括连米币及以太币
+查询链上账号余额， 包括连米币及以太币, 将查询到的余额更新到redis
 */
 func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 	var err error
@@ -995,12 +1064,16 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 		}
 
 		//当前用户的代币余额
-		amountLNMC, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "LNMCAmount"))
+		amountLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HGET error")
+			errorMsg = fmt.Sprintf("GetLNMCTokenBalance error")
 			goto COMPLETE
 		}
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"LNMCAmount",
+			amountLNMC)
 
 		//调用eth接口, 查询当前用户钱包的以太币余额
 		amountETH = nc.ethService.GetWeiBalance(walletAddress)
@@ -1056,8 +1129,8 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 
 	var walletAddress string //用户钱包地址
 
-	var blockNumber uint64
-	var hash string
+	// var blockNumber uint64
+	// var hash string
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号, 用于接收用户的代币，以便提现
 
 	var amountLNMCBefore uint64 //用户当前代币数量
@@ -1168,19 +1241,19 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//平台HD钱包利用bip32派生一个子私钥及子地址，本次提现的接收账号地址
-		newBip32Index, err = redis.Uint64(redisConn.Do("INCR", "Bip32Index"))
+		newBip32Index, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
 		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
 
-		nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
+		nc.logger.Info("用户对应的叶子编号、子私钥及子地址",
 			zap.String("username", username),
 			zap.Uint64("newBip32Index", newBip32Index),
 			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
 			zap.String("AddressHex", newKeyPair.AddressHex),
 		)
 
-		go func() {
-			//向此新地址转入若干gas用来运行合约
+		// go func() {
+		//向此新地址转入若干gas用来运行合约
+		/*
 			blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.GASLIMIT)
 			if err != nil {
 				nc.logger.Error("向此新地址转入若干gas用来运行合约 失败", zap.String("AddressHex", newKeyPair.AddressHex), zap.Error(err))
@@ -1193,7 +1266,8 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 				)
 
 			}
-		}()
+		*/
+		// }()
 
 		//调用eth接口， 构造用户转账给平台方子地址的裸交易数据
 		tokens := fmt.Sprintf("%d", amountLNMC)

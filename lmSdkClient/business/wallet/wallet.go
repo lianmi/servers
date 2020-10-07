@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct" //id2的助记词
-
-	mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform" //id3的助记词
+	//id2的助记词
+	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	//id3的助记词
+	mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
 
 	ERC20DeployContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
 )
@@ -498,7 +499,9 @@ func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (strin
 	return rawTxHex, nil
 }
 
-//10-3 发起转账
+/*
+10-3 发起转账
+*/
 func PreTransfer(targetUserName string, amount float64) error {
 	if targetUserName == "" {
 		return errors.New("targetUserName is empty")
@@ -630,8 +633,9 @@ func PreTransfer(targetUserName string, amount float64) error {
 					log.Println("Time: ", rsq.Time)
 
 					//对裸交易进行签名,  并发送到服务端
+					nonce := rsq.RawTxToMulsig.Nonce + 1
 					rawTxToMulsig := &models.RawDesc{
-						Nonce: rsq.RawTxToMulsig.Nonce,
+						Nonce: nonce,
 						// gas价格
 						GasPrice: rsq.RawTxToMulsig.GasPrice,
 						// 最低gas
@@ -648,6 +652,29 @@ func PreTransfer(targetUserName string, amount float64) error {
 						TxHash: rsq.RawTxToMulsig.TxHash,
 					}
 
+					nonce2 := rsq.RawTxToTarget.Nonce + 1
+					rawTxToTarget := &models.RawDesc{
+						Nonce: nonce2,
+						// gas价格
+						GasPrice: rsq.RawTxToTarget.GasPrice,
+						// 最低gas
+						GasLimit: rsq.RawTxToTarget.GasLimit,
+						//链id
+						ChainID: rsq.RawTxToTarget.ChainID,
+						// 交易数据
+						Txdata: rsq.RawTxToTarget.Txdata,
+						//多签合约地址
+						ContractAddress: rsq.RawTxToTarget.ContractAddress,
+						//ether，设为0
+						Value: 0,
+						//交易哈希
+						TxHash: rsq.RawTxToTarget.TxHash,
+					}
+					log.Println(rawTxToMulsig)
+					log.Println("=======")
+
+					log.Println(rawTxToTarget)
+
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 					rawTxHex, err := buildTx(rawTxToMulsig, privKeyHex, ERC20DeployContractAddress)
@@ -655,11 +682,23 @@ func PreTransfer(targetUserName string, amount float64) error {
 						log.Fatalln(err)
 
 					}
-					// err = sendSignedTxToGeth(rawTxHex)
-					// if err != nil {
-					// 	log.Fatalln(err)
+					rawTxHex2, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
+					if err != nil {
+						log.Fatalln(err)
 
-					// }
+					}
+
+					//TODO 调用10-4 确认转账
+
+					go func() {
+						signedTxToMultisig, _ := hex.DecodeString(rawTxHex)
+						signedTxToTarget, _ := hex.DecodeString(rawTxHex2)
+						err = ConfirmTransfer(rsq.RawTxToTarget.ContractAddress, signedTxToMultisig, signedTxToTarget)
+						if err != nil {
+							log.Fatalln(err)
+						}
+					}()
+
 				}
 
 			} else {
@@ -716,10 +755,12 @@ func PreTransfer(targetUserName string, amount float64) error {
 
 }
 
-
-
 //10-4 确认转账
-func ConfirmTransferReq(contractAddress, signedTxToMultisig, signedTxToTarget []byte) error {
+func ConfirmTransfer(contractAddress string, signedTxToMultisig, signedTxToTarget []byte) error {
+
+	if contractAddress == "" {
+		return errors.New("contractAddress is empty")
+	}
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -729,6 +770,13 @@ func ConfirmTransferReq(contractAddress, signedTxToMultisig, signedTxToTarget []
 
 	defer redisConn.Close()
 
+	req := &Wallet.ConfirmTransferReq{
+		ContractAddress:    contractAddress,
+		SignedTxToMultisig: signedTxToMultisig,
+		SignedTxToTarget:   signedTxToTarget,
+	}
+
+	content, _ := proto.Marshal(req)
 	topic := "lianmi/cloud/dispatcher"
 	var localUserName string
 	var localDeviceID string
@@ -762,14 +810,14 @@ func ConfirmTransferReq(contractAddress, signedTxToMultisig, signedTxToTarget []
 	pb := &paho.Publish{
 		Topic:   topic,
 		QoS:     byte(1),
-		Payload: nil, //不需要包体
+		Payload: content,
 		Properties: &paho.PublishProperties{
 			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
-				"businessSubType": "5",           // 业务子号
+				"businessSubType": "4",           //  业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",
@@ -808,20 +856,21 @@ func ConfirmTransferReq(contractAddress, signedTxToMultisig, signedTxToTarget []
 			if code == "200" {
 				// 回包
 				//解包负载 m.Payload
-				var rsq Wallet.BalanceRsp
+				var rsq Wallet.ConfirmTransferRsp
 				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
 					log.Println("Protobuf Unmarshal Error", err)
 
 				} else {
-					log.Println("10-5 查询账号余额,  回包内容---------------------")
-					log.Println("amountLNMC: ", rsq.AmountLNMC)
-					log.Println("amountETH: ", rsq.AmountETH)
+
+					log.Println("10-4 确认转账回包内容 : ---------------------")
+					log.Println("blockNumber: ", rsq.BlockNumber)
+					log.Println("hash: ", rsq.Hash)
 					log.Println("time: ", rsq.Time)
 
 				}
 
 			} else {
-				log.Println("Failed, server return an error")
+				log.Println("Cmd failed, code: ", code)
 			}
 
 		}),
@@ -873,6 +922,7 @@ func ConfirmTransferReq(contractAddress, signedTxToMultisig, signedTxToTarget []
 	return nil
 
 }
+
 //10-5 查询账号余额
 func Balance() error {
 
