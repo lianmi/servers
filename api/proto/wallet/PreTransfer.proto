@@ -19,8 +19,8 @@ message RawDesc {
    // 交易数据 
    bytes txdata=5;
 
-   //多签合约地址 
-   string contractAddress=6;
+   //收款者地址 
+   string toWalletAddress=6;
 
    //ether，设为0
    fixed64 value=7;
@@ -31,21 +31,24 @@ message RawDesc {
 }
 
 message PreTransferReq{
-    //收款方的用户账号
-    string targetUserName=1;
+    //订单ID（ 非空的时候，targetUserName 必须是空 两者选一）
+    string orderID=1;
+
+    //收款方的用户账号（非空的时候，orderID必须是空 两者选一）
+    string targetUserName=2;
 
     //金额(人民币格式)， 服务端要转换为代币格式
-    double amount=2;
+    double amount=3;
 }
 
 
 message PreTransferRsp{
 
-    //向多签合约转账的裸交易结构体
-    RawDesc rawTxToMulsig=1;
+    //向收款方转账的裸交易结构体
+    RawDesc rawDescToTarget=1;
 
     //从多签合约转账到目标接收者的裸交易结构体
-    RawDesc rawTxToTarget=2;
+    //RawDesc rawTxToTarget=2;
 
     //时间
     fixed64 time=3;

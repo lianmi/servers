@@ -72,13 +72,13 @@ func (nc *NsqClient) SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTr
 //确认转账后，更新转账历史记录
 func (nc *NsqClient) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
 	p := new(models.LnmcTransferHistory)
-	if err := nc.db.Model(p).Where("contract_address = ?", lmncTransferHistory.ContractAddress).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get LnmcTransferHistory error[ContractAddress=%s]", lmncTransferHistory.ContractAddress)
+	if err := nc.db.Model(p).Where("username = ? and to_username=?", lmncTransferHistory.Username, lmncTransferHistory.ToUsername).First(p).Error; err != nil {
+		return errors.Wrapf(err, "Get LnmcTransferHistory error")
 	}
 	p.State = lmncTransferHistory.State
 	// p.SignedTx = lmncTransferHistory.SignedTx
-	p.SucceedBlockNumber = lmncTransferHistory.SucceedBlockNumber
-	p.SucceedHash = lmncTransferHistory.SucceedHash
+	p.BlockNumber = lmncTransferHistory.BlockNumber
+	p.Hash = lmncTransferHistory.Hash
 	if lmncTransferHistory.OrderID != "" {
 		p.OrderID = lmncTransferHistory.OrderID
 	}
@@ -124,8 +124,8 @@ func (nc *NsqClient) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcW
 	}
 	p.State = lnmcWithdrawHistory.State
 	// p.SignedTx = lnmcWithdrawHistory.SignedTx
-	p.SucceedBlockNumber = lnmcWithdrawHistory.SucceedBlockNumber
-	p.SucceedHash = lnmcWithdrawHistory.SucceedHash
+	p.BlockNumber = lnmcWithdrawHistory.BlockNumber
+	p.Hash = lnmcWithdrawHistory.Hash
 	p.BalanceLNMCBefore = lnmcWithdrawHistory.BalanceLNMCBefore
 	p.AmountLNMC = lnmcWithdrawHistory.AmountLNMC
 	p.BalanceLNMCAfter = lnmcWithdrawHistory.BalanceLNMCAfter

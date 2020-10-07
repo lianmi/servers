@@ -6,14 +6,11 @@ message PayOrderReq{
     //订单ID
     string orderID =1;
 
-    //多签合约地址
-    string contractAddress=2;
+    //商户账号id
+    string targetUsername=2;
 
-    //签名后的转账到多签合约的Tx
-    bytes signedTxToMultisig=3;
-
-    //签名后的从多签合约转给目标接收者的Tx(A签)
-    bytes signedTxToTarget=4;
+    //签名后的转给目标接收者的Tx(A签)
+    bytes signedTxToTarget=3;
 }
 
 

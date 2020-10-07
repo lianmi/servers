@@ -28,10 +28,10 @@ message Collection{
 	string signedTx=7;
 
     //成功执行合约的所在区块高度
-	fixed64 succeedBlockNumber=8;
+	fixed64 blockNumber=8;
 
     //交易哈希
-	string succeedHash=9;
+	string hash=9;
   
 }
 
@@ -54,10 +54,10 @@ message Deposit{
 	global.ThirdPartyPaymentType paymentType=5;
     
     //成功执行合约的所在区块高度
-	fixed64 succeedBlockNumber=6;
+	fixed64 blockNumber=6;
 
     //交易哈希
-	string succeedHash=7;
+	string hash=7;
   
 }
 
@@ -88,10 +88,10 @@ message Withdraw{
 	//string SignedTx=8;
     
     //成功执行合约的所在区块高度
-	fixed64 succeedBlockNumber=9;
+	fixed64 blockNumber=9;
 
     //交易哈希
-	string succeedHash=10;
+	string hash=10;
   
 }
 
@@ -122,9 +122,9 @@ message Transfer{
 	//string SignedTx=8;
     
     //成功执行合约的所在区块高度
-	fixed64 succeedBlockNumber=9;
+	fixed64 blockNumber=9;
 
     //交易哈希
-	string succeedHash=10;
+	string hash=10;
   
 }

@@ -169,8 +169,6 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 12)] = nsqClient.HandleSyncTransferHistoryPage  //10-12 同步转账历史
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 13)] = nsqClient.HandleUserSignIn               //10-13 签到
 
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder //9-11 确认支付订单
-
 	return nsqClient
 }
 

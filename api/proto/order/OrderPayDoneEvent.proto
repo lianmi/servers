@@ -7,8 +7,8 @@ message OrderPayDoneEventRsp{
      //订单ID
     string orderID =1;
 
-    //多签合约地址
-    string contractAddress=2;
+    //发起支付的用户账号id
+    string fromUsername=2;
     
     //本次支付连米币数量 
     fixed64 amount=3;

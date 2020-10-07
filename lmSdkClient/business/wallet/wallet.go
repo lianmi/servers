@@ -502,10 +502,8 @@ func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (strin
 /*
 10-3 发起转账
 */
-func PreTransfer(targetUserName string, amount float64) error {
-	if targetUserName == "" {
-		return errors.New("targetUserName is empty")
-	}
+func PreTransfer(orderID, targetUserName string, amount float64) error {
+
 	if amount < 0 {
 		return errors.New("amount must gather than 0")
 	} else {
@@ -521,6 +519,7 @@ func PreTransfer(targetUserName string, amount float64) error {
 	defer redisConn.Close()
 
 	req := &Wallet.PreTransferReq{
+		OrderID:        orderID,
 		TargetUserName: targetUserName,
 		Amount:         amount,
 	}
@@ -611,81 +610,43 @@ func PreTransfer(targetUserName string, amount float64) error {
 
 				} else {
 
-					log.Println("10-3 发起转账 回包内容 : \nrawDescToMulsig---------------------")
-					log.Println("rawDescToMulsig.Nonce: ", rsq.RawTxToMulsig.Nonce)
-					log.Println("rawDescToMulsig.GasPrice: ", rsq.RawTxToMulsig.GasPrice)
-					log.Println("rawDescToMulsig.GasLimit: ", rsq.RawTxToMulsig.GasLimit)
-					log.Println("rawDescToMulsig.ChainID: ", rsq.RawTxToMulsig.ChainID)
-					log.Println("rawDescToMulsig.ContractAddress: ", rsq.RawTxToMulsig.ContractAddress)
-					log.Println("rawDescToMulsig.Value: ", rsq.RawTxToMulsig.Value)
-					log.Println("rawDescToMulsig.TxHash: ", rsq.RawTxToMulsig.TxHash)
-					log.Println("rawDescToMulsig.Txdata: ", hex.EncodeToString(rsq.RawTxToMulsig.Txdata))
-
+					log.Println("10-3 发起转账 回包内容 : \n RawDescToTarget---------------------")
 					log.Println("")
-					log.Println("rawDescToTarget---------------------")
-					log.Println("rawDescToTarget.Nonce: ", rsq.RawTxToTarget.Nonce)
-					log.Println("rawDescToTarget.GasPrice: ", rsq.RawTxToTarget.GasPrice)
-					log.Println("rawDescToTarget.GasLimit: ", rsq.RawTxToTarget.GasLimit)
-					log.Println("rawDescToTarget.ChainID: ", rsq.RawTxToTarget.ChainID)
-					log.Println("rawDescToTarget.ContractAddress: ", rsq.RawTxToTarget.ContractAddress)
-					log.Println("rawDescToTarget.Value: ", rsq.RawTxToTarget.Value)
-					log.Println("rawDescToTarget.TxHash: ", rsq.RawTxToTarget.TxHash)
-					log.Println("rawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawTxToTarget.Txdata))
+					log.Println("RawDescToTarget---------------------")
+					log.Println("RawDescToTarget.Nonce: ", rsq.RawDescToTarget.Nonce)
+					log.Println("RawDescToTarget.GasPrice: ", rsq.RawDescToTarget.GasPrice)
+					log.Println("RawDescToTarget.GasLimit: ", rsq.RawDescToTarget.GasLimit)
+					log.Println("RawDescToTarget.ChainID: ", rsq.RawDescToTarget.ChainID)
+					log.Println("RawDescToTarget.Value: ", rsq.RawDescToTarget.Value)
+					log.Println("RawDescToTarget.TxHash: ", rsq.RawDescToTarget.TxHash)
+					log.Println("RawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawDescToTarget.Txdata))
 					log.Println("")
 					log.Println("Time: ", rsq.Time)
 
-					//对裸交易进行签名,  并发送到服务端
-					nonce := rsq.RawTxToMulsig.Nonce
-					rawTxToMulsig := &models.RawDesc{
-						Nonce: nonce,
-						// gas价格
-						GasPrice: rsq.RawTxToMulsig.GasPrice,
-						// 最低gas
-						GasLimit: rsq.RawTxToMulsig.GasLimit,
-						//链id
-						ChainID: rsq.RawTxToMulsig.ChainID,
-						// 交易数据
-						Txdata: rsq.RawTxToMulsig.Txdata,
-						//多签合约地址
-						ContractAddress: rsq.RawTxToMulsig.ContractAddress,
-						//ether，设为0
-						Value: 0,
-						//交易哈希
-						TxHash: rsq.RawTxToMulsig.TxHash,
-					}
-					log.Println(rawTxToMulsig)
-
 					log.Println("=======")
 
-					nonce2 := rsq.RawTxToTarget.Nonce
 					rawTxToTarget := &models.RawDesc{
-						Nonce: nonce2,
+						Nonce: rsq.RawDescToTarget.Nonce,
 						// gas价格
-						GasPrice: rsq.RawTxToTarget.GasPrice,
+						GasPrice: rsq.RawDescToTarget.GasPrice,
 						// 最低gas
-						GasLimit: rsq.RawTxToTarget.GasLimit,
+						GasLimit: rsq.RawDescToTarget.GasLimit,
 						//链id
-						ChainID: rsq.RawTxToTarget.ChainID,
+						ChainID: rsq.RawDescToTarget.ChainID,
 						// 交易数据
-						Txdata: rsq.RawTxToTarget.Txdata,
-						//多签合约地址
-						ContractAddress: rsq.RawTxToTarget.ContractAddress,
+						Txdata: rsq.RawDescToTarget.Txdata,
 						//ether，设为0
 						Value: 0,
 						//交易哈希
-						TxHash: rsq.RawTxToTarget.TxHash,
+						TxHash: rsq.RawDescToTarget.TxHash,
 					}
 
 					log.Println(rawTxToTarget)
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
-					rawTxHex, err := buildTx(rawTxToMulsig, privKeyHex, ERC20DeployContractAddress)
-					if err != nil {
-						log.Fatalln(err)
 
-					}
-					rawTxHex2, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
+					rawTxHex, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
 					if err != nil {
 						log.Fatalln(err)
 
@@ -694,9 +655,8 @@ func PreTransfer(targetUserName string, amount float64) error {
 					//TODO 调用10-4 确认转账
 
 					go func() {
-						signedTxToMultisig, _ := hex.DecodeString(rawTxHex)
-						signedTxToTarget, _ := hex.DecodeString(rawTxHex2)
-						err = ConfirmTransfer(rsq.RawTxToTarget.ContractAddress, signedTxToMultisig, signedTxToTarget)
+						signedTxToTarget, _ := hex.DecodeString(rawTxHex)
+						err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
 						if err != nil {
 							log.Fatalln(err)
 						}
@@ -759,11 +719,7 @@ func PreTransfer(targetUserName string, amount float64) error {
 }
 
 //10-4 确认转账
-func ConfirmTransfer(contractAddress string, signedTxToMultisig, signedTxToTarget []byte) error {
-
-	if contractAddress == "" {
-		return errors.New("contractAddress is empty")
-	}
+func ConfirmTransfer(orderID, targetUsername string, signedTxToTarget []byte) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -774,9 +730,9 @@ func ConfirmTransfer(contractAddress string, signedTxToMultisig, signedTxToTarge
 	defer redisConn.Close()
 
 	req := &Wallet.ConfirmTransferReq{
-		ContractAddress:    contractAddress,
-		SignedTxToMultisig: signedTxToMultisig,
-		SignedTxToTarget:   signedTxToTarget,
+		OrderID:          orderID,
+		TargetUserName:   targetUsername,
+		SignedTxToTarget: signedTxToTarget,
 	}
 
 	content, _ := proto.Marshal(req)

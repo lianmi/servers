@@ -533,7 +533,7 @@ func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
 		s.logger.Error("get LNMC Balances failed ", zap.Error(err))
 		return 0, err
 	}
-	s.logger.Debug("Token of LNMC:", zap.String("Balance", accountLNMCBalance.String()))
+	s.logger.Debug("Token of LNMC:", zap.String("accountAddress", accountAddress), zap.String("Balance", accountLNMCBalance.String()))
 	return accountLNMCBalance.Uint64(), nil
 
 }
@@ -839,14 +839,13 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 	// fmt.Println("chainID:", chainID.String())
 
 	return &models.RawDesc{
-		Nonce:           nonce,
-		GasPrice:        gasPrice.Uint64(),
-		GasLimit:        gasLimit,
-		ChainID:         chainID.Uint64(),
-		Txdata:          data,
-		ContractAddress: "",
-		Value:           0,
-		TxHash:          tx.Hash().Hex(), //已经生成的
+		Nonce:    nonce,
+		GasPrice: gasPrice.Uint64(),
+		GasLimit: gasLimit,
+		ChainID:  chainID.Uint64(),
+		Txdata:   data,
+		Value:    0,
+		TxHash:   tx.Hash().Hex(), //已经生成的
 	}, nil
 }
 
@@ -1064,14 +1063,13 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 	// _ = tx
 
 	return &models.RawDesc{
-		Nonce:           nonce,
-		GasPrice:        gasPrice.Uint64(),
-		GasLimit:        gasLimit,
-		ChainID:         chainID.Uint64(),
-		Txdata:          data,
-		ContractAddress: contractAddress,
-		Value:           0,
-		TxHash:          tx.Hash().Hex(),
+		Nonce:    nonce,
+		GasPrice: gasPrice.Uint64(),
+		GasLimit: gasLimit,
+		ChainID:  chainID.Uint64(),
+		Txdata:   data,
+		Value:    0,
+		TxHash:   tx.Hash().Hex(),
 	}, nil
 
 }

@@ -1111,7 +1111,7 @@ func main() {
 	// transferTokenFromABToC(
 	// 	"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
 	// 	PrivateKeyBHEX, //B私钥
-	// 	AddressCHEX,    //C账号地址
+	// 	AddressDHEX,    //D账号地址
 	// 	50)
 
 	//查询用户C的余额
@@ -1192,6 +1192,6 @@ func main() {
 	*/
 
 	//查询id2的多签合约的余额
-	queryLNMCBalance("0x9d8D057020C6d5e2994520a74298ACB80aAdDB55")
+	queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
 
 }
