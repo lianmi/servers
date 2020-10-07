@@ -25,6 +25,7 @@ import (
 )
 
 const (
+	WSURI           = "ws://172.17.0.1:8546" //"ws://127.0.0.1:8546"
 	KEY             = "UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
 	COINBASEACCOUNT = "0x7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
 	PASSWORD        = "LianmiSky8900388"
@@ -115,7 +116,7 @@ m/44'/60'/0'/0/1 Public key in hex: 553d2e5a5ad1ac9b2ae2dab3ddc28df74e1a549a7537
 
 // GetLatestBlockNumber get the latest block number
 func getLatestBlockNumber() (*big.Int, error) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,7 +138,7 @@ func getPublicAddressFromPrivateKey(priv *ecdsa.PrivateKey) (common.Address, err
 
 // GetGasPrice gets clamped gas price
 func getGasPrice() *big.Int {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -158,8 +159,7 @@ func getGasPrice() *big.Int {
 
 // 输出wei为单位的账户余额
 func getWeiBalance(address string) *big.Int {
-	client, err := ethclient.Dial("ws://172.17.0.1:8546")
-	// client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
 	if err != nil {
 		log.Fatal(err)
@@ -178,7 +178,7 @@ func getWeiBalance(address string) *big.Int {
 // 输出Eth为单位的账户余额
 func getEthBalance(address string) float64 {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func checkAccountIsvalid() {
 	fmt.Printf("is valid: %v\n", re.MatchString("0xZYXb5d4c32345ced77393b3530b1eed0f346429d")) // is valid: false
 
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func KeystoreToPrivateKey(privateKeyFile, password string) (string, string, erro
 //检查交易打包状态
 func checkTransactionReceipt(_txHash string) int {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	txHash := common.HexToHash(_txHash)
 	receipt, err := client.TransactionReceipt(context.Background(), txHash)
 	if err != nil {
@@ -298,7 +298,7 @@ func WaitForBlockCompletation(wsClient *ethclient.Client, hashToRead string) int
 //查询交易
 func queryTransactionByBlockNumber(number uint64) {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -345,7 +345,7 @@ func queryTransactionByBlockNumber(number uint64) {
 //从总账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei amount 是字符型
 func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount string) {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -431,7 +431,7 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount string) 
 
 //从第0号叶子地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei amount 是字符型
 func transferEthFromLeaf0ToOtherAccount(targetAccount string, amount string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
