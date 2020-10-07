@@ -3,23 +3,30 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
-	
+
 	"fmt"
 
 	// "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	
 
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	// "io/ioutil"
 	"log"
 	"math/big"
 	// "strings"
+)
+
+const (
+	WSURI           = "ws://172.17.0.1:8546" //"ws://127.0.0.1:8546"
+	KEY             = "UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
+	COINBASEACCOUNT = "0x7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
+	PASSWORD        = "LianmiSky8900388"
+	GASLIMIT        = 6000000
 )
 
 /*
@@ -30,7 +37,7 @@ address: 0x4acea697f366C47757df8470e610a2d9B559DbBE
 */
 
 func deploy(privateKeyHex string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -59,8 +66,8 @@ func deploy(privateKeyHex string) {
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)      // in wei
-	auth.GasLimit = uint64(6000000) // in units
+	auth.Value = big.NewInt(0)       // in wei
+	auth.GasLimit = uint64(GASLIMIT) // in units
 	auth.GasPrice = gasPrice
 
 	address, _, _, err := ERC20.DeployERC20Token(
@@ -103,7 +110,7 @@ func deploy(privateKeyHex string) {
 
 //传参： 合约地址，账户地址
 func getTokenBalance(contractAddress, accountAddress string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -125,7 +132,7 @@ func getTokenBalance(contractAddress, accountAddress string) {
 
 //Eth转账, 从第0号叶子转到目标账号, amount  单位是 wei
 func transferEth(sourcePrivateKey, target string, amount string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -181,7 +188,7 @@ func transferEth(sourcePrivateKey, target string, amount string) {
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive(sender, receiver string) {
 
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -215,7 +222,7 @@ func querySendAndReceive(sender, receiver string) {
 
 func queryTx(txHex string) {
 	txHash := common.HexToHash(txHex)
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -232,7 +239,7 @@ func queryTx(txHex string) {
 //查询Eth余额
 func queryETH(accountHex string) {
 
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURI)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -247,8 +254,8 @@ func queryETH(accountHex string) {
 }
 
 func main() {
-	//部署合约,获取发币地址
-	// deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	//部署合约于第1号叶子 ,  获取发币合约地址
+	deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
 	//输出: Contract pending deploy: 0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce
 
 	//查询第1号叶子的LNMC余额
@@ -258,16 +265,15 @@ func main() {
 	// transfer("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545", 400)
 	//tx sent: 0x12139bdd617f66da7d123e20228e09092c5a55ebd2da9986c88fb1ec3cc55122
 
-	getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
+	// getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545")
+	// getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545")
 
 	// queryTx("0x40aa1ed6e2af939a9cc2f711a51cea0f21bdba3f146530f270956dbe3b454dd8")
 
 	//查询Eth余额
 	// queryETH("0xe14d151e0511b61357dde1b35a74e9c043c34c47")
-
 
 }
 

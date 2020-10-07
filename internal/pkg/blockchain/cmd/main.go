@@ -356,8 +356,9 @@ func transferEthFromCoinbaseToOtherAccount(targetAccount string, amount string) 
 
 	}
 	fmt.Printf("privKeyHex: %s\n address: %s\n", privKeyHex, addressHex)
-	//privKeyHex: bc2f812f1f534c9e8a3b3cfb628b0ea5d41967d4f18391c6489737d743b1ee7a
-	//address: 0xB18Db89641D2ec807104258e2205e6AC6264BF25
+	//服务端的coinbase私钥及地址
+	//privKeyHex: 500d4ffb915b80158285f18fe0a63af6377b24b28f98f655dff20491ed25d1d1
+	//  address: 0x7562B4D3B08b2373e68D4e89F69F6fB731B308E1
 
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
