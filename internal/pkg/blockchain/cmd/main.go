@@ -511,12 +511,18 @@ func transferEthFromLeaf0ToOtherAccount(targetAccount string, amount string) {
 
 func main() {
 	// 以wei为单位输出某个地址的eth
-	getWeiBalance(COINBASEACCOUNT)
+	// getWeiBalance(COINBASEACCOUNT)
 
 	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 
 	//从挖矿账号转账到第0号叶子
-	// transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "994000000000000000000")
+	transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "9000000000000000000000")
+
+	// 以wei为单位输出某个地址的eth
+	getWeiBalance(COINBASEACCOUNT)
+
+	// 以ether为单位输出某个地址的eth
+	getEthBalance(COINBASEACCOUNT)
 
 	//从第0号叶子向普通用户账号A转eth 1eth
 	// transferEthFromLeaf0ToOtherAccount("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538", "1000000000000000000")
