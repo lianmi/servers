@@ -516,13 +516,17 @@ func main() {
 	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 
 	//从挖矿账号转账到第0号叶子
-	transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "9000000000000000000000")
+	// transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "9000000000000000000000")
+
+	//从挖矿账号转账到第1号叶子, 部署合约需要
+	transferEthFromCoinbaseToOtherAccount("0x4acea697f366C47757df8470e610a2d9B559DbBE", "336000000000000000000")
 
 	// 以wei为单位输出某个地址的eth
 	getWeiBalance(COINBASEACCOUNT)
 
 	// 以ether为单位输出某个地址的eth
-	getEthBalance(COINBASEACCOUNT)
+	getEthBalance("0xe14D151e0511b61357DDe1B35a74E9c043c34C47") //第0号叶子
+	getEthBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE") //第1号叶子
 
 	//从第0号叶子向普通用户账号A转eth 1eth
 	// transferEthFromLeaf0ToOtherAccount("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538", "1000000000000000000")
