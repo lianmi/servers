@@ -883,10 +883,10 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		blockNumber, hash, err = nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToTarget()))
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("SendSignedTxToGeth error")
+			errorMsg = fmt.Sprintf("A签 SendSignedTxToGeth error")
 			goto COMPLETE
 		} else {
-			nc.logger.Info("发起方的多签合约转到目标接收者的交易数据广播到链上  成功 ",
+			nc.logger.Info("发起方的多签合约转到目标接收者的交易数据广播到链上  A签成功 ",
 				zap.String("username", username),
 				zap.String("contractAddress", contractAddress),
 				zap.String("toWalletAddress", toWalletAddress),
@@ -897,7 +897,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		//TODO B签
 
-		
 		// 获取链上代币余额
 		balanceAfter, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {

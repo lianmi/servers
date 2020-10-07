@@ -1008,7 +1008,7 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 		return nil, err
 	}
 	// fmt.Println("nonce:", int64(nonce))
-	// nonce = nonce + 1
+	nonce = nonce + 1
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
 	if err != nil {
