@@ -996,13 +996,8 @@ func generateTransferLNMCTokenTx(source, target, tokens string) (*RawDesc, error
 	}, nil
 }
 
-//传入Rawtx， 构造一个已经签名的hex裸交易
-func buildTx(rawDesc *RawDesc, privKeyHex string) (string, error) {
-	// client, err := ethclient.Dial("ws://127.0.0.1:8546")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return "", err
-	// }
+//传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
+func buildTx(rawDesc *RawDesc, privKeyHex, contractAddress string) (string, error) {
 
 	//A私钥
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
@@ -1010,24 +1005,14 @@ func buildTx(rawDesc *RawDesc, privKeyHex string) (string, error) {
 		log.Fatal(err)
 	}
 
-	// publicKey := privateKey.Public()
-	// publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	// if !ok {
-	// 	log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-	// }
-
-	// fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-
-	//接收者地址：多签合约地址
-	// toAddress := common.HexToAddress(rawDesc.ContractAddress)
-
-	//注意，这里需要填写发币合约地址
-	tokenAddress := common.HexToAddress(ERC20DeployContractAddress)
+	//注意，这里需要填写发币合约地址，不能设为刚刚创建的合约地址
+	// tokenAddress := common.HexToAddress(ERC20DeployContractAddress)
+	tokenAddress := common.HexToAddress(contractAddress)
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(
 		rawDesc.Nonce,
-		tokenAddress,
+		tokenAddress, //to
 		big.NewInt(int64(rawDesc.Value)),
 		rawDesc.GasLimit,
 		big.NewInt(int64(rawDesc.GasPrice)),
@@ -1183,25 +1168,25 @@ func main() {
 	//查询用户D的余额
 	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
 
-	/*
-		//构造普通用户转账到多签合约的裸交易数据
-		rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
-		if err != nil {
-			log.Fatalln(err)
+	//构造普通用户转账到多签合约的裸交易数据
+	rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+	if err != nil {
+		log.Fatalln(err)
 
-		}
+	}
 
-		//模仿SDK，进行签名
-		rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX)
-		if err != nil {
-			log.Fatalln(err)
+	//模仿SDK，进行签名，注意：第三个参数必须是erc20发币合约地址
+	rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX, ERC20DeployContractAddress)
+	if err != nil {
+		log.Fatalln(err)
 
-		}
-		err = sendSignedTxToGeth(rawTxHex)
-		if err != nil {
-			log.Fatalln(err)
+	}
+	err = sendSignedTxToGeth(rawTxHex)
+	if err != nil {
+		log.Fatalln(err)
 
-		}
+	}
+	//查询刚刚部署多签合约的余额， 应该是150
+	queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
 
-	*/
 }

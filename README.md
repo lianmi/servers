@@ -331,7 +331,7 @@ Path of the secret key file: mychain/keystore/UTC--2020-10-06T16-30-19.524731110
 ```
 ### 3. 运行geth
  
-注意不需要加，否则交易无须gas ：  --gasprice 0 
+注意不需要加，否则交易无须gas:  --gasprice 0 
 ```
 nohup geth --allow-insecure-unlock --syncmode "fast" --verbosity=5 --nousb --networkid 150 --nodiscover  --nat none --maxpeers=0 --datadir=./mychain --rpc --rpcaddr=0.0.0.0 --rpcport=8545 --rpccorsdomain='*' --rpcapi=admin,debug,eth,miner,net,personal,txpool,web3 --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug  --mine --miner.threads 1 >/dev/null 2>&1 &
 ```
