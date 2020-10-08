@@ -23,10 +23,13 @@ message PreWithDrawReq{
 }
 
 message PreWithDrawRsp{
+    //提现单编号，UUID
+    string withdrawUUID=1;
+
     //向平台方转账的裸交易结构体
-    RawDesc rawDescToPlatform=1;
+    RawDesc rawDescToPlatform=2;
     
     //时间
-    fixed64 time=2;
+    fixed64 time=3;
 
 }

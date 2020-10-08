@@ -1,51 +1,45 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+10-6 发起提现预审核
 */
 package cmd
 
 import (
-	"fmt"
+	"log"
 
+	"github.com/lianmi/servers/lmSdkClient/business/wallet"
 	"github.com/spf13/cobra"
 )
 
 // PreWithDrawCmd represents the PreWithDraw command
 var PreWithDrawCmd = &cobra.Command{
 	Use:   "PreWithDraw",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "./lmSdkClient wallet PreWithDraw -r 100 -s 123456 -b ChinaBank -c 23423423423423423432432432 -w lishijia",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("PreWithDraw called")
+		// fmt.Println("PreWithDraw called")
+		amount, _ := cmd.PersistentFlags().GetFloat64("amount")
+		smscode, _ := cmd.PersistentFlags().GetString("smscode")
+		bank, _ := cmd.PersistentFlags().GetString("bank")
+		bankCard, _ := cmd.PersistentFlags().GetString("bankCard")
+		cardOwner, _ := cmd.PersistentFlags().GetString("cardOwner")
+
+		err := wallet.PreWithDraw(amount, smscode, bank, bankCard, cardOwner)
+		if err != nil {
+			log.Println("PreWithDraw failed")
+		} else {
+			log.Println("PreWithDraw succeed")
+		}
+
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(PreWithDrawCmd)
+	//子命令
+	walletCmd.AddCommand(PreWithDrawCmd)
+	PreWithDrawCmd.PersistentFlags().Float64P("amount", "r", 0, "人民币格式, like: 100.00")
+	PreWithDrawCmd.PersistentFlags().StringP("smscode", "s", "123456", "code received from mobile, like: 123456")
+	PreWithDrawCmd.PersistentFlags().StringP("bank", "b", "ChinaBank", "")
+	PreWithDrawCmd.PersistentFlags().StringP("bankCard", "c", "62212214553434342332", "")
+	PreWithDrawCmd.PersistentFlags().StringP("cardOwner", "w", "lishijia", "")
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// PreWithDrawCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// PreWithDrawCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

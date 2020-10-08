@@ -119,11 +119,10 @@ func (nc *NsqClient) SaveLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWit
 //确认提现后，更新提现历史记录
 func (nc *NsqClient) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error) {
 	p := new(models.LnmcWithdrawHistory)
-	if err := nc.db.Model(p).Where("bip32_index = ?", lnmcWithdrawHistory.Bip32Index).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get lnmcWithdrawHistory error[Bip32Index=%s]", lnmcWithdrawHistory.Bip32Index)
+	if err := nc.db.Model(p).Where("withdraw_uuid = ?", lnmcWithdrawHistory.WithdrawUUID).First(p).Error; err != nil {
+		return errors.Wrapf(err, "Get lnmcWithdrawHistory error[WithdrawUUID=%s]", lnmcWithdrawHistory.WithdrawUUID)
 	}
 	p.State = lnmcWithdrawHistory.State
-	// p.SignedTx = lnmcWithdrawHistory.SignedTx
 	p.BlockNumber = lnmcWithdrawHistory.BlockNumber
 	p.Hash = lnmcWithdrawHistory.Hash
 	p.BalanceLNMCBefore = lnmcWithdrawHistory.BalanceLNMCBefore

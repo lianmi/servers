@@ -1193,3 +1193,380 @@ func UserSignIn() error {
 	return nil
 
 }
+
+/*
+10-6 发起提现预审核
+*/
+func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) error {
+
+	if amount < 0 {
+		return errors.New("amount must gather than 0")
+	} else {
+		log.Println("amount:", amount)
+	}
+
+	if smscode == "" {
+		smscode = "123456"
+	}
+
+	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+
+	defer redisConn.Close()
+
+	req := &Wallet.PreWithDrawReq{
+		Amount:    amount,
+		Smscode:   smscode,
+		Bank:      bank,
+		BankCard:  bankCard,
+		CardOwner: cardOwner,
+	}
+
+	content, _ := proto.Marshal(req)
+	topic := "lianmi/cloud/dispatcher"
+	var localUserName string
+	var localDeviceID string
+	localUserName, _ = redis.String(redisConn.Do("GET", "LocalUserName"))
+	localDeviceID, _ = redis.String(redisConn.Do("GET", "LocalDeviceID"))
+	if localUserName == "" {
+		log.Println("localUserName is  empty")
+		return errors.New("localUserName is empty error")
+	}
+	if localDeviceID == "" {
+		log.Println("localDeviceID is  empty")
+		return errors.New("localDeviceID is empty error")
+	}
+
+	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
+
+	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
+	key := fmt.Sprintf("jwtToken:%s", localUserName)
+	jwtToken, err := redis.String(redisConn.Do("GET", key))
+	if err != nil {
+		log.Println("Redis GET jwtToken:{localUserName}", err)
+		return err
+	}
+	if jwtToken == "" {
+		return errors.New("jwtToken is empty error")
+	}
+
+	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
+	taskIdStr := fmt.Sprintf("%d", taskId)
+
+	pb := &paho.Publish{
+		Topic:   topic,
+		QoS:     byte(1),
+		Payload: content,
+		Properties: &paho.PublishProperties{
+			CorrelationData: []byte(jwtToken), //jwt令牌
+			ResponseTopic:   responseTopic,
+			User: map[string]string{
+				"deviceId":        localDeviceID, // 设备号
+				"businessType":    "10",          // 业务号
+				"businessSubType": "6",           // 业务子号
+				"taskId":          taskIdStr,
+				"code":            "0",
+				"errormsg":        "",
+			},
+		},
+	}
+
+	//send req to mqtt
+	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	if err != nil {
+		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		return errors.New("BrokerServer dial error")
+	}
+
+	// Create paho client.
+	client := paho.NewClient(paho.ClientConfig{
+		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+			log.Println("Incoming mqtt broker message")
+
+			topic := m.Topic
+			jwtToken := string(m.Properties.CorrelationData)
+			deviceId := m.Properties.User["deviceId"]
+			businessTypeStr := m.Properties.User["businessType"]
+			businessSubTypeStr := m.Properties.User["businessSubType"]
+			taskIdStr := m.Properties.User["taskId"]
+			code := m.Properties.User["code"]
+
+			log.Println("topic: ", topic)
+			log.Println("jwtToken: ", jwtToken)
+			log.Println("deviceId: ", deviceId)
+			log.Println("businessType: ", businessTypeStr)
+			log.Println("businessSubType: ", businessSubTypeStr)
+			log.Println("taskId: ", taskIdStr)
+			log.Println("code: ", code)
+
+			if code == "200" {
+				// 回包
+				//解包负载 m.Payload
+				var rsq Wallet.PreWithDrawRsp
+				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+					log.Println("Protobuf Unmarshal Error", err)
+
+				} else {
+
+					log.Println("10-6 发起提现预审核 回包内容 : \n rawDescToPlatform---------------------")
+					// log.Println(rsq.Time)
+					// log.Println(rsq.RawDescToPlatform)
+
+					rawTxToPlatform := &models.RawDesc{
+						Nonce: rsq.RawDescToPlatform.Nonce,
+						// gas价格
+						GasPrice: rsq.RawDescToPlatform.GasPrice,
+						// 最低gas
+						GasLimit: rsq.RawDescToPlatform.GasLimit,
+						//链id
+						ChainID: rsq.RawDescToPlatform.ChainID,
+						// 交易数据
+						Txdata: rsq.RawDescToPlatform.Txdata,
+						//ether，设为0
+						Value: 0,
+						//交易哈希
+						TxHash: rsq.RawDescToPlatform.TxHash,
+					}
+
+					log.Println(rawTxToPlatform)
+
+					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
+					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
+
+					rawTxHex, err := buildTx(rawTxToPlatform, privKeyHex, ERC20DeployContractAddress)
+					if err != nil {
+						log.Fatalln(err)
+
+					}
+
+					//TODO 调用10-7 确认转账
+
+					go func() {
+						err = WithDraw(rsq.WithdrawUUID, rawTxHex)
+						if err != nil {
+							log.Fatalln(err)
+						}
+					}()
+
+				}
+
+			} else {
+				log.Println("Cmd failed, code: ", code)
+			}
+
+		}),
+		Conn: conn,
+	})
+
+	cp := &paho.Connect{
+		KeepAlive:  30,
+		ClientID:   localDeviceID,
+		CleanStart: true,
+		Username:   "",
+		Password:   []byte(""),
+	}
+	ca, err := client.Connect(context.Background(), cp)
+	if err == nil {
+		if ca.ReasonCode == 0 {
+			subTopic := fmt.Sprintf("lianmi/cloud/device/%s", localDeviceID)
+			if _, err := client.Subscribe(context.Background(), &paho.Subscribe{
+				Subscriptions: map[string]paho.SubscribeOptions{
+					subTopic: paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
+				},
+			}); err != nil {
+				log.Println("Failed to subscribe:", err)
+			}
+			log.Println("Subscribed succed: ", subTopic)
+		}
+	} else {
+		log.Println("Failed to Connect mqtt server", err)
+	}
+
+	if _, err := client.Publish(context.Background(), pb); err != nil {
+		log.Println("Failed to Publish:", err)
+	} else {
+		log.Println("Succeed Publish to mqtt broker:", topic)
+	}
+
+	run := true
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	for run == true {
+		select {
+		case <-ticker.C:
+			run = false
+			break
+		}
+
+	}
+	log.Println("Cmd is Done.")
+
+	return nil
+
+}
+
+//10-7 确认提现
+func WithDraw(withdrawUUID, signedTxToPlatform string) error {
+
+	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+
+	defer redisConn.Close()
+
+	req := &Wallet.WithDrawReq{
+		WithdrawUUID:       withdrawUUID,
+		SignedTxToPlatform: signedTxToPlatform,
+	}
+
+	content, _ := proto.Marshal(req)
+	topic := "lianmi/cloud/dispatcher"
+	var localUserName string
+	var localDeviceID string
+	localUserName, _ = redis.String(redisConn.Do("GET", "LocalUserName"))
+	localDeviceID, _ = redis.String(redisConn.Do("GET", "LocalDeviceID"))
+	if localUserName == "" {
+		log.Println("localUserName is  empty")
+		return errors.New("localUserName is empty error")
+	}
+	if localDeviceID == "" {
+		log.Println("localDeviceID is  empty")
+		return errors.New("localDeviceID is empty error")
+	}
+
+	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
+
+	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
+	key := fmt.Sprintf("jwtToken:%s", localUserName)
+	jwtToken, err := redis.String(redisConn.Do("GET", key))
+	if err != nil {
+		log.Println("Redis GET jwtToken:{localUserName}", err)
+		return err
+	}
+	if jwtToken == "" {
+		return errors.New("jwtToken is empty error")
+	}
+
+	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
+	taskIdStr := fmt.Sprintf("%d", taskId)
+
+	pb := &paho.Publish{
+		Topic:   topic,
+		QoS:     byte(1),
+		Payload: content,
+		Properties: &paho.PublishProperties{
+			CorrelationData: []byte(jwtToken), //jwt令牌
+			ResponseTopic:   responseTopic,
+			User: map[string]string{
+				"deviceId":        localDeviceID, // 设备号
+				"businessType":    "10",          // 业务号
+				"businessSubType": "7",           // 业务子号
+				"taskId":          taskIdStr,
+				"code":            "0",
+				"errormsg":        "",
+			},
+		},
+	}
+
+	//send req to mqtt
+	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	if err != nil {
+		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		return errors.New("BrokerServer dial error")
+	}
+
+	// Create paho client.
+	client := paho.NewClient(paho.ClientConfig{
+		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+			log.Println("Incoming mqtt broker message")
+
+			topic := m.Topic
+			jwtToken := string(m.Properties.CorrelationData)
+			deviceId := m.Properties.User["deviceId"]
+			businessTypeStr := m.Properties.User["businessType"]
+			businessSubTypeStr := m.Properties.User["businessSubType"]
+			taskIdStr := m.Properties.User["taskId"]
+			code := m.Properties.User["code"]
+
+			log.Println("topic: ", topic)
+			log.Println("jwtToken: ", jwtToken)
+			log.Println("deviceId: ", deviceId)
+			log.Println("businessType: ", businessTypeStr)
+			log.Println("businessSubType: ", businessSubTypeStr)
+			log.Println("taskId: ", taskIdStr)
+			log.Println("code: ", code)
+
+			if code == "200" {
+				// 回包
+				//解包负载 m.Payload
+				var rsq Wallet.WithDrawRsp
+				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+					log.Println("Protobuf Unmarshal Error", err)
+
+				} else {
+
+					log.Println("10-7 确认提现回包内容 : ---------------------")
+					log.Println("blockNumber: ", rsq.BlockNumber)
+					log.Println("hash: ", rsq.Hash)
+					log.Println("balanceLNMC: ", rsq.BalanceLNMC)
+					log.Println("time: ", rsq.Time)
+
+				}
+
+			} else {
+				log.Println("Cmd failed, code: ", code)
+			}
+
+		}),
+		Conn: conn,
+	})
+
+	cp := &paho.Connect{
+		KeepAlive:  30,
+		ClientID:   localDeviceID,
+		CleanStart: true,
+		Username:   "",
+		Password:   []byte(""),
+	}
+	ca, err := client.Connect(context.Background(), cp)
+	if err == nil {
+		if ca.ReasonCode == 0 {
+			subTopic := fmt.Sprintf("lianmi/cloud/device/%s", localDeviceID)
+			if _, err := client.Subscribe(context.Background(), &paho.Subscribe{
+				Subscriptions: map[string]paho.SubscribeOptions{
+					subTopic: paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
+				},
+			}); err != nil {
+				log.Println("Failed to subscribe:", err)
+			}
+			log.Println("Subscribed succed: ", subTopic)
+		}
+	} else {
+		log.Println("Failed to Connect mqtt server", err)
+	}
+
+	if _, err := client.Publish(context.Background(), pb); err != nil {
+		log.Println("Failed to Publish:", err)
+	} else {
+		log.Println("Succeed Publish to mqtt broker:", topic)
+	}
+
+	run := true
+	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	for run == true {
+		select {
+		case <-ticker.C:
+			run = false
+			break
+		}
+
+	}
+	log.Println("Cmd is Done.")
+
+	return nil
+
+}

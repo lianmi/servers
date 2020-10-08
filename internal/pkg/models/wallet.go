@@ -99,6 +99,7 @@ type LnmcWithdrawHistory struct {
 	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
 	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
 	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`    //更新时刻,毫秒
+	WithdrawUUID      string `json:"withdraw_uuid" validate:"required"`         //提现单编号，UUID
 	Username          string `json:"username" validate:"required"`              //发送方用户注册号
 	Bank              string `json:"bank" validate:"required"`                  //银行名称
 	BankCard          string `json:"bank_card" validate:"required"`             //银行卡号
@@ -107,11 +108,10 @@ type LnmcWithdrawHistory struct {
 	BalanceLNMCBefore uint64 `json:"amount_lnmc_before" validate:"required"`    //发送方用户在转账时刻的连米币数量
 	AmountLNMC        uint64 `json:"amount_lnmc" validate:"required"`           //本次提现的用户连米币数量
 	BalanceLNMCAfter  uint64 `json:"amount_lnmc_after" validate:"required"`     //本次提现之后的用户连米币数量
-	Bip32Index        uint64 `json:"bip32_index" validate:"required"`           //平台HD钱包Bip32派生索引号
 	State             int    `json:"state" validate:"required"`                 //提现进度状态，0-默认未执行，1-已执行
-	// SignedTx           string `json:"signed_tx"`                                 //用户私钥签名后的数据，hex格式
-	BlockNumber uint64 `json:"block_number"` //成功执行提现的所在区块高度
-	Hash        string `json:"hash" `        //成功执行提现的哈希
+	BlockNumber       uint64 `json:"block_number"`                              //成功执行提现的所在区块高度
+	Hash              string `json:"hash" `                                     //哈希
+	Fee               uint64 `json:"fee" validate:"required"`                   //本次提现的佣金总额
 }
 
 //BeforeCreate CreatedAt赋值

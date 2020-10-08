@@ -5,11 +5,11 @@ package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message WithDrawReq{
-    //交易哈希
-    string txHash=1;
+    //提现单编号，UUID
+    string withdrawUUID=1;
 
     //签名后的转账到平台方的Tx交易数据
-    bytes signedTxToPlatform=2;
+    string signedTxToPlatform=2;
   
 }
 

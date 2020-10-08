@@ -318,7 +318,7 @@ func (nc *NsqClient) RedisInit() (err error) {
 	//判断平台HD钱包的派生叶子索引是否存在，如果不存在，则创建key，value: 1
 	isExists, _ := redis.Bool(redisConn.Do("EXISTS", "Bip32Index"))
 	if !isExists {
-		_, err = redisConn.Do("SET", "Bip32Index", 1) //0， 1 的索引号已经用了
+		_, err = redisConn.Do("SET", "Bip32Index", 2) //0， 1,  2 的索引号已经用了
 	}
 
 	return nil

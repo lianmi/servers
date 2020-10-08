@@ -80,11 +80,18 @@ const (
 
 	*/
 	ETHINDEX  = 0 // 第0号叶子存储eth
-	LNMCINDEX = 1 //第1号存储LNMC
+	LNMCINDEX = 1 //第1号存储LNMC代币
+	WITHDRAWINDEX = 2 //第2号存储提现的LNMC代币
 
 	//gas最低消耗
 	GASLIMIT = 8000000
 
 	// 每签到2次奖励的gas
 	AWARDGAS = 10000000
+
+	// 提现后，钱包必须保留的最低余额
+	BaseAmountLNMC = 1000
+
+	//抽取佣金费率
+	FEERATE float64 = 0.002
 )

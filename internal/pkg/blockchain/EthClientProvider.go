@@ -104,18 +104,18 @@ func (s *Service) CreateHDWallet() {
 	}
 	s.logger.Info("m/44'/60'/0'/0/0", zap.String("Account address", account.Address.Hex()))
 
-	privateKey, err := wallet.PrivateKey(account)
-	if err != nil {
-		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
-		return
-	}
-	privateKeyHex, err := wallet.PrivateKeyHex(account)
-	if err != nil {
-		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
-		return
-	}
+	// privateKey, err := wallet.PrivateKey(account)
+	// if err != nil {
+	// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+	// 	return
+	// }
+	// privateKeyHex, err := wallet.PrivateKeyHex(account)
+	// if err != nil {
+	// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+	// 	return
+	// }
 	// fmt.Printf("Private key m/44'/60'/0'/0/0 in hex: %s\n", privateKeyHex)
-	s.logger.Info("m/44'/60'/0'/0/0", zap.String("Private key", privateKeyHex))
+	// s.logger.Info("m/44'/60'/0'/0/0", zap.String("Private key", privateKeyHex))
 
 	publicKeyHex, _ := wallet.PublicKeyHex(account)
 	if err != nil {
@@ -124,8 +124,6 @@ func (s *Service) CreateHDWallet() {
 	}
 
 	s.logger.Info("m/44'/60'/0'/0/0", zap.String("Public key", publicKeyHex))
-
-	_ = privateKey
 
 	//第1号索引派生
 	{
@@ -139,18 +137,18 @@ func (s *Service) CreateHDWallet() {
 		// fmt.Printf("m/44'/60'/0'/0/1 Account address: %s\n", account1.Address.Hex())
 		s.logger.Info("m/44'/60'/0'/0/1", zap.String("Account1 address", account1.Address.Hex()))
 
-		privateKey1, err := wallet.PrivateKey(account1)
-		if err != nil {
-			s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
-			return
-		}
-		privateKeyHex1, err := wallet.PrivateKeyHex(account1)
-		if err != nil {
-			s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
-			return
-		}
-		// fmt.Printf("m/44'/60'/0'/0/1 Private key in hex: %s\n", privateKeyHex1)
-		s.logger.Info("m/44'/60'/0'/0/1", zap.String("Private key", privateKeyHex1))
+		// privateKey1, err := wallet.PrivateKey(account1)
+		// if err != nil {
+		// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		// 	return
+		// }
+		// privateKeyHex1, err := wallet.PrivateKeyHex(account1)
+		// if err != nil {
+		// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		// 	return
+		// }
+		// // fmt.Printf("m/44'/60'/0'/0/1 Private key in hex: %s\n", privateKeyHex1)
+		// s.logger.Info("m/44'/60'/0'/0/1", zap.String("Private key", privateKeyHex1))
 
 		publicKeyHex1, _ := wallet.PublicKeyHex(account1)
 		if err != nil {
@@ -160,7 +158,41 @@ func (s *Service) CreateHDWallet() {
 
 		s.logger.Info("m/44'/60'/0'/0/1", zap.String("Public key", publicKeyHex1))
 
-		_ = privateKey1
+	}
+
+	//第2号索引派生
+	{
+		path2 := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/2")
+		account2, err := wallet.Derive(path2, true)
+		if err != nil {
+			s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+			return
+		}
+
+		// fmt.Printf("m/44'/60'/0'/0/1 Account address: %s\n", account1.Address.Hex())
+		s.logger.Info("m/44'/60'/0'/0/1", zap.String("Account2 address", account2.Address.Hex()))
+
+		// privateKey1, err := wallet.PrivateKey(account1)
+		// if err != nil {
+		// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		// 	return
+		// }
+		// privateKeyHex1, err := wallet.PrivateKeyHex(account1)
+		// if err != nil {
+		// 	s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+		// 	return
+		// }
+		// // fmt.Printf("m/44'/60'/0'/0/1 Private key in hex: %s\n", privateKeyHex1)
+		// s.logger.Info("m/44'/60'/0'/0/1", zap.String("Private key", privateKeyHex1))
+
+		publicKeyHex2, _ := wallet.PublicKeyHex(account2)
+		if err != nil {
+			s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
+			return
+		}
+
+		s.logger.Info("m/44'/60'/0'/0/2", zap.String("Public key", publicKeyHex2))
+
 	}
 	/*
 		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Account address": "0xe14D151e0511b61357DDe1B35a74E9c043c34C47"}
