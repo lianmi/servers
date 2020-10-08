@@ -1858,11 +1858,11 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 
 		}
 
-		maps = fmt.Sprintf("deposit_amount >= %f", depositRecharge)
+		maps = fmt.Sprintf("recharge_amount >= %f", depositRecharge)
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and deposit_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and recharge_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
 
 		}
 

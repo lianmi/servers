@@ -1,22 +1,12 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+10-9 同步收款历史
 */
 package cmd
 
 import (
-	"fmt"
+	"log"
+
+	"github.com/lianmi/servers/lmSdkClient/business/wallet"
 
 	"github.com/spf13/cobra"
 )
@@ -24,28 +14,33 @@ import (
 // SyncCollectionHistoryPageCmd represents the SyncCollectionHistoryPage command
 var SyncCollectionHistoryPageCmd = &cobra.Command{
 	Use:   "SyncCollectionHistoryPage",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("SyncCollectionHistoryPage called")
+		// fmt.Println("SyncCollectionHistoryPage called")
+		fromUsername, _ := cmd.PersistentFlags().GetString("fromUsername")
+		startAt, _ := cmd.PersistentFlags().GetInt64("startAt")
+		endAt, _ := cmd.PersistentFlags().GetInt64("endAt")
+		page, _ := cmd.PersistentFlags().GetInt32("page")
+		pageSize, _ := cmd.PersistentFlags().GetInt32("pageSize")
+
+		err := wallet.DoSyncCollectionHistoryPage(fromUsername, startAt, endAt, page, pageSize)
+		if err != nil {
+			log.Println("DoSyncCollectionHistoryPage failed")
+		} else {
+			log.Println("DoSyncCollectionHistoryPage succeed")
+		}
+
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(SyncCollectionHistoryPageCmd)
+	//子命令
+	walletCmd.AddCommand(SyncCollectionHistoryPageCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// SyncCollectionHistoryPageCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// SyncCollectionHistoryPageCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	SyncCollectionHistoryPageCmd.PersistentFlags().StringP("fromUsername", "f", "", "发起方")
+	SyncCollectionHistoryPageCmd.PersistentFlags().Int64P("startAt", "s", 0, "开始时间")
+	SyncCollectionHistoryPageCmd.PersistentFlags().Int64P("endAt", "e", 0, "结束时间")
+	SyncCollectionHistoryPageCmd.PersistentFlags().Int32P("page", "p", 1, "页数,第几页")
+	SyncCollectionHistoryPageCmd.PersistentFlags().Int32P("pageSize", "z", 100, "每页记录数量")
 }
