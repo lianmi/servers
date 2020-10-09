@@ -19,7 +19,7 @@ message Collection{
 	fixed64 amountLNMC=4;
     
     //多签合约地址
-	string contractAddress=5;
+	//string contractAddress=5;
     
     //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
 	string orderID=6;
@@ -110,7 +110,7 @@ message Transfer{
 	fixed64 amountLNMC=4;
 
     //多签合约地址
-	string contractAddress=5;
+	//string contractAddress=5;
 
     //状态
 	int32 state=6;

@@ -68,7 +68,7 @@ func (nc *NsqClient) SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTr
 	return nil
 }
 
-//9-11，为某个订单支付，查询出contractAddress对应的记录，然后更新 orderID 及 signedTx, 将State修改为1
+//9-11，为某个订单支付，查询出对应的记录，然后更新 orderID 及 signedTx, 将State修改为1
 //确认转账后，更新转账历史记录
 func (nc *NsqClient) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
 	p := new(models.LnmcTransferHistory)

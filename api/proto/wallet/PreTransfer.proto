@@ -20,8 +20,6 @@ message RawDesc {
    fixed64 value=7;
    //交易哈希 
    string txHash=8;
-   //发币智能合约地址 
-   string to=9;
 }
 
 message PreTransferReq{
@@ -41,10 +39,7 @@ message PreTransferRsp{
     //向收款方转账的裸交易结构体
     RawDesc rawDescToTarget=1;
 
-    //从多签合约转账到目标接收者的裸交易结构体
-    //RawDesc rawTxToTarget=2;
-
     //时间
-    fixed64 time=3;
+    fixed64 time=2;
 }
 

@@ -804,7 +804,7 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 /*
 构造一个普通用户账号转账的裸交易数据，目标是多签合约地址
 source - 发起方钱包账号
-target - 多签合约地址
+target - 接收者的钱包地址
 tokens - 代币数量，字符串格式
 */
 func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int64) (*models.RawDesc, error) {
@@ -832,7 +832,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 	}
 	// fmt.Println("nonce:", int64(nonce))
 	// nonce = nonce
-	s.logger.Debug("GenerateTransferLNMCTokenTx", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
+	s.logger.Debug("Generate TransferLNMCTokenTx succeed", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
 
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
@@ -843,7 +843,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 
 	// fmt.Println("gasPrice", gasPrice)
 
-	//接收者地址：多签合约地址
+	//接收者的钱包地址
 	toAddress := common.HexToAddress(target)
 
 	//注意，这里需要填写发币合约地址
@@ -885,14 +885,14 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 	// fmt.Println("chainID:", chainID.String())
 
 	return &models.RawDesc{
-		Nonce:    nonce,
-		GasPrice: gasPrice.Uint64(),
-		GasLimit: gasLimit,
-		ChainID:  chainID.Uint64(),
-		Txdata:   data,
-		Value:    0,
-		TxHash:   tx.Hash().Hex(), //已经生成的
-		To:       s.o.ERC20DeployContractAddress,
+		Nonce:           nonce,
+		GasPrice:        gasPrice.Uint64(),
+		GasLimit:        gasLimit,
+		ChainID:         chainID.Uint64(),
+		Txdata:          data,
+		Value:           0,
+		TxHash:          tx.Hash().Hex(), //已经生成的
+		ContractAddress: s.o.ERC20DeployContractAddress,
 	}, nil
 }
 
@@ -1110,13 +1110,14 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 	// _ = tx
 
 	return &models.RawDesc{
-		Nonce:    nonce,
-		GasPrice: gasPrice.Uint64(),
-		GasLimit: gasLimit,
-		ChainID:  chainID.Uint64(),
-		Txdata:   data,
-		Value:    0,
-		TxHash:   tx.Hash().Hex(),
+		Nonce:           nonce,
+		GasPrice:        gasPrice.Uint64(),
+		GasLimit:        gasLimit,
+		ChainID:         chainID.Uint64(),
+		Txdata:          data,
+		Value:           0,
+		TxHash:          tx.Hash().Hex(),
+		ContractAddress: s.o.ERC20DeployContractAddress,
 	}, nil
 
 }

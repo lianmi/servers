@@ -17,7 +17,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
-	"github.com/lianmi/servers/internal/pkg/models"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/miguelmota/go-ethereum-hdwallet"
 )
@@ -468,8 +467,7 @@ func Deposit(rechargeAmount float64) error {
 
 //传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
 //
-func buildTx(rawDesc *models.RawDesc, privKeyHex string) (string, error) {
-	contractAddress := rawDesc.To
+func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 	//A私钥
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
@@ -477,7 +475,7 @@ func buildTx(rawDesc *models.RawDesc, privKeyHex string) (string, error) {
 	}
 
 	//注意，这里需要填写发币合约地址
-	tokenAddress := common.HexToAddress(contractAddress)
+	tokenAddress := common.HexToAddress(rawDesc.ToWalletAddress)
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(
@@ -495,6 +493,7 @@ func buildTx(rawDesc *models.RawDesc, privKeyHex string) (string, error) {
 		log.Fatal(err)
 		return "", err
 	}
+
 	ts := types.Transactions{signedTx}
 	rawTxBytes := ts.GetRlp(0)
 	signedTxToTarget := hex.EncodeToString(rawTxBytes)
@@ -629,30 +628,30 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 
 					log.Println("=======")
 
-					rawTxToTarget := &models.RawDesc{
-						Nonce: rsq.RawDescToTarget.Nonce,
-						// gas价格
-						GasPrice: rsq.RawDescToTarget.GasPrice,
-						// 最低gas
-						GasLimit: rsq.RawDescToTarget.GasLimit,
-						//链id
-						ChainID: rsq.RawDescToTarget.ChainID,
-						// 交易数据
-						Txdata: rsq.RawDescToTarget.Txdata,
-						//ether，设为0
-						Value: 0,
-						//交易哈希
-						TxHash: rsq.RawDescToTarget.TxHash,
-						//发币合约地址
-						To: rsq.RawDescToTarget.To,
-					}
+					// rawTxToTarget := &models.RawDesc{
+					// 	Nonce: rsq.RawDescToTarget.Nonce,
+					// 	// gas价格
+					// 	GasPrice: rsq.RawDescToTarget.GasPrice,
+					// 	// 最低gas
+					// 	GasLimit: rsq.RawDescToTarget.GasLimit,
+					// 	//链id
+					// 	ChainID: rsq.RawDescToTarget.ChainID,
+					// 	// 交易数据
+					// 	Txdata: rsq.RawDescToTarget.Txdata,
+					// 	//ether，设为0
+					// 	Value: 0,
+					// 	//交易哈希
+					// 	TxHash: rsq.RawDescToTarget.TxHash,
+					// 	//发币合约地址
+					// 	ContractAddress: rsq.RawDescToTarget.ToWalletAddress,
+					// }
 
-					log.Println(rawTxToTarget)
+					// log.Println(rawTxToTarget)
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 
-					rawTxHex, err := buildTx(rawTxToTarget, privKeyHex)
+					rawTxHex, err := buildTx(rsq.RawDescToTarget, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
@@ -1321,30 +1320,30 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 					// log.Println(rsq.Time)
 					// log.Println(rsq.RawDescToPlatform)
 
-					rawTxToPlatform := &models.RawDesc{
-						Nonce: rsq.RawDescToPlatform.Nonce,
-						// gas价格
-						GasPrice: rsq.RawDescToPlatform.GasPrice,
-						// 最低gas
-						GasLimit: rsq.RawDescToPlatform.GasLimit,
-						//链id
-						ChainID: rsq.RawDescToPlatform.ChainID,
-						// 交易数据
-						Txdata: rsq.RawDescToPlatform.Txdata,
-						//ether，设为0
-						Value: 0,
-						//交易哈希
-						TxHash: rsq.RawDescToPlatform.TxHash,
-						//发币合约地址
-						To: rsq.RawDescToPlatform.To,
-					}
+					// rawTxToPlatform := &models.RawDesc{
+					// 	Nonce: rsq.RawDescToPlatform.Nonce,
+					// 	// gas价格
+					// 	GasPrice: rsq.RawDescToPlatform.GasPrice,
+					// 	// 最低gas
+					// 	GasLimit: rsq.RawDescToPlatform.GasLimit,
+					// 	//链id
+					// 	ChainID: rsq.RawDescToPlatform.ChainID,
+					// 	// 交易数据
+					// 	Txdata: rsq.RawDescToPlatform.Txdata,
+					// 	//ether，设为0
+					// 	Value: 0,
+					// 	//交易哈希
+					// 	TxHash: rsq.RawDescToPlatform.TxHash,
+					// 	//发币合约地址
+					// 	ContractAddress: rsq.RawDescToPlatform.ToWalletAddress,
+					// }
 
-					log.Println(rawTxToPlatform)
+					// log.Println(rawTxToPlatform)
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 
-					rawTxHex, err := buildTx(rawTxToPlatform, privKeyHex)
+					rawTxHex, err := buildTx(rsq.RawDescToPlatform, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
@@ -2280,7 +2279,7 @@ rawdesctotarget nonce          = 0
 func TestBuildTx() error {
 	txData, _ := hex.DecodeString("A9059CBB0000000000000000000000005FDC61B9B7E40A2C12170F5B4160B9BFAFACFEAC0000000000000000000000000000000000000000000000000000000000002710")
 	// hashData, _ := hex.DecodeString("307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336")
-	rawTxToTarget := &models.RawDesc{
+	rawTxToTarget := &Wallet.RawDesc{
 		Nonce: 0,
 		// gas价格
 		GasPrice: 1,
@@ -2293,8 +2292,8 @@ func TestBuildTx() error {
 		//ether，设为0
 		Value: 0,
 		//交易哈希
-		TxHash: "307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336",
-		To:     "0x1d2bdda8954b401feb52008c63878e698b6b8444",
+		TxHash:          "307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336",
+		ToWalletAddress: "0x1d2bdda8954b401feb52008c63878e698b6b8444",
 	}
 
 	log.Println(rawTxToTarget)

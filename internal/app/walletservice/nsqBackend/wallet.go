@@ -566,7 +566,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 		rsp := &Wallet.PreTransferRsp{
 			RawDescToTarget: &Wallet.RawDesc{
-				ToWalletAddress: toWalletAddress,
+				ToWalletAddress: rawDescToTarget.ContractAddress, //接收者，约定用发币智能合约
 				Nonce:           rawDescToTarget.Nonce,
 				GasPrice:        rawDescToTarget.GasPrice,
 				GasLimit:        rawDescToTarget.GasLimit,
@@ -574,7 +574,6 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				Txdata:          rawDescToTarget.Txdata,
 				Value:           0,
 				TxHash:          rawDescToTarget.TxHash,
-				To:              rawDescToTarget.To,
 			},
 
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
@@ -1345,14 +1344,14 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		rsp := &Wallet.PreWithDrawRsp{
 			WithdrawUUID: withdrawUUID,
 			RawDescToPlatform: &Wallet.RawDesc{
-				Nonce:    rawDesc.Nonce,
-				GasPrice: rawDesc.GasPrice,
-				GasLimit: rawDesc.GasLimit,
-				ChainID:  rawDesc.ChainID,
-				Txdata:   rawDesc.Txdata,
-				Value:    0,
-				TxHash:   rawDesc.TxHash,
-				To:       rawDesc.To,
+				ToWalletAddress: rawDesc.ContractAddress, //接收者，约定用发币智能合约
+				Nonce:           rawDesc.Nonce,
+				GasPrice:        rawDesc.GasPrice,
+				GasLimit:        rawDesc.GasLimit,
+				ChainID:         rawDesc.ChainID,
+				Txdata:          rawDesc.Txdata,
+				Value:           0,
+				TxHash:          rawDesc.TxHash,
 			},
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
 		}

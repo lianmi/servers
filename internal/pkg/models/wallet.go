@@ -169,12 +169,12 @@ type RawDesc struct {
 	ChainID uint64 `protobuf:"fixed64,4,opt,name=chainID,proto3" json:"chainID,omitempty"`
 	// 交易数据
 	Txdata []byte `protobuf:"bytes,5,opt,name=txdata,proto3" json:"txdata,omitempty"`
-	//多签合约地址
-	// ContractAddress string `protobuf:"bytes,6,opt,name=contractAddress,proto3" json:"contractAddress,omitempty"`
+
 	//ether，设为0
 	Value uint64 `protobuf:"fixed64,7,opt,name=value,proto3" json:"value,omitempty"`
 	//交易哈希
 	TxHash string `protobuf:"bytes,6,opt,name=txHash,proto3" json:"txHash,omitempty"`
+
 	//发币合约智能地址
-	To string `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`
+	ContractAddress string `protobuf:"bytes,6,opt,name=contract_address,proto3" json:"contract_address,omitempty"`
 }
