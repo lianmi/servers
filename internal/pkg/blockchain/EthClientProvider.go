@@ -169,8 +169,7 @@ func (s *Service) CreateHDWallet() {
 			return
 		}
 
-		// fmt.Printf("m/44'/60'/0'/0/1 Account address: %s\n", account1.Address.Hex())
-		s.logger.Info("m/44'/60'/0'/0/1", zap.String("Account2 address", account2.Address.Hex()))
+		s.logger.Info("m/44'/60'/0'/0/2", zap.String("Account2 address", account2.Address.Hex()))
 
 		// privateKey1, err := wallet.PrivateKey(account1)
 		// if err != nil {
@@ -292,33 +291,33 @@ func (s *Service) GetGasPrice() *big.Int {
 }
 
 // 输出wei为单位的账户余额
-func (s *Service) GetWeiBalance(address string) uint64 {
+func (s *Service) GetWeiBalance(address string) (uint64, error) {
 
 	account := common.HexToAddress(address)
 	balance, err := s.WsClient.BalanceAt(context.Background(), account, nil)
 	if err != nil {
 		// log.Fatal(err)
 		s.logger.Error("BalanceAt ", zap.Error(err))
-		return 0
+		return 0, err
 	}
 	// fmt.Println("balance: ", balance)
-	return balance.Uint64()
+	return balance.Uint64(), nil
 
 }
 
 // 输出Eth为单位的账户余额
-func (s *Service) GetEthBalance(address string) float64 {
+func (s *Service) GetEthBalance(address string) (float64, error) {
 
 	account := common.HexToAddress(address)
 	balance, err := s.WsClient.BalanceAt(context.Background(), account, nil)
 	if err != nil {
 		s.logger.Error("BalanceAt ", zap.Error(err))
-		return 0
+		return 0, err
 	}
 	ethAmount := util.ToDecimal(balance, 18)
 	f64, _ := ethAmount.Float64()
 	// fmt.Println("balance(Eth): ", f64)
-	return f64
+	return f64, nil
 }
 
 //CheckIsvalidAddress 返回地址(普通  地址) 是否合法, 无须链上查询
@@ -809,6 +808,21 @@ target - 多签合约地址
 tokens - 代币数量，字符串格式
 */
 func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int64) (*models.RawDesc, error) {
+	var err error
+	var balanceEth uint64 //用户当前ETH数量
+
+	//当前用户的链上Eth余额
+	balanceEth, err = s.GetWeiBalance(source)
+	if err != nil {
+		return nil, err
+	}
+	if balanceEth < LMCommon.GASLIMIT {
+		s.logger.Error("用户链上Eth余额不足以支付交易gas手续费 ",
+			zap.String("walletAddress", source),
+			zap.Uint64("当前余额 balanceEth", balanceEth),
+		)
+		return nil, errors.New("Not sufficient funds")
+	}
 
 	fromAddress := common.HexToAddress(source)
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)

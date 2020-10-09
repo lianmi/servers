@@ -27,9 +27,13 @@ import (
 )
 
 const (
-	ERC20DeployContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"                       // ERC20发币合约地址
-	PrivateKeyAHEX             = "91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1" //用户A私钥
-	AddressAHEX                = "0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538"                       //用户A地址
+	WSURIIPC = "ws://127.0.0.1:8546"
+
+	// ERC20发币合约地址
+	ERC20DeployContractAddress = "0x1d2bdda8954b401feb52008c63878e698b6b8444"
+
+	PrivateKeyAHEX = "91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1" //用户A私钥
+	AddressAHEX    = "0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538"                       //用户A地址
 
 	PrivateKeyBHEX = "b65e1f6e3b449c35c18518cfdf8de3c361ccf6f4a51817e0709a917fac688423" //用户B私钥
 	AddressBHEX    = "0xac243c2FED19d085bF682d0D74e677c1d9911e83"                       //用户B地址
@@ -59,7 +63,7 @@ type RawDesc struct {
 //检查交易打包状态
 func checkTransactionReceipt(_txHash string) int {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	txHash := common.HexToHash(_txHash)
 	receipt, err := client.TransactionReceipt(context.Background(), txHash)
 	if err != nil {
@@ -110,7 +114,7 @@ func WaitForBlockCompletation(wsClient *ethclient.Client, hashToRead string) int
 //查询交易
 func queryTransactionByBlockNumber(number uint64) {
 	// client, err := ethclient.Dial("http://127.0.0.1:8545")
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -157,7 +161,7 @@ func queryTransactionByBlockNumber(number uint64) {
 
 //部署多签合约
 func deployMultiSig(privateKeyHex string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -247,7 +251,7 @@ func deployMultiSig(privateKeyHex string) {
 
 //将一定数量amount的代币由 总发币合约地址 转账到多签合约账户, soure是用户A
 func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -277,7 +281,7 @@ func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount 
 	if err != nil {
 		log.Fatalf("TransferFrom err: %v \n", err)
 	}
-	fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
+	log.Printf("tx sent: %s \n", transferTx.Hash().Hex())
 
 	//TODO 监听，直到转账成功,如果失败，则提示
 	done := WaitForBlockCompletation(client, transferTx.Hash().Hex())
@@ -298,7 +302,7 @@ func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount 
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive2(sender, receiver string) {
 
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -336,7 +340,7 @@ func querySendAndReceive2(sender, receiver string) {
 //ERC20代币余额查询， 传参: 账号地址
 func queryLNMCBalance(addressHex string) {
 
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -360,7 +364,7 @@ func queryLNMCBalance(addressHex string) {
 
 //LNMC代币转账, 从第1号叶子转到目标账号, amount 以LNMC为单位，每一枚=1分钱
 func transferLNMC(sourcePrivateKey, target string, amount int64) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -409,7 +413,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) {
 		log.Fatalf("TransferFrom err: %v \n", err)
 	}
 
-	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
+	log.Printf("tx sent: %s\n", signedTx.Hash().Hex())
 
 	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
 	if done == 1 {
@@ -436,7 +440,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) {
 */
 func transferTokenFromABToC(multiSigContractAddress, privateKeySource, target string, amount int64) {
 
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
 	}
@@ -510,11 +514,84 @@ func transferTokenFromABToC(multiSigContractAddress, privateKeySource, target st
 
 }
 
+//Eth转账, 从sourcePrivateKey转到目标账号target, amount  单位是 wei
+func transferEth(sourcePrivateKey, target string, amount string) {
+	client, err := ethclient.Dial(WSURIIPC)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKey, err := crypto.HexToECDSA(sourcePrivateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	value := new(big.Int)
+	value.SetString(amount, 10) // in wei sets the value to eth
+
+	//big.NewInt(amount)
+
+	gasLimit := uint64(LMCommon.GASLIMIT) // in units
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	toAddress := common.HexToAddress(target)
+	var data []byte
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("tx sent: %s\n", signedTx.Hash().Hex())
+	//等待打包完成的回调
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
+	if done == 1 {
+		//获取交易哈希里的打包状态，如果打包完成，isPending = false
+		tx2, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("打包成功, 交易哈希: ", tx2.Hash().Hex()) //
+		log.Println("isPending: ", isPending)         // false
+
+	} else {
+		log.Println(" 打包失败")
+	}
+
+}
+
 /*
 通过构造裸交易数据进行代币的转账
 */
 func transferToken() {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -608,7 +685,7 @@ func transferToken() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
+	log.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
 
 	//等待打包完成的回调
 	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
@@ -635,7 +712,7 @@ privKey - A 或 B 私钥
 target - 接收者账号
 */
 func transferMultiSigToken(contractAddress, privKey, target string, tokens string) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -719,7 +796,7 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 		log.Fatal(err)
 	}
 
-	fmt.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
+	log.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
 
 	//等待打包完成的回调
 	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
@@ -742,7 +819,7 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 //
 
 func GenerateRawDesc(contractAddress, fromAddressHex, target, tokens string) ([]byte, error) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -811,7 +888,7 @@ func GenerateRawDesc(contractAddress, fromAddressHex, target, tokens string) ([]
 一个普通用户账号转账，目标是多签合约地址
 */
 func transferLNMCTokenToContractAddress(privKeyHex, target, tokens string) ([]byte, error) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -895,7 +972,7 @@ func transferLNMCTokenToContractAddress(privKeyHex, target, tokens string) ([]by
 		log.Fatal(err)
 	}
 
-	fmt.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
+	log.Printf("transferToken, tx sent: %s\n", signedTx.Hash().Hex())
 
 	//等待打包完成的回调
 	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
@@ -923,7 +1000,7 @@ target - 多签合约地址
 tokens - 代币数量，字符串格式
 */
 func generateTransferLNMCTokenTx(source, target, tokens string) (*RawDesc, error) {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1036,7 +1113,7 @@ func buildTx(rawDesc *RawDesc, privKeyHex, contractAddress string) (string, erro
 //根据客户端SDK签名后的裸交易数据，广播到链上
 // rawTxHex := "f86d8202b28477359400825208944592d8f8d7b001e72cb26a73e4fa1806a51ac79d880de0b6b3a7640000802ca05924bde7ef10aa88db9c66dd4f5fb16b46dff2319b9968be983118b57bb50562a001b24b31010004f13d9a26b320845257a6cfc2bf819a3d55e3fc86263c5f0772"
 func sendSignedTxToGeth(rawTxHex string) error {
-	client, err := ethclient.Dial("ws://127.0.0.1:8546")
+	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1081,8 +1158,11 @@ func main() {
 
 	*/
 
+	//从第1号叶子转账 10000000 wei到id2
+	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55", "10000000")
+
 	//从第1号叶子转账500代币给A
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 500)
+	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
 
 	// 第二步:  从A账户将若干代币转账到刚刚部署的多签合约
 	// sendTokenToMultisigContractAddress(PrivateKeyAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
@@ -1192,6 +1272,6 @@ func main() {
 	*/
 
 	//查询id2的多签合约的余额
-	queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
+	// queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
 
 }

@@ -28,7 +28,8 @@ const (
 	//id3的助记词
 	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
 
-	ERC20DeployContractAddress = "0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce"
+	//发布合约地址
+	ERC20DeployContractAddress = "0x1d2bdda8954b401feb52008c63878e698b6b8444"
 )
 
 type KeyPair struct {

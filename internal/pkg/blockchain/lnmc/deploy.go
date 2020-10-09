@@ -22,11 +22,12 @@ import (
 )
 
 const (
-	WSURI           = "ws://172.17.0.1:8546" //"ws://127.0.0.1:8546"
+	//宿舍的linux
+	WSURI           = "ws://127.0.0.1:8546"
 	KEY             = "UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
 	COINBASEACCOUNT = "0x7562b4d3b08b2373e68d4e89f69f6fb731b308e1"
 	PASSWORD        = "LianmiSky8900388"
-	GASLIMIT        = 6000000
+	GASLIMIT        = 5000000 //6000000
 )
 
 /*
@@ -130,60 +131,6 @@ func getTokenBalance(contractAddress, accountAddress string) {
 
 }
 
-//Eth转账, 从第0号叶子转到目标账号, amount  单位是 wei
-func transferEth(sourcePrivateKey, target string, amount string) {
-	client, err := ethclient.Dial(WSURI)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	privateKey, err := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-	}
-
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	value := new(big.Int)
-	value.SetString(amount, 10) // in wei sets the value to eth
-
-	gasLimit := uint64(21000) // in units
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	toAddress := common.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
-	var data []byte
-	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
-
-	chainID, err := client.NetworkID(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = client.SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
-}
 
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive(sender, receiver string) {
@@ -262,7 +209,7 @@ func main() {
 	getTokenBalance("0x1d2bdda8954b401feb52008c63878e698b6b8444", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	// transfer("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0xC74a1107faEEaB2994637902Ce4678432E262545", 400)
+	// transfer("0x1d2bdda8954b401feb52008c63878e698b6b8444", "0xC74a1107faEEaB2994637902Ce4678432E262545", 400)
 	//tx sent: 0x12139bdd617f66da7d123e20228e09092c5a55ebd2da9986c88fb1ec3cc55122
 
 	// getTokenBalance("0x23a9497bb4ffa4b9d97d3288317c6495ecd3a2ce", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
