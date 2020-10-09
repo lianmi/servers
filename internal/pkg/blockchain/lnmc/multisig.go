@@ -1159,10 +1159,10 @@ func main() {
 	*/
 
 	//从第1号叶子转账 10000000 wei到id2
-	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55", "10000000")
+	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55", "10000000")
 
 	//从第1号叶子转账500代币给A
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
+	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
 
 	// 第二步:  从A账户将若干代币转账到刚刚部署的多签合约
 	// sendTokenToMultisigContractAddress(PrivateKeyAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
