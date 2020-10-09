@@ -24,14 +24,14 @@ import (
 
 const (
 	// mac id2的助记词
-	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
 	//id3的助记词
 	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
 	//服务端的id4助记词
-	mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	// mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 	//发布合约地址
-	ERC20DeployContractAddress = "0x1d2bdda8954b401feb52008c63878e698b6b8444"
+	ERC20DeployContractAddress = ""
 )
 
 type KeyPair struct {
@@ -467,8 +467,9 @@ func Deposit(rechargeAmount float64) error {
 }
 
 //传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
-func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (string, error) {
-
+//
+func buildTx(rawDesc *models.RawDesc, privKeyHex string) (string, error) {
+	contractAddress := rawDesc.To
 	//A私钥
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
@@ -496,10 +497,10 @@ func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (strin
 	}
 	ts := types.Transactions{signedTx}
 	rawTxBytes := ts.GetRlp(0)
-	rawTxHex := hex.EncodeToString(rawTxBytes)
+	signedTxToTarget := hex.EncodeToString(rawTxBytes)
 
-	log.Println("rawTxHex:", rawTxHex)
-	return rawTxHex, nil
+	log.Println("signedTxToTarget:", signedTxToTarget)
+	return signedTxToTarget, nil
 }
 
 /*
@@ -642,6 +643,8 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 						Value: 0,
 						//交易哈希
 						TxHash: rsq.RawDescToTarget.TxHash,
+						//发币合约地址
+						To: rsq.RawDescToTarget.To,
 					}
 
 					log.Println(rawTxToTarget)
@@ -649,7 +652,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 
-					rawTxHex, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
+					rawTxHex, err := buildTx(rawTxToTarget, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
@@ -1332,6 +1335,8 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 						Value: 0,
 						//交易哈希
 						TxHash: rsq.RawDescToPlatform.TxHash,
+						//发币合约地址
+						To: rsq.RawDescToPlatform.To,
 					}
 
 					log.Println(rawTxToPlatform)
@@ -1339,7 +1344,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 
-					rawTxHex, err := buildTx(rawTxToPlatform, privKeyHex, ERC20DeployContractAddress)
+					rawTxHex, err := buildTx(rawTxToPlatform, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
@@ -2289,6 +2294,7 @@ func TestBuildTx() error {
 		Value: 0,
 		//交易哈希
 		TxHash: "307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336",
+		To:     "0x1d2bdda8954b401feb52008c63878e698b6b8444",
 	}
 
 	log.Println(rawTxToTarget)
@@ -2296,7 +2302,7 @@ func TestBuildTx() error {
 	//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 	privKeyHex := "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
 
-	rawTxHex, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
+	rawTxHex, err := buildTx(rawTxToTarget, privKeyHex)
 	if err != nil {
 		log.Fatalln(err)
 

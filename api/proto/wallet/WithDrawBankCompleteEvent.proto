@@ -1,0 +1,14 @@
+
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+
+message WithDrawBankCompleteEventRsp{
+    // 描述
+    string desc=1;
+
+    //打包完成时间
+    fixed64 time=2;
+}
