@@ -323,36 +323,113 @@ $
 ```
 
 ### 2. 创建新账号
+node1 & node2
+```
+$ geth --datadir node1/ account new
+输入两次 LianmiSky8900388
+输出：
+
+Public address of the key:   0x614075e0853a1d34f85120758A7dfA9316Ab9109
+Path of the secret key file: node1/keystore/UTC--2020-10-09T10-53-24.039679171Z--614075e0853a1d34f85120758a7dfa9316ab9109
+
+$ geth --datadir node2/ account new
+
+输入两次 LianmiSky8900388
+输出：
+
+Public address of the key:   0x30D199128ad70cBD0ccC1b0cc69296C523aFF894
+Path of the secret key file: node2/keystore/UTC--2020-10-09T10-54-24.533221434Z--30d199128ad70cbd0ccc1b0cc69296c523aff894
 
 ```
-$ geth account new --password passwd --datadir mychain
-Your new key was generated
 
-Public address of the key:   0x7562B4D3B08b2373e68D4e89F69F6fB731B308E1
-Path of the secret key file: mychain/keystore/UTC--2020-10-06T16-30-19.524731110Z--7562b4d3b08b2373e68d4e89f69f6fb731b308e1
-
+## 部署及运行
+### 生成创世文件
 ```
-### 3. 运行geth
+$ puppeth
+``` 
 
+##  部署节点1，2创世
+```
+rm  -rf  ./node1/geth
+geth --datadir node1/ init lianmichain.json
 
-交易无须gas:  --gasprice 0 
-```
-nohup geth --allow-insecure-unlock --syncmode "fast" --verbosity=5 --nousb --nodiscover --nat none  --networkid 150  --maxpeers=0 --datadir=./mychain --rpc --rpcaddr=0.0.0.0 --rpcport=8545 --rpccorsdomain='*' --rpcapi=admin,debug,eth,miner,net,personal,txpool,web3 --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug  --gasprice 0  --mine --miner.threads 1 >/dev/null 2>&1 &
-```
-
-## 步骤二 控制台
-```
-$ geth attach ipc:./mychain/geth.ipc
+rm  -rf  ./node2/geth
+geth --datadir node2/ init lianmichain.json
 ```
 
-###  运行web3的命令
+### 新开一个终端，  bootnode 服务 
 ```
+$ bootnode -genkey boot.key
+$ bootnode -nodekey boot.key -verbosity 9 -addr :30310
+输出 ：
+enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:0?discport=30310
+Note: you're using cmd/bootnode, a developer tool.
+We recommend using a regular node as bootstrap node for production deployments.
+INFO [10-09|19:01:05.821] New local node record                    seq=1 id=441c8e31af296c8d ip=<nil> udp=0 tcp=0
+
+```
+
+
+###  运行 节点1
+```
+$ nohup geth --datadir node1/ --syncmode 'full' --mine --port 30311  --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1515 --gasprice '1' -unlock '614075e0853a1d34f85120758a7dfa9316ab9109' --password node1/password.txt --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
+ ```
+ 
+###  运行 节点2
+```
+$ nohup geth --datadir node2/ --syncmode 'full' --mine --port 30312 --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1515 --gasprice '1' --unlock '30d199128ad70cbd0ccc1b0cc69296c523aff894' --password node2/password.txt --ws --wsaddr 0.0.0.0 --wsport 8547 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
+ ```
+
+
+ # console 控制台 
+ ```
+$ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
+ ```
+ ## 授权挖矿
+ ```
+ > clique.getSnapshot()
+{
+  hash: "0x125f7363bb26e8d8674c3be1520a30a3137a9a1e81bf1e0b85bc8583b03022e8",
+  number: 1565,
+  recents: {
+    1564: "0xa7563c330c5285721632189fc6644fde324dae54",
+    1565: "0xf1de15bb2cf24038d1b986515d5fe55e4eb3052d"
+  },
+  signers: {
+    0xa7563c330c5285721632189fc6644fde324dae54: {},
+    0xf1de15bb2cf24038d1b986515d5fe55e4eb3052d: {}
+  },
+  tally: {},
+  votes: []
+}
+
+ //授权node1  (？？)
+ > clique.propose("0xf1de15bb2cf24038d1b986515d5fe55e4eb3052d",true)
+
+ //授权node2 (？？)
+ > clique.propose("0xa7563c330c5285721632189fC6644FdE324dae54",true)
+ ```
+
+ ## 向HD钱包的子地址转账
+ ```
 > account1 = web3.eth.coinbase
 > web3.eth.getBalance(account1)
 > web3.fromWei(web3.eth.getBalance(account1), 'ether')
-#挖矿
-> miner.start()
-#停止挖矿
-> miner.stop()
 
-```
+> leaf0 = '0xe14D151e0511b61357DDe1B35a74E9c043c34C47'
+> eth.sendTransaction({from:account1,to:leaf0,value:web3.toWei(10000000000,"ether")})
+
+> web3.fromWei(web3.eth.getBalance(leaf0), 'ether')
+10000000000
+
+> leaf1 = '0x4acea697f366C47757df8470e610a2d9B559DbBE'
+> eth.sendTransaction({from:account1,to:leaf1,value:web3.toWei(10000000000,"ether")})
+> web3.fromWei(web3.eth.getBalance(leaf1), 'ether')
+10000000000
+
+> leaf2 = '0x9DEb6E226b84b21b354cCa634e4867C6F7A0f77c'
+> eth.sendTransaction({from:account1,to:leaf2,value:web3.toWei(10000000000,"ether")})
+> web3.fromWei(web3.eth.getBalance(leaf2), 'ether')
+10000000000
+
+ ```
