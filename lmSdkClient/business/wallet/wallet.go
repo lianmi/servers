@@ -23,10 +23,12 @@ import (
 )
 
 const (
-	//id2的助记词
-	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	// mac id2的助记词
+	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
 	//id3的助记词
 	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
+	//服务端的id4助记词
+	mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 	//发布合约地址
 	ERC20DeployContractAddress = "0x1d2bdda8954b401feb52008c63878e698b6b8444"
@@ -463,7 +465,6 @@ func Deposit(rechargeAmount float64) error {
 	return nil
 
 }
-
 
 //传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
 func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (string, error) {
@@ -2255,19 +2256,25 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 
 }
 
-
 /*
-// rawdesctotarget gasprice       = 1
-// rawdesctotarget gaslimit       = 5000000
-// rawdesctotarget chainid        = 1515
-// rawdesctotarget txdata         = �\u0005��            �X��#+@3�}� =A�4�ڔ                              '\u0010
-// rawdesctotarget txdata hex     = A9059CBB0000000000000000000000009858EFFD232B4033E47D90003D41EC34ECAEDA940000000000000000000000000000000000000000000000000000000000002710
-// rawdesctotarget towalletaddress= 0x9858effd232b4033e47d90003d41ec34ecaeda94
-// rawdesctotarget value          = 0
-// rawdesctotarget txhash         =
+rawdesctotarget nonce          = 0
+ rawdesctotarget gasprice       = 1
+ rawdesctotarget gaslimit       = 5000000
+ rawdesctotarget chainid        = 1515
+ rawdesctotarget txdata         = �\u0005��            _�a���
+,\u0012\u0017\u000f[A`������                              '\u0010
+ rawdesctotarget txdata hex     = A9059CBB0000000000000000000000005FDC61B9B7E40A2C12170F5B4160B9BFAFACFEAC0000000000000000000000000000000000000000000000000000000000002710
+ rawdesctotarget towalletaddress= 0x5fdc61b9b7e40a2c12170f5b4160b9bfafacfeac
+ rawdesctotarget value          = 0
+ rawdesctotarget txhash         = 0x3b9a337496eda096ba432b46b8717be3544f5fc8d2266a1e97e29f6f09d159c6
+ rawdesctotarget txhash hex     = 307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336
+ rawdesctotarget to             = 0x1d2bdda8954b401feb52008c63878e698b6b8444
+ rawdesctotarget to hex         = 307831643262646461383935346234303166656235323030386336333837386536393862366238343434
+ time                           = 1602262063048
 */
-func testBuildTx() {
-	txData,_ :=  hex.DecodeString("A9059CBB0000000000000000000000009858EFFD232B4033E47D90003D41EC34ECAEDA940000000000000000000000000000000000000000000000000000000000002710")
+func TestBuildTx() error {
+	txData, _ := hex.DecodeString("A9059CBB0000000000000000000000005FDC61B9B7E40A2C12170F5B4160B9BFAFACFEAC0000000000000000000000000000000000000000000000000000000000002710")
+	// hashData, _ := hex.DecodeString("307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336")
 	rawTxToTarget := &models.RawDesc{
 		Nonce: 0,
 		// gas价格
@@ -2281,7 +2288,7 @@ func testBuildTx() {
 		//ether，设为0
 		Value: 0,
 		//交易哈希
-		TxHash: "hex",
+		TxHash: "307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336",
 	}
 
 	log.Println(rawTxToTarget)
@@ -2297,11 +2304,12 @@ func testBuildTx() {
 
 	//TODO 调用10-4 确认转账
 
-	go func() {
-		signedTxToTarget, _ := hex.DecodeString(rawTxHex)
-		err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}()
+	signedTxToTarget, err := hex.DecodeString(rawTxHex)
+	if err != nil {
+		return err
+
+	}
+	log.Println("signedTxToTarget of hex", signedTxToTarget)
+	return nil
+
 }

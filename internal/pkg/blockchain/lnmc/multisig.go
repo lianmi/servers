@@ -1162,7 +1162,10 @@ func main() {
 	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55", "10000000")
 
 	//从第1号叶子转账500代币给A
-	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
+	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
+
+	//从第1号叶子转账5200代币给id4
+	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9858effd232b4033e47d90003d41ec34ecaeda94", 300)
 
 	// 第二步:  从A账户将若干代币转账到刚刚部署的多签合约
 	// sendTokenToMultisigContractAddress(PrivateKeyAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
@@ -1170,10 +1173,10 @@ func main() {
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
-	//查询刚刚部署多签合约的余额， 应该是50
-	queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
+	//查询id4代币余额
+	queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
 	//查询用户A的余额
-	queryLNMCBalance(AddressAHEX)
+	// queryLNMCBalance(AddressAHEX)
 	//查询用户B的余额
 	// queryLNMCBalance(AddressBHEX)
 
