@@ -6,28 +6,22 @@ option go_package = "github.com/lianmi/servers/api/proto/wallet";
 message RawDesc {
    //nonce
    fixed64 nonce=1;
-
    // gas价格
    fixed64 gasPrice=2;
-
    // 最低gas
    fixed64 gasLimit=3;
-
    //链id
    fixed64 chainID=4;
-
    // 交易数据 
    bytes txdata=5;
-
    //收款者地址 
    string toWalletAddress=6;
-
    //ether，设为0
    fixed64 value=7;
-
    //交易哈希 
    string txHash=8;
-
+   //发币智能合约地址 
+   string to=9;
 }
 
 message PreTransferReq{

@@ -360,7 +360,7 @@ geth --datadir node2/ init lianmichain.json
 ### 新开一个终端，  bootnode 服务 
 ```
 $ bootnode -genkey boot.key
-$ bootnode -nodekey boot.key -verbosity 9 -addr :30310
+$ nohup bootnode -nodekey boot.key -verbosity 9 -addr :30310  >/dev/null 2>&1 &
 输出 ：
 enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:0?discport=30310
 Note: you're using cmd/bootnode, a developer tool.

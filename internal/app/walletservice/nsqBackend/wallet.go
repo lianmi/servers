@@ -123,14 +123,13 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 			zap.String("AddressHex", newKeyPair.AddressHex),
 		)
 
-		//TODO 给用户钱包发送6000000个gas
-		/*
-			if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), LMCommon.GASLIMIT); err != nil {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Wallet register error")
-				goto COMPLETE
-			}
-		*/
+		//TODO 给用户钱包发送10000000个gas
+
+		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), 2*LMCommon.GASLIMIT); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Wallet register while TransferEthToOtherAccount error")
+			goto COMPLETE
+		}
 
 		//保存到MySQL 表 UserWallet
 		ethAmountString := fmt.Sprintf("%d", LMCommon.GASLIMIT)
@@ -574,6 +573,8 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				ChainID:         rawDescToTarget.ChainID,
 				Txdata:          rawDescToTarget.Txdata,
 				Value:           0,
+				TxHash:          rawDescToTarget.TxHash,
+				To:              rawDescToTarget.To,
 			},
 
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
@@ -1351,6 +1352,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 				Txdata:   rawDesc.Txdata,
 				Value:    0,
 				TxHash:   rawDesc.TxHash,
+				To:       rawDesc.To,
 			},
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
 		}

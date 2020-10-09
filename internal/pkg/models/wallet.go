@@ -175,4 +175,6 @@ type RawDesc struct {
 	Value uint64 `protobuf:"fixed64,7,opt,name=value,proto3" json:"value,omitempty"`
 	//交易哈希
 	TxHash string `protobuf:"bytes,6,opt,name=txHash,proto3" json:"txHash,omitempty"`
+	//发币合约智能地址
+	To string `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`
 }

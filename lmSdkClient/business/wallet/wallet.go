@@ -464,6 +464,7 @@ func Deposit(rechargeAmount float64) error {
 
 }
 
+
 //传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
 func buildTx(rawDesc *models.RawDesc, privKeyHex, contractAddress string) (string, error) {
 
@@ -2252,4 +2253,55 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 
 	return nil
 
+}
+
+
+/*
+// rawdesctotarget gasprice       = 1
+// rawdesctotarget gaslimit       = 5000000
+// rawdesctotarget chainid        = 1515
+// rawdesctotarget txdata         = �\u0005��            �X��#+@3�}� =A�4�ڔ                              '\u0010
+// rawdesctotarget txdata hex     = A9059CBB0000000000000000000000009858EFFD232B4033E47D90003D41EC34ECAEDA940000000000000000000000000000000000000000000000000000000000002710
+// rawdesctotarget towalletaddress= 0x9858effd232b4033e47d90003d41ec34ecaeda94
+// rawdesctotarget value          = 0
+// rawdesctotarget txhash         =
+*/
+func testBuildTx() {
+	txData,_ :=  hex.DecodeString("A9059CBB0000000000000000000000009858EFFD232B4033E47D90003D41EC34ECAEDA940000000000000000000000000000000000000000000000000000000000002710")
+	rawTxToTarget := &models.RawDesc{
+		Nonce: 0,
+		// gas价格
+		GasPrice: 1,
+		// 最低gas
+		GasLimit: 5000000,
+		//链id
+		ChainID: 1515,
+		// 交易数据
+		Txdata: txData,
+		//ether，设为0
+		Value: 0,
+		//交易哈希
+		TxHash: "hex",
+	}
+
+	log.Println(rawTxToTarget)
+
+	//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
+	privKeyHex := "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
+
+	rawTxHex, err := buildTx(rawTxToTarget, privKeyHex, ERC20DeployContractAddress)
+	if err != nil {
+		log.Fatalln(err)
+
+	}
+
+	//TODO 调用10-4 确认转账
+
+	go func() {
+		signedTxToTarget, _ := hex.DecodeString(rawTxHex)
+		err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}()
 }

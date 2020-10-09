@@ -892,6 +892,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 		Txdata:   data,
 		Value:    0,
 		TxHash:   tx.Hash().Hex(), //已经生成的
+		To:       s.o.ERC20DeployContractAddress,
 	}, nil
 }
 
