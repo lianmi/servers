@@ -201,11 +201,11 @@ func queryETH(accountHex string) {
 
 func main() {
 	//部署合约于第1号叶子 ,  获取发币合约地址
-	deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
+	// deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
 	//输出: Contract pending deploy: 0x1d2bdda8954b401feb52008c63878e698b6b8444
 
 	//查询第1号叶子的LNMC余额
-	// getTokenBalance("0x1d2bdda8954b401feb52008c63878e698b6b8444", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
+	getTokenBalance("0x1d2bdda8954b401feb52008c63878e698b6b8444", "0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
 	// transfer("0x1d2bdda8954b401feb52008c63878e698b6b8444", "0xC74a1107faEEaB2994637902Ce4678432E262545", 400)
