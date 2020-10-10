@@ -1574,8 +1574,8 @@ func main() {
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	//从第1号叶子转账 1000000000000000000 wei到id2
-	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55", "1000000000000000000")
+	//从第1号叶子转账 1000000000000000000 wei到id4
+	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9858effd232b4033e47d90003d41ec34ecaeda94", "1000000000000000000")
 
 	//从第1号叶子转账500代币给A
 	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
@@ -1586,7 +1586,7 @@ func main() {
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//查询id4代币余额
-	// queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
+	queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
 	//查询用户A的余额
 	// queryLNMCBalance(AddressAHEX)
 	//查询用户B的余额
