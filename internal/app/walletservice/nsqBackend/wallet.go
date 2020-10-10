@@ -1351,7 +1351,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 				GasLimit:        rawDesc.GasLimit,
 				ChainID:         rawDesc.ChainID,
 				Txdata:          rawDesc.Txdata,
-				Value:           amountLNMC, //要转账的代币数量
+				Value:           amountLNMC, //要提现的代币数量
 				TxHash:          rawDesc.TxHash,
 			},
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
