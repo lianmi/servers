@@ -159,6 +159,8 @@ func (w *LnmcCollectionHistory) BeforeUpdate(scope *gorm.Scope) error {
 
 //裸交易结构体
 type RawDesc struct {
+	//接收者的钱包地址
+	DestinationAddress string `protobuf:"bytes,6,opt,name=destination_address,proto3" json:"destination_address,omitempty"`
 	//nonce
 	Nonce uint64 `protobuf:"fixed64,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// gas价格

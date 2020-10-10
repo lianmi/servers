@@ -475,7 +475,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 	}
 
 	//注意，这里需要填写发币合约地址
-	tokenAddress := common.HexToAddress(rawDesc.ToWalletAddress)
+	tokenAddress := common.HexToAddress(rawDesc.ContractAddress)
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(
@@ -496,6 +496,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 
 	ts := types.Transactions{signedTx}
 	rawTxBytes := ts.GetRlp(0)
+	log.Println("length: ", len(rawTxBytes))
 	signedTxToTarget := hex.EncodeToString(rawTxBytes)
 
 	log.Println("signedTxToTarget:", signedTxToTarget)
@@ -612,7 +613,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					log.Println("Protobuf Unmarshal Error", err)
 
 				} else {
-
+					rsq.RawDescToTarget.ChainID = 1
 					log.Println("10-3 发起转账 回包内容 : \n RawDescToTarget---------------------")
 					log.Println("")
 					log.Println("RawDescToTarget---------------------")
@@ -623,6 +624,8 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					log.Println("RawDescToTarget.Value: ", rsq.RawDescToTarget.Value)
 					log.Println("RawDescToTarget.TxHash: ", rsq.RawDescToTarget.TxHash)
 					log.Println("RawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawDescToTarget.Txdata))
+					log.Println("RawDescToTarget.ToWalletAddress: ", rsq.RawDescToTarget.ToWalletAddress)
+					log.Println("RawDescToTarget.ContractAddress: ", rsq.RawDescToTarget.ContractAddress)
 					log.Println("")
 					log.Println("Time: ", rsq.Time)
 
@@ -650,22 +653,24 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
+					log.Println("privKeyHex", privKeyHex)
 
 					rawTxHex, err := buildTx(rsq.RawDescToTarget, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
 					}
+					_ = rawTxHex
 
 					//TODO 调用10-4 确认转账
 
-					go func() {
-						signedTxToTarget, _ := hex.DecodeString(rawTxHex)
-						err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
-						if err != nil {
-							log.Fatalln(err)
-						}
-					}()
+					// go func() {
+					// 	signedTxToTarget, _ := hex.DecodeString(rawTxHex)
+					// 	err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
+					// 	if err != nil {
+					// 		log.Fatalln(err)
+					// 	}
+					// }()
 
 				}
 
@@ -2256,65 +2261,6 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	}
 	log.Println("Cmd is Done.")
 
-	return nil
-
-}
-
-/*
-rawdesctotarget nonce          = 0
- rawdesctotarget gasprice       = 1
- rawdesctotarget gaslimit       = 5000000
- rawdesctotarget chainid        = 1515
- rawdesctotarget txdata         = �\u0005��            _�a���
-,\u0012\u0017\u000f[A`������                              '\u0010
- rawdesctotarget txdata hex     = A9059CBB0000000000000000000000005FDC61B9B7E40A2C12170F5B4160B9BFAFACFEAC0000000000000000000000000000000000000000000000000000000000002710
- rawdesctotarget towalletaddress= 0x5fdc61b9b7e40a2c12170f5b4160b9bfafacfeac
- rawdesctotarget value          = 0
- rawdesctotarget txhash         = 0x3b9a337496eda096ba432b46b8717be3544f5fc8d2266a1e97e29f6f09d159c6
- rawdesctotarget txhash hex     = 307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336
- rawdesctotarget to             = 0x1d2bdda8954b401feb52008c63878e698b6b8444
- rawdesctotarget to hex         = 307831643262646461383935346234303166656235323030386336333837386536393862366238343434
- time                           = 1602262063048
-*/
-func TestBuildTx() error {
-	txData, _ := hex.DecodeString("A9059CBB0000000000000000000000005FDC61B9B7E40A2C12170F5B4160B9BFAFACFEAC0000000000000000000000000000000000000000000000000000000000002710")
-	// hashData, _ := hex.DecodeString("307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336")
-	rawTxToTarget := &Wallet.RawDesc{
-		Nonce: 0,
-		// gas价格
-		GasPrice: 1,
-		// 最低gas
-		GasLimit: 5000000,
-		//链id
-		ChainID: 1515,
-		// 交易数据
-		Txdata: txData,
-		//ether，设为0
-		Value: 0,
-		//交易哈希
-		TxHash:          "307833623961333337343936656461303936626134333262343662383731376265333534346635666338643232363661316539376532396636663039643135396336",
-		ToWalletAddress: "0x1d2bdda8954b401feb52008c63878e698b6b8444",
-	}
-
-	log.Println(rawTxToTarget)
-
-	//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
-	privKeyHex := "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727"
-
-	rawTxHex, err := buildTx(rawTxToTarget, privKeyHex)
-	if err != nil {
-		log.Fatalln(err)
-
-	}
-
-	//TODO 调用10-4 确认转账
-
-	signedTxToTarget, err := hex.DecodeString(rawTxHex)
-	if err != nil {
-		return err
-
-	}
-	log.Println("signedTxToTarget of hex", signedTxToTarget)
 	return nil
 
 }

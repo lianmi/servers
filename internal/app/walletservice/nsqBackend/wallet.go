@@ -566,7 +566,8 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 		rsp := &Wallet.PreTransferRsp{
 			RawDescToTarget: &Wallet.RawDesc{
-				ToWalletAddress: rawDescToTarget.ContractAddress, //接收者，约定用发币智能合约
+				ContractAddress: rawDescToTarget.ContractAddress, //发币智能合约地址
+				ToWalletAddress: toWalletAddress,                 //接收者钱包地址
 				Nonce:           rawDescToTarget.Nonce,
 				GasPrice:        rawDescToTarget.GasPrice,
 				GasLimit:        rawDescToTarget.GasLimit,
@@ -1312,7 +1313,6 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			nc.logger.Debug("提现，构造用户转账给平台方子地址的裸交易数据 成功",
 				zap.String("walletAddress", walletAddress),
 				zap.String("Plaform Address", withdrawKeyPair.AddressHex),
-				zap.String("Plaform Address", withdrawKeyPair.AddressHex),
 				zap.Uint64("rawDes.Nonce", rawDesc.Nonce),
 				zap.Uint64("rawDes.GasPrice", rawDesc.GasPrice),
 				zap.Uint64("rawDes.GasLimit", rawDesc.GasLimit),
@@ -1344,7 +1344,8 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		rsp := &Wallet.PreWithDrawRsp{
 			WithdrawUUID: withdrawUUID,
 			RawDescToPlatform: &Wallet.RawDesc{
-				ToWalletAddress: rawDesc.ContractAddress, //接收者，约定用发币智能合约
+				ContractAddress: rawDesc.ContractAddress,    //发币智能合约地址
+				ToWalletAddress: withdrawKeyPair.AddressHex, //接收者钱包地址
 				Nonce:           rawDesc.Nonce,
 				GasPrice:        rawDesc.GasPrice,
 				GasLimit:        rawDesc.GasLimit,

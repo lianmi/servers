@@ -372,12 +372,12 @@ INFO [10-09|19:01:05.821] New local node record                    seq=1 id=441c
 
 ###  运行 节点1
 ```
-$ nohup geth --datadir node1/ --syncmode 'full' --mine --port 30311  --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1515 --gasprice '1' -unlock '614075e0853a1d34f85120758a7dfa9316ab9109' --password node1/password.txt --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
+$ nohup geth --datadir node1/ --syncmode 'full' --mine --port 30311  --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1 --gasprice '1' -unlock '614075e0853a1d34f85120758a7dfa9316ab9109' --password node1/password.txt --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
  ```
  
 ###  运行 节点2
 ```
-$ nohup geth --datadir node2/ --syncmode 'full' --mine --port 30312 --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1515 --gasprice '1' --unlock '30d199128ad70cbd0ccc1b0cc69296c523aff894' --password node2/password.txt --ws --wsaddr 0.0.0.0 --wsport 8547 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
+$ nohup geth --datadir node2/ --syncmode 'full' --mine --port 30312 --bootnodes 'enode://3331ac1ea468c46fb336ed96c0c2be4066fa3592459baf882dab193157f9148f15dfdc335d3ed7522a225a0431ba3b473a90602cb3dfb80d47c8157981db4cc1@127.0.0.1:30310' --networkid 1 --gasprice '1' --unlock '30d199128ad70cbd0ccc1b0cc69296c523aff894' --password node2/password.txt --ws --wsaddr 0.0.0.0 --wsport 8547 --wsorigins '*' --wsapi personal,admin,eth,net,web3,miner,txpool,debug --allow-insecure-unlock  >/dev/null 2>&1 &
  ```
 
 
@@ -439,4 +439,16 @@ $ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
 
  > eth.getTransactionReceipt("0x95cf895dddb15963caf16e7842f15ba7a9753a8f1f947dc8c1171b69c50b9489")
 
+ ```
+
+
+ ## 发币 LNMC 10000亿枚
+ 
+ ### 部署发币智能合约，并生成合约地址
+```
+
+```
+
+ ### 将生成的发币合约地址保存到配置
+ ```
  ```

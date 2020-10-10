@@ -20,6 +20,8 @@ message RawDesc {
    fixed64 value=7;
    //交易哈希 
    string txHash=8;
+   //发币智能合约地址 
+   string ContractAddress=9;
 }
 
 message PreTransferReq{
