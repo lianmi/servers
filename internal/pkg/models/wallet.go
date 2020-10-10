@@ -172,7 +172,7 @@ type RawDesc struct {
 	// 交易数据
 	Txdata []byte `protobuf:"bytes,5,opt,name=txdata,proto3" json:"txdata,omitempty"`
 
-	//ether，设为0
+	//要转账的代币数量
 	Value uint64 `protobuf:"fixed64,7,opt,name=value,proto3" json:"value,omitempty"`
 	//交易哈希
 	TxHash string `protobuf:"bytes,6,opt,name=txHash,proto3" json:"txHash,omitempty"`

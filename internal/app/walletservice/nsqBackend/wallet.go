@@ -573,7 +573,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				GasLimit:        rawDescToTarget.GasLimit,
 				ChainID:         rawDescToTarget.ChainID,
 				Txdata:          rawDescToTarget.Txdata,
-				Value:           0,
+				Value:           amountLNMC, //要转账的代币数量
 				TxHash:          rawDescToTarget.TxHash,
 			},
 
@@ -1351,7 +1351,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 				GasLimit:        rawDesc.GasLimit,
 				ChainID:         rawDesc.ChainID,
 				Txdata:          rawDesc.Txdata,
-				Value:           0,
+				Value:           amountLNMC, //要转账的代币数量
 				TxHash:          rawDesc.TxHash,
 			},
 			Time: uint64(time.Now().UnixNano() / 1e6), // 当前时间
