@@ -201,7 +201,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	var walletAddress string //用户钱包地址
-	var balanceLNMC int64    //用户当前代币余额
+	var balanceLNMC uint64   //用户当前代币余额
 	var blockNumber uint64
 	var hash string
 	var balanceAfter uint64 //用户充值之后的代币数量
@@ -285,7 +285,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		balanceLNMC, err = redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "LNMCAmount"))
+		balanceLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("HGET error")
@@ -294,7 +294,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 		nc.logger.Info("充值之前钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
-			zap.Int64("当前余额 balanceLNMC", balanceLNMC),
+			zap.Uint64("当前余额 balanceLNMC", balanceLNMC),
 		)
 
 		//TODO 核对是否支付成功，必须与第三方支付对接后才能完善
@@ -312,7 +312,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 		lnmcDepositHistory := &models.LnmcDepositHistory{
 			Username:          username,
 			WalletAddress:     walletAddress,
-			BalanceLNMCBefore: balanceLNMC,
+			BalanceLNMCBefore: int64(balanceLNMC),
 			RechargeAmount:    req.GetRechargeAmount(), //充值金额，单位是人民币
 			PaymentType:       int(req.GetPaymentType()),
 		}
@@ -378,12 +378,14 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 	var walletAddress string   //用户钱包地址
 	var toWalletAddress string //接收者钱包地址, 订单id及普通转账需要不同的钱包地址
 
+	var balanceLNMC uint64
 	var blockNumber uint64
 	var hash string
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
 	var balanceLNMCBefore uint64 //用户当前代币数量
 	var amountLNMC uint64        //本次转账的代币数量,  等于amount * 100
+	var balanceETH uint64        //当前用户的Eth余额
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -514,7 +516,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		}
 
 		//当前用户的代币余额
-		balanceLNMCBefore, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "LNMCAmount"))
+		balanceLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("HGET error")
@@ -524,12 +526,22 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		//由于amout是人民币，以元为单位，因此，需要乘以100
 		amountLNMC = uint64(req.GetAmount() * 100)
 
+		//当前用户的Eth余额
+		balanceETH, err = nc.ethService.GetWeiBalance(walletAddress)
+
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
-			zap.Uint64("当前余额 balanceLNMCBefore", balanceLNMCBefore),
+			zap.Uint64("当前余额 balanceLNMC", balanceLNMC),
+			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 			zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
 		)
+		if balanceETH < LMCommon.GASLIMIT {
+			nc.logger.Warn("gas余额不足")
+			errorCode = http.StatusPaymentRequired       //错误码， 402
+			errorMsg = fmt.Sprintf("Not sufficient gas") //  余额不足
+			goto COMPLETE
+		}
 
 		//amount是人民币格式（单位是 元），要转为int64
 		if balanceLNMCBefore < amountLNMC {
@@ -743,7 +755,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		}
 
 		//当前用户的代币余额
-		balanceLNMC, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "LNMCAmount"))
+		balanceLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("HGET error")
@@ -1160,9 +1172,10 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 	var walletAddress string //用户钱包地址
 
 	var balanceLNMCBefore uint64 //用户当前代币数量
-	var amountLNMC uint64        //本次提现的代币数量,  等于amount * 100
-	var feeF float64             //佣金
-	var fee uint64               //佣金
+	var balanceETH uint64
+	var amountLNMC uint64 //本次提现的代币数量,  等于amount * 100
+	var feeF float64      //佣金
+	var fee uint64        //佣金
 
 	var withdrawUUID string //提现单编号，UUID
 
@@ -1265,9 +1278,20 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("HGET error")
 			goto COMPLETE
 		}
+
+		//当前用户的Eth余额
+		balanceETH, err = nc.ethService.GetWeiBalance(walletAddress)
+
+		if balanceETH < LMCommon.GASLIMIT {
+			nc.logger.Warn("gas余额不足")
+			errorCode = http.StatusPaymentRequired       //错误码， 402
+			errorMsg = fmt.Sprintf("Not sufficient gas") //  余额不足
+			goto COMPLETE
+		}
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
+			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 			zap.Uint64("当前余额 balanceLNMCBefore", balanceLNMCBefore),
 		)
 

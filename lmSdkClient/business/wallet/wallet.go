@@ -481,7 +481,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 	tx := types.NewTransaction(
 		rawDesc.Nonce,
 		tokenAddress,
-		big.NewInt(int64(rawDesc.Value)),
+		big.NewInt(0),
 		rawDesc.GasLimit,
 		big.NewInt(int64(rawDesc.GasPrice)),
 		rawDesc.Txdata,
