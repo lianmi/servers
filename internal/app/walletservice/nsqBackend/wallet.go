@@ -1,7 +1,7 @@
 package nsqBackend
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -858,7 +858,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		_, err = redisConn.Do("HSET",
 			fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress),
-			"SignedTx", hex.EncodeToString(req.GetSignedTxToTarget()),
+			"SignedTx", req.GetSignedTxToTarget(),
 		)
 		_, err = redisConn.Do("HSET",
 			fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress),
