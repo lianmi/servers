@@ -43,7 +43,7 @@ type RawDesc struct {
 	Txdata []byte `protobuf:"bytes,5,opt,name=txdata,proto3" json:"txdata,omitempty"`
 	//收款者地址
 	ToWalletAddress string `protobuf:"bytes,6,opt,name=toWalletAddress,proto3" json:"toWalletAddress,omitempty"`
-	//ether，设为0
+	//要转账的代币数量
 	Value uint64 `protobuf:"fixed64,7,opt,name=value,proto3" json:"value,omitempty"`
 	//交易哈希
 	TxHash string `protobuf:"bytes,8,opt,name=txHash,proto3" json:"txHash,omitempty"`

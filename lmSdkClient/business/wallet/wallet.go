@@ -655,22 +655,21 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
 					log.Println("privKeyHex", privKeyHex)
 
-					rawTxHex, err := buildTx(rsq.RawDescToTarget, privKeyHex)
+					signedTxToTarget, err := buildTx(rsq.RawDescToTarget, privKeyHex)
 					if err != nil {
 						log.Fatalln(err)
 
 					}
-					_ = rawTxHex
+					// _ = rawTxHex
 
 					//TODO 调用10-4 确认转账
 
-					// go func() {
-					// 	signedTxToTarget, _ := hex.DecodeString(rawTxHex)
-					// 	err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
-					// 	if err != nil {
-					// 		log.Fatalln(err)
-					// 	}
-					// }()
+					go func() {
+						err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
+						if err != nil {
+							log.Fatalln(err)
+						}
+					}()
 
 				}
 
@@ -729,7 +728,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 }
 
 //10-4 确认转账
-func ConfirmTransfer(orderID, targetUsername string, signedTxToTarget []byte) error {
+func ConfirmTransfer(orderID, targetUsername string, signedTxToTarget string) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {

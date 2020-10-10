@@ -16,7 +16,7 @@ message RawDesc {
    bytes txdata=5;
    //收款者地址 
    string toWalletAddress=6;
-   //ether，设为0
+   //要转账的代币数量
    fixed64 value=7;
    //交易哈希 
    string txHash=8;

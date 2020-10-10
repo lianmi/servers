@@ -9,8 +9,8 @@ message ConfirmTransferReq{
     //收款方的用户账号(非空的时候，orderID必须是空 ）
     string targetUserName=2;
 
-    //签名后的转给目标接收者的Tx(A签)
-    bytes signedTxToTarget=3;
+    //签名后的转给目标接收者的Tx(A签) hex格式 
+    string signedTxToTarget=3;
 }
 
 

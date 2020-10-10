@@ -688,7 +688,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			zap.String("username", username),
 			zap.String("orderID", req.GetOrderID()),
 			zap.String("targetUserName", req.GetTargetUserName()),
-			zap.ByteString("SignedTxToTarget", req.GetSignedTxToTarget()), //签名后的Tx(A签)
+			zap.String("SignedTxToTarget", req.GetSignedTxToTarget()), //签名后的Tx(A签) hex
 		)
 
 		if req.GetOrderID() != "" && req.GetTargetUserName() != "" {
@@ -801,13 +801,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		toBalanceLNMC, err = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 
 		//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
-		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(hex.EncodeToString(req.GetSignedTxToTarget()))
+		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("A签 SendSignedTxToGeth error")
 			goto COMPLETE
 		} else {
-			nc.logger.Info("发起方的多签合约转到目标接收者的交易数据广播到链上  A签成功 ",
+			nc.logger.Info("发起方转到目标接收者的交易数据广播到链上  A签成功 ",
 				zap.String("username", username),
 				zap.String("toUsername", toUsername),
 				zap.String("toWalletAddress", toWalletAddress),
@@ -2163,6 +2163,159 @@ COMPLETE:
 用户每天签到，每成功签到2次，送若干1千万wei的以太币
 */
 func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var data, awardData []byte
+	var isExists bool
+	var count int
+	var total uint64
+	var latestDate string
+	var walletAddress string    //用户钱包地址
+	var awardEth uint64         //奖励的eth
+	var balanceEthBefore uint64 //奖励之前用户的eth数量 ，wei为单位
+	var balanceEth uint64       //奖励之后的eth数量
+
+	rsp := &Wallet.UserSignInRsp{}
+	ethReceivedEventRsp := &Wallet.EthReceivedEventRsp{}
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //用户自己的账号
+	// token := msg.GetJwtToken()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleUserSignIn start...",
+		zap.String("username", username),
+		zap.String("deviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("HandleUserSignIn",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	currDate := dateutil.GetDateString()
+	key := fmt.Sprintf("userSignin:%s", username)
+
+	isExists, err = redis.Bool(redisConn.Do("HEXISTS", key, "LatestDate"))
+	if err != nil {
+		nc.logger.Error("redisConn EXISTS Error", zap.Error(err))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("redis Error: %s", err.Error())
+		goto COMPLETE
+
+	}
+	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+	if err != nil {
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("HGET error")
+		goto COMPLETE
+	}
+
+	if nc.ethService.CheckIsvalidAddress(walletAddress) == false {
+		nc.logger.Warn("非法钱包地址", zap.String("WalletAddress", walletAddress))
+		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorMsg = fmt.Sprintf("WalletAddress is not valid")
+		goto COMPLETE
+	}
+
+	//不存在则表示首次签到
+	if !isExists {
+		_, err = redisConn.Do("HMSET",
+			key,
+			"LatestDate", currDate,
+			"Count", 1, //如果达到2次则奖励
+			"Total", 1,
+		)
+		rsp.Count = 1
+		rsp.TotalSignIn = 1
+
+	} else {
+		latestDate, _ = redis.String(redisConn.Do("HGET", key, "LatestDate"))
+		if currDate == latestDate {
+			nc.logger.Warn("每天只能签到一次")
+			errorCode = http.StatusGone //错误码 410
+			errorMsg = fmt.Sprintf("Today already signineed: %s", latestDate)
+			goto COMPLETE
+		}
+
+		_, err = redisConn.Do("HSET", key, "LatestDate", currDate)
+		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
+		total, _ = redis.Uint64(redisConn.Do("HINCRBY", key, "Total", 1))
+		rsp.Count = int32(count)
+		rsp.TotalSignIn = total
+
+		//如果count累计大于或等于2次，则奖励并重置为0
+		if count == 2 {
+			redisConn.Do("HSET", key, "Count", 0)
+			go func() {
+				balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)
+				awardEth = uint64(LMCommon.AWARDGAS)
+				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
+				balanceEth, err = nc.ethService.GetWeiBalance(walletAddress)
+				nc.logger.Info("奖励ETH",
+					zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
+					zap.Uint64("奖励之后用户的eth数量", balanceEth),
+				)
+
+				//向用户推送10-15 ETH奖励到账通知事件
+				ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
+					AmountETH: awardEth,
+					Time:      uint64(time.Now().UnixNano() / 1e6),
+				}
+				awardData, _ = proto.Marshal(ethReceivedEventRsp)
+
+				nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
+
+			}()
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		nc.logger.Info("UserSignInRsp回包",
+			zap.Int("Count", count),
+			zap.Uint64("Total", total),
+		)
+		data, _ = proto.Marshal(rsp)
+		msg.FillBody(data)
+
+	} else {
+		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Succeed send message to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+10-14查询交易哈希详情
+用户每天签到，每成功签到2次，送若干1千万wei的以太币
+*/
+func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
