@@ -53,7 +53,7 @@ const (
 
 const (
 	//所有同步的时间戳数量
-	TotalSyncCount = 8
+	TotalSyncCount = 9
 )
 
 const (

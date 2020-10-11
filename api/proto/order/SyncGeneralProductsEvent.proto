@@ -1,0 +1,18 @@
+syntax = "proto3"; 
+
+import "api/proto/order/Product.proto"; 
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+//响应参数
+message SyncGeneralProductsEventRsp {
+    //更新时间
+    fixed64 timeTag=1;
+    //新上架或更新的通用商品列表
+    //是否必须-是
+    repeated Product addProducts = 2;
+    //删除的通用商品ID列表
+    //是否必须-否
+    repeated string removedProductIDs = 3;
+}

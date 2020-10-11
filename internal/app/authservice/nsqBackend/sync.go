@@ -1,7 +1,8 @@
 /*
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
-    同步处理map，分别处理 myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt
+	同步处理map，分别处理:
+	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt, productAt,  generalProductAt
 
 6-2 同步请求完成
 
@@ -1109,6 +1110,129 @@ COMPLETE:
 	}
 }
 
+//处理productAt 7-9 同步商品列表
+func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+	var err error
+	errorCode := 200
+	var errorMsg string
+	var cur_generalProductAt uint64
+
+	rsp := &Order.SyncGeneralProductsEventRsp{
+		TimeTag:           uint64(time.Now().UnixNano() / 1e6),
+		AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
+		RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
+
+	}
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	//req里的成员
+	generalProductAt := req.GetGeneralProductAt()
+	syncKey := fmt.Sprintf("sync:%s", username)
+
+	cur_generalProductAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "generalProductAt"))
+	if err != nil {
+		cur_generalProductAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "generalProductAt", cur_generalProductAt)
+
+	}
+
+	nc.logger.Debug("GeneralProductAt",
+		zap.Uint64("cur_generalProductAt", cur_generalProductAt),
+		zap.Uint64("generalProductAt", generalProductAt),
+		zap.String("username", username),
+	)
+
+	//服务端的时间戳大于客户端上报的时间戳
+	if cur_generalProductAt > generalProductAt {
+		//获取redis通用商品列表
+		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "GeneralProducts", generalProductAt, "+inf"))
+		for _, productID := range productIDs {
+			productInfo := new(models.Product)
+			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("GeneralProduct:%s", productID))); err == nil {
+				if err := redis.ScanStruct(result, productInfo); err != nil {
+					nc.logger.Error("错误: ScanStruct", zap.Error(err))
+					continue
+				}
+			}
+			rsp.AddProducts = append(rsp.AddProducts, &Order.Product{
+				ProductId:         productID,
+				Expire:            uint64(productInfo.Expire),
+				ProductName:       productInfo.ProductName,
+				CategoryName:      productInfo.CategoryName,
+				ProductDesc:       productInfo.ProductDesc,
+				ProductPic1Small:  productInfo.ProductPic1Small,
+				ProductPic1Middle: productInfo.ProductPic1Middle,
+				ProductPic1Large:  productInfo.ProductPic1Large,
+				ProductPic2Small:  productInfo.ProductPic2Small,
+				ProductPic2Middle: productInfo.ProductPic2Middle,
+				ProductPic2Large:  productInfo.ProductPic2Large,
+				ProductPic3Small:  productInfo.ProductPic3Small,
+				ProductPic3Middle: productInfo.ProductPic3Middle,
+				ProductPic3Large:  productInfo.ProductPic3Large,
+				Thumbnail:         productInfo.Thumbnail,
+				ShortVideo:        productInfo.ShortVideo,
+				CreateAt:          uint64(productInfo.CreateAt),
+				ModifyAt:          uint64(productInfo.ModifyAt),
+			})
+		}
+
+		//下架的通用商品ID列表
+
+		removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "RemoveGeneralProducts", generalProductAt, "+inf"))
+		for _, removeProductID := range removeProductIDs {
+			rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))               // 7
+		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncProductEvent)) // 8
+
+		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		rawData, _ := json.Marshal(targetMsg)
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("Message succeed send to ProduceChannel",
+				zap.String("topic", topic),
+				zap.String("Username:", username),
+				zap.String("DeviceID:", deviceID),
+				zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+		} else {
+			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+	}
+
+	//完成
+	ch <- 1
+	if errorCode == 200 {
+		//只需返回200
+		return nil
+	} else {
+		return errors.Wrap(err, errorMsg)
+	}
+}
+
 /*
 注意： syncCount 是所有需要同步的数量，最终是6个
 */
@@ -1164,10 +1288,11 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("SystemMsgAt", req.SystemMsgAt),
 			zap.Uint64("WatchAt", req.WatchAt),
 			zap.Uint64("ProductAt", req.ProductAt),
+			zap.Uint64("GeneralProductAt", req.GeneralProductAt),
 		)
 
 		//所有同步的时间戳数量
-		chs := make([]chan int, common.TotalSyncCount) //8 个
+		chs := make([]chan int, common.TotalSyncCount) // 9 个
 		for i := 0; i < common.TotalSyncCount; i++ {
 			chs[i] = make(chan int)
 		}
@@ -1234,6 +1359,13 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncProductAt is done")
+			}
+		}()
+		go func() {
+			if err := nc.SyncGeneralProductAt(username, token, deviceID, req, chs[7]); err != nil {
+				nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("GeneralProductAt is done")
 			}
 		}()
 

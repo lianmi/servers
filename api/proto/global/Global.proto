@@ -120,15 +120,16 @@ enum SyncSubType {
 
 //商品模块子模块定义
 enum ProductSubType {
-    PST_undefined        =  0;     //proto3必须从0开始
-    QueryProducts        =  1;     /**< 7-1. 查询某个商户的所有商品信息*/
-    AddProduct           =  2;     /**< 7-2. 商品上架*/
-    UpdateProduct        =  3;     /**< 7-3. 商品编辑更新*/
-    SoldoutProduct       =  4;     /**< 7-4. 商品下架*/
-    AddProductEvent      =  5;     /**< 7-5. 新商品上架事件*/
-    UpdateProductEvent   =  6;     /**< 7-6. 已有商品的编辑更新事件*/
-    SoldoutProductEvent  =  7;     /**< 7-7. 商品下架事件*/
-    SyncProductEvent     =  8;     /**< 7-8. 同步关注的商户商品信息事件*/
+    PST_undefined                =  0;     //proto3必须从0开始
+    QueryProducts                =  1;     /**< 7-1. 查询某个商户的所有商品信息*/
+    AddProduct                   =  2;     /**< 7-2. 商品上架*/
+    UpdateProduct                =  3;     /**< 7-3. 商品编辑更新*/
+    SoldoutProduct               =  4;     /**< 7-4. 商品下架*/
+    AddProductEvent              =  5;     /**< 7-5. 新商品上架事件*/
+    UpdateProductEvent           =  6;     /**< 7-6. 已有商品的编辑更新事件*/
+    SoldoutProductEvent          =  7;     /**< 7-7. 商品下架事件*/
+    SyncProductEvent             =  8;     /**< 7-8. 同步关注的商户商品信息事件*/
+    SyncGeneralProductsEvent     =  9;     /**< 7-9 同步通用商品表*/
 }
 
 

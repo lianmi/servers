@@ -34,7 +34,11 @@ message SyncEventReq{
    //用户关注商户的商品发生更改同步事件-上架、编辑、下架
    //是否必填-是 
    fixed64 productAt=8;
+   //通用商品表同步时间戳，服务端CRUD会触发通用商品表同步事件
+   //是否必填-是 
+   fixed64 generalProductAt=9;
 }
+
 //只包含状态码，无内容载体
 message SyncEventRsp{
 
