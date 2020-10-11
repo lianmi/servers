@@ -17,10 +17,11 @@ var TxHashInfoCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("TxHashInfo called")
-		// txType, _ := cmd.PersistentFlags().GetInt32("txType")
-		// txHash, _ := cmd.PersistentFlags().GetString("txHash")
-		txType := int32(3)
-		txHash := "0x02876f65897b431b4f455e5d72944d0a3b8a3ac0280bddf4f1b1f131cdb865bf"
+		txType, _ := cmd.PersistentFlags().GetInt32("txType")
+		txHash, _ := cmd.PersistentFlags().GetString("txHash")
+		// txType := int32(3)
+		//0xc69374390821f44a5c93fdffc34fb71e0accf98bc365451d2ca6c33fd94d6f0b
+		// txHash := "0x02876f65897b431b4f455e5d72944d0a3b8a3ac0280bddf4f1b1f131cdb865bf"
 		err := wallet.DoTxHashInfo(txType, txHash)
 		if err != nil {
 			log.Println("DoTxHashInfo failed")
@@ -32,6 +33,6 @@ var TxHashInfoCmd = &cobra.Command{
 
 func init() {
 	walletCmd.AddCommand(TxHashInfoCmd)
-	// TxHashInfoCmd.PersistentFlags().Int32P("txType", "p", 1, "交易类型枚举")
-	// TxHashInfoCmd.PersistentFlags().StringP("txHash", "h", "", "交易哈希")
+	TxHashInfoCmd.PersistentFlags().Int32P("txType", "p", 3, "交易类型枚举")
+	TxHashInfoCmd.PersistentFlags().StringP("txHash", "x", "", "交易哈希")
 }

@@ -348,6 +348,10 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 			BalanceLNMCBefore: int64(balanceLNMC),
 			RechargeAmount:    req.GetRechargeAmount(), //充值金额，单位是人民币
 			PaymentType:       int(req.GetPaymentType()),
+
+			BalanceLNMCAfter: int64(balanceAfter),
+			BlockNumber:      blockNumber,
+			TxHash:           hash,
 		}
 
 		nc.SaveDepositHistory(lnmcDepositHistory)
