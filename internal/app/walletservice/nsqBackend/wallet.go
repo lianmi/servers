@@ -2381,8 +2381,6 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	var errorMsg string
 	var hashInfo *models.HashInfo
 
-	rsp := &Wallet.TxHashInfoRsp{}
-
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -2428,34 +2426,37 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 
 		switch req.TxType {
 		case Global.TransactionType_DT_Deposit: //充值
-			blockNumber, err := nc.GetBlockNumberFromDeposit(req.TxHash)
+			depositInfo, err := nc.GetDepositInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")
 				goto COMPLETE
 			}
-			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
-			hashInfo.BlockNumber = blockNumber
+			hashInfo, err = nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = depositInfo.BlockNumber
+			hashInfo.To = ""
 
 		case Global.TransactionType_DT_WithDraw: //提现
-			blockNumber, err := nc.GetBlockNumberFromWithdraw(req.TxHash)
+			withdrawInfo, err := nc.GetWithdrawInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")
 				goto COMPLETE
 			}
-			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
-			hashInfo.BlockNumber = blockNumber
+			hashInfo, err = nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = withdrawInfo.BlockNumber
+			hashInfo.To = ""
 
 		case Global.TransactionType_DT_Transfer: //转账
-			blockNumber, err := nc.GetBlockNumberFromTransfer(req.TxHash)
+			transferInfo, err := nc.GetTransferInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")
 				goto COMPLETE
 			}
-			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
-			hashInfo.BlockNumber = blockNumber
+			hashInfo, err = nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = transferInfo.BlockNumber
+			hashInfo.To = transferInfo.ToUsername
 
 		default:
 			errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
@@ -2468,7 +2469,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		rsp = &Wallet.TxHashInfoRsp{
+		rsp := &Wallet.TxHashInfoRsp{
 			//区块高度
 			BlockNumber: hashInfo.BlockNumber,
 			//燃气值

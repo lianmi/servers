@@ -437,7 +437,7 @@ $ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
  ## 查询链上的交易哈希数据
  ```
 
- > eth.getTransactionReceipt("0x95cf895dddb15963caf16e7842f15ba7a9753a8f1f947dc8c1171b69c50b9489")
+ > eth.getTransactionReceipt("0xcc96f63d1013244962b7eaa511b232148a01e79da90f4e94450e7c7bfe6e4ec0")
 
  ```
 

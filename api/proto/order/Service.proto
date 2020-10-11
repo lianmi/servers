@@ -1,0 +1,116 @@
+syntax = "proto3";
+import "api/proto/global/Global.proto";
+import "api/proto/order/Product.proto"; 
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+
+//Restful 接口  必须admin的身份登录才能调用 
+service ProductOrders {
+    //查询通用商品列表
+    rpc GetGeneralProducts (GeneralProductsReq) returns (GeneralProductsRsp);
+
+    //获取单一通用商品详情 
+    rpc GetGeneralProductInfo (GetGeneralProductInfoReq) returns (GetGeneralProductInfoRsp);
+
+    //添加通用商品
+    rpc AddGeneralProduct (AddGeneralProductReq) returns (AddGeneralProductRsp);
+
+    //更新update通用商品
+    rpc UpdateGeneralProduct (UpdateGeneralProductReq) returns (UpdateGeneralProductRsp);
+
+    //删除通用商品
+    rpc DeleteGeneralProduct (DeleteGeneralProductReq) returns (DeleteGeneralProductRsp);
+
+}
+
+message RespHeader {
+    int32 errCode = 1; //错误码  默认是0为成功， 非0-失败
+    string errMsg = 2; //错误描述
+}
+
+//=== 获取通用商品列表 === //
+message GeneralProductsReq {
+    //商品种类,=0 全部 
+    global.ProductType productType=1;
+
+    //商品名称搜索关键字
+    string productNameKey =2;
+
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 3; // [default=1];
+
+    //每页成员数量
+    //默认100,最大只允许100
+    //是否必填-否
+    int32 pageSize = 4; // [default=100];
+}
+
+message GeneralProductsRsp {
+    RespHeader status  = 1;
+    
+    //列表 
+
+    repeated GeneralProduct generalProducts =2;
+    
+    //总页数，按pageSize计算而来
+    int32 total = 3; 
+}
+
+//=== 获取单一通用商品详情 === //
+message GetGeneralProductInfoReq {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+
+}
+
+message GetGeneralProductInfoRsp {
+    RespHeader status  = 1;
+    
+    //通用商品详情 
+    GeneralProduct generalProduct =2;
+
+}
+
+//=== 添加通用商品 === //
+message AddGeneralProductReq {
+    //商品详情 
+    //是否必须-是
+    GeneralProduct generalProduct = 1;
+
+}
+
+message AddGeneralProductRsp {
+    RespHeader status  = 1;
+
+}
+
+//=== 更新通用商品 === //
+message UpdateGeneralProductReq {
+    //商品详情 
+    //是否必须-是
+    GeneralProduct generalProduct = 1;
+
+}
+
+message UpdateGeneralProductRsp {
+    RespHeader status  = 1;
+
+}
+
+//=== 删除通用商品 === //
+message DeleteGeneralProductReq {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+
+}
+
+message DeleteGeneralProductRsp {
+    RespHeader status  = 1;
+
+}

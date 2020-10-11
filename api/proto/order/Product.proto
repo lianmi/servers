@@ -122,3 +122,77 @@ message OrderProductBody {
     string attach=7;
 
 }
+
+//通用商品
+message GeneralProduct {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+
+    //商品名称
+    //是否必须-是
+    string ProductName = 2;
+
+    //商品分类名称
+    //是否必须-是
+    string CategoryName = 3;
+
+    //商品详细介绍
+    //是否必须-是
+    string ProductDesc = 4;
+
+    //商品图片1-小图
+    //是否必须-是
+    string ProductPic1Small = 5;
+
+    //商品图片1-中图
+    //是否必须-是
+    string ProductPic1Middle = 6;
+
+    //商品图片1-大图
+    //是否必须-是
+    string ProductPic1Large = 7;
+
+
+    //商品图片2-小图
+    //是否必须-否
+    string ProductPic2Small = 8;
+
+    //商品图片2-中图
+    //是否必须-否
+    string ProductPic2Middle = 9;
+
+    //商品图片2-大图
+    //是否必须-否
+    string ProductPic2Large = 10;
+
+    //商品图片3-小图
+    //是否必须-否
+    string ProductPic3Small = 11;
+
+    //商品图片3-中图
+    //是否必须-否
+    string ProductPic3Middle = 12;
+
+    //商品图片3-大图
+    //是否必须-否
+    string ProductPic3Large = 13;
+
+    //商品短视频缩略图
+    //是否必须-否
+    string Thumbnail = 14;
+
+    //商品短视频
+    //是否必须-否
+    string ShortVideo = 15;
+
+    //创建时间
+    //是否必须-是
+    fixed64 CreateAt = 16;
+
+    //最后修改时间
+    //是否必须-是
+    fixed64 ModifyAt = 17;
+
+
+}

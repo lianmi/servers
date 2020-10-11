@@ -215,32 +215,32 @@ func (nc *NsqClient) GetTransferHistorys(PageNum int, PageSize int, total *uint6
 	return transfers
 }
 
-//根据TxHash查询出充值记录里的区块高度
-func (nc *NsqClient) GetBlockNumberFromDeposit(txHash string) (uint64, error) {
+//根据TxHash查询出充值记录详情
+func (nc *NsqClient) GetDepositInfo(txHash string) (*models.LnmcDepositHistory, error) {
 
 	dep := new(models.LnmcDepositHistory)
 	if err := nc.db.Model(dep).Where("tx_hash = ?", txHash).First(dep).Error; err != nil {
-		return 0, errors.Wrapf(err, "Get LnmcDepositHistory info error[txHash=%s]", txHash)
+		return nil, errors.Wrapf(err, "Get LnmcDepositHistory info error[txHash=%s]", txHash)
 	}
-	return dep.BlockNumber, nil
+	return dep, nil
 }
 
-//根据TxHash查询出提现记录里的区块高度
-func (nc *NsqClient) GetBlockNumberFromWithdraw(txHash string) (uint64, error) {
+//根据TxHash查询出提现记录详情
+func (nc *NsqClient) GetWithdrawInfo(txHash string) (*models.LnmcWithdrawHistory, error) {
 
 	wd := new(models.LnmcWithdrawHistory)
 	if err := nc.db.Model(wd).Where("tx_hash = ?", txHash).First(wd).Error; err != nil {
-		return 0, errors.Wrapf(err, "Get LnmcWithdrawHistory info error[txHash=%s]", txHash)
+		return nil, errors.Wrapf(err, "Get LnmcWithdrawHistory info error[txHash=%s]", txHash)
 	}
-	return wd.BlockNumber, nil
+	return wd, nil
 }
 
-//根据TxHash查询出转账记录里的区块高度
-func (nc *NsqClient) GetBlockNumberFromTransfer(txHash string) (uint64, error) {
+//根据TxHash查询出转账记录详情
+func (nc *NsqClient) GetTransferInfo(txHash string) (*models.LnmcTransferHistory, error) {
 
 	tr := new(models.LnmcTransferHistory)
 	if err := nc.db.Model(tr).Where("tx_hash = ?", txHash).First(tr).Error; err != nil {
-		return 0, errors.Wrapf(err, "Get LnmcTransferHistory info error[txHash=%s]", txHash)
+		return nil, errors.Wrapf(err, "Get LnmcTransferHistory info error[txHash=%s]", txHash)
 	}
-	return tr.BlockNumber, nil
+	return tr, nil
 }

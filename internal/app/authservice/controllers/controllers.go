@@ -254,7 +254,9 @@ func CreateInitControllersFn(
 			//5-1发送吸顶式群消息
 			// auth.POST("/sendteamroofmsg", pc.SendTeamRoofMsg)
 
+			//商品及订单模块
 
+			// auth.GET("/generalproducts", pc.GetGeneralProducts)
 
 		}
 

@@ -466,7 +466,6 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 
 //根据交易查询里面详情
 func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) {
-	var to string
 	txHash := common.HexToHash(txHashHex)
 
 	tx, _, err := s.WsClient.TransactionByHash(context.Background(), txHash)
@@ -480,17 +479,12 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 		zap.Uint64("Gas: ", tx.Gas()),
 		zap.String("Value: ", tx.Value().String()),
 	)
-	if tx.To() != nil {
-		to = tx.To().Hex()
-	}
 
 	return &models.HashInfo{
-		BlockNumber: 0,
-		TxHash:      tx.Hash().Hex(),
-		Nonce:       tx.Nonce(),
-		Gas:         tx.Gas(),
-		Data:        hex.EncodeToString(tx.Data()),
-		To:          to,
+		TxHash: tx.Hash().Hex(),
+		Nonce:  tx.Nonce(),
+		Gas:    tx.Gas(),
+		Data:   hex.EncodeToString(tx.Data()),
 	}, nil
 }
 
