@@ -582,6 +582,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
 				zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 				zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
+				zap.Uint64("缺失数量", amountLNMC-balanceLNMC),
 			)
 			errorCode = http.StatusBadRequest              //错误码， 400
 			errorMsg = fmt.Sprintf("Not sufficient funds") //  余额不足
