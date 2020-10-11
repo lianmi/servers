@@ -396,10 +396,9 @@ COMPLETE:
 
 /*
 10-3 发起转账
-1. 用户下单需要支付或者手工转账时，向服务端发起一个转账申请, 接收者也必须开通钱包 。
-2. 服务端收到请求后，判断发起方的余额是否足够支付，如果足够，则动态部署一个多签合约。
-3. 证明人为一个平台派生地址，3方分别是发起方、接收方、平台方(要记录BIP44对应的index, 因为每个转账的index都自动递增，不能相同，用来区分每笔转账 )
-4. 服务端向发起方返回合约地址及Tx裸交易二进制序列
+1. 用户下单需要支付（订单ID非空的时候）或者仅仅是用户之间转账时，向服务端发起一个转账申请, 接收者也必须开通钱包 。
+2. 服务端收到请求后，判断发起方的余额是否足够支付
+3. 服务端构造Tx裸交易数据，当订单ID非空的时候， 目标接收者是用户
 
 */
 func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
@@ -416,8 +415,8 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 	var hash string
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
-	var amountLNMC uint64        //本次转账的代币数量,  等于amount * 100
-	var balanceETH uint64        //当前用户的Eth余额
+	var amountLNMC uint64 //本次转账的代币数量,  等于amount * 100
+	var balanceETH uint64 //当前用户的Eth余额
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -564,7 +563,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
-			zap.Uint64("当前余额 balanceLNMC", balanceLNMC),
+			zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
 			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 			zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
 		)
@@ -575,9 +574,15 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//amount是人民币格式（单位是 元），要转为int64
+		//判断是否有足够代币数量
 		if balanceLNMC < amountLNMC {
-			nc.logger.Warn("余额不足")
+			nc.logger.Warn("余额不足",
+				zap.String("username", username),
+				zap.String("walletAddress", walletAddress),
+				zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
+				zap.Uint64("当前ETH余额 balanceETH", balanceETH),
+				zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
+			)
 			errorCode = http.StatusBadRequest              //错误码， 400
 			errorMsg = fmt.Sprintf("Not sufficient funds") //  余额不足
 			goto COMPLETE
@@ -590,10 +595,10 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			OrderID:           req.GetOrderID(),        //如果是订单支付 ，非空
 			WalletAddress:     walletAddress,           //发起方钱包账户
 			ToWalletAddress:   toWalletAddress,         //接收者钱包账户
-			BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
+			BalanceLNMCBefore: balanceLNMC,             //发送方用户在转账时刻的连米币数量
 			AmountLNMC:        amountLNMC,              //本次转账的用户连米币数量
 			Bip32Index:        newBip32Index,           //平台HD钱包Bip32派生索引号
-			State:             0,                       //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
+			State:             0,                       //执行状态，0-默认未执行，1-A签，2-全部完成
 
 		}
 		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
@@ -1158,8 +1163,6 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 			zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
 		)
 
-		//调用eth接口，将发起方签名的转账给多签的交易数据广播到链上
-
 		rsp := &Wallet.BalanceRsp{
 			AmountLNMC: balanceLNMC,
 			AmountETH:  balanceETH,
@@ -1388,7 +1391,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			Bank:              req.GetBank(),      //银行名称
 			BankCard:          req.GetBankCard(),  //银行卡号
 			CardOwner:         req.GetCardOwner(), //银行卡持有人
-			BalanceLNMCBefore: balanceLNMC,  //发送方用户在提现时刻的连米币数量
+			BalanceLNMCBefore: balanceLNMC,        //发送方用户在提现时刻的连米币数量
 			AmountLNMC:        amountLNMC,         //本次提现的用户连米币数量
 			Fee:               fee,                //佣金
 			State:             0,                  //执行状态，0-默认未执行，1-A签，2-全部完成
@@ -1591,7 +1594,7 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 			BalanceLNMCBefore: balanceLNMC,   //发送方用户在提现时刻的连米币数量
 			AmountLNMC:        amountLNMC,    //本次提现的用户连米币数量
 			BalanceLNMCAfter:  balanceAfter,  //本次提现之后的用户连米币数量
-			State:             1,             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
+			State:             1,             //执行状态，0-默认未执行，1-A签，2-全部完成
 			BlockNumber:       blockNumber,
 			TxHash:            hash,
 		}
@@ -2231,7 +2234,6 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 	var awardEth uint64         //奖励的eth
 	var balanceEthBefore uint64 //奖励之前用户的eth数量 ，wei为单位
 	var balanceEth uint64       //奖励之后的eth数量
-
 
 	rsp := &Wallet.UserSignInRsp{}
 	ethReceivedEventRsp := &Wallet.EthReceivedEventRsp{}
