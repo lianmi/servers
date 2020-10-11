@@ -411,12 +411,11 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 	var walletAddress string   //用户钱包地址
 	var toWalletAddress string //接收者钱包地址, 订单id及普通转账需要不同的钱包地址
 
-	var balanceLNMC uint64
+	var balanceLNMC uint64 //用户当前代币数量
 	var blockNumber uint64
 	var hash string
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
-	var balanceLNMCBefore uint64 //用户当前代币数量
 	var amountLNMC uint64        //本次转账的代币数量,  等于amount * 100
 	var balanceETH uint64        //当前用户的Eth余额
 
@@ -577,7 +576,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		}
 
 		//amount是人民币格式（单位是 元），要转为int64
-		if balanceLNMCBefore < amountLNMC {
+		if balanceLNMC < amountLNMC {
 			nc.logger.Warn("余额不足")
 			errorCode = http.StatusBadRequest              //错误码， 400
 			errorMsg = fmt.Sprintf("Not sufficient funds") //  余额不足
@@ -591,7 +590,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			OrderID:           req.GetOrderID(),        //如果是订单支付 ，非空
 			WalletAddress:     walletAddress,           //发起方钱包账户
 			ToWalletAddress:   toWalletAddress,         //接收者钱包账户
-			BalanceLNMCBefore: balanceLNMCBefore,       //发送方用户在转账时刻的连米币数量
+			BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
 			AmountLNMC:        amountLNMC,              //本次转账的用户连米币数量
 			Bip32Index:        newBip32Index,           //平台HD钱包Bip32派生索引号
 			State:             0,                       //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
@@ -635,7 +634,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			"WalletAddress", walletAddress,
 			"ToWalletAddress", toWalletAddress,
 			"AmountLNMC", amountLNMC,
-			"BalanceLNMCBefore", balanceLNMCBefore,
+			"BalanceLNMCBefore", balanceLNMC,
 			"Bip32Index", newBip32Index,
 			"BlockNumber", blockNumber,
 			"Hash", hash,
@@ -1204,7 +1203,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 
 	var walletAddress string //用户钱包地址
 
-	var balanceLNMCBefore uint64 //用户当前代币数量
+	var balanceLNMC uint64 //用户当前代币数量
 	var balanceETH uint64
 	var amountLNMC uint64 //本次提现的代币数量,  等于amount * 100
 	var feeF float64      //佣金
@@ -1305,7 +1304,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		}
 
 		//当前用户的链上代币余额
-		balanceLNMCBefore, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
+		balanceLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
 		if err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("HGET error")
@@ -1325,7 +1324,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
 			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
-			zap.Uint64("当前余额 balanceLNMCBefore", balanceLNMCBefore),
+			zap.Uint64("当前余额 balanceLNMC", balanceLNMC),
 		)
 
 		amountLNMC = uint64(req.GetAmount() * 100)
@@ -1334,13 +1333,13 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		fee = uint64(feeF) //向上取整
 
 		//amount是人民币格式（单位是 元），要转为int64
-		if balanceLNMCBefore < amountLNMC+fee {
+		if balanceLNMC < amountLNMC+fee {
 			nc.logger.Warn("余额不足")
 			errorCode = http.StatusBadRequest              //错误码， 400
 			errorMsg = fmt.Sprintf("Not sufficient funds") //  余额不足
 			goto COMPLETE
 		} else {
-			if balanceLNMCBefore-amountLNMC-fee < LMCommon.BaseAmountLNMC {
+			if balanceLNMC-amountLNMC-fee < LMCommon.BaseAmountLNMC {
 				nc.logger.Warn("提现后需要保留至少1000个代币")
 				errorCode = http.StatusBadRequest //错误码， 400
 				errorMsg = fmt.Sprintf("Not sufficient base amount of LNMC")
@@ -1389,7 +1388,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			Bank:              req.GetBank(),      //银行名称
 			BankCard:          req.GetBankCard(),  //银行卡号
 			CardOwner:         req.GetCardOwner(), //银行卡持有人
-			BalanceLNMCBefore: balanceLNMCBefore,  //发送方用户在提现时刻的连米币数量
+			BalanceLNMCBefore: balanceLNMC,  //发送方用户在提现时刻的连米币数量
 			AmountLNMC:        amountLNMC,         //本次提现的用户连米币数量
 			Fee:               fee,                //佣金
 			State:             0,                  //执行状态，0-默认未执行，1-A签，2-全部完成
