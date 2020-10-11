@@ -78,7 +78,7 @@ func (nc *NsqClient) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcT
 	p.State = lmncTransferHistory.State
 	// p.SignedTx = lmncTransferHistory.SignedTx
 	p.BlockNumber = lmncTransferHistory.BlockNumber
-	p.Hash = lmncTransferHistory.Hash
+	p.TxHash = lmncTransferHistory.TxHash
 	if lmncTransferHistory.OrderID != "" {
 		p.OrderID = lmncTransferHistory.OrderID
 	}
@@ -124,7 +124,7 @@ func (nc *NsqClient) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcW
 	}
 	p.State = lnmcWithdrawHistory.State
 	p.BlockNumber = lnmcWithdrawHistory.BlockNumber
-	p.Hash = lnmcWithdrawHistory.Hash
+	p.TxHash = lnmcWithdrawHistory.TxHash
 	p.BalanceLNMCBefore = lnmcWithdrawHistory.BalanceLNMCBefore
 	p.AmountLNMC = lnmcWithdrawHistory.AmountLNMC
 	p.BalanceLNMCAfter = lnmcWithdrawHistory.BalanceLNMCAfter
@@ -213,4 +213,34 @@ func (nc *NsqClient) GetTransferHistorys(PageNum int, PageSize int, total *uint6
 		nc.logger.Error("获取转账历史失败", zap.Error(err))
 	}
 	return transfers
+}
+
+//根据TxHash查询出充值记录里的区块高度
+func (nc *NsqClient) GetBlockNumberFromDeposit(txHash string) (uint64, error) {
+
+	dep := new(models.LnmcDepositHistory)
+	if err := nc.db.Model(dep).Where("tx_hash = ?", txHash).First(dep).Error; err != nil {
+		return 0, errors.Wrapf(err, "Get LnmcDepositHistory info error[txHash=%s]", txHash)
+	}
+	return dep.BlockNumber, nil
+}
+
+//根据TxHash查询出提现记录里的区块高度
+func (nc *NsqClient) GetBlockNumberFromWithdraw(txHash string) (uint64, error) {
+
+	wd := new(models.LnmcWithdrawHistory)
+	if err := nc.db.Model(wd).Where("tx_hash = ?", txHash).First(wd).Error; err != nil {
+		return 0, errors.Wrapf(err, "Get LnmcWithdrawHistory info error[txHash=%s]", txHash)
+	}
+	return wd.BlockNumber, nil
+}
+
+//根据TxHash查询出转账记录里的区块高度
+func (nc *NsqClient) GetBlockNumberFromTransfer(txHash string) (uint64, error) {
+
+	tr := new(models.LnmcTransferHistory)
+	if err := nc.db.Model(tr).Where("tx_hash = ?", txHash).First(tr).Error; err != nil {
+		return 0, errors.Wrapf(err, "Get LnmcTransferHistory info error[txHash=%s]", txHash)
+	}
+	return tr.BlockNumber, nil
 }

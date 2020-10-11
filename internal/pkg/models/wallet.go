@@ -45,7 +45,7 @@ type LnmcDepositHistory struct {
 	RechargeAmount    float64 `json:"recharge_amount" validate:"required"`       //充值金额，单位是人民币
 	PaymentType       int     `json:"payment_type" validate:"required"`          //第三方支付方式 1- 支付宝， 2-微信 3-银行卡
 	BalanceLNMCAfter  int64   `json:"amount_lnmc_after" validate:"required"`     //充值后用户连米币数量
-	BlockNumber       int64   `json:"block_number" validate:"required"`          //交易成功打包的区块高度
+	BlockNumber       uint64  `json:"block_number" validate:"required"`          //交易成功打包的区块高度
 	TxHash            string  `json:"tx_hash" validate:"required"`               //交易成功打包的区块哈希
 }
 
@@ -79,7 +79,7 @@ type LnmcTransferHistory struct {
 	State               int    `json:"state" validate:"required"`                 //多签合约执行状态，0-默认未执行，1-已执行
 	OrderID             string `json:"order_id"`                                  //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
 	BlockNumber         uint64 `json:"block_number"`                              //成功执行合约的所在区块高度
-	Hash                string `json:"hash" `                                     //成功执行合约的哈希
+	TxHash              string `json:"tx_hash" `                                  //交易哈希
 }
 
 //BeforeCreate CreatedAt赋值
@@ -110,7 +110,7 @@ type LnmcWithdrawHistory struct {
 	BalanceLNMCAfter  uint64 `json:"amount_lnmc_after" validate:"required"`     //本次提现之后的用户连米币数量
 	State             int    `json:"state" validate:"required"`                 //提现进度状态，0-默认未执行，1-已执行
 	BlockNumber       uint64 `json:"block_number"`                              //成功执行提现的所在区块高度
-	Hash              string `json:"hash" `                                     //哈希
+	TxHash            string `json:"tx_hash" `                                  //交易哈希
 	Fee               uint64 `json:"fee" validate:"required"`                   //本次提现的佣金总额
 }
 
@@ -142,7 +142,7 @@ type LnmcCollectionHistory struct {
 	OrderID string `json:"order_id"` //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
 	// SignedTx           string `json:"signed_tx"`                                 //A签
 	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
-	Hash        string `json:"hash" `        //成功执行合约的哈希
+	TxHash      string `json:"tx_hash" `     //交易哈希
 }
 
 //BeforeCreate CreatedAt赋值
@@ -179,4 +179,17 @@ type RawDesc struct {
 
 	//发币合约智能地址
 	ContractAddress string `protobuf:"bytes,6,opt,name=contract_address,proto3" json:"contract_address,omitempty"`
+}
+
+//裸成功交易结构体
+type HashInfo struct {
+	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
+	TxHash      string `json:"tx_hash" `     //交易哈希
+	//nonce
+	Nonce uint64 `protobuf:"fixed64,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Gas   uint64 `protobuf:"fixed64,2,opt,name=gasPrice,proto3" json:"gasPrice,omitempty"`
+	// 数据
+	Data string `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+
+	To string `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`
 }

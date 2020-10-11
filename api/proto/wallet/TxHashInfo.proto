@@ -1,29 +1,28 @@
 syntax = "proto3";
+import "api/proto/global/Global.proto"; 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
-//查询交易
+//交易类型
 message TxHashInfoReq {
     //交易哈希
-    string  txHash=1;
+    global.TransactionType txType=1;
+    //交易哈希
+    string  txHash=2;
 }
 message TxHashInfoRsp {
     //区块高度
     fixed64 blockNumber=1;
-    //区块打包时间
-    fixed64 blockTime=2;
-    //ether
-    fixed64 value=3;
+
     //燃气值 
-    fixed64 gas=4;
-    //燃气价格 
-    fixed64 gasPrice=5;
+    fixed64 gas=2;
+
     //随机数  
-    fixed64 nonce=6;
+    fixed64 nonce=3;
+
     //数据，hex格式
-    string input=7;
-    //发送者账号
-    string from=8;
+    string data=4;
+
     //接收者账号
-    string to=9;
+    string to=5;
 }

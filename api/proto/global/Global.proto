@@ -204,9 +204,7 @@ enum TransactionType {
     DT_Undefined     = 0;     //proto3必须从0开始
     DT_Deposit       = 1;     /**< 充值*/
     DT_WithDraw      = 2;     /**< 提现*/
-    DT_RollOut       = 3;     /**< 支付*/
-    DT_RollIn        = 4;     /**< 收款*/
-    DT_Refoud        = 5;     /**< 退款*/
+    DT_Transfer      = 3;     /**< 支付*/
 }
 
 

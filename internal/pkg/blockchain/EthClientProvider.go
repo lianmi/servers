@@ -464,6 +464,36 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 	// log.Println("=========queryTransactionByBlockNumber end==========")
 }
 
+//根据交易查询里面详情
+func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) {
+	var to string
+	txHash := common.HexToHash(txHashHex)
+
+	tx, _, err := s.WsClient.TransactionByHash(context.Background(), txHash)
+	if err != nil {
+		s.logger.Error("QueryTxInfoByHash(), TransactionByHash failed ", zap.Error(err))
+	}
+
+	s.logger.Info("QueryTxInfoByHash",
+		zap.String("Hash: ", tx.Hash().Hex()),
+		zap.String("Value: ", tx.Value().String()),
+		zap.Uint64("Gas: ", tx.Gas()),
+		zap.String("Value: ", tx.Value().String()),
+	)
+	if tx.To() != nil {
+		to = tx.To().Hex()
+	}
+
+	return &models.HashInfo{
+		BlockNumber: 0,
+		TxHash:      tx.Hash().Hex(),
+		Nonce:       tx.Nonce(),
+		Gas:         tx.Gas(),
+		Data:        hex.EncodeToString(tx.Data()),
+		To:          to,
+	}, nil
+}
+
 //从第0号叶子账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
 func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64) (blockNumber uint64, hash string, err error) {
 
@@ -919,7 +949,7 @@ func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
 
 //根据客户端SDK签名后的裸交易数据，广播到链上
 func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
-
+	var blockHash string
 	rawTxBytes, err := hex.DecodeString(rawTxHex)
 
 	signedTx := new(types.Transaction)
@@ -943,6 +973,7 @@ func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
 			return 0, "", err
 		}
 
+		blockHash = tx2.Hash().Hex()
 		s.logger.Info("SendSignedTxToGeth",
 			zap.String("Hash", tx2.Hash().Hex()),
 			zap.Bool("isPending", isPending),
@@ -953,7 +984,7 @@ func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
 		s.logger.Error("SendSignedTxToGeth失败")
 		return 0, "", errors.New("SendSignedTxToGeth failed")
 	}
-	return blockNumber, signedTx.Hash().Hex(), nil
+	return blockNumber, blockHash, nil
 }
 
 /*

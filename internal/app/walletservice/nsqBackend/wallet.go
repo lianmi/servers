@@ -22,6 +22,39 @@ import (
 	"go.uber.org/zap"
 )
 
+//检测校验码是否正确
+func (nc *NsqClient) CheckSmsCode(mobile, smscode string) bool {
+	if mobile == "" || smscode == "" {
+		return false
+	}
+	var err error
+	var isExists bool
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+	key := fmt.Sprintf("smscode:%s", mobile)
+
+	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
+		nc.logger.Error("redisConn GET smscode Error", zap.Error(err))
+		return false
+	} else {
+		if !isExists {
+			nc.logger.Warn("isExists=false, smscode is expire", zap.String("key", key))
+			return false
+		} else {
+			if smscodeInRedis, err := redis.String(redisConn.Do("GET", key)); err != nil {
+				nc.logger.Error("redisConn GET smscode Error", zap.Error(err))
+				return false
+			} else {
+				nc.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
+				return smscodeInRedis == smscode
+			}
+		}
+	}
+	return false
+
+}
+
 /*
 10-1 钱包账号注册
 1. 钱包账号注册流程，SDK生成助记词，并设置支付密码
@@ -858,7 +891,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			Bip32Index:        newBip32Index,    //平台HD钱包Bip32派生索引号
 			State:             1,                //执行状态，0-默认未执行，1-A签，2-全部完成
 			BlockNumber:       blockNumber,
-			Hash:              hash,
+			TxHash:            hash,
 		}
 		nc.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
@@ -929,7 +962,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
 				Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
 				BlockNumber:       blockNumber,
-				Hash:              hash,
+				TxHash:            hash,
 			}
 			nc.SaveCollectionHistory(lnmcCollectionHistory)
 		}
@@ -971,7 +1004,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
 					Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
 					BlockNumber:       blockNumber,
-					Hash:              hash,
+					TxHash:            hash,
 				}
 				nc.SaveCollectionHistory(lnmcCollectionHistory)
 
@@ -1360,7 +1393,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			AmountLNMC:        amountLNMC,         //本次提现的用户连米币数量
 			Fee:               fee,                //佣金
 			State:             0,                  //执行状态，0-默认未执行，1-A签，2-全部完成
-			Hash:              rawDesc.TxHash,     //哈希
+			TxHash:            rawDesc.TxHash,     //哈希
 		}
 
 		nc.SaveLnmcWithdrawHistory(lnmcWithdrawHistory)
@@ -1561,7 +1594,7 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 			BalanceLNMCAfter:  balanceAfter,  //本次提现之后的用户连米币数量
 			State:             1,             //多签合约执行状态，0-默认未执行，1-A签，2-全部完成
 			BlockNumber:       blockNumber,
-			Hash:              hash,
+			TxHash:            hash,
 		}
 		nc.UpdateLnmcWithdrawHistory(lnmcWithdrawHistory)
 
@@ -1767,7 +1800,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 				AmountLNMC:   collection.AmountLNMC,        //本次转账的用户连米币数量
 				OrderID:      collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
 				BlockNumber:  collection.BlockNumber,       //成功执行合约的所在区块高度
-				Hash:         collection.Hash,              //交易哈希
+				Hash:         collection.TxHash,            //交易哈希
 			})
 		}
 
@@ -2035,7 +2068,7 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 				State:     int32(withdraw.State),
 				// SignedTx:           withdraw.SignedTx,                   //用户私钥签名后的数据，hex格式
 				BlockNumber: uint64(withdraw.BlockNumber), //成功执行合约的所在区块高度
-				Hash:        withdraw.Hash,                //交易哈希
+				Hash:        withdraw.TxHash,              //交易哈希
 			})
 		}
 
@@ -2153,7 +2186,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 				OrderID:    transfer.OrderID,
 				// SignedTx:           transfer.SignedTx,                   //用户私钥签名后的数据，hex格式
 				BlockNumber: uint64(transfer.BlockNumber), //成功执行合约的所在区块高度
-				Hash:        transfer.Hash,                //交易哈希
+				Hash:        transfer.TxHash,              //交易哈希
 			})
 		}
 
@@ -2199,6 +2232,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 	var awardEth uint64         //奖励的eth
 	var balanceEthBefore uint64 //奖励之前用户的eth数量 ，wei为单位
 	var balanceEth uint64       //奖励之后的eth数量
+
 
 	rsp := &Wallet.UserSignInRsp{}
 	ethReceivedEventRsp := &Wallet.EthReceivedEventRsp{}
@@ -2343,18 +2377,9 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	var data, awardData []byte
-	var isExists bool
-	var count int
-	var total uint64
-	var latestDate string
-	var walletAddress string    //用户钱包地址
-	var awardEth uint64         //奖励的eth
-	var balanceEthBefore uint64 //奖励之前用户的eth数量 ，wei为单位
-	var balanceEth uint64       //奖励之后的eth数量
+	var hashInfo *models.HashInfo
 
-	rsp := &Wallet.UserSignInRsp{}
-	ethReceivedEventRsp := &Wallet.EthReceivedEventRsp{}
+	rsp := &Wallet.TxHashInfoRsp{}
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -2363,7 +2388,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	nc.logger.Info("HandleUserSignIn start...",
+	nc.logger.Info("HandleTxHashInfo start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -2374,7 +2399,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	nc.logger.Debug("HandleUserSignIn",
+	nc.logger.Debug("HandleTxHashInfo",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -2382,80 +2407,58 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
-	currDate := dateutil.GetDateString()
-	key := fmt.Sprintf("userSignin:%s", username)
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
 
-	isExists, err = redis.Bool(redisConn.Do("HEXISTS", key, "LatestDate"))
-	if err != nil {
-		nc.logger.Error("redisConn EXISTS Error", zap.Error(err))
+	//解包body
+	req := &Wallet.TxHashInfoReq{}
+	if err := proto.Unmarshal(body, req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("redis Error: %s", err.Error())
+		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		goto COMPLETE
-
-	}
-	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
-	if err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("HGET error")
-		goto COMPLETE
-	}
-
-	if nc.ethService.CheckIsvalidAddress(walletAddress) == false {
-		nc.logger.Warn("非法钱包地址", zap.String("WalletAddress", walletAddress))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("WalletAddress is not valid")
-		goto COMPLETE
-	}
-
-	//不存在则表示首次签到
-	if !isExists {
-		_, err = redisConn.Do("HMSET",
-			key,
-			"LatestDate", currDate,
-			"Count", 1, //如果达到2次则奖励
-			"Total", 1,
-		)
-		rsp.Count = 1
-		rsp.TotalSignIn = 1
 
 	} else {
-		latestDate, _ = redis.String(redisConn.Do("HGET", key, "LatestDate"))
-		if currDate == latestDate {
-			nc.logger.Warn("每天只能签到一次")
-			errorCode = http.StatusGone //错误码 410
-			errorMsg = fmt.Sprintf("Today already signineed: %s", latestDate)
+		nc.logger.Debug("TxHashInfo payload",
+			zap.Int("txType", int(req.TxType)),
+			zap.String("txHash", req.TxHash),
+		)
+
+		switch req.TxType {
+		case Global.TransactionType_DT_Deposit: //充值
+			blockNumber, err := nc.GetBlockNumberFromDeposit(req.TxHash)
+			if err != nil {
+				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("UnKnown transation hash")
+				goto COMPLETE
+			}
+			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = blockNumber
+
+		case Global.TransactionType_DT_WithDraw: //提现
+			blockNumber, err := nc.GetBlockNumberFromWithdraw(req.TxHash)
+			if err != nil {
+				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("UnKnown transation hash")
+				goto COMPLETE
+			}
+			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = blockNumber
+
+		case Global.TransactionType_DT_Transfer: //转账
+			blockNumber, err := nc.GetBlockNumberFromTransfer(req.TxHash)
+			if err != nil {
+				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("UnKnown transation hash")
+				goto COMPLETE
+			}
+			hashInfo, err := nc.ethService.QueryTxInfoByHash(req.TxHash)
+			hashInfo.BlockNumber = blockNumber
+
+		default:
+			errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("UnKnown transation type")
 			goto COMPLETE
-		}
-
-		_, err = redisConn.Do("HSET", key, "LatestDate", currDate)
-		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
-		total, _ = redis.Uint64(redisConn.Do("HINCRBY", key, "Total", 1))
-		rsp.Count = int32(count)
-		rsp.TotalSignIn = total
-
-		//如果count累计大于或等于2次，则奖励并重置为0
-		if count == 2 {
-			redisConn.Do("HSET", key, "Count", 0)
-			go func() {
-				balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)
-				awardEth = uint64(LMCommon.AWARDGAS)
-				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
-				balanceEth, err = nc.ethService.GetWeiBalance(walletAddress)
-				nc.logger.Info("奖励ETH",
-					zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
-					zap.Uint64("奖励之后用户的eth数量", balanceEth),
-				)
-
-				//向用户推送10-15 ETH奖励到账通知事件
-				ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
-					AmountETH: awardEth,
-					Time:      uint64(time.Now().UnixNano() / 1e6),
-				}
-				awardData, _ = proto.Marshal(ethReceivedEventRsp)
-
-				nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
-
-			}()
 		}
 
 	}
@@ -2463,11 +2466,19 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		nc.logger.Info("UserSignInRsp回包",
-			zap.Int("Count", count),
-			zap.Uint64("Total", total),
-		)
-		data, _ = proto.Marshal(rsp)
+		rsp = &Wallet.TxHashInfoRsp{
+			//区块高度
+			BlockNumber: hashInfo.BlockNumber,
+			//燃气值
+			Gas: hashInfo.Gas,
+			//随机数
+			Nonce: hashInfo.Nonce,
+			//数据，hex格式
+			Data: hashInfo.Data,
+			//接收者账号
+			To: hashInfo.To,
+		}
+		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
 
 	} else {
@@ -2485,38 +2496,5 @@ COMPLETE:
 	}
 	_ = err
 	return nil
-
-}
-
-//检测校验码是否正确
-func (nc *NsqClient) CheckSmsCode(mobile, smscode string) bool {
-	if mobile == "" || smscode == "" {
-		return false
-	}
-	var err error
-	var isExists bool
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-	key := fmt.Sprintf("smscode:%s", mobile)
-
-	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
-		nc.logger.Error("redisConn GET smscode Error", zap.Error(err))
-		return false
-	} else {
-		if !isExists {
-			nc.logger.Warn("isExists=false, smscode is expire", zap.String("key", key))
-			return false
-		} else {
-			if smscodeInRedis, err := redis.String(redisConn.Do("GET", key)); err != nil {
-				nc.logger.Error("redisConn GET smscode Error", zap.Error(err))
-				return false
-			} else {
-				nc.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
-				return smscodeInRedis == smscode
-			}
-		}
-	}
-	return false
 
 }
