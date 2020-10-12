@@ -1295,6 +1295,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		chs := make([]chan int, common.TotalSyncCount) // 9 个
 		for i := 0; i < common.TotalSyncCount; i++ {
 			chs[i] = make(chan int)
+			
 		}
 
 		//异步
