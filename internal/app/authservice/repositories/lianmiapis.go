@@ -9,7 +9,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	pb "github.com/lianmi/servers/api/proto/user"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -40,7 +40,7 @@ type LianmiRepository interface {
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
 
 	//获取用户信息
-	GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User
+	GetUsers(pageIndex int, pageSize int, total *uint64, where interface{}) []*models.User
 
 	//判断用户名是否已存在
 	ExistUserByName(username string) bool
@@ -74,6 +74,17 @@ type LianmiRepository interface {
 
 	//解封群组
 	DisBlockTeam(teamID string) error
+
+	//======后台相关======/
+	AddGeneralProduct(generalProduct *models.GeneralProduct) error
+
+	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
+
+	GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error)
+
+	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
+
+	DeleteGeneralProduct(productID string) bool
 }
 
 type MysqlLianmiRepository struct {
@@ -202,7 +213,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		return err
 	}
 
-	if user.GetUserType() == pb.UserType_Ut_Operator { //10086
+	if user.GetUserType() == User.UserType_Ut_Operator { //10086
 		user.Username = fmt.Sprintf("admin%d", newIndex)
 	} else {
 		user.Username = fmt.Sprintf("id%d", newIndex)
@@ -234,7 +245,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	redisConn.Do("HSET", syncKey, "generalProductAt", time.Now().UnixNano()/1e6)
 
 	//网点商户自动建群
-	if user.GetUserType() == pb.UserType_Ut_Business {
+	if user.GetUserType() == User.UserType_Ut_Business {
 
 		var newTeamIndex uint64
 		if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
@@ -699,9 +710,9 @@ func (s *MysqlLianmiRepository) GetTokenByUserId(where interface{}) string {
 	return tbToken.Token
 }
 
-func (s *MysqlLianmiRepository) GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User {
+func (s *MysqlLianmiRepository) GetUsers(pageIndex int, pageSize int, total *uint64, where interface{}) []*models.User {
 	var users []*models.User
-	if err := s.base.GetPages(&models.User{}, &users, PageNum, PageSize, total, where); err != nil {
+	if err := s.base.GetPages(&models.User{}, &users, pageIndex, pageSize, total, where); err != nil {
 		s.logger.Error("获取用户信息失败", zap.Error(err))
 	}
 	return users

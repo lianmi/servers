@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/util/conv"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -14,6 +15,7 @@ import (
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/pkg/models"
+	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -45,13 +47,13 @@ func NewLianmiApisController(logger *zap.Logger, s services.LianmiApisService) *
 
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("GetUser start ...")
-	ID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		_ = c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	p, err := pc.service.GetUser(ID)
+	p, err := pc.service.GetUser(id)
 	if err != nil {
 		pc.logger.Error("get User by id error", zap.Error(err))
 		c.String(http.StatusInternalServerError, "%+v", err)
@@ -377,6 +379,163 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 		pc.logger.Debug("DisBlockTeam  run FAILD")
 		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
 
+	}
+
+}
+
+//增加通用商品
+func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
+	var og Order.GeneralProduct
+	if c.BindJSON(&og) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		//增加
+
+		if err := pc.service.AddGeneralProduct(&models.GeneralProduct{
+			ProductID:         uuid.NewV4().String(), //商品ID
+			ProductName:       og.ProductName,        //商品名称
+			CategoryName:      og.CategoryName,       //商品分类名称
+			ProductDesc:       og.ProductDesc,        //商品详细介绍
+			ProductPic1Small:  og.ProductPic1Small,   //商品图片1-小图
+			ProductPic1Middle: og.ProductPic1Middle,  //商品图片1-中图
+			ProductPic1Large:  og.ProductPic1Large,   //商品图片1-大图
+			ProductPic2Small:  og.ProductPic2Small,   //商品图片2-小图
+			ProductPic2Middle: og.ProductPic2Middle,  //商品图片2-中图
+			ProductPic2Large:  og.ProductPic2Large,   //商品图片2-大图
+			ProductPic3Small:  og.ProductPic3Small,   //商品图片3-小图
+			ProductPic3Middle: og.ProductPic3Middle,  //商品图片3-中图
+			ProductPic3Large:  og.ProductPic3Large,   //商品图片3-大图
+			Thumbnail:         og.Thumbnail,          //商品短视频缩略图
+			ShortVideo:        og.ShortVideo,         //商品短视频
+
+		}); err == nil {
+			pc.logger.Debug("AddGeneralProduct  run ok")
+			RespOk(c, http.StatusOK, 200)
+		} else {
+			pc.logger.Warn("AddGeneralProduct  run FAILD")
+			RespFail(c, http.StatusBadRequest, 400, "增加通用商品失败")
+
+		}
+
+	}
+}
+
+//修改通用商品
+func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
+	var og Order.GeneralProduct
+	if c.BindJSON(&og) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		//修改
+		if og.ProductId == "" {
+			pc.logger.Warn("ProductId is empty")
+			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductId 不能为空")
+		}
+
+		if err := pc.service.UpdateGeneralProduct(&models.GeneralProduct{
+			ProductID:         og.ProductId,         //商品ID
+			ProductName:       og.ProductName,       //商品名称
+			CategoryName:      og.CategoryName,      //商品分类名称
+			ProductDesc:       og.ProductDesc,       //商品详细介绍
+			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
+			ProductPic1Middle: og.ProductPic1Middle, //商品图片1-中图
+			ProductPic1Large:  og.ProductPic1Large,  //商品图片1-大图
+			ProductPic2Small:  og.ProductPic2Small,  //商品图片2-小图
+			ProductPic2Middle: og.ProductPic2Middle, //商品图片2-中图
+			ProductPic2Large:  og.ProductPic2Large,  //商品图片2-大图
+			ProductPic3Small:  og.ProductPic3Small,  //商品图片3-小图
+			ProductPic3Middle: og.ProductPic3Middle, //商品图片3-中图
+			ProductPic3Large:  og.ProductPic3Large,  //商品图片3-大图
+			Thumbnail:         og.Thumbnail,         //商品短视频缩略图
+			ShortVideo:        og.ShortVideo,        //商品短视频
+
+		}); err == nil {
+			pc.logger.Debug("AddGeneralProduct  run ok")
+			RespOk(c, http.StatusOK, 200)
+		} else {
+			pc.logger.Warn("AddGeneralProduct  run FAILD")
+			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败")
+
+		}
+
+	}
+}
+
+func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
+	productId := c.Param("productid")
+	if productId == "" {
+		RespFail(c, http.StatusBadRequest, 400, "productid is empty")
+		return
+	}
+
+	p, err := pc.service.GetGeneralProductByID(productId)
+	if err != nil {
+		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
+		c.String(http.StatusInternalServerError, "%+v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, p)
+}
+
+/*
+&Order.GeneralProduct{
+		ProductId:         p.ProductID,
+		ProductName:       p.ProductName,       //商品名称
+		CategoryName:      p.CategoryName,      //商品分类名称
+		ProductDesc:       p.ProductDesc,       //商品详细介绍
+		ProductPic1Small:  p.ProductPic1Small,  //商品图片1-小图
+		ProductPic1Middle: p.ProductPic1Middle, //商品图片1-中图
+		ProductPic1Large:  p.ProductPic1Large,  //商品图片1-大图
+		ProductPic2Small:  p.ProductPic2Small,  //商品图片2-小图
+		ProductPic2Middle: p.ProductPic2Middle, //商品图片2-中图
+		ProductPic2Large:  p.ProductPic2Large,  //商品图片2-大图
+		ProductPic3Small:  p.ProductPic3Small,  //商品图片3-小图
+		ProductPic3Middle: p.ProductPic3Middle, //商品图片3-中图
+		ProductPic3Large:  p.ProductPic3Middle, //商品图片3-大图
+		Thumbnail:         p.Thumbnail,         //商品短视频缩略图
+		ShortVideo:        p.ShortVideo,        //商品短视频
+	}
+*/
+
+func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
+	pageIndex, err := strconv.ParseInt(c.Param("page"), 10, 32)
+
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	pageSize, err := strconv.ParseInt(c.Param("pagesize"), 10, 32)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	categoryName := c.Param("categoryname")
+	gpWhere := models.GeneralProduct{CategoryName: categoryName}
+	var total uint64
+	ps, err := pc.service.GetGeneralProductPage(int(pageIndex), int(pageSize), &total, gpWhere)
+	if err != nil {
+		pc.logger.Error("GetGeneralProduct Page by CategoryName error", zap.Error(err))
+		c.String(http.StatusInternalServerError, "%+v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, ps)
+}
+
+func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
+	productId := c.Param("productid")
+	if productId == "" {
+		RespFail(c, http.StatusBadRequest, 404, "productid is empty")
+		return
+	}
+	if pc.service.DeleteGeneralProduct(productId) {
+
+		RespOk(c, http.StatusOK, 200)
+	} else {
+		RespFail(c, http.StatusBadRequest, 400, "delete GeneralProduct failed")
 	}
 
 }

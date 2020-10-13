@@ -256,7 +256,20 @@ func CreateInitControllersFn(
 
 			//商品及订单模块
 
-			// auth.GET("/generalproducts", pc.GetGeneralProducts)
+			//增加通用商品
+			auth.POST("/addgeneralproduct", pc.AddGeneralProduct)
+
+			//修改通用商品
+			auth.POST("/updategeneralproduct", pc.UpdateGeneralProduct)
+
+			//查询通用商品by productid
+			auth.GET("/getgeneralproduct/:productid", pc.GetGeneralProductByID)
+
+			//查询通用商品分页
+			auth.GET("/getgeneralproductspage", pc.GetGeneralProductPage)
+
+			//删除通用商品 by productid
+			auth.DELETE("/getgeneralproduct/:productid", pc.DeleteGeneralProduct)
 
 		}
 

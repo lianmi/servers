@@ -5,4 +5,3 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewMysqlLianmiRepository)
-//var MockProviderSet = wire.NewSet(wire.InterfaceValue(new(LianmiRepository),new(MockLianmiRepository)))

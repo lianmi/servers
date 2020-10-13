@@ -5,9 +5,7 @@ package models
 */
 type GeneralProduct struct {
 	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`                //自动递增id
-	Username          string `form:"username" json:"username,omitempty"`                       //商户用户账号id
 	ProductID         string `form:"product_id" json:"product_id,omitempty"`                   //商品ID
-	Expire            int64  `form:"expire" json:"expire,omitempty"`                           //过期时间，0-无限
 	ProductName       string `form:"product_name" json:"product_name,omitempty"`               //商品名称
 	CategoryName      string `form:"category_name" json:"category_name,omitempty"`             //商品分类名称
 	ProductDesc       string `form:"product_desc" json:"product_desc,omitempty"`               //商品详细介绍

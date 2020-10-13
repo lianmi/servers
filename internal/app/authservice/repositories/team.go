@@ -1,9 +1,9 @@
 package repositories
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
-	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"

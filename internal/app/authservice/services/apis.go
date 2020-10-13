@@ -47,6 +47,17 @@ type LianmiApisService interface {
 
 	//解封群组
 	DisBlockTeam(teamID string) error
+
+	//======后台相关======/
+	AddGeneralProduct(generalProduct *models.GeneralProduct) error
+
+	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
+
+	GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error)
+
+	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
+
+	DeleteGeneralProduct(productID string) bool
 }
 
 type DefaultLianmiApisService struct {
@@ -185,4 +196,35 @@ func (s *DefaultLianmiApisService) BlockTeam(teamID string) error {
 //解封群组
 func (s *DefaultLianmiApisService) DisBlockTeam(teamID string) error {
 	return s.Repository.DisBlockTeam(teamID)
+}
+
+//======后台相关======/
+func (s *DefaultLianmiApisService) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
+	return s.Repository.AddGeneralProduct(generalProduct)
+}
+
+//查询通用商品(id) - Read
+func (s *DefaultLianmiApisService) GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error) {
+
+	return s.Repository.GetGeneralProductByID(productID)
+}
+
+//查询通用商品分页 - Page
+func (s *DefaultLianmiApisService) GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error) {
+
+	return s.Repository.GetGeneralProductPage(pageIndex, pageSize, total, where)
+}
+
+// 修改通用商品 - Update
+func (s *DefaultLianmiApisService) UpdateGeneralProduct(generalProduct *models.GeneralProduct) error {
+
+	return s.Repository.UpdateGeneralProduct(generalProduct)
+
+}
+
+// 删除通用商品 - Delete
+func (s *DefaultLianmiApisService) DeleteGeneralProduct(productID string) bool {
+
+	return s.Repository.DeleteGeneralProduct(productID)
+
 }

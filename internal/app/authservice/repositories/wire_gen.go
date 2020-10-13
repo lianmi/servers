@@ -16,7 +16,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateUserRepository(f string) (LianmiRepository, error) {
+func CreateLianmirRepository(f string) (LianmiRepository, error) {
 	viper, err := config.New(f)
 	if err != nil {
 		return nil, err
