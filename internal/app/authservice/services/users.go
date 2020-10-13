@@ -11,7 +11,7 @@ import (
 	pb "github.com/lianmi/servers/api/proto/user"
 )
 
-type UsersService interface {
+type LianmiApisService interface {
 	GetUser(ID uint64) (*models.User, error)
 	BlockUser(username string) (*models.User, error)
 	DisBlockUser(username string) (*models.User, error)
@@ -49,19 +49,19 @@ type UsersService interface {
 	DisBlockTeam(teamID string) error
 }
 
-type DefaultUsersService struct {
+type DefaultLianmiApisService struct {
 	logger     *zap.Logger
-	Repository repositories.UsersRepository
+	Repository repositories.LianmiRepository
 }
 
-func NewUserService(logger *zap.Logger, Repository repositories.UsersRepository) UsersService {
-	return &DefaultUsersService{
-		logger:     logger.With(zap.String("type", "DefaultUsersService")),
+func NewLianmiApisService(logger *zap.Logger, Repository repositories.LianmiRepository) LianmiApisService {
+	return &DefaultLianmiApisService{
+		logger:     logger.With(zap.String("type", "DefaultLianmiApisService")),
 		Repository: Repository,
 	}
 }
 
-func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
+func (s *DefaultLianmiApisService) GetUser(ID uint64) (p *models.User, err error) {
 	s.logger.Debug("GetUser", zap.Uint64("ID", ID))
 	if p, err = s.Repository.GetUser(ID); err != nil {
 		return nil, errors.Wrap(err, "Get user error")
@@ -70,7 +70,7 @@ func (s *DefaultUsersService) GetUser(ID uint64) (p *models.User, err error) {
 	return
 }
 
-func (s *DefaultUsersService) BlockUser(username string) (p *models.User, err error) {
+func (s *DefaultLianmiApisService) BlockUser(username string) (p *models.User, err error) {
 	s.logger.Debug("BlockUser", zap.String("username", username))
 	if p, err = s.Repository.BlockUser(username); err != nil {
 		return nil, errors.Wrap(err, "Block user error")
@@ -78,7 +78,7 @@ func (s *DefaultUsersService) BlockUser(username string) (p *models.User, err er
 
 	return
 }
-func (s *DefaultUsersService) DisBlockUser(username string) (p *models.User, err error) {
+func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User, err error) {
 	s.logger.Debug("DisBlockUser", zap.String("username", username))
 	if p, err = s.Repository.DisBlockUser(username); err != nil {
 		return nil, errors.Wrap(err, "DisBlockUser user error")
@@ -88,18 +88,18 @@ func (s *DefaultUsersService) DisBlockUser(username string) (p *models.User, err
 }
 
 //生成短信校验码
-func (s *DefaultUsersService) GenerateSmsCode(mobile string) bool {
+func (s *DefaultLianmiApisService) GenerateSmsCode(mobile string) bool {
 
 	return s.Repository.GenerateSmsCode(mobile)
 
 }
 
 //检测校验码是否正确
-func (s *DefaultUsersService) CheckSmsCode(mobile, smscode string) bool {
+func (s *DefaultLianmiApisService) CheckSmsCode(mobile, smscode string) bool {
 	return s.Repository.CheckSmsCode(mobile, smscode)
 }
 
-func (s *DefaultUsersService) Register(user *models.User) (string, error) {
+func (s *DefaultLianmiApisService) Register(user *models.User) (string, error) {
 	// var username string
 	var err error
 	if err = s.Repository.Register(user); err != nil {
@@ -126,7 +126,7 @@ func (s *DefaultUsersService) Register(user *models.User) (string, error) {
 	return user.Username, nil
 }
 
-func (s *DefaultUsersService) Resetpwd(mobile, password string, user *models.User) error {
+func (s *DefaultLianmiApisService) Resetpwd(mobile, password string, user *models.User) error {
 	if err := s.Repository.Resetpwd(mobile, password, user); err != nil {
 		return errors.Wrap(err, "Resetpwd error")
 	}
@@ -135,54 +135,54 @@ func (s *DefaultUsersService) Resetpwd(mobile, password string, user *models.Use
 }
 
 //修改密码
-func (s *DefaultUsersService) ChanPassword(username, oldPassword, newPassword string) error {
+func (s *DefaultLianmiApisService) ChanPassword(username, oldPassword, newPassword string) error {
 
 	return s.Repository.ChanPassword(username, oldPassword, newPassword)
 }
 
-func (s *DefaultUsersService) GetUserRoles(username string) []*models.Role {
+func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role {
 	where := models.Role{UserName: username}
 	return s.Repository.GetUserRoles(&where)
 }
 
 //CheckUser 身份验证
-func (s *DefaultUsersService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+func (s *DefaultLianmiApisService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
 
 	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
 }
 
-func (s *DefaultUsersService) ExistUserByName(username string) bool {
+func (s *DefaultLianmiApisService) ExistUserByName(username string) bool {
 
 	return s.Repository.ExistUserByName(username)
 }
 
 // 判断手机号码是否已存在
-func (s *DefaultUsersService) ExistUserByMobile(mobile string) bool {
+func (s *DefaultLianmiApisService) ExistUserByMobile(mobile string) bool {
 	return s.Repository.ExistUserByMobile(mobile)
 }
 
-func (s *DefaultUsersService) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
+func (s *DefaultLianmiApisService) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 	return s.Repository.SaveUserToken(username, deviceID, token, expire)
 }
 
-func (s *DefaultUsersService) SignOut(token, username, deviceID string) bool {
+func (s *DefaultLianmiApisService) SignOut(token, username, deviceID string) bool {
 	return s.Repository.SignOut(token, username, deviceID)
 }
 
-func (s *DefaultUsersService) ExistsTokenInRedis(deviceID, token string) bool {
+func (s *DefaultLianmiApisService) ExistsTokenInRedis(deviceID, token string) bool {
 	return s.Repository.ExistsTokenInRedis(deviceID, token)
 }
 
-func (s *DefaultUsersService) ApproveTeam(teamID string) error {
+func (s *DefaultLianmiApisService) ApproveTeam(teamID string) error {
 	return s.Repository.ApproveTeam(teamID)
 }
 
 //封禁群组
-func (s *DefaultUsersService) BlockTeam(teamID string) error {
+func (s *DefaultLianmiApisService) BlockTeam(teamID string) error {
 	return s.Repository.BlockTeam(teamID)
 }
 
 //解封群组
-func (s *DefaultUsersService) DisBlockTeam(teamID string) error {
+func (s *DefaultLianmiApisService) DisBlockTeam(teamID string) error {
 	return s.Repository.DisBlockTeam(teamID)
 }

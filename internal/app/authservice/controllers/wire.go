@@ -4,12 +4,12 @@ package controllers
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/authservice/repositories"
+	"github.com/lianmi/servers/internal/app/authservice/services"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
-	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/log"
-	"github.com/lianmi/servers/internal/app/authservice/services"
-	"github.com/lianmi/servers/internal/app/authservice/repositories"
+	"github.com/lianmi/servers/internal/pkg/redis"
 )
 
 var testProviderSet = wire.NewSet(
@@ -22,7 +22,6 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-
-func CreateUsersController(cf string, sto repositories.UsersRepository) (*UsersController, error) {
+func CreateLianmiApisController(cf string, sto repositories.LianmiRepository) (*LianmiApisController, error) {
 	panic(wire.Build(testProviderSet))
 }

@@ -1,12 +1,12 @@
 syntax = "proto3";
-import "api/proto/user/GetUsers.proto";
+import "api/proto/user/User.proto";
 
-package cloud.lianmi.im.user;
-option go_package = "github.com/lianmi/servers/api/proto/user";
+package cloud.lianmi.im.serivce;
+option go_package = "github.com/lianmi/servers/api/proto/serivce";
 
 
 //Restful 接口
-service Users {
+service LianmiApis {
     //获取用户信息
     rpc GetUser (UserReq) returns (UserRsp);
 
@@ -39,12 +39,12 @@ message UserReq {
 
 message UserRsp {
     RespHeader status  = 1;
-    User       user    = 2;
+    user.User       user    = 2;
 }
 
 //==== 注册 ===//
 message RegisterReq {
-    User user = 1;
+    user.User user = 1;
     string smsCode = 2; //短信验证码
 }
 

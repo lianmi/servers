@@ -18,7 +18,7 @@ import (
 )
 
 //授权新创建的群组
-func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
+func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	var err error
 
 	redisConn := s.redisPool.Get()
@@ -147,7 +147,7 @@ func (s *MysqlUsersRepository) ApproveTeam(teamID string) error {
 }
 
 //封禁群组
-func (s *MysqlUsersRepository) BlockTeam(teamID string) error {
+func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 	p := new(models.Team)
 	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
@@ -170,7 +170,7 @@ func (s *MysqlUsersRepository) BlockTeam(teamID string) error {
 }
 
 //解封群组
-func (s *MysqlUsersRepository) DisBlockTeam(teamID string) error {
+func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 	p := new(models.Team)
 	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
@@ -196,7 +196,7 @@ func (s *MysqlUsersRepository) DisBlockTeam(teamID string) error {
 业务号： BusinessType_Msg(5)
 业务子号： MsgSubType_RecvMsgEvent(2)
 */
-func (s *MysqlUsersRepository) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+func (s *MysqlLianmiRepository) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := s.redisPool.Get()

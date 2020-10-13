@@ -22,7 +22,7 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateUserRepository(f string) (UsersRepository, error) {
+func CreateUserRepository(f string) (LianmiRepository, error) {
 	panic(wire.Build(testProviderSet))
 }
 

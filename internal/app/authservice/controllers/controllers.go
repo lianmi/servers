@@ -46,7 +46,7 @@ func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error
 
 // lishijia 每增加一个路由需要在这里添加，并且在controllers/users.go及services/users.go增加相应的方法
 func CreateInitControllersFn(
-	pc *UsersController,
+	pc *LianmiApisController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
 		r.POST("/register", pc.Register)              //注册用户
@@ -263,4 +263,4 @@ func CreateInitControllersFn(
 	}
 }
 
-var ProviderSet = wire.NewSet(NewUsersController, CreateInitControllersFn)
+var ProviderSet = wire.NewSet(NewLianmiApisController, CreateInitControllersFn)

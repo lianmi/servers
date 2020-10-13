@@ -5,4 +5,4 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewMysqlWalletRepository)
-//var MockProviderSet = wire.NewSet(wire.InterfaceValue(new(UsersRepository),new(MockUsersRepository)))
+//var MockProviderSet = wire.NewSet(wire.InterfaceValue(new(LianmiRepository),new(MockLianmiRepository)))

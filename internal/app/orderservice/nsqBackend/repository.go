@@ -60,3 +60,4 @@ func (nc *NsqClient) SavePreKeys(prekeys []*models.Prekey) error {
 
 	return nil
 }
+

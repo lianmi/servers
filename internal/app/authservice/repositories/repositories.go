@@ -4,5 +4,5 @@ import (
 	"github.com/google/wire"
 )
 
-var ProviderSet = wire.NewSet(NewMysqlUsersRepository)
-//var MockProviderSet = wire.NewSet(wire.InterfaceValue(new(UsersRepository),new(MockUsersRepository)))
+var ProviderSet = wire.NewSet(NewMysqlLianmiRepository)
+//var MockProviderSet = wire.NewSet(wire.InterfaceValue(new(LianmiRepository),new(MockLianmiRepository)))

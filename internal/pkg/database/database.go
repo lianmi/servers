@@ -50,6 +50,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.TeamUser{})              // 群成员表
 	db.AutoMigrate(&models.Prekey{})                // OPK表, 商户上传
 	db.AutoMigrate(&models.Product{})               // 商品表
+	db.AutoMigrate(&models.GeneralProduct{})        // 通用商品表
 	db.AutoMigrate(&models.UserWallet{})            // 用户钱包表
 	db.AutoMigrate(&models.LnmcDepositHistory{})    // 用户充值记录
 	db.AutoMigrate(&models.LnmcTransferHistory{})   // 用户转账及支付记录

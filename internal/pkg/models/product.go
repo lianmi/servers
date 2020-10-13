@@ -32,3 +32,5 @@ type Product struct {
 	CreateAt          int64   `form:"create_at" json:"create_at,omitempty"`                     //创建时刻， 也就是上架时刻
 	ModifyAt          int64   `form:"modify_at" json:"modify_at,omitempty"`                     //最后修改时间
 }
+
+

@@ -17,9 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
-type UsersController struct {
+type LianmiApisController struct {
 	logger  *zap.Logger
-	service services.UsersService
+	service services.LianmiApisService
 }
 
 type ResetPassword struct {
@@ -36,14 +36,14 @@ type ChangePassword struct {
 
 }
 
-func NewUsersController(logger *zap.Logger, s services.UsersService) *UsersController {
-	return &UsersController{
+func NewLianmiApisController(logger *zap.Logger, s services.LianmiApisService) *LianmiApisController {
+	return &LianmiApisController{
 		logger:  logger,
 		service: s,
 	}
 }
 
-func (pc *UsersController) GetUser(c *gin.Context) {
+func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("GetUser start ...")
 	ID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -62,7 +62,7 @@ func (pc *UsersController) GetUser(c *gin.Context) {
 }
 
 //封号
-func (pc *UsersController) BlockUser(c *gin.Context) {
+func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 
 	pc.logger.Debug("BlockUser start ...")
 	username := c.Param("username")
@@ -82,7 +82,7 @@ func (pc *UsersController) BlockUser(c *gin.Context) {
 }
 
 //解封
-func (pc *UsersController) DisBlockUser(c *gin.Context) {
+func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 	pc.logger.Debug("DisBlockUser start ...")
 	username := c.Param("username")
 	if username == "" {
@@ -102,7 +102,7 @@ func (pc *UsersController) DisBlockUser(c *gin.Context) {
 }
 
 // 用户注册
-func (pc *UsersController) Register(c *gin.Context) {
+func (pc *LianmiApisController) Register(c *gin.Context) {
 	var user models.User
 	code := codes.InvalidParams
 
@@ -175,7 +175,7 @@ func (pc *UsersController) Register(c *gin.Context) {
 }
 
 // 重置密码
-func (pc *UsersController) Resetpwd(c *gin.Context) {
+func (pc *LianmiApisController) Resetpwd(c *gin.Context) {
 	var user models.User
 	var rp ResetPassword
 	code := codes.InvalidParams
@@ -223,7 +223,7 @@ func (pc *UsersController) Resetpwd(c *gin.Context) {
 	}
 }
 
-func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
+func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 
 	code := codes.InvalidParams
 
@@ -256,7 +256,7 @@ func (pc *UsersController) GenerateSmsCode(c *gin.Context) {
 	RespOk(c, http.StatusOK, code)
 }
 
-func (pc *UsersController) ChanPassword(c *gin.Context) {
+func (pc *LianmiApisController) ChanPassword(c *gin.Context) {
 
 	var cp ChangePassword
 	if c.BindJSON(&cp) != nil {
@@ -278,23 +278,23 @@ func (pc *UsersController) ChanPassword(c *gin.Context) {
 	return
 }
 
-func (pc *UsersController) GetUserRoles(username string) []*models.Role {
+func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 
 	return pc.service.GetUserRoles(username)
 }
 
-func (pc *UsersController) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+func (pc *LianmiApisController) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
 	return pc.service.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
 }
 
-func (pc *UsersController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
+func (pc *LianmiApisController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 	return pc.service.SaveUserToken(username, deviceID, token, expire)
 }
-func (pc *UsersController) ExistsTokenInRedis(deviceID, token string) bool {
+func (pc *LianmiApisController) ExistsTokenInRedis(deviceID, token string) bool {
 	return pc.service.ExistsTokenInRedis(deviceID, token)
 }
 
-func (pc *UsersController) SignOut(c *gin.Context) {
+func (pc *LianmiApisController) SignOut(c *gin.Context) {
 	// c.ClientIP
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[common.IdentityKey].(string)
@@ -316,7 +316,7 @@ func (pc *UsersController) SignOut(c *gin.Context) {
 }
 
 //授权新创建的群组
-func (pc *UsersController) ApproveTeam(c *gin.Context) {
+func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[common.IdentityKey].(string)
 	deviceID := claims["deviceID"].(string)
@@ -344,7 +344,7 @@ func (pc *UsersController) ApproveTeam(c *gin.Context) {
 }
 
 //封禁群组
-func (pc *UsersController) BlockTeam(c *gin.Context) {
+func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
@@ -363,7 +363,7 @@ func (pc *UsersController) BlockTeam(c *gin.Context) {
 }
 
 //解封群组
-func (pc *UsersController) DisBlockTeam(c *gin.Context) {
+func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {

@@ -19,6 +19,6 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateUsersService(cf string, sto repositories.UsersRepository) (UsersService, error) {
+func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (LianmiApisService, error) {
 	panic(wire.Build(testProviderSet))
 }

@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "api/proto/user/GetUsers.proto";
+import "api/proto/user/User.proto";
 
 package cloud.lianmi.im.friends;
 option go_package = "github.com/lianmi/servers/api/proto/friends";

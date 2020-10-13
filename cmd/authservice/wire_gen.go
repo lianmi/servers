@@ -74,10 +74,10 @@ func CreateApp(cf string) (*app.Application, error) {
 		logger.Error("httpOptions", zap.Error(err))
 		return nil, err
 	}
-	usersRepository := repositories.NewMysqlUsersRepository(logger, db, pool, nsqClient)
-	usersService := services.NewUserService(logger, usersRepository)
-	usersController := controllers.NewUsersController(logger, usersService)
-	initControllers := controllers.CreateInitControllersFn(usersController)
+	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqClient)
+	usersService := services.NewLianmiApisService(logger, lianmiRepository)
+	lianmiApisController := controllers.NewLianmiApisController(logger, usersService)
+	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
 	configuration, err := jaeger.NewConfiguration(viper, logger)
 	if err != nil {
 		logger.Error("configuration", zap.Error(err))

@@ -16,7 +16,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateUserRepository(f string) (UsersRepository, error) {
+func CreateUserRepository(f string) (LianmiRepository, error) {
 	viper, err := config.New(f)
 	if err != nil {
 		return nil, err
@@ -50,8 +50,8 @@ func CreateUserRepository(f string) (UsersRepository, error) {
 		return nil, err
 	}
 	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
-	usersRepository := NewMysqlUsersRepository(logger, db, pool, nsqClient)
-	return usersRepository, nil
+	lianmiRepository := NewMysqlLianmiRepository(logger, db, pool, nsqClient)
+	return lianmiRepository, nil
 }
 
 // wire.go:

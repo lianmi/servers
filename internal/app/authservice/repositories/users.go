@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type UsersRepository interface {
+type LianmiRepository interface {
 	GetUser(ID uint64) (p *models.User, err error)
 	BlockUser(username string) (p *models.User, err error)
 	DisBlockUser(username string) (p *models.User, err error)
@@ -76,7 +76,7 @@ type UsersRepository interface {
 	DisBlockTeam(teamID string) error
 }
 
-type MysqlUsersRepository struct {
+type MysqlLianmiRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
@@ -84,9 +84,9 @@ type MysqlUsersRepository struct {
 	base      *BaseRepository
 }
 
-func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqBackend.NsqClient) UsersRepository {
-	return &MysqlUsersRepository{
-		logger:    logger.With(zap.String("type", "UsersRepository")),
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqBackend.NsqClient) LianmiRepository {
+	return &MysqlLianmiRepository{
+		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,
 		redisPool: redisPool,
 		nsqClient: nc,
@@ -94,7 +94,7 @@ func NewMysqlUsersRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.P
 	}
 }
 
-func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
 	p = new(models.User)
 	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
 		//记录找不到也会触发错误
@@ -110,7 +110,7 @@ func (s *MysqlUsersRepository) GetUser(ID uint64) (p *models.User, err error) {
 1. 将users表的用户记录的state设置为3
 2. 踢出此用户的所有主从设备
 */
-func (s *MysqlUsersRepository) BlockUser(username string) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) BlockUser(username string) (p *models.User, err error) {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -167,7 +167,7 @@ func (s *MysqlUsersRepository) BlockUser(username string) (p *models.User, err e
 解封
 1. 将users表的用户记录的state设置为1
 */
-func (s *MysqlUsersRepository) DisBlockUser(username string) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) DisBlockUser(username string) (p *models.User, err error) {
 	p = new(models.User)
 	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
@@ -190,7 +190,7 @@ func (s *MysqlUsersRepository) DisBlockUser(username string) (p *models.User, er
 }
 
 //注册用户，username需要唯一
-func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
+func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	//获取redis里最新id， 生成唯一的username
 	var newIndex uint64
 
@@ -277,7 +277,7 @@ func (s *MysqlUsersRepository) Register(user *models.User) (err error) {
 }
 
 //重置密码
-func (s *MysqlUsersRepository) Resetpwd(mobile, password string, user *models.User) error {
+func (s *MysqlLianmiRepository) Resetpwd(mobile, password string, user *models.User) error {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -312,7 +312,7 @@ func (s *MysqlUsersRepository) Resetpwd(mobile, password string, user *models.Us
 }
 
 //修改密码
-func (s *MysqlUsersRepository) ChanPassword(username, oldPassword, newPassword string) error {
+func (s *MysqlLianmiRepository) ChanPassword(username, oldPassword, newPassword string) error {
 	var user models.User
 	sel := "id"
 	where := models.User{Username: username}
@@ -346,7 +346,7 @@ func (s *MysqlUsersRepository) ChanPassword(username, oldPassword, newPassword s
 }
 
 // 获取用户角色
-func (s *MysqlUsersRepository) GetUserRoles(where interface{}) []*models.Role {
+func (s *MysqlLianmiRepository) GetUserRoles(where interface{}) []*models.Role {
 	var roles []*models.Role
 	if err := s.base.Find(where, &roles, ""); err != nil {
 		s.logger.Error("获取用户角色错误")
@@ -386,7 +386,7 @@ ZRANGEBYSCORE devices:lsj001 4 4
 HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS" protocolversion "2.0" sdkversion "3.0"
 
 */
-func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
 	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -558,7 +558,7 @@ func (s *MysqlUsersRepository) CheckUser(isMaster bool, smscode, username, passw
 }
 
 //向其它端发送此从设备MultiLoginEvent事件
-func (s *MysqlUsersRepository) SendMultiLoginEventToOtherDevices(isOnline bool, username, deviceID, curOs string, curClientType int, curLogonAt uint64) (err error) {
+func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool, username, deviceID, curOs string, curClientType int, curLogonAt uint64) (err error) {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
@@ -623,7 +623,7 @@ func (s *MysqlUsersRepository) SendMultiLoginEventToOtherDevices(isOnline bool, 
 	return nil
 }
 
-func (s *MysqlUsersRepository) AddRole(role *models.Role) (err error) {
+func (s *MysqlLianmiRepository) AddRole(role *models.Role) (err error) {
 	if err := s.db.Create(role).Error; err != nil {
 		s.logger.Error("新建用户角色失败")
 		return err
@@ -632,7 +632,7 @@ func (s *MysqlUsersRepository) AddRole(role *models.Role) (err error) {
 	}
 }
 
-func (s *MysqlUsersRepository) DeleteUser(id uint64) bool {
+func (s *MysqlLianmiRepository) DeleteUser(id uint64) bool {
 	//采用事务同时删除用户和相应的用户角色
 	var (
 		userWhere = models.User{ID: id}
@@ -651,7 +651,7 @@ func (s *MysqlUsersRepository) DeleteUser(id uint64) bool {
 	return true
 }
 
-func (s *MysqlUsersRepository) GetUserAvatar(where interface{}, sel string) string {
+func (s *MysqlLianmiRepository) GetUserAvatar(where interface{}, sel string) string {
 	var user models.User
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
 	//     "id":       id,
@@ -669,7 +669,7 @@ func (s *MysqlUsersRepository) GetUserAvatar(where interface{}, sel string) stri
 	return user.Avatar
 }
 
-func (s *MysqlUsersRepository) GetUserID(where interface{}) uint64 {
+func (s *MysqlLianmiRepository) GetUserID(where interface{}) uint64 {
 	var user models.User
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
 	//     "username":       username,
@@ -686,7 +686,7 @@ func (s *MysqlUsersRepository) GetUserID(where interface{}) uint64 {
 }
 
 //根据用户id获取token
-func (s *MysqlUsersRepository) GetTokenByUserId(where interface{}) string {
+func (s *MysqlLianmiRepository) GetTokenByUserId(where interface{}) string {
 	var tbToken models.Token
 	// where := models.User{Username: username}
 	err := s.base.First(&where, &tbToken, "token")
@@ -699,7 +699,7 @@ func (s *MysqlUsersRepository) GetTokenByUserId(where interface{}) string {
 	return tbToken.Token
 }
 
-func (s *MysqlUsersRepository) GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User {
+func (s *MysqlLianmiRepository) GetUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.User {
 	var users []*models.User
 	if err := s.base.GetPages(&models.User{}, &users, PageNum, PageSize, total, where); err != nil {
 		s.logger.Error("获取用户信息失败", zap.Error(err))
@@ -708,7 +708,7 @@ func (s *MysqlUsersRepository) GetUsers(PageNum int, PageSize int, total *uint64
 }
 
 //判断用户名是否已存在
-func (s *MysqlUsersRepository) ExistUserByName(username string) bool {
+func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	var user models.User
 	sel := "id"
 	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
@@ -732,7 +732,7 @@ func (s *MysqlUsersRepository) ExistUserByName(username string) bool {
 }
 
 // 判断手机号码是否已存在
-func (s *MysqlUsersRepository) ExistUserByMobile(mobile string) bool {
+func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 	var user models.User
 	sel := "id"
 	where := models.User{Mobile: mobile}
@@ -750,7 +750,7 @@ func (s *MysqlUsersRepository) ExistUserByMobile(mobile string) bool {
 }
 
 //更新用户
-func (s *MysqlUsersRepository) UpdateUser(user *models.User, role *models.Role) bool {
+func (s *MysqlLianmiRepository) UpdateUser(user *models.User, role *models.Role) bool {
 	//使用事务同时更新用户数据和角色数据
 	tx := s.base.GetTransaction()
 	if err := tx.Save(user).Error; err != nil {
@@ -768,7 +768,7 @@ func (s *MysqlUsersRepository) UpdateUser(user *models.User, role *models.Role) 
 }
 
 //获取用户
-func (s *MysqlUsersRepository) GetUserByID(id int) *models.User {
+func (s *MysqlLianmiRepository) GetUserByID(id int) *models.User {
 	var user models.User
 	if err := s.base.FirstByID(&user, id); err != nil {
 		s.logger.Error("获取用户失败", zap.Error(err))
@@ -780,7 +780,7 @@ func (s *MysqlUsersRepository) GetUserByID(id int) *models.User {
 保存用户token到redis里
 登出的处理需要删除redis里的key
 */
-func (s *MysqlUsersRepository) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
+func (s *MysqlLianmiRepository) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -809,7 +809,7 @@ func (s *MysqlUsersRepository) SaveUserToken(username, deviceID string, token st
 2. 删除redis里的此用户的哈希记录
 3. 如果是商户的登出，则需要删除数据库里其对应的所有OPK(下次登录需要重新上传)
 */
-func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
+func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 	var err error
@@ -880,7 +880,7 @@ func (s *MysqlUsersRepository) SignOut(token, username, deviceID string) bool {
 	return true
 }
 
-func (s *MysqlUsersRepository) SendKickedMsgToDevice(jwtToken, username, eDeviceID string) error {
+func (s *MysqlLianmiRepository) SendKickedMsgToDevice(jwtToken, username, eDeviceID string) error {
 	businessType := 2
 	businessSubType := 5 //KickedEvent
 
@@ -922,7 +922,7 @@ func (s *MysqlUsersRepository) SendKickedMsgToDevice(jwtToken, username, eDevice
 	return nil
 }
 
-func (s *MysqlUsersRepository) ExistsTokenInRedis(deviceID, token string) bool {
+func (s *MysqlLianmiRepository) ExistsTokenInRedis(deviceID, token string) bool {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
@@ -937,7 +937,7 @@ func (s *MysqlUsersRepository) ExistsTokenInRedis(deviceID, token string) bool {
 }
 
 //生成注册校验码
-func (s *MysqlUsersRepository) GenerateSmsCode(mobile string) bool {
+func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 	var err error
 	var isExists bool
 	redisConn := s.redisPool.Get()
@@ -975,7 +975,7 @@ func (s *MysqlUsersRepository) GenerateSmsCode(mobile string) bool {
 }
 
 //检测校验码是否正确
-func (s *MysqlUsersRepository) CheckSmsCode(mobile, smscode string) bool {
+func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 	var err error
 	var isExists bool
 
