@@ -1197,8 +1197,8 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		targetMsg.SetDeviceID(deviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))               // 7
-		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncProductEvent)) // 8
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))                       // 7
+		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncGeneralProductsEvent)) // 9
 
 		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 
