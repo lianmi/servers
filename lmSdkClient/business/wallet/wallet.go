@@ -18,8 +18,8 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	"github.com/miguelmota/go-ethereum-hdwallet"
 )
 
 const (
@@ -45,7 +45,7 @@ func CreateHDWallet() string {
 	// mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	log.Println("mnemonic:", mnemonic)
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
 		log.Fatalln(err)
 		return ""
@@ -86,7 +86,7 @@ func CreateHDWallet() string {
 //根据叶子索引号获取到公私钥对
 func GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
 		log.Fatalln(err)
 		return nil

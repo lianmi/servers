@@ -10,6 +10,10 @@ const (
 	ENDPOINT_LOGIN   = "/login"
 
 	BrokerAddr = "127.0.0.1:1883"
-	
+
 	RedisAddr = "127.0.0.1:6379"
+
+	// SeedPassword = "socialhahasky"
+	SeedPassword = "" //TODO 暂时不动，等准备上线后再统一改
+
 )

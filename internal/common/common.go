@@ -57,6 +57,9 @@ const (
 )
 
 const (
+	//助记词生成seed的加盐:
+	// SeedPassword = "socialhahasky"
+	SeedPassword = "" //TODO 暂时不动，等准备上线后再统一改
 
 	//运营方的助记词
 	// MnemonicServer = "job gravity goose boring filter lyrics source giant throw dismiss film emotion margin depend ostrich peanut exist version unfold logic cause protect section drama"

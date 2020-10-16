@@ -19,8 +19,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
 	"github.com/lianmi/servers/internal/pkg/blockchain/util"
-	"github.com/miguelmota/go-ethereum-hdwallet"
 	"io/ioutil"
 )
 
@@ -37,7 +37,7 @@ func createHDWallet() {
 	mnemonic := "element urban soda endless beach celery scheme wet envelope east glory retire"
 	fmt.Println("mnemonic:", mnemonic)
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, "socialhahasky") //socialhahasky是加盐
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -512,22 +512,22 @@ func transferEthFromLeaf0ToOtherAccount(targetAccount string, amount string) {
 
 func main() {
 	// 以wei为单位输出某个地址的eth
-	getWeiBalance(COINBASEACCOUNT)
+	// getWeiBalance(COINBASEACCOUNT)
 
 	// getEthBalance("0xb18db89641d2ec807104258e2205e6ac6264bf25")
 
 	//从挖矿账号转账到第0号叶子
-	transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "1000000000000000000")
+	// transferEthFromCoinbaseToOtherAccount("0xe14D151e0511b61357DDe1B35a74E9c043c34C47", "1000000000000000000")
 
 	//从挖矿账号转账到第1号叶子, 部署合约需要
 	// transferEthFromCoinbaseToOtherAccount("0x4acea697f366C47757df8470e610a2d9B559DbBE", "336000000000000000000")
 
 	// 以wei为单位输出某个地址的eth
-	getWeiBalance(COINBASEACCOUNT)
+	// getWeiBalance(COINBASEACCOUNT)
 
 	// 以ether为单位输出某个地址的eth
-	getEthBalance("0xe14D151e0511b61357DDe1B35a74E9c043c34C47") //第0号叶子
-	getEthBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE") //第1号叶子
+	// getEthBalance("0xe14D151e0511b61357DDe1B35a74E9c043c34C47") //第0号叶子
+	// getEthBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE") //第1号叶子
 
 	//从第0号叶子向普通用户账号A转eth 1eth
 	// transferEthFromLeaf0ToOtherAccount("0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538", "1000000000000000000")
@@ -535,6 +535,8 @@ func main() {
 	//从第0号叶子向普通用户账号B转eth 1eth
 	// transferEthFromLeaf0ToOtherAccount("0xac243c2FED19d085bF682d0D74e677c1d9911e83", "1000000000000000000")
 
-	number, _ := getLatestBlockNumber()
-	log.Println("number", number)
+	// number, _ := getLatestBlockNumber()
+	// log.Println("number", number)
+
+	createHDWallet()
 }

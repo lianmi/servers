@@ -19,7 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/google/wire"
-	"github.com/miguelmota/go-ethereum-hdwallet"
+	// "github.com/miguelmota/go-ethereum-hdwallet"
 	"golang.org/x/crypto/sha3"
 	// "github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 
 	LMCommon "github.com/lianmi/servers/internal/common"
+	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	MultiSig "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/MultiSig"
 	"github.com/lianmi/servers/internal/pkg/blockchain/util"
@@ -90,7 +91,7 @@ func (s *Service) CreateHDWallet() {
 	mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	// fmt.Println("mnemonic:", mnemonic)
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
 		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
 		return
@@ -208,7 +209,7 @@ func (s *Service) GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
 	mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	// fmt.Println("mnemonic:", mnemonic)
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
 		s.logger.Error("NewFromMnemonic error", zap.String("err", err.Error()))
 		return nil

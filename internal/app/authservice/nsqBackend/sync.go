@@ -1119,8 +1119,8 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 
 	rsp := &Order.SyncGeneralProductsEventRsp{
 		TimeTag:           uint64(time.Now().UnixNano() / 1e6),
-		AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
-		RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
+		AddProducts:       make([]*Order.GeneralProduct, 0), //通用商品列表
+		RemovedProductIDs: make([]string, 0),                //删除的通用 商品ID列表
 
 	}
 	redisConn := nc.redisPool.Get()
@@ -1148,16 +1148,15 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		//获取redis通用商品列表
 		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "GeneralProducts", generalProductAt, "+inf"))
 		for _, productID := range productIDs {
-			productInfo := new(models.Product)
+			productInfo := new(models.GeneralProduct)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("GeneralProduct:%s", productID))); err == nil {
 				if err := redis.ScanStruct(result, productInfo); err != nil {
 					nc.logger.Error("错误: ScanStruct", zap.Error(err))
 					continue
 				}
 			}
-			rsp.AddProducts = append(rsp.AddProducts, &Order.Product{
+			rsp.AddProducts = append(rsp.AddProducts, &Order.GeneralProduct{
 				ProductId:         productID,
-				Expire:            uint64(productInfo.Expire),
 				ProductName:       productInfo.ProductName,
 				CategoryName:      productInfo.CategoryName,
 				ProductDesc:       productInfo.ProductDesc,
