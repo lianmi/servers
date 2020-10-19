@@ -18,6 +18,7 @@ import (
 	// "strings"
 	"github.com/pkg/errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -35,7 +36,7 @@ import (
 )
 
 //处理myInfoAt
-func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -139,7 +140,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -150,7 +151,7 @@ COMPLETE:
 }
 
 //处理friendsAt
-func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -281,7 +282,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -291,7 +292,7 @@ COMPLETE:
 }
 
 //处理 friendUsersAt
-func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -404,7 +405,7 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -414,7 +415,7 @@ COMPLETE:
 }
 
 //处理 TeamsAt
-func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -542,7 +543,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -552,7 +553,7 @@ COMPLETE:
 }
 
 //1-7 同步用户标签列表 处理 TagsAt
-func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -724,7 +725,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -772,7 +773,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 }
 
 //处理离线系统通知 systemMsgAt
-func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -884,7 +885,7 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -895,7 +896,7 @@ COMPLETE:
 }
 
 //处理watchAt 7-8 同步关注的商户事件
-func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -985,7 +986,7 @@ func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -995,7 +996,7 @@ COMPLETE:
 }
 
 //处理productAt 7-8 同步商品列表
-func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1126,7 +1127,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 
 COMPLETE:
 	//完成
-	ch <- 1
+	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -1136,7 +1137,7 @@ COMPLETE:
 }
 
 //处理productAt 7-9 同步商品列表
-func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
+func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
@@ -1248,7 +1249,7 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 	}
 
 	//完成
-	ch <- 1
+	// // ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -1316,15 +1317,20 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		)
 
 		//所有同步的时间戳数量
-		chs := make([]chan int, common.TotalSyncCount) // 9 个
-		for i := 0; i < common.TotalSyncCount; i++ {
-			chs[i] = make(chan int)
+		var wg sync.WaitGroup
+		wg.Add(common.TotalSyncCount)
 
-		}
+		// chs := make([]chan int, common.TotalSyncCount) // 9 个
+		// for i := 0; i < common.TotalSyncCount; i++ {
+		// 	chs[i] = make(chan int)
+
+		// }
 
 		//异步
 		go func() {
-			if err := nc.SyncMyInfoAt(username, token, deviceID, req, chs[0]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncMyInfoAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncMyInfoAt is done")
@@ -1332,7 +1338,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncFriendsAt(username, token, deviceID, req, chs[1]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncFriendsAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncFriendsAt is done")
@@ -1340,7 +1348,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncFriendUsersAt(username, token, deviceID, req, chs[2]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncFriendUsersAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncFriendUsersAt is done")
@@ -1348,7 +1358,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncTeamsAt(username, token, deviceID, req, chs[3]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncTeamsAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncTeamsAt is done")
@@ -1356,7 +1368,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncTagsAt(username, token, deviceID, req, chs[4]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncTagsAt is done")
@@ -1364,7 +1378,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncSystemMsgAt(username, token, deviceID, req, chs[5]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncSystemMsgAt is done")
@@ -1372,7 +1388,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncWatchAt(username, token, deviceID, req, chs[6]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncWatchAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncWatchAt is done")
@@ -1380,23 +1398,31 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		}()
 
 		go func() {
-			if err := nc.SyncProductAt(username, token, deviceID, req, chs[7]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("SyncProductAt is done")
 			}
 		}()
+
 		go func() {
-			if err := nc.SyncGeneralProductAt(username, token, deviceID, req, chs[7]); err != nil {
+			defer wg.Done()
+
+			if err := nc.SyncGeneralProductAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
 			} else {
 				nc.logger.Debug("GeneralProductAt is done")
 			}
 		}()
 
-		for i := 0; i < common.TotalSyncCount; i++ {
-			<-chs[i]
-		}
+		// 等待执行结束
+		wg.Wait()
+
+		// for i := 0; i < common.TotalSyncCount; i++ {
+		// 	<-chs[i]
+		// }
 
 		//发送SyncDoneEvent
 		nc.SendSyncDoneEventToUser(username, deviceID, token)
@@ -1444,7 +1470,7 @@ func (nc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) err
 	targetMsg.SetBusinessTypeName("Sync")
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Sync))            //sync模块
 	targetMsg.SetBusinessSubType(uint32(Global.SyncSubType_SyncDoneEvent)) // 同步完成事件
-	targetMsg.BuildHeader("authservice", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 	targetMsg.SetCode(200)   //成功的状态码
 
