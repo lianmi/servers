@@ -454,30 +454,30 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 
 		//系统通知类型, 并且scene是S2C(??)
 		//&& req.GetScene() == Msg.MessageScene_MsgScene_S2C
-		// if req.GetType() == Msg.MessageType_MsgType_Notification {
+		if req.GetType() == Msg.MessageType_MsgType_Notification {
 
-		//删除缓存的哈希表数据
-		systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, req.GetServerMsgId())
-		if _, err = redisConn.Do("DEL", systemMsgKey); err != nil {
-			nc.logger.Error("删除缓存的哈希表数据 Error", zap.String("systemMsgKey", systemMsgKey), zap.Error(err))
-		} else {
-			nc.logger.Debug("删除缓存的哈希表数据 成功", zap.String("systemMsgKey", systemMsgKey))
-		}
+			//删除缓存的哈希表数据
+			systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, req.GetServerMsgId())
+			if _, err = redisConn.Do("DEL", systemMsgKey); err != nil {
+				nc.logger.Error("删除缓存的哈希表数据 Error", zap.String("systemMsgKey", systemMsgKey), zap.Error(err))
+			} else {
+				nc.logger.Debug("删除缓存的哈希表数据 成功", zap.String("systemMsgKey", systemMsgKey))
+			}
 
-		//删除此用户的离线系统通知缓存有序集合里的成员
-		offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
-		if _, err = redisConn.Do("ZREM", offLineMsgListKey, req.GetServerMsgId()); err != nil {
-			nc.logger.Error("删除此用户的离线缓冲有序集合里的成员 Error", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+			//删除此用户的离线系统通知缓存有序集合里的成员
+			offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
+			if _, err = redisConn.Do("ZREM", offLineMsgListKey, req.GetServerMsgId()); err != nil {
+				nc.logger.Error("删除此用户的离线缓冲有序集合里的成员 Error", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+			} else {
+				nc.logger.Debug("删除此用户的离线缓冲有序集合里的成员 成功", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+			}
 		} else {
-			nc.logger.Debug("删除此用户的离线缓冲有序集合里的成员 成功", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+			nc.logger.Debug("暂时不处理其它类型消息的ACK",
+				zap.Int32("Scene", int32(req.GetScene())),
+				zap.Int32("Type", int32(req.GetType())),
+				zap.String("ServerMsgId", req.GetServerMsgId()),
+				zap.Uint64("Seq", req.GetSeq()))
 		}
-		// } else {
-		// 	nc.logger.Debug("暂时不处理其它类型消息的ACK",
-		// 		zap.Int32("Scene", int32(req.GetScene())),
-		// 		zap.Int32("Type", int32(req.GetType())),
-		// 		zap.String("ServerMsgId", req.GetServerMsgId()),
-		// 		zap.Uint64("Seq", req.GetSeq()))
-		// }
 
 	}
 

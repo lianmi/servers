@@ -422,24 +422,24 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
 
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUser)
 		targetMsg.SetDeviceID(eDeviceID)
 		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Friends")
+		targetMsg.SetBusinessTypeName("Msg")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
+		topic := "Msg.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
 			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))

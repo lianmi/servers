@@ -113,7 +113,7 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMq
 		KeepAliveInterval:   120 * time.Second,
 		PingTimeout:         120 * time.Second,
 		MessageChannelDepth: 100,
-		QOS:                 byte(2),
+		QOS:                 byte(2), //1: QOSAtLeastOnce, 2: QOSExactlyOnce.
 		Retain:              false,
 		CleanSession:        true,
 		FileStorePath:       "memory",
