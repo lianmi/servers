@@ -140,7 +140,6 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -282,7 +281,6 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -405,7 +403,6 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -543,7 +540,6 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -725,7 +721,6 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -885,7 +880,6 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -986,7 +980,6 @@ func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -1127,7 +1120,6 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 
 COMPLETE:
 	//完成
-	// ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -1249,7 +1241,6 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 	}
 
 	//完成
-	// // ch <- 1
 	if errorCode == 200 {
 		//只需返回200
 		return nil
@@ -1319,12 +1310,6 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		//所有同步的时间戳数量
 		var wg sync.WaitGroup
 		wg.Add(common.TotalSyncCount)
-
-		// chs := make([]chan int, common.TotalSyncCount) // 9 个
-		// for i := 0; i < common.TotalSyncCount; i++ {
-		// 	chs[i] = make(chan int)
-
-		// }
 
 		//异步
 		go func() {
@@ -1419,10 +1404,6 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 
 		// 等待执行结束
 		wg.Wait()
-
-		// for i := 0; i < common.TotalSyncCount; i++ {
-		// 	<-chs[i]
-		// }
 
 		//发送SyncDoneEvent
 		nc.SendSyncDoneEventToUser(username, deviceID, token)
