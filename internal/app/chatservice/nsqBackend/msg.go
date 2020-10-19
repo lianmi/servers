@@ -21,6 +21,11 @@ import (
 
 /*
 处理SDK发来的sendmsg
+
+5-1 发送消息
+1. 消息发送接口，包括单聊、群聊、系统通知
+2. 服务器会处理接收方的主从设备的消息分发
+
 */
 func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 	var err error
@@ -174,7 +179,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				//转发消息
+				//发送消息到目标用户
 				go nc.SendMsgToUser(eRsp, username, deviceID, toUser)
 
 			case Msg.MessageType_MsgType_Order: //订单
@@ -277,7 +282,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				//转发消息
+				//发送消息到目标用户
 				go nc.SendMsgToUser(eRsp, username, deviceID, toUser)
 			}
 
@@ -394,7 +399,10 @@ COMPLETE:
 	return nil
 }
 
-//5-4 确认消息送达
+/*
+5-4 确认消息送达
+如果是系统通知，则需要删除
+*/
 func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -444,22 +452,33 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 			zap.Uint64("Seq", req.GetSeq()),
 		)
 
-		//从Redis缓存的消息队列里删除ServerMsgId的缓存消息
-		if Msg.MessageType_MsgType_Notification == req.GetType() { //通知类型
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("systemMsgAt:%s", username), req.GetServerMsgId()); err != nil {
-				nc.logger.Error("ZREM Error", zap.Error(err))
-			} else {
-				key := fmt.Sprintf("systemMsg:%s:%s", username, req.GetServerMsgId())
-				_, err = redisConn.Do("DEL", key)
-			}
-		} else { //其它消息类型
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("offLineMsgList:%s", username), req.GetServerMsgId()); err != nil {
-				nc.logger.Error("ZREM Error", zap.Error(err))
-			} else {
-				key := fmt.Sprintf("offLineMsg:%s:%s", username, req.GetServerMsgId())
-				_, err = redisConn.Do("DEL", key)
-			}
+		//系统通知类型, 并且scene是S2C(??)
+		//&& req.GetScene() == Msg.MessageScene_MsgScene_S2C
+		// if req.GetType() == Msg.MessageType_MsgType_Notification {
+
+		//删除缓存的哈希表数据
+		systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, req.GetServerMsgId())
+		if _, err = redisConn.Do("DEL", systemMsgKey); err != nil {
+			nc.logger.Error("删除缓存的哈希表数据 Error", zap.String("systemMsgKey", systemMsgKey), zap.Error(err))
+		} else {
+			nc.logger.Debug("删除缓存的哈希表数据 成功", zap.String("systemMsgKey", systemMsgKey))
 		}
+
+		//删除此用户的离线系统通知缓存有序集合里的成员
+		offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
+		if _, err = redisConn.Do("ZREM", offLineMsgListKey, req.GetServerMsgId()); err != nil {
+			nc.logger.Error("删除此用户的离线缓冲有序集合里的成员 Error", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+		} else {
+			nc.logger.Debug("删除此用户的离线缓冲有序集合里的成员 成功", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
+		}
+		// } else {
+		// 	nc.logger.Debug("暂时不处理其它类型消息的ACK",
+		// 		zap.Int32("Scene", int32(req.GetScene())),
+		// 		zap.Int32("Type", int32(req.GetType())),
+		// 		zap.String("ServerMsgId", req.GetServerMsgId()),
+		// 		zap.Uint64("Seq", req.GetSeq()))
+		// }
+
 	}
 
 COMPLETE:
@@ -564,14 +583,6 @@ func (nc *NsqClient) HandleSendCancelMsg(msg *models.Message) error {
 				//向接收此消息的用户发出撤销消息 RecvCancelMsgEvent
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", recvUser))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				}
-
-				//从Redis里删除recvUser缓存的消息队列
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("offLineMsgList:%s", recvUser), req.GetServerMsgId()); err != nil {
-					nc.logger.Error("ZREM Error", zap.Error(err))
-				} else {
-					key := fmt.Sprintf("offLineMsg:%s:%s", recvUser, req.GetServerMsgId())
-					_, err = redisConn.Do("DEL", key)
 				}
 
 				go nc.SendDataToUserDevices(
@@ -792,7 +803,12 @@ COMPLETE:
 	return nil
 }
 
+/*
+发送消息到目标用户
+redis里用recvMsgList有序集合缓存，当接收方回复ACK后，就要删除这个集合里的对应成员
+*/
 func (nc *NsqClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDeviceID, toUser string) error {
+	var err error
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := nc.redisPool.Get()
@@ -800,31 +816,13 @@ func (nc *NsqClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDevic
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些消息给用户
 	msgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("offLineMsgList:%s", toUser), rsp.Seq, rsp.GetServerMsgId()); err != nil {
-		nc.logger.Error("ZADD Error", zap.Error(err))
-	}
-
-	//离线消息具体内容
-	key := fmt.Sprintf("offLineMsg:%s:%s", toUser, rsp.GetServerMsgId())
-
-	_, err := redisConn.Do("HMSET",
-		key,
-		"Scene", rsp.GetScene(),
-		"Type", rsp.GetType(),
-		"Username", toUser,
-		"MsgAt", msgAt,
-		"Seq", rsp.Seq,
-		"Data", data,
-	)
-
-	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
 
 	//有序集合存储哪些用户接收了此消息，以便撤销
 	recvKey := fmt.Sprintf("recvMsgList:%s", rsp.GetServerMsgId())
 	if _, err := redisConn.Do("ZADD", recvKey, msgAt, toUser); err != nil {
 		nc.logger.Error("ZADD Error", zap.Error(err))
 	}
-	_, err = redisConn.Do("EXPIRE", recvKey, 60) //设置有效期为60秒
+	_, err = redisConn.Do("EXPIRE", recvKey, 120) //设置有效期为120秒
 
 	//向用户的其它端发送 SyncSendMsgEvent
 	selfDeviceListKey := fmt.Sprintf("devices:%s", fromUser)

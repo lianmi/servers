@@ -733,6 +733,7 @@ COMPLETE:
 	}
 }
 
+//发送离线系统通知 systemMsg:%s:%s
 func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte) error {
 
 	targetMsg := &models.Message{}
@@ -740,7 +741,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	targetMsg.UpdateID()
 
 	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-	targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+	targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
 
 	targetMsg.SetJwtToken(token)
 	targetMsg.SetUserName(toUser)
@@ -750,15 +751,16 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
 	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
 
-	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
 
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
 	targetMsg.SetCode(200) //成功的状态码
 
 	//构建数据完成，向dispatcher发送
-	topic := "Auth.Frontend"
+	topic := "Msg.Frontend"
 	rawData, _ := json.Marshal(targetMsg)
+
 	go nc.Producer.Public(topic, rawData)
 
 	nc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
@@ -769,12 +771,14 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	return nil
 }
 
-//处理 systemMsgAt
+//处理离线系统通知 systemMsgAt
 func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq, ch chan int) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
 	var cur_systemMsgAt uint64
+
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -793,68 +797,89 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_systemMsgAt > systemMsgAt {
 		nTime := time.Now()
+		// 过去的7天
 		yesTime := nTime.AddDate(0, 0, -7).UnixNano() / 1e6
 
 		//移除时间少于yesTime离线通知
-		_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), "-inf", yesTime)
+		_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 		if err != nil {
-			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
+			nc.logger.Error("ZRANGEBYSCORE执行错误", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=%s]", fmt.Sprintf("systemMsgAt:%s", username))
+			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=%s]", offLineMsgListKey)
 			goto COMPLETE
 		} else {
-			nc.logger.Debug("移除时间少于yesTime离线通知", zap.Int64("yesTime", yesTime))
+			nc.logger.Debug("移除时间少于yesTime(7天)离线通知", zap.Int64("yesTime", yesTime))
 		}
 
-		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", username), yesTime, "+inf"))
+		//将有效时间内的离线消息推送给SDK
+		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", offLineMsgListKey, yesTime, "+inf"))
 		for _, msgID := range msgIDs {
-			key := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
-			data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-			err = nc.SendOffLineMsg(username, token, deviceID, data)
-			if err == nil {
-				nc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
+			systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
+			//取出缓存的离线消息体
+			if data, err := redis.Bytes(redisConn.Do("HGET", systemMsgKey, "Data")); err != nil {
+				nc.logger.Error("HGET读取 错误",
+					zap.String("systemMsgKey", systemMsgKey),
+					zap.Error(err))
+				continue
+
+			} else {
+				if err := nc.SendOffLineMsg(username, token, deviceID, data); err != nil {
+					nc.logger.Error("发送离线通知错误",
+						zap.String("systemMsgKey", systemMsgKey),
+						zap.Error(err))
+
+				} else {
+					nc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
+				}
 			}
+
 		}
 
-		//同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条，而且只能缓存7天
-		//从大到小递减获取, 只获取最大的10条
-		msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "+inf", "-inf", "LIMIT", 0, 10))
-		if err != nil {
-			nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
-		} else {
-			if len(msgIDArray) > 0 {
-				//反转，数组变为从小到大排序
-				array.ReverseBytes(msgIDArray)
-				var maxSeq int
-				for seq, msgID := range msgIDArray {
-					if seq > maxSeq {
-						maxSeq = seq
-					}
-					nc.logger.Debug("同步离线期间最大的10条离线消息",
-						zap.Int("seq", seq),
-						zap.String("msgID", string(msgID)),
-					)
-					key := fmt.Sprintf("offLineMsg:%s:%s", username, string(msgID))
-					data, _ := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+		/*
+			//同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条(common.go里定义)，而且只能缓存7天
+			//从大到小递减获取, 只获取最大的10条
+			msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", offLineMsgListKey, "+inf", "-inf", "LIMIT", 0, common.OffLineMsgCount))
+			if err != nil {
+				nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
+			} else {
+				if len(msgIDArray) > 0 {
+					//反转，数组变为从小到大排序
+					array.ReverseBytes(msgIDArray)
 
-					err = nc.SendOffLineMsg(username, token, deviceID, data)
-					if err == nil {
-						nc.logger.Debug("成功发送离线消息",
+					var maxSeq int
+					for seq, msgID := range msgIDArray {
+						if seq > maxSeq {
+							maxSeq = seq
+						}
+						nc.logger.Debug("同步离线期间离线消息",
 							zap.Int("seq", seq),
+							zap.Int("maxSeq", maxSeq),
 							zap.String("msgID", string(msgID)),
-							zap.String("username", username),
 						)
-					} else {
-						nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
+						key := fmt.Sprintf("systemMsg:%s:%s", username, string(msgID))
+						data, err := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+						if err != nil {
+							nc.logger.Error("HGET Data Error", zap.Error(err))
+							continue
+						}
+
+						if err := nc.SendOffLineMsg(username, token, deviceID, data); err == nil {
+							nc.logger.Debug("成功发送离线消息",
+								zap.Int("seq", seq),
+								zap.String("msgID", string(msgID)),
+								zap.String("username", username),
+								zap.String("token", token),
+								zap.String("deviceID", deviceID),
+							)
+						} else {
+							nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
+						}
+
 					}
 
 				}
-
-				//移除序号小于maxSeq的离线消息
-				_, err = redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("offLineMsgList:%s", username), "-inf", maxSeq)
-
 			}
-		}
+		*/
 	}
 
 COMPLETE:

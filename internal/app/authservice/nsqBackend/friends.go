@@ -14,10 +14,10 @@
 package nsqBackend
 
 import (
-	"time"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -25,7 +25,7 @@ import (
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
-	Global "github.com/lianmi/servers/api/proto/global"
+	
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
@@ -318,7 +318,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 
-						go nc.BroadcastMsgToAllDevices(eRsp, userA)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
 					}
 
 					//下发通知给B所有端
@@ -354,7 +354,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
-						go nc.BroadcastMsgToAllDevices(eRsp, userB)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
@@ -427,21 +427,21 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
-						go nc.BroadcastMsgToAllDevices(eRsp, userB)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
-						go nc.BroadcastMsgToAllDevices(eRsp, userB)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
-						go nc.BroadcastMsgToAllDevices(eRsp, userA)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
 					}
 
 				}
@@ -609,7 +609,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					}
 					if isSend {
 						nc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
-						go nc.BroadcastMsgToAllDevices(eRsp, userA)
+						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
 					} else {
 						nc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
 					}
@@ -673,7 +673,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 					nc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
-					go nc.BroadcastMsgToAllDevices(eRsp, userA)
+					go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
 				}
 
 			}
@@ -881,7 +881,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastMsgToAllDevices(eRsp, targetUsername)
+			go nc.BroadcastSystemMsgToAllDevices(eRsp, targetUsername)
 		}
 
 		//向当前用户的其它端推送
@@ -914,7 +914,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastMsgToAllDevices(eRsp, username, deviceID)
+			go nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
 		}
 	}
 
@@ -1454,92 +1454,4 @@ func inArray(in string, exceptDeviceIDs []string) string {
 		}
 	}
 	return ""
-}
-
-/*
-向目标用户账号的所有端推送系统通知
-业务号： BusinessType_Msg(5)
-业务子号： MsgSubType_RecvMsgEvent(2)
-*/
-func (nc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
-
-	data, _ := proto.Marshal(rsp)
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	//删除7天前的缓存系统消息
-	nTime := time.Now()
-	yesTime := nTime.AddDate(0, 0, -7).Unix()
-	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
-
-	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
-		nc.logger.Error("ZADD Error", zap.Error(err))
-	}
-
-	//系统消息具体内容
-	key := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
-
-	_, err = redisConn.Do("HMSET",
-		key,
-		"Username", toUser,
-		"SystemMsgAt", systemMsgAt,
-		"Seq", rsp.Seq,
-		"Data", data,
-	)
-
-	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
-
-	//向toUser所有端发送
-	deviceListKey := fmt.Sprintf("devices:%s", toUser)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
-		if inArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
-			continue
-		}
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUser)
-		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Friends")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
-
-		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-		}
-
-		nc.logger.Info("BroadcastMsgToAllDevices Succeed",
-			zap.String("Username:", toUser),
-			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-		_ = err
-
-	}
-
-	return nil
 }

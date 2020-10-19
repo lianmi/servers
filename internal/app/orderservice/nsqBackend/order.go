@@ -1080,7 +1080,7 @@ COMPLETE:
 业务号:  BusinessType_Msg(5)
 业务子号:  MsgSubType_RecvMsgEvent(2)
 */
-func (nc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := nc.redisPool.Get()
@@ -1089,26 +1089,29 @@ func (nc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser s
 	//一次性删除7天前的缓存系统消息
 	nTime := time.Now()
 	yesTime := nTime.AddDate(0, 0, -7).Unix()
-	_, err := redisConn.Do("ZREMRANGEBYSCORE", fmt.Sprintf("systemMsgAt:%s", toUser), "-inf", yesTime)
+
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUser)
+
+	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 
 	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
 	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
+	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
 		nc.logger.Error("ZADD Error", zap.Error(err))
 	}
 
 	//系统消息具体内容
-	key := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
+	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
 
 	_, err = redisConn.Do("HMSET",
-		key,
+		systemMsgKey,
 		"Username", toUser,
 		"SystemMsgAt", systemMsgAt,
 		"Seq", rsp.Seq,
-		"Data", data,
+		"Data", data, //系统消息的数据体
 	)
 
-	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
+	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
 
 	//向toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUser)
@@ -1148,7 +1151,7 @@ func (nc *NsqClient) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser s
 			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("BroadcastMsgToAllDevices Succeed",
+		nc.logger.Info("Broadcast  Msg To All Devices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -1468,7 +1471,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_C2C,      //个人消息
+				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
 				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
 				Body:         req.GetBody(),                      //订单载体
 				From:         username,                           //谁发的
@@ -1480,7 +1483,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			//向商户发送订单消息
-			go nc.BroadcastMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
+			go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}
 
 	}
@@ -1759,7 +1762,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			Time:         uint64(time.Now().UnixNano() / 1e6),
 		}
 
-		go nc.BroadcastMsgToAllDevices(eRsp, toUser)
+		go nc.BroadcastSystemMsgToAllDevices(eRsp, toUser)
 	}
 
 COMPLETE:
@@ -1923,7 +1926,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("BroadcastMsgToAllDevices Succeed",
+		nc.logger.Info("Broadcast Msg To All Devices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))

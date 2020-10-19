@@ -1708,7 +1708,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("BroadcastMsgToAllDevices Succeed",
+		nc.logger.Info("Broadcast SpecialMsg To All Devices Succeed",
 			zap.String("Username:", toUser),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))

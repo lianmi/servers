@@ -1,18 +1,17 @@
 package repositories
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
+	// "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
@@ -141,7 +140,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		Time:         uint64(time.Now().UnixNano() / 1e6),
 	}
 
-	go s.BroadcastMsgToAllDevices(eRsp, p.Owner)
+	s.nsqClient.BroadcastSystemMsgToAllDevices(eRsp, p.Owner, "")
 	return nil
 
 }
@@ -187,86 +186,6 @@ func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 	}
 	//提交
 	tx.Commit()
-
-	return nil
-}
-
-/*
-向目标用户账号的所有端推送系统通知
-业务号： BusinessType_Msg(5)
-业务子号： MsgSubType_RecvMsgEvent(2)
-*/
-func (s *MysqlLianmiRepository) BroadcastMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
-	data, _ := proto.Marshal(rsp)
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("systemMsgAt:%s", toUser), systemMsgAt, rsp.GetServerMsgId()); err != nil {
-		s.logger.Error("ZADD Error", zap.Error(err))
-	}
-
-	//系统消息具体内容
-	key := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
-
-	_, err := redisConn.Do("HMSET",
-		key,
-		"Username", toUser,
-		"SystemMsgAt", systemMsgAt,
-		"Seq", rsp.Seq,
-		"Data", data,
-	)
-
-	_, err = redisConn.Do("EXPIRE", key, 7*24*3600) //设置有效期为7天
-
-	//向toUser所有端发送
-	deviceListKey := fmt.Sprintf("devices:%s", toUser)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
-
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUser)
-		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Friends")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
-
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
-
-		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
-			s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			s.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-		}
-
-		s.logger.Info("BroadcastMsgToAllDevices Succeed",
-			zap.String("Username:", toUser),
-			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-		_ = err
-
-	}
 
 	return nil
 }
