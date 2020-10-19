@@ -30,7 +30,7 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
-	"github.com/lianmi/servers/util/array"
+	// "github.com/lianmi/servers/util/array"
 	"go.uber.org/zap"
 )
 
