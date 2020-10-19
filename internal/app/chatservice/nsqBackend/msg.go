@@ -25,13 +25,14 @@ import (
 5-1 发送消息
 1. 消息发送接口，包括单聊、群聊、系统通知
 2. 服务器会处理接收方的主从设备的消息分发
-
+3. 除了客服账号外，不支持陌生人聊天
 */
 func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 	var err error
 	var toUser, teamID string
 	errorCode := 200
 	var errorMsg string
+	var isCustomerService bool //toUser是否是客服账号
 	rsp := &Msg.SendMsgRsp{}
 
 	var newSeq uint64
@@ -139,13 +140,24 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 					}
 
 				}
-				if isAhaveB && isBhaveA {
+
+				//判断 本次会话是不是 客服与用户 的会话， 如果是则放行
+				isCustomerService = nc.CheckIsCustomerService(username, toUser)
+
+				if isCustomerService {
 					//pass
+					nc.logger.Info("客服与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
+
 				} else {
-					nc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
-					goto COMPLETE
+					if isAhaveB && isBhaveA {
+						//pass
+					} else {
+						nc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
+						goto COMPLETE
+					}
+
 				}
 
 				//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
@@ -984,6 +996,26 @@ func (nc *NsqClient) SendDataToUserDevices(data []byte, toUser string, businessT
 }
 
 /*
-9-3 下单 处理
+判断会话双方的任意一方是不是客服，如果是，则返回true，如果两者都不是，则返回false
+客服账号，用redis的有序集合存储， CustomerServiceList,
 */
-// func (nc *NsqClient) HandelOrder
+func (nc *NsqClient) CheckIsCustomerService(username, toUser string) bool {
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	if reply, err := redisConn.Do("ZRANK", "CustomerServiceList", username); err == nil {
+		if reply != nil {
+			//客服账号有序集合中有username
+			return true
+		}
+
+	}
+	if reply, err := redisConn.Do("ZRANK", "CustomerServiceList", toUser); err == nil {
+		if reply != nil {
+			//客服账号有序集合中有toUser
+			return true
+		}
+
+	}
+	return false
+}
