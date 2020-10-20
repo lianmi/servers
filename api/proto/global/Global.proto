@@ -198,6 +198,7 @@ enum ProductType {
     OT_Carry         = 9;      /**< 搬运*/
     OT_Maintenance   = 10;     /**< 维修*/
     OT_Services      = 11;     /**< 服务行业*/
+    OT_Others        = 12;     /**<其它*/
 }
 
 //交易类型枚举(钱包资产的收支)： 

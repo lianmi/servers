@@ -163,6 +163,16 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			)
 		}
 
+		//检查邀请码，也就是用户账号id的数字部分
+		if user.ReferrerUsername != "" {
+			if !pc.service.ExistUserByName("id" + user.ReferrerUsername) {
+				pc.logger.Error("Register user error, ReferrerUsername is not registered")
+				code = codes.ErrExistMobile
+				RespFail(c, http.StatusBadRequest, code, "ReferrerUsername is not registered")
+				return
+			}
+		}
+
 		if userName, err := pc.service.Register(&user); err == nil {
 			pc.logger.Debug("Register user success", zap.String("userName", userName))
 			code = codes.SUCCESS
@@ -393,21 +403,21 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 		//增加
 
 		if err := pc.service.AddGeneralProduct(&models.GeneralProduct{
-			ProductID:         uuid.NewV4().String(), //商品ID
-			ProductName:       og.ProductName,        //商品名称
-			CategoryName:      og.CategoryName,       //商品分类名称
-			ProductDesc:       og.ProductDesc,        //商品详细介绍
-			ProductPic1Small:  og.ProductPic1Small,   //商品图片1-小图
-			ProductPic1Middle: og.ProductPic1Middle,  //商品图片1-中图
-			ProductPic1Large:  og.ProductPic1Large,   //商品图片1-大图
-			ProductPic2Small:  og.ProductPic2Small,   //商品图片2-小图
-			ProductPic2Middle: og.ProductPic2Middle,  //商品图片2-中图
-			ProductPic2Large:  og.ProductPic2Large,   //商品图片2-大图
-			ProductPic3Small:  og.ProductPic3Small,   //商品图片3-小图
-			ProductPic3Middle: og.ProductPic3Middle,  //商品图片3-中图
-			ProductPic3Large:  og.ProductPic3Large,   //商品图片3-大图
-			Thumbnail:         og.Thumbnail,          //商品短视频缩略图
-			ShortVideo:        og.ShortVideo,         //商品短视频
+			ProductID:   uuid.NewV4().String(), //商品ID
+			ProductName: og.ProductName,        //商品名称
+			ProductType:       int(og.ProductType),  //商品种类枚举
+			ProductDesc:       og.ProductDesc,       //商品详细介绍
+			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
+			ProductPic1Middle: og.ProductPic1Middle, //商品图片1-中图
+			ProductPic1Large:  og.ProductPic1Large,  //商品图片1-大图
+			ProductPic2Small:  og.ProductPic2Small,  //商品图片2-小图
+			ProductPic2Middle: og.ProductPic2Middle, //商品图片2-中图
+			ProductPic2Large:  og.ProductPic2Large,  //商品图片2-大图
+			ProductPic3Small:  og.ProductPic3Small,  //商品图片3-小图
+			ProductPic3Middle: og.ProductPic3Middle, //商品图片3-中图
+			ProductPic3Large:  og.ProductPic3Large,  //商品图片3-大图
+			Thumbnail:         og.Thumbnail,         //商品短视频缩略图
+			ShortVideo:        og.ShortVideo,        //商品短视频
 
 		}); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
@@ -435,9 +445,9 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		}
 
 		if err := pc.service.UpdateGeneralProduct(&models.GeneralProduct{
-			ProductID:         og.ProductId,         //商品ID
-			ProductName:       og.ProductName,       //商品名称
-			CategoryName:      og.CategoryName,      //商品分类名称
+			ProductID:   og.ProductId,   //商品ID
+			ProductName: og.ProductName, //商品名称
+			ProductType:       int(og.ProductType),  //商品种类枚举
 			ProductDesc:       og.ProductDesc,       //商品详细介绍
 			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
 			ProductPic1Middle: og.ProductPic1Middle, //商品图片1-中图
@@ -480,26 +490,6 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 	c.JSON(http.StatusOK, p)
 }
 
-/*
-&Order.GeneralProduct{
-		ProductId:         p.ProductID,
-		ProductName:       p.ProductName,       //商品名称
-		CategoryName:      p.CategoryName,      //商品分类名称
-		ProductDesc:       p.ProductDesc,       //商品详细介绍
-		ProductPic1Small:  p.ProductPic1Small,  //商品图片1-小图
-		ProductPic1Middle: p.ProductPic1Middle, //商品图片1-中图
-		ProductPic1Large:  p.ProductPic1Large,  //商品图片1-大图
-		ProductPic2Small:  p.ProductPic2Small,  //商品图片2-小图
-		ProductPic2Middle: p.ProductPic2Middle, //商品图片2-中图
-		ProductPic2Large:  p.ProductPic2Large,  //商品图片2-大图
-		ProductPic3Small:  p.ProductPic3Small,  //商品图片3-小图
-		ProductPic3Middle: p.ProductPic3Middle, //商品图片3-中图
-		ProductPic3Large:  p.ProductPic3Middle, //商品图片3-大图
-		Thumbnail:         p.Thumbnail,         //商品短视频缩略图
-		ShortVideo:        p.ShortVideo,        //商品短视频
-	}
-*/
-
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 	pageIndex, err := strconv.ParseInt(c.Param("page"), 10, 32)
 
@@ -512,12 +502,18 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 		_ = c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	categoryName := c.Param("categoryname")
-	gpWhere := models.GeneralProduct{CategoryName: categoryName}
+
+	productType, err := strconv.ParseInt(c.Param("producttype"), 10, 32)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	gpWhere := models.GeneralProduct{ProductType: int(productType)}
+
 	var total uint64
 	ps, err := pc.service.GetGeneralProductPage(int(pageIndex), int(pageSize), &total, gpWhere)
 	if err != nil {
-		pc.logger.Error("GetGeneralProduct Page by CategoryName error", zap.Error(err))
+		pc.logger.Error("GetGeneralProduct Page by ProductType error", zap.Error(err))
 		c.String(http.StatusInternalServerError, "%+v", err)
 		return
 	}

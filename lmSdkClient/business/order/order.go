@@ -30,7 +30,7 @@ func MockGeneralProduct() error {
 	productInfo := &models.GeneralProduct{
 		ProductID:         productID,                       //商品ID
 		ProductName:       "猪肚",                            //商品名称
-		CategoryName:      "肉类",                            //商品分类名称
+		ProductType:       1,                               // 商品种类枚举 : 肉类
 		ProductDesc:       "新鲜,补脾之要品,配伍党参、白术、薏苡仁、莲子、陈皮煮熟食", //商品详细介绍
 		ProductPic1Small:  "",                              //商品图片1-小图
 		ProductPic1Middle: "",                              //商品图片1-中图

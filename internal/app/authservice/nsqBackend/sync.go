@@ -1045,10 +1045,10 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					}
 				}
 				rsp.AddProducts = append(rsp.AddProducts, &Order.Product{
-					ProductId:         productID,
-					Expire:            uint64(productInfo.Expire),
-					ProductName:       productInfo.ProductName,
-					CategoryName:      productInfo.CategoryName,
+					ProductId:   productID,
+					Expire:      uint64(productInfo.Expire),
+					ProductName: productInfo.ProductName,
+					ProductType:       Global.ProductType(productInfo.ProductType),
 					ProductDesc:       productInfo.ProductDesc,
 					ProductPic1Small:  productInfo.ProductPic1Small,
 					ProductPic1Middle: productInfo.ProductPic1Middle,
@@ -1174,9 +1174,9 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 				}
 			}
 			rsp.AddProducts = append(rsp.AddProducts, &Order.GeneralProduct{
-				ProductId:         productID,
-				ProductName:       productInfo.ProductName,
-				CategoryName:      productInfo.CategoryName,
+				ProductId:   productID,
+				ProductName: productInfo.ProductName,
+				ProductType:       Global.ProductType(productInfo.ProductType),
 				ProductDesc:       productInfo.ProductDesc,
 				ProductPic1Small:  productInfo.ProductPic1Small,
 				ProductPic1Middle: productInfo.ProductPic1Middle,

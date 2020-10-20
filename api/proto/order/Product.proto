@@ -1,5 +1,5 @@
 syntax = "proto3"; 
-
+import "api/proto/global/Global.proto";
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
@@ -15,9 +15,8 @@ message Product {
     //是否必须-是
     string ProductName = 3;
 
-    //商品分类名称
-    //是否必须-是
-    string CategoryName = 4;
+    //商品种类类型  枚举 
+    global.ProductType productType= 4;
 
     //商品详细介绍
     //是否必须-是
@@ -104,6 +103,7 @@ message Product {
 
 }
 
+
 //下单消息里的商品信息Body
 message OrderProductBody {
     //服务端生成订单ID,用于以后此订单的追踪
@@ -118,10 +118,18 @@ message OrderProductBody {
     string businessUser=5;
     //商户的协商公钥
     string opkBusinessUser =6;
-    //加密信息(明文是JSON格式字符串)
-    string attach=7;
+    // 订单的总价格 , 支付的时候以这个金额 计算
+    double OrderTotalAmount = 7 ;
 
+    // json 格式的内容 , 由 ui 层处理 sdk 仅透传
+    // 传输会进过sdk 处理
+    string attach=8;
+
+    //加密信息(明文是JSON格式字符串)
+    // 透传信息 , 不加密 ，直接传过去 不处理
+    bytes userdata = 9 ;
 }
+
 
 //通用商品
 message GeneralProduct {
@@ -133,9 +141,8 @@ message GeneralProduct {
     //是否必须-是
     string ProductName = 2;
 
-    //商品分类名称
-    //是否必须-是
-    string CategoryName = 3;
+    //商品种类类型  枚举 
+    global.ProductType productType = 3;
 
     //商品详细介绍
     //是否必须-是

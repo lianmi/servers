@@ -101,18 +101,20 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		}
 
 		//判断此商户是不是用户关注的，如果不是则返回
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", username), req.GetUserName()); err == nil {
-			if reply == nil {
-				//商户不是用户关注
-				nc.logger.Debug("此商户不是用户关注",
-					zap.String("UserName", req.GetUserName()),
-				)
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not watching[Watching Username=%s]", req.GetUserName())
-				goto COMPLETE
-			}
+		/*
+			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", username), req.GetUserName()); err == nil {
+				if reply == nil {
+					//商户不是用户关注
+					nc.logger.Debug("此商户不是用户关注",
+						zap.String("UserName", req.GetUserName()),
+					)
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("User is not watching[Watching Username=%s]", req.GetUserName())
+					goto COMPLETE
+				}
 
-		}
+			}
+		*/
 
 		//获取商户的商品有序集合
 		//从redis的有序集合查询出商户的商品信息在时间戳req.GetTimeAt()之后的更新
@@ -130,7 +132,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				ProductId:         productID,
 				Expire:            uint64(product.Expire),
 				ProductName:       product.ProductName,
-				CategoryName:      product.CategoryName,
+				ProductType:       Global.ProductType(product.ProductType),
 				ProductDesc:       product.ProductDesc,
 				ProductPic1Small:  product.ProductPic1Small,
 				ProductPic1Middle: product.ProductPic1Middle,
@@ -305,7 +307,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			ProductID:         req.Product.ProductId,
 			Expire:            int64(req.Product.Expire),
 			ProductName:       req.Product.ProductName,
-			CategoryName:      req.Product.CategoryName,
+			ProductType:       int(req.Product.ProductType),
 			ProductDesc:       req.Product.ProductDesc,
 			ProductPic1Small:  req.Product.ProductPic1Small,
 			ProductPic1Middle: req.Product.ProductPic1Middle,
@@ -476,7 +478,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			ProductID:         req.Product.ProductId,
 			Expire:            int64(req.Product.Expire),
 			ProductName:       req.Product.ProductName,
-			CategoryName:      req.Product.CategoryName,
+			ProductType:       int(req.Product.ProductType),
 			ProductDesc:       req.Product.ProductDesc,
 			ProductPic1Small:  req.Product.ProductPic1Small,
 			ProductPic1Middle: req.Product.ProductPic1Middle,
@@ -1670,7 +1672,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		//判断此订单是否已经在商户的有序集合里orders:{账号id}
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("orders:%s", req.OrderBody.GetBusinessUser()), req.OrderBody.GetOrderID()); err == nil {
 			if reply == nil {
-				//商户不是用户关注
+				//此订单id不属于此商户
 				nc.logger.Error("此订单id不属于此商户",
 					zap.String("OrderID", req.OrderBody.GetOrderID()),
 				)

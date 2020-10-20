@@ -4,10 +4,10 @@ package models
 服务端的通用商品表
 */
 type GeneralProduct struct {
-	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`                //自动递增id
-	ProductID         string `form:"product_id" json:"product_id,omitempty"`                   //商品ID
-	ProductName       string `form:"product_name" json:"product_name,omitempty"`               //商品名称
-	CategoryName      string `form:"category_name" json:"category_name,omitempty"`             //商品分类名称
+	ID          uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`  //自动递增id
+	ProductID   string `form:"product_id" json:"product_id,omitempty"`     //商品ID
+	ProductName string `form:"product_name" json:"product_name,omitempty"` //商品名称
+	ProductType       int    `form:"product_type" json:"product_type,omitempty"`               //商品种类枚举
 	ProductDesc       string `form:"product_desc" json:"product_desc,omitempty"`               //商品详细介绍
 	ProductPic1Small  string `form:"product_pic1_small" json:"product_pic1_small,omitempty"`   //商品图片1-小图
 	ProductPic1Middle string `form:"product_pic1_middle" json:"product_pic1_middle,omitempty"` //商品图片1-中图
