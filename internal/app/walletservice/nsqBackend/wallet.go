@@ -1017,6 +1017,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
+			//向接收者推送 9-12 支付订单完成的事件
+			nc.logger.Debug("向接收者推送 9-12 支付订单完成的事件", zap.String("toUsername", toUsername))
+			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
+
+			//向支付发起者推送 9-12 支付订单完成的事件
+			nc.logger.Debug("向支付发起者推送 9-12 支付订单完成的事件", zap.String("username", username))
+			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 
 			//刷新接收者redis里的代币数量
 			toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
@@ -1039,12 +1046,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				TxHash:            hash,
 			}
 			nc.SaveCollectionHistory(lnmcCollectionHistory)
-
-			//向接收者推送 9-12 支付订单完成的事件事件
-			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
-
-			//向支付发起者推送 9-12 支付订单完成的事件事件
-			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 
 		}
 
@@ -1724,9 +1725,9 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 		topic := "Wallet.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			nc.logger.Info("BroadcastSpecialMsgToAllDevices: message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error("BroadcastSpecialMsgToAllDevices: Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
 		nc.logger.Info("Broadcast SpecialMsg To All Devices Succeed",
