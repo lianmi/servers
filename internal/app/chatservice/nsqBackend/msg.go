@@ -9,6 +9,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
+	Order "github.com/lianmi/servers/api/proto/order"
 	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -420,6 +421,11 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 
+	var newSeq uint64
+
+	//经过服务端更改状态后的新的OrderProductBody字节流
+	var orderProductBodyData []byte
+
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -490,8 +496,66 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 				zap.Int32("Type", int32(req.GetType())),
 				zap.String("ServerMsgId", req.GetServerMsgId()),
 				zap.Uint64("Seq", req.GetSeq()))
-				
+
 			//从Redis里取出此 ServerMsgId 对应的订单信息及状态
+			orderProductBodyKey := fmt.Sprintf("OrderProductBodyKey:%s", req.GetServerMsgId())
+			state, err := redis.Int(redisConn.Do("HGET", orderProductBodyKey, "State"))
+			orderID, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "OrderID"))
+			// productID, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "ProductID"))
+			buyUser, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "BuyUser"))
+			// opkBuyUser, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "OpkBuyUser"))
+			// businessUser, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "BusinessUser"))
+			// opkBusinessUser, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "OpkBusinessUser"))
+			// orderTotalAmount, err := redis.Float64(redisConn.Do("HGET", orderProductBodyKey, "OrderTotalAmount"))
+			// attach, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "Attach"))
+
+			if err != nil {
+				nc.logger.Error("从Redis里取出此 ServerMsgId 对应的订单信息及状态 Error", zap.String("orderProductBodyKey", orderProductBodyKey), zap.Error(err))
+			} else {
+				if state == 0 {
+					nc.logger.Warn("从Redis里取出此 ServerMsgId 对应的订单信息及状态 state==0", zap.String("orderProductBodyKey", orderProductBodyKey), zap.Error(err))
+					goto COMPLETE
+				}
+
+				//商户的订单状态为OrderState_OS_SendOK，向下单用户发送订单送达通知: OrderState_OS_RecvOK
+				if Global.OrderState(state) == Global.OrderState_OS_SendOK {
+					var orderProductBody = new(Order.OrderProductBody)
+					orderProductBody.State = Global.OrderState_OS_RecvOK
+					orderProductBody.OrderID = orderID
+					// orderProductBody.ProductID = productID
+					//其他的不传
+					// orderProductBody.BuyUser = buyUser
+					// orderProductBody.OpkBuyUser = opkBuyUser
+					// orderProductBody.BusinessUser = businessUser
+					// orderProductBody.OpkBusinessUser = opkBusinessUser
+					// orderProductBody.OrderTotalAmount = orderTotalAmount
+					// orderProductBody.Attach = attach
+
+					//向用户推送订单消息
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", buyUser))); err != nil {
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = "INCR Error"
+						goto COMPLETE
+					}
+
+					orderProductBodyData, _ = proto.Marshal(orderProductBody)
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+						Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+						Body:         orderProductBodyData,               //订单载体 OrderProductBody
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
+						Recv:         buyUser,                            //用户账户id
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
+					go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
+
+				}
+			}
 
 		} else {
 			nc.logger.Debug("MsgAck payload",
@@ -1029,4 +1093,92 @@ func (nc *NsqClient) CheckIsCustomerService(username, toUser string) bool {
 
 	}
 	return false
+}
+
+/*
+向目标用户账号的所有端推送消息， 接收端会触发接收消息事件
+业务号:  BusinessType_Msg(5)
+业务子号:  MsgSubType_RecvMsgEvent(2)
+*/
+func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+	data, _ := proto.Marshal(rsp)
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	//一次性删除7天前的缓存系统消息
+	nTime := time.Now()
+	yesTime := nTime.AddDate(0, 0, -7).Unix()
+
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUser)
+
+	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+
+	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
+	systemMsgAt := time.Now().UnixNano() / 1e6
+	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
+		nc.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	//系统消息具体内容
+	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
+
+	_, err = redisConn.Do("HMSET",
+		systemMsgKey,
+		"Username", toUser,
+		"SystemMsgAt", systemMsgAt,
+		"Seq", rsp.Seq,
+		"Data", data, //系统消息的数据体
+	)
+
+	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+
+	//向toUser所有端发送
+	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(toUser)
+		targetMsg.SetDeviceID(eDeviceID)
+		// opkAlertMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+
+		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Order.Frontend"
+		rawData, _ := json.Marshal(targetMsg)
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		nc.logger.Info("Broadcast  Msg To All Devices Succeed",
+			zap.String("Username:", toUser),
+			zap.String("DeviceID:", curDeviceKey),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+		_ = err
+
+	}
+
+	return nil
 }

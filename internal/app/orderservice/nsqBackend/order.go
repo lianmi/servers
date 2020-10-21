@@ -275,6 +275,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		//生成随机的商品id
 		req.Product.ProductId = uuid.NewV4().String()
 		rsp.ProductID = req.Product.ProductId
+		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
 		//从redis里获取当前用户信息
 		userData := new(models.User)
@@ -364,8 +365,11 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
+		//
+		nc.logger.Debug("7-2 回包")
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
+
 	} else {
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
@@ -375,9 +379,9 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("7-2 回包 Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("7-2 回包 Failed to send message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
@@ -1506,7 +1510,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			}
 			// 将订单信息缓存在redis里的一个哈希表里
 			orderProductBodyKey := fmt.Sprintf("OrderProductBodyKey:%s", msg.GetID())
-			redisConn.Do("HMSET", orderProductBodyKey)
 			_, err = redisConn.Do("HMSET",
 				orderProductBodyKey,
 				"Username", username,

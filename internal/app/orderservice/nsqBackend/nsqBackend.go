@@ -134,19 +134,19 @@ func initProducer(addr string) (*nsqProducer, error) {
 }
 
 func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
-	
+
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
 	}
-	
+
 	logger.Info("启动Nsq生产者成功")
 
 	nsqClient := &NsqClient{
 		o:             o,
 		Producer:      p,
-		logger:        logger.With(zap.String("type", "ChatService")),
+		logger:        logger.With(zap.String("type", "OrderService")),
 		db:            db,
 		redisPool:     redisPool,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
@@ -166,8 +166,8 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 5)] = nsqClient.HandleChangeOrderState //9-5 对订单进行状态更改
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 6)] = nsqClient.HandleGetPreKeysCount  //9-8 商户获取OPK存量
-	
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder  //9-11 确认支付订单
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder //9-11 确认支付订单
 
 	return nsqClient
 }
