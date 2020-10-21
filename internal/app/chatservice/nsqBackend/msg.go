@@ -531,7 +531,6 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 					// orderProductBody.OrderTotalAmount = orderTotalAmount
 					// orderProductBody.Attach = attach
 
-					//向用户推送订单消息
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", buyUser))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -552,7 +551,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
+					go nc.BroadcastSystemMsgToAllDevices(eRsp, buyUser) //向用户推送订单消息
 
 				}
 			}

@@ -1389,6 +1389,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//解包出 OrderProductBody
+		// bytes, err := proto.Marshal(m)
+
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.GetBody(), orderProductBody); err != nil {
 			nc.logger.Error("Protobuf Unmarshal OrderProductBody Error", zap.Error(err))
