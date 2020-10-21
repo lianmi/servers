@@ -488,52 +488,39 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//检测钱包是否注册, 如果没注册， 则不能转账
-		if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", username), "WalletAddress")); err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HEXISTS error")
-			goto COMPLETE
-		} else {
-			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Wallet had not registered")
-				goto COMPLETE
-			}
-		}
-
-		//检测接收者钱包是否注册, 如果没注册， 则不能转账
-		if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress")); err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HEXISTS error")
-			goto COMPLETE
-		} else {
-			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", req.GetTargetUserName()))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Target Wallet had not registered")
-				goto COMPLETE
-			}
-		}
-
-		walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
-		if err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HGET error")
-			goto COMPLETE
-		}
 		//从redis里获取用户对应的叶子编号，作为证明人 - B签
 		newBip32Index, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
 		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
 
-		nc.logger.Info("用户对应的叶子编号、子私钥及子地址",
-			zap.String("username", username),
-			zap.Uint64("newBip32Index", newBip32Index),
-			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
-			zap.String("AddressHex", newKeyPair.AddressHex),
-		)
-
 		if req.GetTargetUserName() != "" {
+			//检测钱包是否注册, 如果没注册， 则不能转账
+			if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", username), "WalletAddress")); err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("HEXISTS error")
+				goto COMPLETE
+			} else {
+				if !isExists {
+					nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Wallet had not registered")
+					goto COMPLETE
+				}
+			}
+
+			//检测接收者钱包是否注册, 如果没注册， 则不能转账
+			if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress")); err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("HEXISTS error")
+				goto COMPLETE
+			} else {
+				if !isExists {
+					nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", req.GetTargetUserName()))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Target Wallet had not registered")
+					goto COMPLETE
+				}
+			}
+
 			toWalletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress"))
 			if err != nil {
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -551,6 +538,20 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		} else if req.GetOrderID() != "" {
 			toWalletAddress = newKeyPair.AddressHex //中转账号
 		}
+
+		walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET error")
+			goto COMPLETE
+		}
+
+		nc.logger.Info("用户对应的叶子编号、子私钥及子地址",
+			zap.String("username", username),
+			zap.Uint64("newBip32Index", newBip32Index),
+			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
+			zap.String("AddressHex", newKeyPair.AddressHex),
+		)
 
 		//当前用户的代币余额
 		balanceLNMC, err = nc.ethService.GetLNMCTokenBalance(walletAddress)
