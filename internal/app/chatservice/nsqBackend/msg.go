@@ -490,6 +490,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 				zap.Int32("Type", int32(req.GetType())),
 				zap.String("ServerMsgId", req.GetServerMsgId()),
 				zap.Uint64("Seq", req.GetSeq()))
+				
 			//从Redis里取出此 ServerMsgId 对应的订单信息及状态
 
 		} else {

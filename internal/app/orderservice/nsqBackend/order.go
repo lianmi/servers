@@ -1516,18 +1516,10 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
 				"BusinessUser", orderProductBody.GetBusinessUser(),
 				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-				"BusinessUser", orderProductBody.GetBusinessUser(),
+				"Attach", orderProductBody.GetAttach(), //加密的密文
+				"State", orderProductBody.GetState(), //订单状态
 			)
-			/*
-				zap.String("OrderID", orderProductBody.GetOrderID()),
-				zap.String("ProductID", orderProductBody.GetProductID()),
-				zap.String("BuyUser", orderProductBody.GetBuyUser()),
-				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
-				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
-				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
-				zap.String("Attach", orderProductBody.GetAttach()), //加密的密文
-				zap.Int("State", int(orderProductBody.GetState())), //订单状态
-			*/
+
 			//向商户发送订单消息
 			go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}

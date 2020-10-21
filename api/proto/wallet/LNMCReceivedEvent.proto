@@ -9,10 +9,13 @@ message LNMCReceivedEventRsp {
     // 交易哈希hex
     string hash=2;
 
-    //充值之后的连米币余额
+    //本次转账接收到的连米币数量
     fixed64 amountLNMC=3;
 
+    //附言
+    string content=4;
+
     //到账时间
-    fixed64 time=4;
+    fixed64 time=5;
 
 }

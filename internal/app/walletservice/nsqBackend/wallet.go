@@ -703,6 +703,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var amountLNMC uint64     //本次转账的代币数量, 无小数点
 	var balanceAfter uint64   //转账之后的代币数量, 无小数点
 	var toBalanceAfter uint64 //接收者在AB签名后的代币数量
+	var content string        //附言
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -857,6 +858,14 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		toBalanceLNMC, err = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 
+		//附言
+		content, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress), "Content"))
+		if err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET Bip32Index error")
+			goto COMPLETE
+		}
+
 		//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
 		blockNumber, hash, err := nc.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
 		if err != nil {
@@ -979,6 +988,16 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			nc.SaveCollectionHistory(lnmcCollectionHistory)
 		}
 
+		// 10-16 连米币到账通知事件
+		lnmcReceivedEventRspData, _ := proto.Marshal(&Wallet.LNMCReceivedEventRsp{
+			BlockNumber: blockNumber,                         // 区块高度
+			Hash:        hash,                                // 交易哈希hex
+			AmountLNMC:  amountLNMC,                          //本次转账接收到的连米币数量
+			Content:     content,                             //附言
+			Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
+		})
+		go nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
+
 		//9-12，通知双方
 		if req.GetOrderID() != "" {
 			// 9-12 支付订单完成的事件
@@ -1021,12 +1040,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				nc.SaveCollectionHistory(lnmcCollectionHistory)
 
 				//向接收者推送 9-12 支付订单完成的事件事件
-				go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Wallet), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
+				go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
 
 			}
 
 			//向支付发起者推送 9-12 支付订单完成的事件事件
-			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Wallet), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
+			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 
 		}
 
