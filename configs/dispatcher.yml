@@ -6,7 +6,7 @@ http:
 nsq:
   broker: 127.0.0.1:4161
   producerAddr: 127.0.0.1:4150
-  topics: Auth.Frontend,User.Frontend,Friends.Frontend,Team.Frontend,Msg.Frontend,Sync.Frontend,Order.Frontend,Wallet.Frontend
+  topics: Auth.Frontend,User.Frontend,Friends.Frontend,Team.Frontend,Msg.Frontend,Sync.Frontend,Product.Frontend,Order.Frontend,Wallet.Frontend
   chnanelName: im
 mqtt:
   addr: 127.0.0.1:1883

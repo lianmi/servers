@@ -6,7 +6,7 @@ http:
 nsq:
   broker: nsqlookupd:4161
   producerAddr: nsqd:4150
-  topics: Auth.Frontend,User.Frontend,Friends.Frontend,Team.Frontend,Msg.Frontend,Sync.Frontend,Order.Frontend,Wallet.Frontend
+  topics: Auth.Frontend,User.Frontend,Friends.Frontend,Team.Frontend,Msg.Frontend,Sync.Frontend,Product.Frontend,Order.Frontend,Wallet.Frontend
   chnanel: im
 mqtt:
   addr: mosquitto:1883
