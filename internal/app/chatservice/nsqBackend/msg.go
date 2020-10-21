@@ -412,7 +412,7 @@ COMPLETE:
 }
 
 /*
-5-4 确认消息送达
+5-4 确认消息送达 ACK
 如果是系统通知，则需要删除
 */
 func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
@@ -457,16 +457,16 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("MsgAck payload",
-			zap.Int32("Scene", int32(req.GetScene())),
-			zap.Int32("Type", int32(req.GetType())),
-			zap.String("ServerMsgId", req.GetServerMsgId()),
-			zap.Uint64("Seq", req.GetSeq()),
-		)
 
 		//系统通知类型, 并且scene是S2C(??)
 		//&& req.GetScene() == Msg.MessageScene_MsgScene_S2C
 		if req.GetType() == Msg.MessageType_MsgType_Notification {
+			nc.logger.Debug("Notification payload",
+				zap.Int32("Scene", int32(req.GetScene())),
+				zap.Int32("Type", int32(req.GetType())),
+				zap.String("ServerMsgId", req.GetServerMsgId()),
+				zap.Uint64("Seq", req.GetSeq()),
+			)
 
 			//删除缓存的哈希表数据
 			systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, req.GetServerMsgId())
@@ -483,12 +483,22 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 			} else {
 				nc.logger.Debug("删除此用户的离线缓冲有序集合里的成员 成功", zap.String("offLineMsgListKey", offLineMsgListKey), zap.Error(err))
 			}
-		} else {
-			nc.logger.Debug("暂时不处理其它类型消息的ACK",
+
+		} else if req.GetType() == Msg.MessageType_MsgType_Order {
+			nc.logger.Debug("Order订单类型消息的ACK",
 				zap.Int32("Scene", int32(req.GetScene())),
 				zap.Int32("Type", int32(req.GetType())),
 				zap.String("ServerMsgId", req.GetServerMsgId()),
 				zap.Uint64("Seq", req.GetSeq()))
+			//从Redis里取出此 ServerMsgId 对应的订单信息及状态
+
+		} else {
+			nc.logger.Debug("MsgAck payload",
+				zap.Int32("Scene", int32(req.GetScene())),
+				zap.Int32("Type", int32(req.GetType())),
+				zap.String("ServerMsgId", req.GetServerMsgId()),
+				zap.Uint64("Seq", req.GetSeq()),
+			)
 		}
 
 	}

@@ -72,6 +72,7 @@ type LnmcTransferHistory struct {
 	ToWalletAddress     string `json:"to_wallet_address" validate:"required"`     //接收方用户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
 	BalanceLNMCBefore   uint64 `json:"amount_lnmc_before" validate:"required"`    //发送方用户在转账时刻的连米币数量
 	AmountLNMC          uint64 `json:"amount_lnmc" validate:"required"`           //本次转账的用户连米币数量
+	Content             string `json:"content"`                                   //附言
 	BalanceLNMCAfter    uint64 `json:"amount_lnmc_after" validate:"required"`     //发送方用户在转账之后的连米币数量
 	Bip32Index          uint64 `json:"bip32_index" validate:"required"`           //平台HD钱包Bip32派生索引号
 	ContractBlockNumber uint64 `json:"contract_block_number" validate:"required"` //多签合约所在区块高度

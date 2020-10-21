@@ -33,6 +33,9 @@ message PreTransferReq{
 
     //金额(人民币格式)， 服务端要转换为代币格式
     double amount=3;
+
+    //附言
+    string content =4;
 }
 
 

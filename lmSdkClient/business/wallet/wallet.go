@@ -527,6 +527,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		OrderID:        orderID,
 		TargetUserName: targetUserName,
 		Amount:         amount,
+		Content:        "test transfer",
 	}
 
 	content, _ := proto.Marshal(req)

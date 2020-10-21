@@ -463,8 +463,10 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			zap.String("username", username),
 			zap.String("orderID", req.GetOrderID()),
 			zap.String("targetUserName", req.GetTargetUserName()),
-			zap.Float64("amount", req.GetAmount()), //人民币格式 ，有小数点
+			zap.Float64("amount", req.GetAmount()),  //人民币格式 ，有小数点
+			zap.String("content", req.GetContent()), //附言
 		)
+
 		if req.GetOrderID() != "" && req.GetTargetUserName() != "" {
 			nc.logger.Warn("订单ID与收款方的用户账号只能两者选一 ", zap.String("orderID", req.GetOrderID()), zap.String("targetUserName", req.GetTargetUserName()))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -604,7 +606,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			AmountLNMC:        amountLNMC,              //本次转账的用户连米币数量
 			Bip32Index:        newBip32Index,           //平台HD钱包Bip32派生索引号
 			State:             0,                       //执行状态，0-默认未执行，1-A签，2-全部完成
-
+			Content:           req.GetContent(),        //附言
 		}
 		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
 
@@ -649,6 +651,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			"BlockNumber", blockNumber,
 			"Hash", hash,
 			"State", 0,
+			"Content", req.GetContent(),
 			"CreateAt", uint64(time.Now().UnixNano()/1e6),
 		)
 

@@ -128,6 +128,9 @@ message OrderProductBody {
     //加密信息(明文是JSON格式字符串)
     // 透传信息 , 不加密 ，直接传过去 不处理
     bytes userdata = 9 ;
+
+    //订单的状态;
+    global.OrderState state = 10 ;
 }
 
 

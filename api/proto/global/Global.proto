@@ -138,7 +138,7 @@ enum OrderSubType {
     OST_undefined     =  0;    //proto3必须从0开始
     RegisterPreKeys   =  1;     /**< 9-1. 商户上传订单DH加密公钥*/
     GetPreKeyOrderID  =  2;     /**< 9-2. 获取网点OPK公钥及订单ID*/
-    OrderStateEvent   =  4;     /**< 9-4. 订单状态变化事件*/
+    OrderStateEvent   =  4;     /**< 已取消 9-4. 订单状态变化事件*/
     ChangeOrderState  =  5;     /**< 9-5. 对订单进行状态更改*/
     GetPreKeysCount   =  6;     /**< 9-6. 商户获取OPK存量*/
     OPKLimitAlert     =  10;    /**< 9-10. 商户OPK存量不足事件*/
@@ -163,8 +163,9 @@ enum WalletSubType {
     SyncWithdrawHistory         =  11;    /**< 10-11 同步提现历史*/
     SyncTransferHistory         =  12;    /**< 10-12 同步转账历史*/
     UserSignIn                  =  13;    /**< 10-13 签到*/
-    TxHashInfo                  =  14;    /**< 10-14查询交易哈希详情*/
+    TxHashInfo                  =  14;    /**< 10-14 查询交易哈希详情*/
     EthReceivedEvent            =  15;    /**< 10-15 ETH奖励到账通知事件*/
+    LNMCReceivedEvent           =  16;    /**< 10-16 连米币到账通知事件*/
 }
 
 
@@ -182,6 +183,8 @@ enum OrderState {
     OS_ApplyCancel  = 9;     /**< 申请撤单 */
     OS_AttachChange = 10;   /**< 订单内容发生更改*/
     OS_Paying       = 11;   /**< 支付中*/
+    OS_Overdue      = 12;   /**< 已逾期*/
+         
 }
 
 //商品种类类型

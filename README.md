@@ -452,3 +452,7 @@ $ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
  ### 将生成的发币合约地址保存到配置
  ```
  ```
+
+ ## TODO
+
+ 我觉得 交易完成后 这个订单 的 attach 服务端进行一个hash 计算 保存好最后的 一次确定交易 hash , 到时候查证的时候 , 可以通过这个hash 知道 内容有没有篡改

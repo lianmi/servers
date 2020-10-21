@@ -1284,7 +1284,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
-	// var businessName string //商户账户
+
+	//经过服务端更改状态后的新的OrderProductBody字节流
+	var orderProductBodyData []byte
 
 	rsp := &Msg.SendMsgRsp{}
 
@@ -1399,8 +1401,10 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
 				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
 				zap.String("Attach", orderProductBody.GetAttach()), //加密的密文
+				zap.Int("State", int(orderProductBody.GetState())), //订单状态
 			)
 
+			//判断订单id不能为空
 			if orderProductBody.GetOrderID() == "" {
 				nc.logger.Error("OrderID is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1408,6 +1412,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			// 判断商品id不能为空
 			if orderProductBody.GetProductID() == "" {
 				nc.logger.Error("ProductID is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1415,6 +1420,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			//判断买家账号id不能为空
 			if orderProductBody.GetBuyUser() == "" {
 				nc.logger.Error("BuyUser is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1422,6 +1428,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			// 判断买家的OPK不能为空
 			if orderProductBody.GetOpkBuyUser() == "" {
 				nc.logger.Error("OpkBuyUser is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1429,6 +1436,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			//判断商户的账号id不能为空
 			if orderProductBody.GetBusinessUser() == "" {
 				nc.logger.Error("BusinessUse is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1472,10 +1480,22 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			//判断订单状态是不是 OS_Prepare ， 如果是，则改为OS_SendOK
+			if Global.OrderState(orderProductBody.GetState()) == Global.OrderState_OS_Prepare {
+				orderProductBody.State = Global.OrderState_OS_SendOK
+			} else {
+				nc.logger.Error("订单状态 Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "OrderProductBody state error, state is not OS_Prepare"
+				goto COMPLETE
+			}
+
+			orderProductBodyData, _ = proto.Marshal(orderProductBody)
+
 			eRsp := &Msg.RecvMsgEventRsp{
 				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
 				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-				Body:         req.GetBody(),                      //订单载体
+				Body:         orderProductBodyData,               //订单载体 OrderProductBody
 				From:         username,                           //谁发的
 				FromDeviceId: deviceID,                           //哪个设备发的
 				Recv:         req.GetTo(),                        //商户账户id
@@ -1484,6 +1504,30 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
+			// 将订单信息缓存在redis里的一个哈希表里
+			orderProductBodyKey := fmt.Sprintf("OrderProductBodyKey:%s", msg.GetID())
+			redisConn.Do("HMSET", orderProductBodyKey)
+			_, err = redisConn.Do("HMSET",
+				orderProductBodyKey,
+				"Username", username,
+				"OrderID", orderProductBody.GetOrderID(),
+				"ProductID", orderProductBody.GetProductID(),
+				"BuyUser", orderProductBody.GetBuyUser(),
+				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
+				"BusinessUser", orderProductBody.GetBusinessUser(),
+				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+				"BusinessUser", orderProductBody.GetBusinessUser(),
+			)
+			/*
+				zap.String("OrderID", orderProductBody.GetOrderID()),
+				zap.String("ProductID", orderProductBody.GetProductID()),
+				zap.String("BuyUser", orderProductBody.GetBuyUser()),
+				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
+				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
+				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
+				zap.String("Attach", orderProductBody.GetAttach()), //加密的密文
+				zap.Int("State", int(orderProductBody.GetState())), //订单状态
+			*/
 			//向商户发送订单消息
 			go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}
@@ -1575,14 +1619,17 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("ChangeOrderState payload",
+			zap.Int("State", int(req.GetState())),
+			zap.Uint64("TimeAt", req.TimeAt),
 			zap.String("OrderID", req.OrderBody.GetOrderID()),
 			zap.String("ProductID", req.OrderBody.GetProductID()),
 			zap.String("BuyUser", req.OrderBody.GetBuyUser()),
 			zap.String("OpkBuyUser", req.OrderBody.GetOpkBuyUser()),
 			zap.String("BusinessUser", req.OrderBody.GetBusinessUser()),
 			zap.String("OpkBusinessUser", req.OrderBody.GetOpkBusinessUser()),
-			zap.Int("State", int(req.GetState())),
-			zap.Uint64("TimeAt", req.TimeAt),
+			zap.Float64("OrderTotalAmount", req.OrderBody.GetOrderTotalAmount()),
+			zap.String("Attach", req.OrderBody.GetAttach()),
+			// zap.String("Userdata", req.OrderBody.GetUserdata()),
 		)
 		if req.OrderBody.GetOrderID() == "" {
 			nc.logger.Error("OrderID is empty")
