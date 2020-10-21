@@ -847,6 +847,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		} else if req.GetOrderID() != "" {
 			toWalletAddress = newKeyPair.AddressHex
+			toUsername, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress), "ToUsername"))
+			if err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("HGET Bip32Index error")
+				goto COMPLETE
+			}
 		}
 
 		//本次转账的代币数量
@@ -1012,38 +1018,30 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			}
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 
-			toUsername, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress), "ToUsername"))
-			if err != nil {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("HGET Bip32Index error")
-				goto COMPLETE
-			} else {
-				//刷新接收者redis里的代币数量
-				toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
-				redisConn.Do("HSET",
-					fmt.Sprintf("userWallet:%s", toUsername),
-					"LNMCAmount",
-					toBalanceAfter)
+			//刷新接收者redis里的代币数量
+			toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
+			redisConn.Do("HSET",
+				fmt.Sprintf("userWallet:%s", toUsername),
+				"LNMCAmount",
+				toBalanceAfter)
 
-				//更新接收者的收款历史表
-				lnmcCollectionHistory := &models.LnmcCollectionHistory{
-					Username:          toUsername, //接收者
-					FromUsername:      username,   //发送者
-					FromWalletAddress: walletAddress,
-					OrderID:           req.GetOrderID(),
-					BalanceLNMCBefore: toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
-					AmountLNMC:        amountLNMC,     //本次转账的用户连米币数量
-					BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
-					Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
-					BlockNumber:       blockNumber,
-					TxHash:            hash,
-				}
-				nc.SaveCollectionHistory(lnmcCollectionHistory)
-
-				//向接收者推送 9-12 支付订单完成的事件事件
-				go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
-
+			//更新接收者的收款历史表
+			lnmcCollectionHistory := &models.LnmcCollectionHistory{
+				Username:          toUsername, //接收者
+				FromUsername:      username,   //发送者
+				FromWalletAddress: walletAddress,
+				OrderID:           req.GetOrderID(),
+				BalanceLNMCBefore: toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
+				AmountLNMC:        amountLNMC,     //本次转账的用户连米币数量
+				BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
+				Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
+				BlockNumber:       blockNumber,
+				TxHash:            hash,
 			}
+			nc.SaveCollectionHistory(lnmcCollectionHistory)
+
+			//向接收者推送 9-12 支付订单完成的事件事件
+			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
 
 			//向支付发起者推送 9-12 支付订单完成的事件事件
 			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
