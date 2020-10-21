@@ -422,6 +422,8 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 	var amountLNMC uint64 //本次转账的代币数量,  等于amount * 100
 	var balanceETH uint64 //当前用户的Eth余额
 
+	var toUsername string
+
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -493,6 +495,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
 
 		if req.GetTargetUserName() != "" {
+			toUsername = req.GetTargetUserName()
 			//检测钱包是否注册, 如果没注册， 则不能转账
 			if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", username), "WalletAddress")); err != nil {
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -508,20 +511,20 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			}
 
 			//检测接收者钱包是否注册, 如果没注册， 则不能转账
-			if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress")); err != nil {
+			if isExists, err := redis.Bool(redisConn.Do("HEXISTS", fmt.Sprintf("userWallet:%s", toUsername), "WalletAddress")); err != nil {
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("HEXISTS error")
 				goto COMPLETE
 			} else {
 				if !isExists {
-					nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", req.GetTargetUserName()))
+					nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", toUsername))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Target Wallet had not registered")
 					goto COMPLETE
 				}
 			}
 
-			toWalletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.GetTargetUserName()), "WalletAddress"))
+			toWalletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", toUsername), "WalletAddress"))
 			if err != nil {
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("HGET error")
@@ -536,7 +539,22 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			}
 
 		} else if req.GetOrderID() != "" {
+
+			//根据orderID找到目标用户账号id
+			orderIDKey := fmt.Sprintf("Order:%s", req.GetOrderID())
+			businessUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+			if err != nil {
+				nc.logger.Error("从Redis里取出此 Order 对应的usinessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
+			}
+
+			toUsername = businessUser
 			toWalletAddress = newKeyPair.AddressHex //中转账号
+		}
+		if toUsername == "" {
+			nc.logger.Error("严重错误, toUsername为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Error:  toUsername is empty")
+			goto COMPLETE
 		}
 
 		walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
@@ -598,16 +616,16 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 		//保存预审核转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
-			Username:          username,                //发起支付
-			ToUsername:        req.GetTargetUserName(), //如果是普通转账，toUsername非空
-			OrderID:           req.GetOrderID(),        //如果是订单支付 ，非空
-			WalletAddress:     walletAddress,           //发起方钱包账户
-			ToWalletAddress:   toWalletAddress,         //接收者钱包账户
-			BalanceLNMCBefore: balanceLNMC,             //发送方用户在转账时刻的连米币数量
-			AmountLNMC:        amountLNMC,              //本次转账的用户连米币数量
-			Bip32Index:        newBip32Index,           //平台HD钱包Bip32派生索引号
-			State:             0,                       //执行状态，0-默认未执行，1-A签，2-全部完成
-			Content:           req.GetContent(),        //附言
+			Username:          username,         //发起支付
+			ToUsername:        toUsername,       //如果是普通转账，toUsername非空
+			OrderID:           req.GetOrderID(), //如果是订单支付 ，非空
+			WalletAddress:     walletAddress,    //发起方钱包账户
+			ToWalletAddress:   toWalletAddress,  //接收者钱包账户
+			BalanceLNMCBefore: balanceLNMC,      //发送方用户在转账时刻的连米币数量
+			AmountLNMC:        amountLNMC,       //本次转账的用户连米币数量
+			Bip32Index:        newBip32Index,    //平台HD钱包Bip32派生索引号
+			State:             0,                //执行状态，0-默认未执行，1-A签，2-全部完成
+			Content:           req.GetContent(), //附言
 		}
 		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
 
@@ -643,7 +661,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			fmt.Sprintf("PreTransfer:%s:%s", username, toWalletAddress),
 			"Username", username,
 			"OrderID", req.GetOrderID(),
-			"ToUsername", req.GetTargetUserName(),
+			"ToUsername", toUsername,
 			"WalletAddress", walletAddress,
 			"ToWalletAddress", toWalletAddress,
 			"AmountLNMC", amountLNMC,
@@ -853,6 +871,22 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("HGET Bip32Index error")
 				goto COMPLETE
 			}
+			if toUsername == "" {
+				orderIDKey := fmt.Sprintf("Order:%s", req.GetOrderID())
+				businessUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+				if err != nil {
+					nc.logger.Error("从Redis里取出此 Order 对应的usinessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
+				}
+
+				toUsername = businessUser
+			}
+		}
+
+		if toUsername == "" {
+			nc.logger.Error("严重错误, toUsername为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Error:  toUsername is empty")
+			goto COMPLETE
 		}
 
 		//本次转账的代币数量

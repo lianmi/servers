@@ -1086,7 +1086,7 @@ COMPLETE:
 业务号:  BusinessType_Msg(5)
 业务子号:  MsgSubType_RecvMsgEvent(2)
 */
-func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string) error {
+func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUsername string) error {
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := nc.redisPool.Get()
@@ -1096,7 +1096,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 	nTime := time.Now()
 	yesTime := nTime.AddDate(0, 0, -7).Unix()
 
-	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUser)
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUsername)
 
 	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 
@@ -1107,11 +1107,11 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 	}
 
 	//系统消息具体内容
-	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
+	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
 
 	_, err = redisConn.Do("HMSET",
 		systemMsgKey,
-		"Username", toUser,
+		"Username", toUsername,
 		"SystemMsgAt", systemMsgAt,
 		"Seq", rsp.Seq,
 		"Data", data, //系统消息的数据体
@@ -1120,7 +1120,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
 
 	//向toUser所有端发送
-	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
@@ -1135,7 +1135,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 		targetMsg.BuildRouter("Order", "", "Order.Frontend")
 
 		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUser)
+		targetMsg.SetUserName(toUsername)
 		targetMsg.SetDeviceID(eDeviceID)
 		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
@@ -1158,7 +1158,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 		}
 
 		nc.logger.Info("Broadcast  Msg To All Devices Succeed",
-			zap.String("Username:", toUser),
+			zap.String("Username:", toUsername),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
@@ -1280,7 +1280,7 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 
 /*
 处理订单消息 5-1
-文档是9-3 下单 处理订单消息，是由ChatService转发过来的
+文档是 9-3 下单 处理订单消息，是由ChatService转发过来的
 只能是向商户下单
 */
 func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
@@ -1389,7 +1389,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//解包出 OrderProductBody
-		// bytes, err := proto.Marshal(m)
 
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.GetBody(), orderProductBody); err != nil {
@@ -1450,13 +1449,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			// if orderProductBody.GetOpkBusinessUser() == "" {
-			// 	nc.logger.Error("OpkBusinessUser is empty")
-			// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			// 	errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
-			// 	goto COMPLETE
-			// }
-
 			// 获取ProductID对应的商品信息
 			product := new(models.Product)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.GetProductID()))); err == nil {
@@ -1475,8 +1467,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("Product is expire")
 				goto COMPLETE
 			}
-
-			//TODO, 余额是否足够扣除
 
 			//将订单转发到商户
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.GetBusinessUser()))); err != nil {
@@ -1510,8 +1500,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			// 将订单信息缓存在redis里的一个哈希表里
-			orderProductBodyKey := fmt.Sprintf("OrderProductBodyKey:%s", msg.GetID())
+			// 将订单信息缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+			orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
 			_, err = redisConn.Do("HMSET",
 				orderProductBodyKey,
 				"Username", username,
@@ -1520,6 +1510,21 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				"BuyUser", orderProductBody.GetBuyUser(),
 				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
 				"BusinessUser", orderProductBody.GetBusinessUser(),
+				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+				"Attach", orderProductBody.GetAttach(), //加密的密文
+				"State", orderProductBody.GetState(), //订单状态
+			)
+
+			// 将订单信息缓存在redis里的一个哈希表里, 以 orderID 对应
+			orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.GetOrderID())
+			_, err = redisConn.Do("HMSET",
+				orderIDKey,
+				"Username", username, //当前用户
+				"OrderID", orderProductBody.GetOrderID(),
+				"ProductID", orderProductBody.GetProductID(),
+				"BuyUser", orderProductBody.GetBuyUser(), //买家
+				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
+				"BusinessUser", orderProductBody.GetBusinessUser(), //商户
 				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
 				"Attach", orderProductBody.GetAttach(), //加密的密文
 				"State", orderProductBody.GetState(), //订单状态
@@ -1576,7 +1581,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
-	var toUser string
+	var toUsername string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -1672,10 +1677,10 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		//判断ToUser方是谁
 		if username == req.OrderBody.GetBuyUser() {
-			toUser = req.OrderBody.GetBusinessUser()
+			toUsername = req.OrderBody.GetBusinessUser()
 
 		} else {
-			toUser = req.OrderBody.GetBuyUser()
+			toUsername = req.OrderBody.GetBuyUser()
 		}
 
 		//从redis里获取买家信息
@@ -1787,7 +1792,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		//TODO 如果是完成或撤单，需要向钱包发送结算
 
 		//将最新订单状态转发到目标用户
-		if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
+		if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
 			nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = "INCR Error"
@@ -1808,7 +1813,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			Time:         uint64(time.Now().UnixNano() / 1e6),
 		}
 
-		go nc.BroadcastSystemMsgToAllDevices(eRsp, toUser)
+		go nc.BroadcastSystemMsgToAllDevices(eRsp, toUsername)
 	}
 
 COMPLETE:
@@ -1929,13 +1934,13 @@ COMPLETE:
 2. businessType 业务号
 3. businessSubType 业务子号
 */
-func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, businessSubType uint32, toUser string) error {
+func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, businessSubType uint32, toUsername string) error {
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//向toUser所有端发送
-	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
@@ -1950,7 +1955,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 		targetMsg.BuildRouter("Order", "", "Order.Frontend")
 
 		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUser)
+		targetMsg.SetUserName(toUsername)
 		targetMsg.SetDeviceID(eDeviceID)
 		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
@@ -1973,7 +1978,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 		}
 
 		nc.logger.Info("Broadcast Msg To All Devices Succeed",
-			zap.String("Username:", toUser),
+			zap.String("Username:", toUsername),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 

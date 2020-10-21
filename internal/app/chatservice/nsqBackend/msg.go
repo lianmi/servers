@@ -498,7 +498,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 				zap.Uint64("Seq", req.GetSeq()))
 
 			//从Redis里取出此 ServerMsgId 对应的订单信息及状态
-			orderProductBodyKey := fmt.Sprintf("OrderProductBodyKey:%s", req.GetServerMsgId())
+			orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", req.GetServerMsgId())
 			state, err := redis.Int(redisConn.Do("HGET", orderProductBodyKey, "State"))
 			orderID, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "OrderID"))
 			// productID, err := redis.String(redisConn.Do("HGET", orderProductBodyKey, "ProductID"))
