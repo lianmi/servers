@@ -62,6 +62,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	walletRepository := repositories.NewMysqlWalletRepository(logger, db, pool)
 	blockchainOptions, err := blockchain.NewEthClientProviderOptions(viper, logger)
 	if err != nil {
 		return nil, err
@@ -70,12 +71,11 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger, service)
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, walletRepository, pool, logger, service)
 	serverOptions, err := grpc.NewServerOptions(viper)
 	if err != nil {
 		return nil, err
 	}
-	walletRepository := repositories.NewMysqlWalletRepository(logger, db, pool)
 	walletService := services.NewApisService(logger, walletRepository, pool, service)
 	walletServer, err := grpcservers.NewWalletServer(logger, walletService)
 	if err != nil {

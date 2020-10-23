@@ -55,15 +55,15 @@ func (nc *NsqClient) CheckSmsCode(mobile, smscode string) bool {
 
 }
 
-/*
-10-1 钱包账号注册
-1. 钱包账号注册流程，SDK生成助记词，并设置支付密码
-2. 用户支付的时候，输入6位支付密码，就代表用私钥签名
-3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送第0号叶子的地址到服务端，服务端在链上创建用户的私人钱包。
-4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
-5. 用来做证明人的系统HD钱包叶子也是与用户一一对应，系统的HD钱包的叶子递增, 也就是说每个用户的多签证明人，对应一个系统HD叶子索引号
-6. 为实现中转账号能够有足够的gas，对应一个系统HD叶子索引号需要在注册后就转1个eth进去
-*/
+//
+// 10-1 钱包账号注册
+// 1. 钱包账号注册流程，SDK生成助记词，并设置支付密码
+// 2. 用户支付的时候，输入6位支付密码，就代表用私钥签名
+// 3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送第0号叶子的地址到服务端，服务端在链上创建用户的私人钱包。
+// 4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
+// 5. 用来做证明人的系统HD钱包叶子也是与用户一一对应，系统的HD钱包的叶子递增, 也就是说每个用户的多签证明人，对应一个系统HD叶子索引号
+// 6. 为实现中转账号能够有足够的gas，对应一个系统HD叶子索引号需要在注册后就转1个eth进去
+//
 func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -172,7 +172,7 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 		//保存到MySQL 表 UserWallet
 		ethAmountString := fmt.Sprintf("%d", LMCommon.GASLIMIT)
 
-		if err := nc.SaveUserWallet(username, req.GetWalletAddress(), ethAmountString); err != nil {
+		if err := nc.Repository.SaveUserWallet(username, req.GetWalletAddress(), ethAmountString); err != nil {
 			nc.logger.Error("SaveUserWallet ", zap.Error(err))
 		}
 
@@ -229,10 +229,9 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-2 充值
-从支付宝、微信、银行卡、信用卡等转入平台账号，平台账号收到款项后再转相应数量的代币到用户钱包地址,此地址对应钱包注册传上来的地址
-*/
+// 10-2 充值
+// 从支付宝、微信、银行卡、信用卡等转入平台账号，平台账号收到款项后再转相应数量的代币到用户钱包地址,此地址对应钱包注册传上来的地址
+
 //TODO 等注册好支付宝或微信支付后再完善，目前测试阶段，直接充值
 func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 	var err error
@@ -359,7 +358,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 			TxHash:           hash,
 		}
 
-		nc.SaveDepositHistory(lnmcDepositHistory)
+		nc.Repository.SaveDepositHistory(lnmcDepositHistory)
 
 		//更新redis里用户钱包的代币余额
 		redisConn.Do("HSET",
@@ -403,13 +402,11 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-3 发起转账
-1. 用户下单需要支付（订单ID非空的时候）或者仅仅是用户之间转账时，向服务端发起一个转账申请, 接收者也必须开通钱包 。
-2. 服务端收到请求后，判断发起方的余额是否足够支付
-3. 服务端构造Tx裸交易数据，当订单ID非空的时候， 目标接收者是用户
+// 10-3 发起转账
+// 1. 用户下单需要支付（订单ID非空的时候）或者仅仅是用户之间转账时，向服务端发起一个转账申请, 接收者也必须开通钱包 。
+// 2. 服务端收到请求后，判断发起方的余额是否足够支付
+// 3. 服务端构造Tx裸交易数据，当订单ID非空的时候， 目标接收者是用户
 
-*/
 func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -637,7 +634,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			State:             0,                //执行状态，0-默认未执行，1-A签，2-全部完成
 			Content:           req.GetContent(), //附言
 		}
-		nc.SaveLnmcTransferHistory(lnmcTransferHistory)
+		nc.Repository.SaveLnmcTransferHistory(lnmcTransferHistory)
 
 		//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
 		tokens := int64(amountLNMC)
@@ -709,12 +706,11 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-4 确认转账
-1. 发起方收到服务端的预审核10-3回包后 ，需要对返回的裸交易哈希进行签名(A签)
-2. 服务端收到后， 如果是普通转账，则进行B签, 并广播到链上，完成转账， 接收方将收到代币
-3. 与9-11 的区别是请求参数没有携带 订单id
-*/
+// 10-4 确认转账
+// 1. 发起方收到服务端的预审核10-3回包后 ，需要对返回的裸交易哈希进行签名(A签)
+// 2. 服务端收到后， 如果是普通转账，则进行B签, 并广播到链上，完成转账， 接收方将收到代币
+// 3. 与9-11 的区别是请求参数没有携带 订单id
+
 func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -965,7 +961,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			BlockNumber:       blockNumber,
 			TxHash:            hash,
 		}
-		nc.UpdateLnmcTransferHistory(lnmcTransferHistory)
+		nc.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
 		//更新转账记录到 redis  HSET
 		_, err = redisConn.Do("HSET",
@@ -1037,7 +1033,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				BlockNumber:       blockNumber,
 				TxHash:            hash,
 			}
-			nc.SaveCollectionHistory(lnmcCollectionHistory)
+			nc.Repository.SaveCollectionHistory(lnmcCollectionHistory)
 
 		}
 
@@ -1104,7 +1100,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				BlockNumber:       blockNumber,
 				TxHash:            hash,
 			}
-			nc.SaveCollectionHistory(lnmcCollectionHistory)
+			nc.Repository.SaveCollectionHistory(lnmcCollectionHistory)
 
 		}
 
@@ -1139,10 +1135,9 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-5 查询账号余额
-查询链上账号余额， 包括连米币及以太币, 将查询到的余额更新到redis
-*/
+// 10-5 查询账号余额
+// 查询链上账号余额， 包括连米币及以太币, 将查询到的余额更新到redis
+
 func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -1280,10 +1275,9 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-6 发起提现预审核
-用户先向服务端发起提现预审核，服务端校验用户是否合法及有足够的余额提现后，回包Tx交易裸数据，用户需要进行签名
-*/
+// 10-6 发起提现预审核
+// 用户先向服务端发起提现预审核，服务端校验用户是否合法及有足够的余额提现后，回包Tx交易裸数据，用户需要进行签名
+
 func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -1484,7 +1478,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			TxHash:            rawDesc.TxHash,     //哈希
 		}
 
-		nc.SaveLnmcWithdrawHistory(lnmcWithdrawHistory)
+		nc.Repository.SaveLnmcWithdrawHistory(lnmcWithdrawHistory)
 
 		rsp := &Wallet.PreWithDrawRsp{
 			WithdrawUUID: withdrawUUID,
@@ -1528,12 +1522,10 @@ COMPLETE:
 	return nil
 }
 
-/*
-10-7 确认提现
-1. 服务端下发Tx交易裸数据，用户需要进行签名，并上报服务端在链上广播
-2. 当链上打包后，平台方指定的地址收到用户提现的 代币后，则发起银行转账
+// 10-7 确认提现
+// 1. 服务端下发Tx交易裸数据，用户需要进行签名，并上报服务端在链上广播
+// 2. 当链上打包后，平台方指定的地址收到用户提现的 代币后，则发起银行转账
 
-*/
 func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -1684,7 +1676,7 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 			BlockNumber:       blockNumber,
 			TxHash:            hash,
 		}
-		nc.UpdateLnmcWithdrawHistory(lnmcWithdrawHistory)
+		nc.Repository.UpdateLnmcWithdrawHistory(lnmcWithdrawHistory)
 
 		//更新redis里用户钱包的代币余额
 		redisConn.Do("HSET",
@@ -1739,13 +1731,12 @@ COMPLETE:
 	return nil
 }
 
-/*
-向目标用户账号的所有端推送传入的业务号及子号的消息， 接收端会触发对应事件
-传参：
-1. data 字节流
-2. businessType 业务号
-3. businessSubType 业务子号
-*/
+// 向目标用户账号的所有端推送传入的业务号及子号的消息， 接收端会触发对应事件
+// 传参：
+// 1. data 字节流
+// 2. businessType 业务号
+// 3. businessSubType 业务子号
+
 func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, businessSubType uint32, toUser string) error {
 
 	redisConn := nc.redisPool.Get()
@@ -1799,10 +1790,9 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 	return nil
 }
 
-/*
-10-9 同步收款历史
-此接口 支持分页查询，默认是全量查询
-*/
+// 10-9 同步收款历史
+// 此接口 支持分页查询，默认是全量查询
+
 func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -1869,22 +1859,24 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and  created_at <= %d", req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d", req.StartAt, req.EndAt)
 		}
 
-		collections := nc.GetCollectionHistorys(page, pageSize, &total, maps)
+		collections := nc.Repository.GetCollectionHistorys(page, pageSize, &total, maps)
 		nc.logger.Debug("GetCollectionHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, collection := range collections {
 			nc.logger.Debug("for...range: collections",
 				zap.Uint64("id", collection.ID),
+				zap.String("FromUsername", collection.FromUsername),
 				zap.String("ToUsername", collection.ToUsername),
 			)
 			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
 				Id:           collection.ID,                //ID
 				CreatedAt:    uint64(collection.CreatedAt), //创建时间
-				FromUsername: collection.FromUsername,      //发送方用户注册号
+				FromUsername: collection.FromUsername,      //发送方用户账号
+				ToUsername:   collection.ToUsername,        //接收方的用户账号
 				AmountLNMC:   collection.AmountLNMC,        //本次转账的用户连米币数量
 				OrderID:      collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
 				BlockNumber:  collection.BlockNumber,       //成功执行合约的所在区块高度
@@ -1917,10 +1909,9 @@ COMPLETE:
 
 }
 
-/*
-10-10 同步充值历史
-此接口 支持分页查询，默认是全量查询
-*/
+// 10-10 同步充值历史
+// 此接口 支持分页查询，默认是全量查询
+
 func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -1983,15 +1974,14 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
-		/*
-				 DR_100         = 1;     //100元
-			     DR_200         = 2;     //200元
-			     DR_300         = 3;     //300元
-			     DR_500         = 4;     //500元
-			     DR_1000        = 5;    //1000元
-			     DR_3000        = 6;    //3000元
-			     DR_10000       = 7;   //10000元
-		*/
+		//  DR_100         = 1;     //100元
+		//  DR_200         = 2;     //200元
+		//  DR_300         = 3;     //300元
+		//  DR_500         = 4;     //500元
+		//  DR_1000        = 5;    //1000元
+		//  DR_3000        = 6;    //3000元
+		//  DR_10000       = 7;   //10000元
+
 		var depositRecharge float64
 		switch req.DepositRecharge {
 		case 1:
@@ -2021,7 +2011,7 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 
 		}
 
-		deposits := nc.GetDepositHistorys(page, pageSize, &total, maps)
+		deposits := nc.Repository.GetDepositHistorys(page, pageSize, &total, maps)
 		nc.logger.Debug("GetDepositHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
@@ -2067,10 +2057,9 @@ COMPLETE:
 
 }
 
-/*
-10-11 同步提现历史
-此接口 支持分页查询，默认是全量查询
-*/
+// 10-11 同步提现历史
+// 此接口 支持分页查询，默认是全量查询
+
 func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -2138,7 +2127,7 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 
 		}
 
-		withdraws := nc.GetWithdrawHistorys(page, pageSize, &total, maps)
+		withdraws := nc.Repository.GetWithdrawHistorys(page, pageSize, &total, maps)
 		nc.logger.Debug("GetWithdrawHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
@@ -2185,10 +2174,9 @@ COMPLETE:
 
 }
 
-/*
-10-12 同步转账历史
-此接口 支持分页查询，默认是全量查询
-*/
+// 10-12 同步转账历史
+// 此接口 支持分页查询，默认是全量查询
+
 func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -2256,7 +2244,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 
 		}
 
-		transfers := nc.GetTransferHistorys(page, pageSize, &total, maps)
+		transfers := nc.Repository.GetTransferHistorys(page, pageSize, &total, maps)
 		nc.logger.Debug("GetTransferHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
@@ -2303,10 +2291,9 @@ COMPLETE:
 
 }
 
-/*
-10-13 签到
-用户每天签到，每成功签到2次，送若干1千万wei的以太币
-*/
+// 10-13 签到
+// 用户每天签到，每成功签到2次，送若干1千万wei的以太币
+
 func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -2456,10 +2443,9 @@ COMPLETE:
 
 }
 
-/*
-10-14查询交易哈希详情
-用户每天签到，每成功签到2次，送若干1千万wei的以太币
-*/
+// 10-14查询交易哈希详情
+// 用户每天签到，每成功签到2次，送若干1千万wei的以太币
+
 func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
@@ -2511,7 +2497,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 
 		switch req.TxType {
 		case Global.TransactionType_DT_Deposit: //充值
-			depositInfo, err := nc.GetDepositInfo(req.TxHash)
+			depositInfo, err := nc.Repository.GetDepositInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")
@@ -2522,7 +2508,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 			hashInfo.To = ""
 
 		case Global.TransactionType_DT_WithDraw: //提现
-			withdrawInfo, err := nc.GetWithdrawInfo(req.TxHash)
+			withdrawInfo, err := nc.Repository.GetWithdrawInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")
@@ -2533,7 +2519,7 @@ func (nc *NsqClient) HandleTxHashInfo(msg *models.Message) error {
 			hashInfo.To = ""
 
 		case Global.TransactionType_DT_Transfer: //转账
-			transferInfo, err := nc.GetTransferInfo(req.TxHash)
+			transferInfo, err := nc.Repository.GetTransferInfo(req.TxHash)
 			if err != nil {
 				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("UnKnown transation hash")

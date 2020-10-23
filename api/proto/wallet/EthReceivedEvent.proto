@@ -1,3 +1,4 @@
+
 syntax = "proto3";
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";

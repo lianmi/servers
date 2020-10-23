@@ -14,18 +14,13 @@ import (
 	"time"
 
 	"github.com/google/wire"
-
-	"github.com/jinzhu/gorm"
-
 	"github.com/lianmi/servers/util/randtool"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
 	"github.com/lianmi/servers/internal/pkg/models"
-
 	"github.com/nsqio/go-nsq"
-
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
 )
 
@@ -55,8 +50,10 @@ type NsqClient struct {
 	Producer  *nsqProducer    // 生产者
 	consumers []*nsq.Consumer // 消费者
 
-	logger     *zap.Logger
-	db         *gorm.DB
+	logger *zap.Logger
+
+	Repository repositories.WalletRepository
+
 	redisPool  *redis.Pool
 	ethService *blockchain.Service //连接以太坊geth的websocket
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
@@ -137,7 +134,7 @@ func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	return o, err
 }
 
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger, ethService *blockchain.Service) *NsqClient {
+func NewNsqClient(o *NsqOptions, Repository repositories.WalletRepository, redisPool *redis.Pool, logger *zap.Logger, ethService *blockchain.Service) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
@@ -148,29 +145,28 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	logger.Info("启动Nsq生产者成功")
 
 	nsqClient := &NsqClient{
-		o:             o,
-		Producer:      p,
-		logger:        logger.With(zap.String("type", "WalletService")),
-		db:            db,
+		o:        o,
+		Producer: p,
+		logger:   logger.With(zap.String("type", "WalletService")),
+		Repository:    Repository,
 		redisPool:     redisPool,
 		ethService:    ethService,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
 	//注册每个业务子类型的处理方法, BusinessType = 10
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet            //10-1 钱包账号注册
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit                   //10-2 充值
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer               //10-3 发起转账
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer           //10-4 确认转账
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 5)] = nsqClient.HandleBalance                   //10-5 查询账号余额
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 6)] = nsqClient.HandlePreWithDraw               //10-6 发起提现预审核
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 7)] = nsqClient.HandleWithDraw                  //10-7 确认提现
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 9)] = nsqClient.HandleSyncCollectionHistoryPage //10-9 同步收款历史
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 10)] = nsqClient.HandleSyncDepositHistoryPage   //10-10 同步充值历史
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 11)] = nsqClient.HandleSyncWithdrawHistoryPage  //10-11 同步提现历史
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 12)] = nsqClient.HandleSyncTransferHistoryPage  //10-12 同步转账历史
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 13)] = nsqClient.HandleUserSignIn               //10-13 签到
-	//TODO  10-15
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 14)] = nsqClient.HandleTxHashInfo //10-14查询交易哈希详情
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet            //10-1 钱包账号注册
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit                   //10-2 充值
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer               //10-3 发起转账
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer           //10-4 确认转账
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 5)] = nsqClient.HandleBalance                   //10-5 查询账号余额
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 6)] = nsqClient.HandlePreWithDraw               //10-6 发起提现预审核
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 7)] = nsqClient.HandleWithDraw                  //10-7 确认提现
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 9)] = nsqClient.HandleSyncCollectionHistoryPage //10-9 同步收款历史
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 10)] = nsqClient.HandleSyncDepositHistoryPage   //10-10 同步充值历史
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 11)] = nsqClient.HandleSyncWithdrawHistoryPage  //10-11 同步提现历史
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 12)] = nsqClient.HandleSyncTransferHistoryPage  //10-12 同步转账历史
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 13)] = nsqClient.HandleUserSignIn               //10-13 签到
+	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 14)] = nsqClient.HandleTxHashInfo               //10-14查询交易哈希详情
 
 	return nsqClient
 }
