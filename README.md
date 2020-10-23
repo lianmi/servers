@@ -311,6 +311,18 @@ openssl req -new -x509 -sha256 -key domain.key -out domain.crt -days 3650
 /Users/mac/developments/lianmi/blockchain/ethereum-simplenode-erc20/erc20_multisig
 ```
 
+# Mac 部署
+## ethereum目录
+
+```
+/Users/mac/developments/lianmi/blockchain/ethereum-poa
+
+```
+
+## 参考mac.md
+
+
+
 #  腾讯云服务器部署 
 ##   geth 参数详解 
 https://www.cnblogs.com/wanghui-garcia/p/10256520.html

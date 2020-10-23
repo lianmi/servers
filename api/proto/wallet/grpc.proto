@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+
+//钱包的Grpc接口
+service LianmiWallet {
+    //订单的转账(完成，退款)
+    rpc TransferByOrder (TransferReq) returns (TransferResp);
+}
+
+
+
+//==== 订单的转账(完成，退款) =====//
+message TransferReq {
+
+    //订单ID
+    string orderID =1;
+
+    //类型， 支付类型，1-向商户付款 ，2-退款
+    int32  payType =2;
+
+}
+
+message TransferResp {
+    int32 errCode = 1; //错误码  默认是0为成功， 非0-失败
+    string errMsg = 2; //错误描述
+
+}

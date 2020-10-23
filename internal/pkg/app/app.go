@@ -99,6 +99,7 @@ func MQTTOption(mc *mqtt.MQTTClient) Option {
 	}
 }
 
+
 func New(name string, logger *zap.Logger, options ...Option) (*Application, error) {
 	app := &Application{
 		name:   name,

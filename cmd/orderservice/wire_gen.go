@@ -8,6 +8,7 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/orderservice"
+	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -17,6 +18,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 // Injectors from wire.go:
@@ -58,7 +60,31 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
+	consulOptions, err := consul.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	configuration, err := jaeger.NewConfiguration(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	tracer, err := jaeger.New(configuration)
+	if err != nil {
+		return nil, err
+	}
+	clientOptions, err := grpc.NewClientOptions(viper, tracer)
+	if err != nil {
+		return nil, err
+	}
+	client, err := grpc.NewClient(consulOptions, clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
+	if err != nil {
+		return nil, err
+	}
+	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger, lianmiWalletClient)
 	application, err := orderservice.NewApp(orderserviceOptions, logger, nsqClient)
 	if err != nil {
 		return nil, err
@@ -68,4 +94,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqBackend.ProviderSet, orderservice.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, nsqBackend.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)

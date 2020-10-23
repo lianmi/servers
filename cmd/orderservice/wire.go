@@ -6,10 +6,9 @@ import (
 	"github.com/google/wire"
 
 	"github.com/lianmi/servers/internal/app/orderservice"
-	// "github.com/lianmi/servers/internal/app/orderservice/controllers"
-	"github.com/lianmi/servers/internal/app/orderservice/repositories"
-	// "github.com/lianmi/servers/internal/app/orderservice/services"
+	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -17,7 +16,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	// "github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 var providerSet = wire.NewSet(
@@ -29,10 +28,10 @@ var providerSet = wire.NewSet(
 	consul.ProviderSet,
 	jaeger.ProviderSet,
 	redis.ProviderSet,
-	// http.ProviderSet,
+	grpc.ProviderSet,
 	nsqBackend.ProviderSet,
 	orderservice.ProviderSet,
-	// controllers.ProviderSet,
+	grpcclients.ProviderSet,
 )
 
 func CreateApp(cf string) (*app.Application, error) {

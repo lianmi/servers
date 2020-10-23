@@ -100,6 +100,8 @@ message Product {
     //是否必须-是
     fixed64 ModifyAt = 24;
 
+    //是否允许撤单， 默认是可以，彩票类的不可以
+    bool AllowCancel = 25;
 
 }
 
@@ -118,14 +120,13 @@ message OrderProductBody {
     string businessUser=5;
     //商户的协商公钥
     string opkBusinessUser =6;
-    // 订单的总价格 , 支付的时候以这个金额 计算
+    // 订单的总金额, 支付的时候以这个金额 计算
     double OrderTotalAmount = 7 ;
 
     // json 格式的内容 , 由 ui 层处理 sdk 仅透传
     // 传输会进过sdk 处理
     string attach=8;
 
-    //加密信息(明文是JSON格式字符串)
     // 透传信息 , 不加密 ，直接传过去 不处理
     bytes userdata = 9 ;
 
@@ -204,5 +205,6 @@ message GeneralProduct {
     //是否必须-是
     fixed64 ModifyAt = 17;
 
-
+    //是否允许撤单， 默认是可以，彩票类的不可以
+    bool AllowCancel = 18;
 }

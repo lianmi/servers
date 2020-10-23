@@ -673,7 +673,7 @@ func queryLNMCBalance(addressHex string) error {
 
 }
 
-//LNMC代币转账, 从第1号叶子转到目标账号, amount 以LNMC为单位，每一枚=1分钱
+//LNMC代币转账, 从sourcePrivateKey对应的地址转到目标账号, amount 以LNMC为单位，每一枚=1分钱
 func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
@@ -703,7 +703,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 		log.Fatalf("conn contract: %v \n", err)
 	}
 
-	privateKey, err := crypto.HexToECDSA(sourcePrivateKey) //第1号叶子私钥
+	privateKey, err := crypto.HexToECDSA(sourcePrivateKey) //源钱包地址私钥
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -750,11 +750,11 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 			log.Fatal(err)
 		}
 
-		log.Println("代币从第1号叶子转到目标账号成功, 交易哈希: ", tx2.Hash().Hex()) //
-		log.Println("isPending: ", isPending)                     // false
+		log.Printf("代币从5s转到目标账号成功, 交易哈希: %s\n", fromAddress, tx2.Hash().Hex()) //
+		log.Println("isPending: ", isPending)                                  // false
 
 	} else {
-		log.Println("代币从第1号叶子转到目标账号失败")
+		log.Println("代币转到目标账号失败")
 	}
 
 	return nil

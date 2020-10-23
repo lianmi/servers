@@ -1,6 +1,7 @@
 package nsqBackend
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,9 +12,11 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/common"
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	LMCommon "github.com/lianmi/servers/internal/common"
 
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/crypt"
 
 	"google.golang.org/protobuf/proto"
 
@@ -156,6 +159,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				DiscountEndTime:   uint64(product.DiscountEndTime),
 				CreateAt:          uint64(product.CreateAt),
 				ModifyAt:          uint64(product.ModifyAt),
+				AllowCancel:       product.AllowCancel,
 			})
 		}
 
@@ -195,8 +199,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	rsp := &Order.AddProductRsp{}
-
-	// var newSeq uint64
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -331,6 +333,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			CreateAt:          time.Now().UnixNano() / 1e6,
+			AllowCancel:       req.Product.AllowCancel,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -505,6 +508,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			CreateAt:          time.Now().UnixNano() / 1e6,
+			AllowCancel:       req.Product.AllowCancel,
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
@@ -983,14 +987,16 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		//订单详情
 		_, err = redisConn.Do("HMSET",
-			fmt.Sprintf("orderInfo:%s", orderID),
-			"sourceUser", username, //发起订单的用户id
-			"deviceid", deviceID, //发起订单的用户设备id
-			"businessUser", req.GetUserName(), //商户的用户id
-			"productID", req.GetProductID(), //商品id，默认是空
-			"orderType", req.GetOrderType(), //订单类型
-			"orderState", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
-			"createAt", uint64(time.Now().UnixNano()/1e6), //秒
+			fmt.Sprintf("Order:%s", orderID),
+			"BuyUser", username, //发起订单的用户id
+			"BusinessUser", req.GetUserName(), //商户的用户id
+			"OrderID", orderID, //订单id
+			"ProductID", req.GetProductID(), //商品id，默认是空
+			"Type", req.GetOrderType(), //订单类型
+			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
+			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
+			"IsUrge", LMCommon.REDISFALSE, //催单
+			"CreateAt", uint64(time.Now().UnixNano()/1e6), //秒
 		)
 
 		//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
@@ -1171,13 +1177,13 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 
 func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 	// New client
-	client, err := oss.New(common.Endpoint, common.AccessID, common.AccessKey)
+	client, err := oss.New(LMCommon.Endpoint, LMCommon.AccessID, LMCommon.AccessKey)
 	if err != nil {
 		return err
 	}
 
 	// 获取存储空间。
-	bucket, err := client.Bucket(common.BucketName)
+	bucket, err := client.Bucket(LMCommon.BucketName)
 	if err != nil {
 		return err
 	}
@@ -1398,6 +1404,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			goto COMPLETE
 
 		} else {
+			//对attach进行哈希计算，以便获知订单内容是否发生改变
+			attachHash := crypt.Sha1(orderProductBody.GetAttach())
+
 			nc.logger.Debug("OrderProductBody payload",
 				zap.String("OrderID", orderProductBody.GetOrderID()),
 				zap.String("ProductID", orderProductBody.GetProductID()),
@@ -1405,8 +1414,11 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
 				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
 				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
-				zap.String("Attach", orderProductBody.GetAttach()), //加密的密文
-				zap.Int("State", int(orderProductBody.GetState())), //订单状态
+				zap.Float64("OrderTotalAmount", orderProductBody.GetOrderTotalAmount()),
+				zap.String("Attach", orderProductBody.GetAttach()),         //加密的密文
+				zap.String("AttachHash", attachHash),                       //订单内容的哈希
+				zap.ByteString("Userdata", orderProductBody.GetUserdata()), //透传信息 , 不加密 ，直接传过去 不处理
+				zap.Int("State", int(orderProductBody.GetState())),         //订单状态
 			)
 
 			//判断订单id不能为空
@@ -1417,121 +1429,144 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			// 判断商品id不能为空
-			if orderProductBody.GetProductID() == "" {
-				nc.logger.Error("ProductID is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ProductID is empty")
-				goto COMPLETE
-			}
+			//判断订单状态是不是 OS_Prepare, 如果是，则改为OS_SendOK
+			switch Global.OrderState(orderProductBody.GetState()) {
+			case Global.OrderState_OS_Prepare:
+				//TODO
 
-			//判断买家账号id不能为空
-			if orderProductBody.GetBuyUser() == "" {
-				nc.logger.Error("BuyUser is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BuyUser is empty")
-				goto COMPLETE
-			}
-
-			// 判断买家的OPK不能为空
-			if orderProductBody.GetOpkBuyUser() == "" {
-				nc.logger.Error("OpkBuyUser is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("OpkBuyUser is empty")
-				goto COMPLETE
-			}
-
-			//判断商户的账号id不能为空
-			if orderProductBody.GetBusinessUser() == "" {
-				nc.logger.Error("BusinessUse is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BusinessUse is empty")
-				goto COMPLETE
-			}
-
-			// 获取ProductID对应的商品信息
-			product := new(models.Product)
-			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.GetProductID()))); err == nil {
-				if err := redis.ScanStruct(result, product); err != nil {
-					nc.logger.Error("错误: ScanStruct", zap.Error(err))
+				//总金额不能小于或等于0
+				if orderProductBody.GetOrderTotalAmount() <= 0 {
+					nc.logger.Error("OrderTotalAmount is less than  0")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("This Product is not exists")
+					errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
 					goto COMPLETE
 				}
-			}
 
-			//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
-			if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
-				nc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Product is expire")
-				goto COMPLETE
-			}
+				// 判断商品id不能为空
+				if orderProductBody.GetProductID() == "" {
+					nc.logger.Error("ProductID is empty")
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("ProductID is empty")
+					goto COMPLETE
+				}
 
-			//将订单转发到商户
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.GetBusinessUser()))); err != nil {
-				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
-				goto COMPLETE
-			}
+				//判断买家账号id不能为空
+				if orderProductBody.GetBuyUser() == "" {
+					nc.logger.Error("BuyUser is empty")
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("BuyUser is empty")
+					goto COMPLETE
+				}
 
-			//判断订单状态是不是 OS_Prepare ， 如果是，则改为OS_SendOK
-			if Global.OrderState(orderProductBody.GetState()) == Global.OrderState_OS_Prepare {
+				// 判断买家的OPK不能为空
+				if orderProductBody.GetOpkBuyUser() == "" {
+					nc.logger.Error("OpkBuyUser is empty")
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("OpkBuyUser is empty")
+					goto COMPLETE
+				}
+
+				//判断商户的账号id不能为空
+				if orderProductBody.GetBusinessUser() == "" {
+					nc.logger.Error("BusinessUse is empty")
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("BusinessUse is empty")
+					goto COMPLETE
+				}
+
+				// 获取ProductID对应的商品信息
+				product := new(models.Product)
+				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.GetProductID()))); err == nil {
+					if err := redis.ScanStruct(result, product); err != nil {
+						nc.logger.Error("错误: ScanStruct", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("This Product is not exists")
+						goto COMPLETE
+					}
+				}
+
+				//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
+				if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
+					nc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("Product is expire")
+					goto COMPLETE
+				}
+
+				//将订单转发到商户
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.GetBusinessUser()))); err != nil {
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = "INCR Error"
+					goto COMPLETE
+				}
 				orderProductBody.State = Global.OrderState_OS_SendOK
-			} else {
+				orderProductBodyData, _ = proto.Marshal(orderProductBody)
+
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+					Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+					Body:         orderProductBodyData,               //订单载体 OrderProductBody
+					From:         username,                           //谁发的
+					FromDeviceId: deviceID,                           //哪个设备发的
+					Recv:         req.GetTo(),                        //商户账户id
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+
+				//对attach进行哈希计算，以便获知订单内容是否发生改变
+				attachHash := crypt.Sha1(orderProductBody.GetAttach())
+
+				// 将订单信息缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
+				_, err = redisConn.Do("HMSET",
+					orderProductBodyKey,
+					"Username", username,
+					"OrderID", orderProductBody.GetOrderID(),
+					"ProductID", orderProductBody.GetProductID(),
+					"BuyUser", orderProductBody.GetBuyUser(),
+					"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
+					"BusinessUser", orderProductBody.GetBusinessUser(),
+					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
+					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
+					"AttachHash", attachHash, //订单内容的哈希值
+					"UserData", orderProductBody.GetUserdata(), //透传数据
+					"State", orderProductBody.GetState(), //订单状态
+				)
+
+				// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
+
+				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.GetOrderID())
+				_, err = redisConn.Do("HMSET",
+					orderIDKey,
+					// "OrderID", orderProductBody.GetOrderID(), //不能写入，在创建的时候已经有值
+					"ProductID", orderProductBody.GetProductID(), //商品id
+					"BuyUser", orderProductBody.GetBuyUser(), //买家
+					"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
+					"BusinessUser", orderProductBody.GetBusinessUser(), //商户
+					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
+					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
+					"AttachHash", attachHash, //订单内容的哈希值
+					"UserData", orderProductBody.GetUserdata(), //透传数据
+					"State", orderProductBody.GetState(), //订单状态
+				)
+
+				//向商户发送订单消息
+				go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
+
+			default:
+
 				nc.logger.Error("订单状态 Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "OrderProductBody state error, state is not OS_Prepare"
+				errorMsg = "OrderProductBody state error, state must be prepare"
 				goto COMPLETE
+
 			}
 
-			orderProductBodyData, _ = proto.Marshal(orderProductBody)
-
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-				Body:         orderProductBodyData,               //订单载体 OrderProductBody
-				From:         username,                           //谁发的
-				FromDeviceId: deviceID,                           //哪个设备发的
-				Recv:         req.GetTo(),                        //商户账户id
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
-			// 将订单信息缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
-			orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
-			_, err = redisConn.Do("HMSET",
-				orderProductBodyKey,
-				"Username", username,
-				"OrderID", orderProductBody.GetOrderID(),
-				"ProductID", orderProductBody.GetProductID(),
-				"BuyUser", orderProductBody.GetBuyUser(),
-				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
-				"BusinessUser", orderProductBody.GetBusinessUser(),
-				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-				"Attach", orderProductBody.GetAttach(), //加密的密文
-				"State", orderProductBody.GetState(), //订单状态
-			)
-
-			// 将订单信息缓存在redis里的一个哈希表里, 以 orderID 对应
-			orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.GetOrderID())
-			_, err = redisConn.Do("HMSET",
-				orderIDKey,
-				"Username", username, //当前用户
-				"OrderID", orderProductBody.GetOrderID(),
-				"ProductID", orderProductBody.GetProductID(),
-				"BuyUser", orderProductBody.GetBuyUser(), //买家
-				"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
-				"BusinessUser", orderProductBody.GetBusinessUser(), //商户
-				"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-				"Attach", orderProductBody.GetAttach(), //加密的密文
-				"State", orderProductBody.GetState(), //订单状态
-			)
-
-			//向商户发送订单消息
-			go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
 		}
 
 	}
@@ -1581,12 +1616,22 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
-	var toUsername string
+
+	var orderBodyData []byte
+	var orderID, productID string
+
+	var buyUser, businessUser string
+	var toUsername string //目标用户账号id，可能是商户，可能是买家
+
+	var attachHash string
+	var orderTotalAmount float64 //订单金额
+	var isPayed, isUrge bool
+	var orderIDKey string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
-	username := msg.GetUserName()
+	username := msg.GetUserName() //当前用户
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
@@ -1620,78 +1665,100 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("ChangeOrderState payload",
-			zap.Int("State", int(req.GetState())),
-			zap.Uint64("TimeAt", req.TimeAt),
-			zap.String("OrderID", req.OrderBody.GetOrderID()),
-			zap.String("ProductID", req.OrderBody.GetProductID()),
-			zap.String("BuyUser", req.OrderBody.GetBuyUser()),
-			zap.String("OpkBuyUser", req.OrderBody.GetOpkBuyUser()),
-			zap.String("BusinessUser", req.OrderBody.GetBusinessUser()),
-			zap.String("OpkBusinessUser", req.OrderBody.GetOpkBusinessUser()),
-			zap.Float64("OrderTotalAmount", req.OrderBody.GetOrderTotalAmount()),
-			zap.String("Attach", req.OrderBody.GetAttach()),
-			// zap.String("Userdata", req.OrderBody.GetUserdata()),
-		)
+
 		if req.OrderBody.GetOrderID() == "" {
 			nc.logger.Error("OrderID is empty")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("OrderID is empty")
 			goto COMPLETE
 		}
+		orderID = req.OrderBody.GetOrderID()
 
-		if req.OrderBody.GetProductID() == "" {
+		//根据订单id获取buyUser及businessUser是谁
+		orderIDKey = fmt.Sprintf("Order:%s", orderID)
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", orderIDKey)); err != nil {
+			nc.logger.Error("EXISTS")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("orderIDKey is not exists")
+			goto COMPLETE
+		} else {
+			if isExists == false {
+				nc.logger.Error("orderIDKey is not exists")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("orderIDKey is not exists")
+				goto COMPLETE
+			}
+		}
+
+		//获取订单的具体信息
+		isPayed, err = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
+		isUrge, err = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsUrge"))
+		productID, err = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+		buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
+		businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+		orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+		attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
+
+		if err != nil {
+			nc.logger.Error("从Redis里取出此 Order 对应的businessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
+		}
+
+		if productID == "" {
 			nc.logger.Error("ProductID is empty")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ProductID is empty")
 			goto COMPLETE
 		}
 
-		if req.OrderBody.GetBuyUser() == "" {
+		if buyUser == "" {
 			nc.logger.Error("BuyUser is empty")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("BuyUser is empty")
 			goto COMPLETE
 		}
 
-		if req.OrderBody.GetOpkBuyUser() == "" {
-			nc.logger.Error("OpkBuyUser is empty")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OpkBuyUser is empty")
-			goto COMPLETE
-		}
-
-		if req.OrderBody.GetBusinessUser() == "" {
+		if businessUser == "" {
 			nc.logger.Error("BusinessUse is empty")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("BusinessUse is empty")
 			goto COMPLETE
 		}
 
-		if req.OrderBody.GetOpkBusinessUser() == "" {
-			nc.logger.Error("OpkBusinessUser is empty")
+		if orderTotalAmount <= 0 {
+			nc.logger.Error("OrderTotalAmount is less than 0")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OpkBusinessUser is empty")
+			errorMsg = fmt.Sprintf("OrderTotalAmount is less than 0")
 			goto COMPLETE
 		}
 
-		//判断ToUser方是谁
-		if username == req.OrderBody.GetBuyUser() {
-			toUsername = req.OrderBody.GetBusinessUser()
-
+		//明确目标用户是买家还是商户
+		if buyUser == username {
+			toUsername = businessUser
 		} else {
-			toUsername = req.OrderBody.GetBuyUser()
+			toUsername = buyUser
 		}
+
+		nc.logger.Debug("ChangeOrderState",
+			zap.Int("State", int(req.GetState())), //需要更新的状态
+			zap.Uint64("TimeAt", req.TimeAt),
+			zap.String("OrderID", orderID),
+			zap.String("ProductID", productID),
+			zap.String("BuyUser", buyUser),
+			zap.String("BusinessUser", businessUser),
+			zap.String("当前操作者账号 username", username),
+			zap.String("目标用户账号 toUsername", toUsername),
+			zap.Float64("OrderTotalAmount", orderTotalAmount),
+		)
 
 		//从redis里获取买家信息
 		buyerData := new(models.User)
-		userKey := fmt.Sprintf("userData:%s", req.OrderBody.GetBuyUser())
+		userKey := fmt.Sprintf("userData:%s", buyUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, buyerData); err != nil {
 
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.OrderBody.GetBuyUser())
+				errorMsg = fmt.Sprintf("ScanStruct Error[buyUser=%s]", buyUser)
 				goto COMPLETE
 
 			}
@@ -1699,13 +1766,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		//从redis里获取商户的信息
 		businessUserData := new(models.User)
-		userKey = fmt.Sprintf("userData:%s", req.OrderBody.GetBusinessUser())
+		userKey = fmt.Sprintf("userData:%s", businessUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
 
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.OrderBody.GetBusinessUser())
+				errorMsg = fmt.Sprintf("ScanStruct Error[businessUser=%s]", businessUser)
 				goto COMPLETE
 
 			}
@@ -1713,27 +1780,29 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		//判断商户是否被封号
 		if businessUserData.State == 2 {
-			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.OrderBody.GetBusinessUser()))
+			nc.logger.Warn("此商户已被封号", zap.String("businessUser", businessUser))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.OrderBody.GetBusinessUser())
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", businessUser)
 			goto COMPLETE
 		}
+
 		//判断此订单是否已经在商户的有序集合里orders:{账号id}
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("orders:%s", req.OrderBody.GetBusinessUser()), req.OrderBody.GetOrderID()); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("orders:%s", businessUser), orderID); err == nil {
 			if reply == nil {
 				//此订单id不属于此商户
 				nc.logger.Error("此订单id不属于此商户",
-					zap.String("OrderID", req.OrderBody.GetOrderID()),
+					zap.String("OrderID", orderID),
 				)
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("This orderid is not be geared to BusinessUser:[%s]", req.OrderBody.GetBusinessUser())
+				errorMsg = fmt.Sprintf("This orderid is not be geared to BusinessUser:[%s]", businessUser)
 				goto COMPLETE
 			}
 
 		}
+
 		// 获取ProductID对应的商品信息
 		product := new(models.Product)
-		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.OrderBody.GetProductID()))); err == nil {
+		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 			if err := redis.ScanStruct(result, product); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1743,77 +1812,385 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//获取当前订单的状态
-		curState, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()), "orderState"))
+		curState, err := redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
+
+		//如果当前状态与即将更改的状态一样，则直接返回
+		if Global.OrderState(curState) == req.GetState() {
+			nc.logger.Warn("警告: 当前状态与即将更改的状态一样")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Order state is the same as current state")
+			goto COMPLETE
+		}
+
+		//根据当前订单的状态做逻辑，某些状态不能更新
 		switch Global.OrderState(curState) {
-		case Global.OrderState_OS_Undefined:
-			_, err = redisConn.Do("HSET",
-				fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()),
-				"orderState", Global.OrderState_OS_Prepare, //预审核
-			)
 
-		case Global.OrderState_OS_Prepare, //预审核
-			Global.OrderState_OS_SendOK,      //订单发送成功
-			Global.OrderState_OS_RecvOK,      //订单送达成功
-			Global.OrderState_OS_Taked,       //接单成功
-			Global.OrderState_OS_Processing,  //订单处理中
-			Global.OrderState_OS_Done,        //完成订单
-			Global.OrderState_OS_ApplyCancel: //用户申请撤单
+		case Global.OrderState_OS_Undefined: //未定义
+			//将redis里的订单信息哈希表状态字段设置为最新状态
+			_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.GetState()))
 
-			if req.OrderBody.GetBusinessUser() == username { //只有商户才能有权更改订单状态为完成或撤单
-				if req.GetState() == Global.OrderState_OS_Done || req.GetState() == Global.OrderState_OS_Cancel {
-					//pass
-				} else {
-					nc.logger.Warn("警告: 只有商户才能有权更改订单状态为撤单或完成")
+		case Global.OrderState_OS_Done: //当前处于: 完成订单
+			if businessUser == username {
+				nc.logger.Warn("警告: 当前状态处于完成订单状态, 不能更改为其它")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order state is done, you cannot change state")
+				goto COMPLETE
+			} else {
+				if req.GetState() != Global.OrderState_OS_Confirm {
+					nc.logger.Warn("警告: 当前状态处于完成订单状态, 只能选择确认")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("You have not right to change order state")
+					errorMsg = fmt.Sprintf("Order state is done, you only change to confirm")
 					goto COMPLETE
 				}
 			}
 
-			_, err = redisConn.Do("HSET",
-				fmt.Sprintf("orderInfo:%s", req.OrderBody.GetOrderID()),
-				"orderState", int(req.GetState()), //订单状态
-			)
+		case Global.OrderState_OS_ApplyCancel: //当前处于: 买家申请撤单
 
-		case Global.OrderState_OS_Confirm: //确认收货
+			// if businessUser == username { //只有商户才能有权更改订单状态为完成、撤单、更改订单内容（金额）
+			// 	if req.GetState() == Global.OrderState_OS_Done ||
+			// 		req.GetState() == Global.OrderState_OS_Cancel {
+			// 		//pass
+			// 	} else {
+			// 		nc.logger.Warn("警告: 只有商户才能有权更改订单状态为撤单或完成")
+			// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			// 		errorMsg = fmt.Sprintf("You have not right to change order state")
+			// 		goto COMPLETE
+			// 	}
+			// }
+
+		case Global.OrderState_OS_Confirm: //当前处于:  确认收货
 			nc.logger.Warn("警告: 此订单已经确认收货,不能再更改其状态")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order is confirmed")
+			errorMsg = fmt.Sprintf("This order state is confirmed")
 			goto COMPLETE
 
-		case Global.OrderState_OS_Cancel: //撤单
+		case Global.OrderState_OS_Cancel: //当前处于: 撤单
 			nc.logger.Warn("警告: 此订单已撤单,不能再更改其状态")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order is canceled")
+			errorMsg = fmt.Sprintf("This order state is canceled")
 			goto COMPLETE
 
-		}
+		case Global.OrderState_OS_AttachChange: //当前处于: 订单内容发生更改
 
-		//TODO 如果是完成或撤单，需要向钱包发送结算
-
-		//将最新订单状态转发到目标用户
-		if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
-			nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+		case Global.OrderState_OS_Paying: //当前状态为支付中， 锁定订单，不能更改，直到支付完成
+			nc.logger.Warn("警告: 此订单当前状态为支付中, 不能更改状态")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = "INCR Error"
+			errorMsg = fmt.Sprintf("This order state is paying")
 			goto COMPLETE
+
+		case Global.OrderState_OS_IsPayed: // 已支付， 支付成功
+			nc.logger.Debug("此订单当前状态为已支付， 支付成功")
+
+		// case Global.OrderState_OS_Overdue: // 已逾期, 订单终止，无法再更改状态了的
+		// 	nc.logger.Warn("警告: 此订单当前状态为已逾期, 不能更改状态")
+		// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		// 	errorMsg = fmt.Sprintf("This order state is overdue")
+		// 	goto COMPLETE
+
+		case Global.OrderState_OS_Refuse: //当前处于: 已拒单
+			nc.logger.Warn("警告: 此订单已拒单,不能再更改其状态")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("This order state is refuse")
+			goto COMPLETE
+
+		case Global.OrderState_OS_Urge: // 买家催单, 商户可以回复7， 只能催一次
+			if req.GetState() == Global.OrderState_OS_Urge {
+				nc.logger.Warn("警告: 此订单当前状态为买家催单, 只能催一次")
+
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("This order state is urge")
+				goto COMPLETE
+
+			}
+
 		}
 
-		orderBodyData, _ := proto.Marshal(req.OrderBody)
+		//根据最新状态要处理的逻辑
+		switch req.GetState() {
+		case Global.OrderState_OS_Taked: //已接单, 向买家推送通知
+			if toUsername == buyUser {
+				nc.logger.Warn("警告: 买家不能接单，SDK逻辑错误")
 
-		eRsp := &Msg.RecvMsgEventRsp{
-			Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-			Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-			Body:         orderBodyData,                      //发起方的body负载
-			From:         username,                           //谁发的
-			FromDeviceId: deviceID,                           //哪个设备发的
-			ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-			Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-			Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-			Time:         uint64(time.Now().UnixNano() / 1e6),
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BuyUser cannot change state into OS_Taked")
+				goto COMPLETE
+			}
+			nc.logger.Debug("已接单, 向买家推送通知", zap.String("BusinessUser", businessUser))
+
+			//通知买家
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Taked,
+			})
+
+		case Global.OrderState_OS_AttachChange: //订单内容发生更改, 需要解包
+			if isPayed {
+				nc.logger.Error("完成支付之后不能修改订单内容及金额")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order cannot change after payed.")
+				goto COMPLETE
+			}
+
+			//判断订单id不能为空
+			if req.GetOrderBody().GetOrderID() == "" {
+				nc.logger.Error("OrderID is empty")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("OrderID is empty")
+				goto COMPLETE
+			}
+
+			if req.GetOrderBody().GetOrderTotalAmount() <= 0 {
+				nc.logger.Error("OrderTotalAmount is less than  0")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
+				goto COMPLETE
+			}
+
+			//订单金额改变或者哈希发生改变
+			cur_attachHash := crypt.Sha1(req.GetOrderBody().GetAttach())
+			if orderTotalAmount != req.GetOrderBody().GetOrderTotalAmount() || attachHash != cur_attachHash {
+				nc.logger.Debug("OrderBody change，订单内容或金额发生改变",
+					zap.String("OrderID", req.GetOrderBody().GetOrderID()),
+					zap.String("ProductID", req.GetOrderBody().GetProductID()),
+					zap.String("BuyUser", req.GetOrderBody().GetBuyUser()),
+					zap.String("OpkBuyUser", req.GetOrderBody().GetOpkBuyUser()),
+					zap.String("BusinessUser", req.GetOrderBody().GetBusinessUser()),
+					zap.String("OpkBusinessUser", req.GetOrderBody().GetOpkBusinessUser()),
+					zap.Float64("OrderTotalAmount", req.GetOrderBody().GetOrderTotalAmount()),
+					zap.String("Attach", req.GetOrderBody().GetAttach()), //加密的密文
+					zap.String("AttachHash", cur_attachHash),             //订单内容哈希
+					zap.Int("State", int(req.GetOrderBody().GetState())), //订单状态
+				)
+
+				//将OrderTotalAmount, Attach， AttachHash， UserData 更新到redis里
+				_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.GetOrderBody().GetOrderTotalAmount())
+				_, err = redisConn.Do("HSET", orderIDKey, "Attach", req.GetOrderBody().GetAttach())
+				_, err = redisConn.Do("HSET", orderIDKey, "AttachHash", cur_attachHash)
+				_, err = redisConn.Do("HSET", orderIDKey, "UserData", req.GetOrderBody().GetUserdata())
+			}
+
+			//通知对方
+			orderBodyData, _ = proto.Marshal(req.OrderBody)
+
+		case Global.OrderState_OS_Done: //完成订单, 商户发送的
+			if isPayed == false {
+				nc.logger.Error("完成订单, 商户发送的， 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order is not payed.")
+				goto COMPLETE
+			}
+
+			//通知买家
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Done,
+			})
+
+		case Global.OrderState_OS_ApplyCancel: // 买家申请撤单
+			if isPayed == false {
+				nc.logger.Error("买家申请撤单, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BuyUser apply cancel order, but not payed error.")
+				goto COMPLETE
+			}
+
+			//通知商家
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_ApplyCancel,
+			})
+
+		case Global.OrderState_OS_Cancel: // 商户同意撤单
+			if isPayed == false {
+				nc.logger.Error("商户同意撤单, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BusinessUser agree cancel order, but not payed error.")
+				goto COMPLETE
+			}
+
+			//TODO 如果是完成或撤单，需要向钱包发送结算
+
+			//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
+			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+				OrderID: orderID,
+				PayType: LMCommon.OrderTransferForCancel, //退款
+			})
+			if err != nil {
+				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Micro service error.")
+				goto COMPLETE
+			} else {
+				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+
+			}
+
+			//通知买家
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Cancel,
+			})
+
+		case Global.OrderState_OS_Processing: //订单处理中，一般用于商户，安抚下单的
+			//通知买家
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Processing,
+			})
+
+		case Global.OrderState_OS_Confirm: //确认收货
+			if isPayed == false {
+				nc.logger.Error("买家确认收货, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BuyUser confirm, but not payed error.")
+				goto COMPLETE
+			}
+			//TODO 如果是完成或撤单，需要向钱包发送结算
+
+			//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
+			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+				OrderID: orderID,
+				PayType: LMCommon.OrderTransferForDone, //完成结算
+			})
+			if err != nil {
+				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Micro service error.")
+				goto COMPLETE
+			} else {
+				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+
+			}
+
+			//通知商户
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Confirm,
+			})
+
+		case Global.OrderState_OS_Paying: // 支付中， 此状态不能由用户设置
+			nc.logger.Error("支付中， 此状态不能由用户设置")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Set state error")
+			goto COMPLETE
+
+		case Global.OrderState_OS_Overdue: //已逾期
+
+		case Global.OrderState_OS_IsPayed: //已支付， 支付成功
+			if isPayed == false {
+				nc.logger.Error("商户拒单, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BusinessUser refuse order, but not payed error.")
+				goto COMPLETE
+			}
+
+		case Global.OrderState_OS_Refuse: //商户拒单， 跟已接单是相反的操作
+			if isPayed == false {
+				nc.logger.Error("商户拒单, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("BusinessUser refuse order, but not payed error.")
+				goto COMPLETE
+			}
+
+			//向买家发送通知，并且发送grpc消息给钱包服务端，完成退款操作
+			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+				OrderID: orderID,
+				PayType: LMCommon.OrderTransferForCancel, //退款
+			})
+
+			if err != nil {
+				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Micro service error.")
+				goto COMPLETE
+			} else {
+				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+
+			}
+			//通知用户
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Refuse,
+			})
+
+		case Global.OrderState_OS_Urge:
+			if isPayed == false {
+				nc.logger.Error("买家催单, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order is not payed error.")
+				goto COMPLETE
+			}
+			if isUrge == true {
+				nc.logger.Error("买家催单, 只能催一次")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order has already puged")
+				goto COMPLETE
+			}
+
+			//通知商户
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Urge,
+			})
+
+		default:
+			nc.logger.Debug("Do nothing ...'", zap.Int("State", int(req.GetState())))
 		}
 
-		go nc.BroadcastSystemMsgToAllDevices(eRsp, toUsername)
+		//将redis里的订单信息哈希表状态字段设置为最新状态
+		_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.GetState()))
+
+		if len(orderBodyData) > 0 {
+			//将最新订单状态转发到目标用户
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = "INCR Error"
+				goto COMPLETE
+			}
+
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+				Body:         orderBodyData,                      //发起方的body负载
+				From:         username,                           //谁发的
+				FromDeviceId: deviceID,                           //哪个设备发的
+				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+				Time:         uint64(time.Now().UnixNano() / 1e6),
+			}
+
+			go nc.BroadcastSystemMsgToAllDevices(eRsp, toUsername)
+		}
+
 	}
 
 COMPLETE:
@@ -1835,6 +2212,7 @@ COMPLETE:
 		nc.logger.Error("HandleChangeOrderState: Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
+
 	return nil
 }
 
@@ -1988,13 +2366,9 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 }
 
 /*
-9-11 确认支付订单, 转发到钱包服务进行下一步处理
+将源账号的一定数量的代币转到目标账号
 */
-func (nc *NsqClient) HandlePayOrder(msg *models.Message) error {
-	msg.BuildRouter("Wallet", "", "Wallet.Backend")
-	topic := "Wallet.Backend"
+func (nc *NsqClient) DoTransfer(fromUsername, targetUsername string, amount uint64) error {
 
-	rawData, _ := json.Marshal(msg)
-	go nc.Producer.Public(topic, rawData)
 	return nil
 }

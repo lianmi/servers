@@ -43,6 +43,7 @@ func MockGeneralProduct() error {
 		ProductPic3Large:  "",                              //商品图片3-大图
 		Thumbnail:         "",                              //商品短视频缩略图
 		ShortVideo:        "",                              //商品短视频
+		AllowCancel:       false,
 	}
 	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(key).AddFlat(productInfo)...); err != nil {
 		log.Println("错误：HMSET", err.Error())

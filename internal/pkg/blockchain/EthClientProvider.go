@@ -775,20 +775,20 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 一般用于发币账户转到 多签智能合约及其它账号
 如果是充值，则第一个参数是第1号叶子的私钥
 */
-func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, amount int64) error {
+func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, amount int64) (uint64, string, error) {
 
 	//使用总发币的合约地址
 	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
 		s.logger.Error("NewERC20Token failed ", zap.Error(err))
-		return err
+		return 0, "", err
 	}
 
 	//发起转账的用户的私钥
 	privateKey, err := crypto.HexToECDSA(sourcePrivateKey)
 	if err != nil {
 		s.logger.Error("HexToECDSA failed ", zap.Error(err))
-		return err
+		return 0, "", err
 	}
 	auth := bind.NewKeyedTransactor(privateKey)
 
@@ -801,7 +801,7 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 	if err != nil {
 
 		s.logger.Error("TransferFrom failed ", zap.Error(err))
-		return err
+		return 0, "", err
 	}
 	// fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
 
@@ -811,17 +811,17 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferTx.Hash())
 		if err != nil {
 			s.logger.Error("TransferFrom failed ", zap.Error(err))
-			return err
+			return 0, "", err
 		}
 		s.logger.Info("转账成功",
 			zap.String("Hash", tx.Hash().Hex()),
 			zap.Bool("isPending", isPending),
 		)
 
-		return nil
+		return blockNumber, tx.Hash().Hex(), nil
 	} else {
-		s.logger.Error("代币转账到多签合约账户失败")
-		return errors.New("代币转账到多签合约账户失败")
+		s.logger.Error("代币转账到目标账户失败")
+		return 0, "", errors.New("代币转账到目标账户失败")
 	}
 
 }

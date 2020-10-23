@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 
+	// "context"
+
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -21,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"github.com/nsqio/go-nsq"
@@ -55,6 +58,7 @@ type NsqClient struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
+	walletSvc Wallet.LianmiWalletClient
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 	handleFuncMap map[uint32]func(payload *models.Message) error
 }
@@ -133,12 +137,15 @@ func initProducer(addr string) (*nsqProducer, error) {
 	return &nsqProducer{producer}, nil
 }
 
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger) *NsqClient {
+func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger, walletSvc Wallet.LianmiWalletClient) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
+	}
+	if walletSvc != nil {
+		logger.Info("LianmiWalletClient 连接walletservice微服务成功")
 	}
 
 	logger.Info("启动Nsq生产者成功")
@@ -149,8 +156,21 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		logger:        logger.With(zap.String("type", "OrderService")),
 		db:            db,
 		redisPool:     redisPool,
+		walletSvc:     walletSvc,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
+	/*
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		transferResp, err := walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+			OrderID: "test-23432432-00000-kkkkk",
+			PayType: int32(1),
+		})
+		if err != nil {
+			logger.Error(" walletSvc.TransferByOrder Error", zap.Error(err))
+		} else {
+			logger.Debug("transferResp", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+		}
+	*/
 
 	//注册每个业务子类型的处理方法
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = nsqClient.HandleQueryProducts  //7-1  查询某个商户的所有商品信息
@@ -166,8 +186,6 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 5)] = nsqClient.HandleChangeOrderState //9-5 对订单进行状态更改
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 6)] = nsqClient.HandleGetPreKeysCount  //9-8 商户获取OPK存量
-
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 11)] = nsqClient.HandlePayOrder //9-11 确认支付订单
 
 	return nsqClient
 }

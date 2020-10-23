@@ -522,14 +522,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 					var orderProductBody = new(Order.OrderProductBody)
 					orderProductBody.State = Global.OrderState_OS_RecvOK
 					orderProductBody.OrderID = orderID
-					// orderProductBody.ProductID = productID
-					//其他的不传
-					// orderProductBody.BuyUser = buyUser
-					// orderProductBody.OpkBuyUser = opkBuyUser
-					// orderProductBody.BusinessUser = businessUser
-					// orderProductBody.OpkBusinessUser = opkBusinessUser
-					// orderProductBody.OrderTotalAmount = orderTotalAmount
-					// orderProductBody.Attach = attach
+					//将redis里的订单信息哈希表状态字段设置为OS_RecvOK
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", buyUser))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))

@@ -5,6 +5,12 @@ package common
 
 import "time"
 
+//redis
+const (
+	REDISTRUE  = 1
+	REDISFALSE = 0
+)
+
 const (
 	SecretKey   = "lianimicloud-secret"                                         //salt for jwt
 	IdentityKey = "userName"                                                    //jwt key
@@ -100,4 +106,13 @@ const (
 
 	//抽取佣金费率
 	FEERATE float64 = 0.002
+)
+
+//订单相关
+const (
+	//订单完成后，买家发送确认收货
+	OrderTransferForDone = int32(1)
+
+	//订单由买家发起撤单申请，商户同意撤单并退款
+	OrderTransferForCancel = int32(2)
 )

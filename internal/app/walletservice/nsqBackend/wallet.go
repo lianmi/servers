@@ -549,7 +549,12 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 			toUsername = businessUser
 			toWalletAddress = newKeyPair.AddressHex //中转账号
+
+			//将redis里的订单信息哈希表状态字段设置为 OS_Paying
+			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_Paying))
+
 		}
+
 		if toUsername == "" {
 			nc.logger.Error("严重错误, toUsername为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1027,6 +1032,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				TxHash:            hash,
 			}
 			nc.SaveCollectionHistory(lnmcCollectionHistory)
+
 		}
 
 		// 10-16 连米币到账通知事件
@@ -1041,6 +1047,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		//9-12，通知双方
 		if req.GetOrderID() != "" {
+
+			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
+			orderIDKey := fmt.Sprintf("Order:%s", req.GetOrderID())
+			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_IsPayed))
+			_, err = redisConn.Do("HSET", orderIDKey, "IsPayed", LMCommon.REDISTRUE)
+
 			// 9-12 支付订单完成的事件
 			orderPayDoneEventRsp := &Order.OrderPayDoneEventRsp{
 				OrderID:      req.GetOrderID(),
@@ -1051,12 +1063,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
-			//向接收者推送 9-12 支付订单完成的事件
-			nc.logger.Debug("向接收者推送 9-12 支付订单完成的事件", zap.String("toUsername", toUsername))
+			//向接收者推送 9-12 订单支付完成的事件
+			nc.logger.Debug("向接收者推送 9-12 订单支付完成的事件", zap.String("toUsername", toUsername))
 			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
 
 			//向支付发起者推送 9-12 支付订单完成的事件
-			nc.logger.Debug("向支付发起者推送 9-12 支付订单完成的事件", zap.String("username", username))
+			nc.logger.Debug("向支付发起者推送 9-12 订单支付完成的事件", zap.String("username", username))
 			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 
 			//刷新接收者redis里的代币数量

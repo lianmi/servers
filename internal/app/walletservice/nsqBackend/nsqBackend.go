@@ -13,8 +13,8 @@ import (
 
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
+
 	"github.com/jinzhu/gorm"
 
 	"github.com/lianmi/servers/util/randtool"
@@ -25,6 +25,7 @@ import (
 
 	"github.com/nsqio/go-nsq"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
 )
 
@@ -168,7 +169,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 11)] = nsqClient.HandleSyncWithdrawHistoryPage  //10-11 同步提现历史
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 12)] = nsqClient.HandleSyncTransferHistoryPage  //10-12 同步转账历史
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 13)] = nsqClient.HandleUserSignIn               //10-13 签到
-	//TODO  10-14 10-15
+	//TODO  10-15
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 14)] = nsqClient.HandleTxHashInfo //10-14查询交易哈希详情
 
 	return nsqClient

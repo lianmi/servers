@@ -403,21 +403,22 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 		//增加
 
 		if err := pc.service.AddGeneralProduct(&models.GeneralProduct{
-			ProductID:   uuid.NewV4().String(), //商品ID
-			ProductName: og.ProductName,        //商品名称
-			ProductType:       int(og.ProductType),  //商品种类枚举
-			ProductDesc:       og.ProductDesc,       //商品详细介绍
-			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
-			ProductPic1Middle: og.ProductPic1Middle, //商品图片1-中图
-			ProductPic1Large:  og.ProductPic1Large,  //商品图片1-大图
-			ProductPic2Small:  og.ProductPic2Small,  //商品图片2-小图
-			ProductPic2Middle: og.ProductPic2Middle, //商品图片2-中图
-			ProductPic2Large:  og.ProductPic2Large,  //商品图片2-大图
-			ProductPic3Small:  og.ProductPic3Small,  //商品图片3-小图
-			ProductPic3Middle: og.ProductPic3Middle, //商品图片3-中图
-			ProductPic3Large:  og.ProductPic3Large,  //商品图片3-大图
-			Thumbnail:         og.Thumbnail,         //商品短视频缩略图
-			ShortVideo:        og.ShortVideo,        //商品短视频
+			ProductID:         uuid.NewV4().String(), //商品ID
+			ProductName:       og.ProductName,        //商品名称
+			ProductType:       int(og.ProductType),   //商品种类枚举
+			ProductDesc:       og.ProductDesc,        //商品详细介绍
+			ProductPic1Small:  og.ProductPic1Small,   //商品图片1-小图
+			ProductPic1Middle: og.ProductPic1Middle,  //商品图片1-中图
+			ProductPic1Large:  og.ProductPic1Large,   //商品图片1-大图
+			ProductPic2Small:  og.ProductPic2Small,   //商品图片2-小图
+			ProductPic2Middle: og.ProductPic2Middle,  //商品图片2-中图
+			ProductPic2Large:  og.ProductPic2Large,   //商品图片2-大图
+			ProductPic3Small:  og.ProductPic3Small,   //商品图片3-小图
+			ProductPic3Middle: og.ProductPic3Middle,  //商品图片3-中图
+			ProductPic3Large:  og.ProductPic3Large,   //商品图片3-大图
+			Thumbnail:         og.Thumbnail,          //商品短视频缩略图
+			ShortVideo:        og.ShortVideo,         //商品短视频
+			AllowCancel:       og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
 
 		}); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
@@ -445,8 +446,8 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		}
 
 		if err := pc.service.UpdateGeneralProduct(&models.GeneralProduct{
-			ProductID:   og.ProductId,   //商品ID
-			ProductName: og.ProductName, //商品名称
+			ProductID:         og.ProductId,         //商品ID
+			ProductName:       og.ProductName,       //商品名称
 			ProductType:       int(og.ProductType),  //商品种类枚举
 			ProductDesc:       og.ProductDesc,       //商品详细介绍
 			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
@@ -460,6 +461,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			ProductPic3Large:  og.ProductPic3Large,  //商品图片3-大图
 			Thumbnail:         og.Thumbnail,         //商品短视频缩略图
 			ShortVideo:        og.ShortVideo,        //商品短视频
+			AllowCancel:       og.AllowCancel,       //是否允许撤单， 默认是可以，彩票类的不可以
 
 		}); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")

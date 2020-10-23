@@ -3,6 +3,8 @@ app:
 http:
   mode: release
   port: 0
+grpc:
+  port: 0    
 db:
   url: lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
   debug: false  

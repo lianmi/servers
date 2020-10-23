@@ -194,3 +194,37 @@ type HashInfo struct {
 
 	To string `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`
 }
+
+//此表是用于保存订单完成后的到账或撤单退款记录
+type LnmcOrderTransferHistory struct {
+	ID                        uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`        //自动递增id
+	CreatedAt                 int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
+	UpdatedAt                 int64   `form:"updated_at" json:"updated_at,omitempty"`           //更新时刻,毫秒
+	OrderID                   string  `json:"order_id"  validate:"required"`                    //订单ID
+	PayType                   int     `json:"pay_type"  validate:"required"`                    //转账类型，1-订单完成，被买家确认后转账给商户，2-撤单及拒单退款
+	ProductID                 string  `json:"product_id"  validate:"required"`                  //商品ID
+	BuyUser                   string  `json:"buy_user" validate:"required"`                     //买家注册号
+	BusinessUser              string  `json:"business_user" validate:"required"`                //商户注册号
+	BuyUserWalletAddress      string  `json:"buy_user_wallet_address" validate:"required"`      //买家链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
+	BusinessUserWalletAddress string  `json:"business_user_wallet_address" validate:"required"` //商户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
+	AttachHash                string  `json:"attach_hash" validate:"required"`                  //订单内容哈希，上链
+	Bip32Index                uint64  `json:"bip32_index" validate:"required"`                  //买家对应平台HD钱包Bip32派生索引号
+	BalanceLNMCBefore         uint64  `json:"amount_lnmc_before" validate:"required"`           //平台HD钱包在转账时刻的连米币数量
+	OrderTotalAmount          float64 `json:"order_total_amount" validate:"required"`           //人民币格式的订单总金额
+	AmountLNMC                uint64  `json:"amount_lnmc" validate:"required"`                  //本次转账的连米币数量, 无小数点
+	BalanceLNMCAfter          uint64  `json:"amount_lnmc_after" validate:"required"`            //平台HD钱包在转账之后的连米币数量
+	BlockNumber               uint64  `json:"block_number"`                                     //成功执行合约的所在区块高度
+	TxHash                    string  `json:"tx_hash" `                                         //交易哈希
+}
+
+//BeforeCreate CreatedAt赋值
+func (w *LnmcOrderTransferHistory) BeforeCreate(scope *gorm.Scope) error {
+	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (w *LnmcOrderTransferHistory) BeforeUpdate(scope *gorm.Scope) error {
+	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
