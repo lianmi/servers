@@ -159,18 +159,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		walletSvc:     walletSvc,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
-	/*
-		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		transferResp, err := walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
-			OrderID: "test-23432432-00000-kkkkk",
-			PayType: int32(1),
-		})
-		if err != nil {
-			logger.Error(" walletSvc.TransferByOrder Error", zap.Error(err))
-		} else {
-			logger.Debug("transferResp", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
-		}
-	*/
+
 
 	//注册每个业务子类型的处理方法
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = nsqClient.HandleQueryProducts  //7-1  查询某个商户的所有商品信息

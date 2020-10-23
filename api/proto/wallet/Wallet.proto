@@ -15,23 +15,26 @@ message Collection{
     //发送方用户注册号
     string FromUsername=3;
 
+    //接收方用户注册号
+    string ToUsername=4;
+
     //本次转账的用户连米币数量
-	fixed64 amountLNMC=4;
+	fixed64 amountLNMC=5;
     
     //多签合约地址
-	//string contractAddress=5;
+	//string contractAddress=6;
     
     //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-	string orderID=6;
+	string orderID=7;
     
     //A签
-	string signedTx=7;
+	string signedTx=8;
 
     //成功执行合约的所在区块高度
-	fixed64 blockNumber=8;
+	fixed64 blockNumber=9;
 
     //交易哈希
-	string hash=9;
+	string hash=10;
   
 }
 

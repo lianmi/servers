@@ -61,9 +61,8 @@ func (nc *NsqClient) CheckSmsCode(mobile, smscode string) bool {
 2. 用户支付的时候，输入6位支付密码，就代表用私钥签名
 3. 调用WalletSDK的接口生成私钥、公钥及地址，然后将发送第0号叶子的地址到服务端，服务端在链上创建用户的私人钱包。
 4. 用户通过助记词生成的私钥， 需要加密后保存在本地数据库里，以便随时进行签名
-
-为提高效率，每个用户只部署一个多签转账智能合约，在注册时生成, 用来做证明人的系统HD钱包叶子也是与用户一一对应，
-系统的HD钱包的叶子递增, 也就是说每个用户的多签证明人，对应一个系统HD叶子索引号
+5. 用来做证明人的系统HD钱包叶子也是与用户一一对应，系统的HD钱包的叶子递增, 也就是说每个用户的多签证明人，对应一个系统HD叶子索引号
+6. 为实现中转账号能够有足够的gas，对应一个系统HD叶子索引号需要在注册后就转1个eth进去
 */
 func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 	var err error
@@ -156,8 +155,14 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 			zap.String("AddressHex", newKeyPair.AddressHex),
 		)
 
-		//TODO 给用户钱包发送10000000个gas
+		//给叶子发送 1 个ether 以便作为中转账号的时候，可以对商户转账或对买家退款 有足够的gas
+		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER); err != nil {
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Wallet register while TransferEthToOtherAccount error")
+			goto COMPLETE
+		}
 
+		//给用户钱包发送10000000个gas
 		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.GetWalletAddress(), 2*LMCommon.GASLIMIT); err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Wallet register while TransferEthToOtherAccount error")
@@ -1021,13 +1026,14 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 			//更新接收者的收款历史表
 			lnmcCollectionHistory := &models.LnmcCollectionHistory{
-				Username:          toUsername, //接收者
-				FromUsername:      username,   //发送者
-				FromWalletAddress: walletAddress,
-				BalanceLNMCBefore: toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
-				AmountLNMC:        amountLNMC,     //本次转账的用户连米币数量
-				BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
-				Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
+				FromUsername:      username,        //发送者
+				FromWalletAddress: walletAddress,   //发送者钱包地址
+				ToUsername:        toUsername,      //接收者
+				ToWalletAddress:   toWalletAddress, //接收者钱包地址
+				BalanceLNMCBefore: toBalanceLNMC,   //接收方用户在转账时刻的连米币数量
+				AmountLNMC:        amountLNMC,      //本次转账的用户连米币数量
+				BalanceLNMCAfter:  toBalanceAfter,  //接收方用户在转账之后的连米币数量
+				Bip32Index:        newBip32Index,   //平台HD钱包Bip32派生索引号
 				BlockNumber:       blockNumber,
 				TxHash:            hash,
 			}
@@ -1052,6 +1058,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			orderIDKey := fmt.Sprintf("Order:%s", req.GetOrderID())
 			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_IsPayed))
 			_, err = redisConn.Do("HSET", orderIDKey, "IsPayed", LMCommon.REDISTRUE)
+			if err != nil {
+				nc.logger.Error("将redis里的订单信息哈希表状态字段设置为 OS_IsPayed发生严重错误", zap.Error(err), zap.String("orderIDKey", orderIDKey))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("HSET IsPayed error: %s", orderIDKey)
+				goto COMPLETE
+			}
 
 			// 9-12 支付订单完成的事件
 			orderPayDoneEventRsp := &Order.OrderPayDoneEventRsp{
@@ -1064,7 +1076,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			}
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 			//向接收者推送 9-12 订单支付完成的事件
-			nc.logger.Debug("向接收者推送 9-12 订单支付完成的事件", zap.String("toUsername", toUsername))
+			nc.logger.Debug("向接收者推送 9-12 订单支付完成的事件", zap.String("toUsername", toUsername), zap.String("orderID", req.GetOrderID()))
 			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
 
 			//向支付发起者推送 9-12 支付订单完成的事件
@@ -1080,14 +1092,15 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 			//更新接收者的收款历史表
 			lnmcCollectionHistory := &models.LnmcCollectionHistory{
-				Username:          toUsername, //接收者
-				FromUsername:      username,   //发送者
-				FromWalletAddress: walletAddress,
-				OrderID:           req.GetOrderID(),
-				BalanceLNMCBefore: toBalanceLNMC,  //接收方用户在转账时刻的连米币数量
-				AmountLNMC:        amountLNMC,     //本次转账的用户连米币数量
-				BalanceLNMCAfter:  toBalanceAfter, //接收方用户在转账之后的连米币数量
-				Bip32Index:        newBip32Index,  //平台HD钱包Bip32派生索引号
+				FromUsername:      username,         //发送者
+				FromWalletAddress: walletAddress,    //发送者钱包地址
+				ToUsername:        toUsername,       //接收者
+				ToWalletAddress:   toWalletAddress,  //中转钱包地址
+				OrderID:           req.GetOrderID(), //订单ID
+				BalanceLNMCBefore: toBalanceLNMC,    //接收方用户在转账时刻的连米币数量
+				AmountLNMC:        amountLNMC,       //本次转账的用户连米币数量
+				BalanceLNMCAfter:  toBalanceAfter,   //接收方用户在转账之后的连米币数量
+				Bip32Index:        newBip32Index,    //平台HD钱包Bip32派生索引号
 				BlockNumber:       blockNumber,
 				TxHash:            hash,
 			}
@@ -1866,7 +1879,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		for _, collection := range collections {
 			nc.logger.Debug("for...range: collections",
 				zap.Uint64("id", collection.ID),
-				zap.String("Username", collection.Username),
+				zap.String("ToUsername", collection.ToUsername),
 			)
 			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
 				Id:           collection.ID,                //ID

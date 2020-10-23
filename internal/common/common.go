@@ -95,6 +95,9 @@ const (
 	LNMCINDEX     = 1 //第1号存储LNMC代币
 	WITHDRAWINDEX = 2 //第2号存储提现的LNMC代币
 
+	//1个eth
+	ETHER = 100000000000000000
+
 	//gas最低消耗
 	GASLIMIT = 5000000
 

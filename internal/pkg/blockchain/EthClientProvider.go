@@ -655,7 +655,7 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 	}, common.HexToAddress(target), big.NewInt(amount))
 	if err != nil {
 		// log.Fatalf("TransferFrom err: %v \n", err)
-		s.logger.Error("TransferFrom failed ", zap.Error(err))
+		s.logger.Error("TransferLNMCFromLeaf1ToNormalAddress, TransferFrom failed", zap.Error(err))
 		return 0, "", 0, err
 	}
 	s.logger.Info("tx sent", zap.String("Hash", contractTx.Hash().Hex()))
@@ -800,7 +800,7 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 	}, common.HexToAddress(target), big.NewInt(amount))
 	if err != nil {
 
-		s.logger.Error("TransferFrom failed ", zap.Error(err))
+		s.logger.Error("TransferLNMCTokenToAddress, TransferFrom failed", zap.Error(err))
 		return 0, "", err
 	}
 	// fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
@@ -810,7 +810,7 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 	if blockNumber > 0 {
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferTx.Hash())
 		if err != nil {
-			s.logger.Error("TransferFrom failed ", zap.Error(err))
+			s.logger.Error("TransactionByHash, TransferFrom failed", zap.Error(err))
 			return 0, "", err
 		}
 		s.logger.Info("转账成功",

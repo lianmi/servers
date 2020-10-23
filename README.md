@@ -429,6 +429,7 @@ $ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
 > web3.fromWei(web3.eth.getBalance(account1), 'ether')
 
 > leaf0 = '0xe14D151e0511b61357DDe1B35a74E9c043c34C47'
+>  web3.fromWei(web3.eth.getBalance(leaf0), 'ether')
 > eth.sendTransaction({from:account1,to:leaf0,value:web3.toWei(10000000000,"ether")})
 
 > web3.fromWei(web3.eth.getBalance(leaf0), 'ether')

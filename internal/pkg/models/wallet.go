@@ -132,18 +132,17 @@ type LnmcCollectionHistory struct {
 	ID                uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
 	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
 	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`    //更新时刻,毫秒
-	Username          string `json:"username" validate:"required"`              //用户注册号
 	FromUsername      string `json:"from_username" validate:"required"`         //发送方用户注册号
-	FromWalletAddress string `json:"to_wallet_address" validate:"required"`     //接收方用户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
+	FromWalletAddress string `json:"from_wallet_address" validate:"required"`   //发送方用户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
+	ToUsername        string `json:"to_username" validate:"required"`           // 接收方用户注册号
+	ToWalletAddress   string `json:"to_wallet_address" validate:"required"`     //接收方用户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
 	BalanceLNMCBefore uint64 `json:"amount_lnmc_before" validate:"required"`    //发送方用户在转账时刻的连米币数量
 	AmountLNMC        uint64 `json:"amount_lnmc" validate:"required"`           //本次转账的用户连米币数量
 	BalanceLNMCAfter  uint64 `json:"amount_lnmc_after" validate:"required"`     //发送方用户在转账之后的连米币数量
 	Bip32Index        uint64 `json:"bip32_index" validate:"required"`           //平台HD钱包Bip32派生索引号
-	// ContractAddress   string `json:"contract_address" validate:"required"`      //多签合约地址
-	OrderID string `json:"order_id"` //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-	// SignedTx           string `json:"signed_tx"`                                 //A签
-	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
-	TxHash      string `json:"tx_hash" `     //交易哈希
+	OrderID           string `json:"order_id"`                                  //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+	BlockNumber       uint64 `json:"block_number"`                              //成功执行合约的所在区块高度
+	TxHash            string `json:"tx_hash" `                                  //交易哈希
 }
 
 //BeforeCreate CreatedAt赋值
