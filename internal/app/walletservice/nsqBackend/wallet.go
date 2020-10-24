@@ -1086,8 +1086,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				"LNMCAmount",
 				toBalanceAfter)
 
-			
-
 		}
 
 		rsp := &Wallet.ConfirmTransferRsp{
@@ -1842,11 +1840,15 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		pageSize = int(req.PageSize)
 
 		// GetPages 分页返回数据
-		maps = fmt.Sprintf("to_username=%s", username) //接收方是当前用户账号
+		maps = fmt.Sprintf("to_username=%s", username) //当前用户
 
-		if req.StartAt > 0 && req.EndAt > 0 {
+		if req.FromUsername != "" {
+			maps = fmt.Sprintf("to_username=%s and from_username=%s", username, req.FromUsername) //接收方账号
+		}
 
-			maps = fmt.Sprintf("to_username=%s and created_at >= %d and created_at <= %d", username, req.StartAt, req.EndAt)
+		if req.FromUsername != "" && req.StartAt > 0 && req.EndAt > 0 {
+
+			maps = fmt.Sprintf("to_username=%s and from_username=%s and created_at >= %d and created_at <= %d", username, req.FromUsername, req.StartAt, req.EndAt)
 		}
 
 		collections := nc.Repository.GetCollectionHistorys(page, pageSize, &total, maps)
