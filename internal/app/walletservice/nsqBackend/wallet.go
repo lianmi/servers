@@ -1086,21 +1086,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				"LNMCAmount",
 				toBalanceAfter)
 
-			//更新接收者的收款历史表
-			lnmcCollectionHistory := &models.LnmcCollectionHistory{
-				FromUsername:      username,         //发送者
-				FromWalletAddress: walletAddress,    //发送者钱包地址
-				ToUsername:        toUsername,       //接收者
-				ToWalletAddress:   toWalletAddress,  //中转钱包地址
-				OrderID:           req.GetOrderID(), //订单ID
-				BalanceLNMCBefore: toBalanceLNMC,    //接收方用户在转账时刻的连米币数量
-				AmountLNMC:        amountLNMC,       //本次转账的用户连米币数量
-				BalanceLNMCAfter:  toBalanceAfter,   //接收方用户在转账之后的连米币数量
-				Bip32Index:        newBip32Index,    //平台HD钱包Bip32派生索引号
-				BlockNumber:       blockNumber,
-				TxHash:            hash,
-			}
-			nc.Repository.SaveCollectionHistory(lnmcCollectionHistory)
+			
 
 		}
 
@@ -1845,7 +1831,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("SyncCollectionHistoryPageReq  payload",
+		nc.logger.Debug("SyncCollectionHistoryPageReq payload",
 			zap.String("FromUsername", req.FromUsername),
 			zap.Uint64("StartAt", req.StartAt),
 			zap.Uint64("EndAt", req.EndAt),
@@ -1856,10 +1842,11 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		pageSize = int(req.PageSize)
 
 		// GetPages 分页返回数据
+		maps = fmt.Sprintf("to_username=%s", username) //接收方是当前用户账号
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d", req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("to_username=%s and created_at >= %d and created_at <= %d", username, req.StartAt, req.EndAt)
 		}
 
 		collections := nc.Repository.GetCollectionHistorys(page, pageSize, &total, maps)
@@ -2003,11 +1990,11 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 
 		}
 
-		maps = fmt.Sprintf("recharge_amount >= %f", depositRecharge)
+		maps = fmt.Sprintf("username=%s and recharge_amount >= %f", username, depositRecharge)
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and recharge_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
+			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d and recharge_amount >= %f", username, req.StartAt, req.EndAt, depositRecharge)
 
 		}
 
@@ -2121,9 +2108,11 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
+		maps = fmt.Sprintf("username=%s", username)
+
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
 
 		}
 
@@ -2137,13 +2126,12 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 				zap.String("Username", withdraw.Username),
 			)
 			rsp.Withdraws = append(rsp.Withdraws, &Wallet.Withdraw{
-				Id:        withdraw.ID,                //ID
-				CreatedAt: uint64(withdraw.CreatedAt), //创建时间
-				Bank:      withdraw.Bank,
-				BankCard:  withdraw.BankCard,
-				CardOwner: withdraw.CardOwner,
-				State:     int32(withdraw.State),
-				// SignedTx:           withdraw.SignedTx,                   //用户私钥签名后的数据，hex格式
+				Id:          withdraw.ID,                //ID
+				CreatedAt:   uint64(withdraw.CreatedAt), //创建时间
+				Bank:        withdraw.Bank,
+				BankCard:    withdraw.BankCard,
+				CardOwner:   withdraw.CardOwner,
+				State:       int32(withdraw.State),
 				BlockNumber: uint64(withdraw.BlockNumber), //成功执行合约的所在区块高度
 				Hash:        withdraw.TxHash,              //交易哈希
 			})
@@ -2238,9 +2226,11 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
+		maps = fmt.Sprintf("username=%s", username)
+
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
 
 		}
 
@@ -2254,13 +2244,12 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 				zap.String("Username", transfer.Username),
 			)
 			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
-				Id:         transfer.ID,                //ID
-				CreatedAt:  uint64(transfer.CreatedAt), //创建时间
-				ToUsername: transfer.ToUsername,
-				AmountLNMC: transfer.AmountLNMC,
-				State:      int32(transfer.State),
-				OrderID:    transfer.OrderID,
-				// SignedTx:           transfer.SignedTx,                   //用户私钥签名后的数据，hex格式
+				Id:          transfer.ID,                //ID
+				CreatedAt:   uint64(transfer.CreatedAt), //创建时间
+				ToUsername:  transfer.ToUsername,        //接收方
+				AmountLNMC:  transfer.AmountLNMC,
+				State:       int32(transfer.State),
+				OrderID:     transfer.OrderID,
 				BlockNumber: uint64(transfer.BlockNumber), //成功执行合约的所在区块高度
 				Hash:        transfer.TxHash,              //交易哈希
 			})

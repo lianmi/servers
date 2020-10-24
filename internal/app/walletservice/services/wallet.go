@@ -203,6 +203,26 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			s.logger.Debug("到账 SaveLnmcOrderTransferHistory succeed")
 		}
 
+		//更新接收者的收款历史表
+		lnmcCollectionHistory := &models.LnmcCollectionHistory{
+			FromUsername:      buyUser,                      //发送者
+			FromWalletAddress: buyUserWalletAddress,         //发送者钱包地址
+			ToUsername:        businessUser,                 //接收者
+			ToWalletAddress:   businessUserWalletAddress,    //中转钱包地址
+			OrderID:           orderID,                      //订单ID
+			BalanceLNMCBefore: balanceLNMCBip32,             //接收方用户在转账时刻的连米币数量
+			AmountLNMC:        amountLNMC,                   //本次转账的用户连米币数量
+			BalanceLNMCAfter:  balanceLNMCBusinessUserAfter, //接收方用户在转账之后的连米币数量
+			Bip32Index:        bip32Index,                   //平台HD钱包Bip32派生索引号
+			BlockNumber:       blockNumber,
+			TxHash:            txHash,
+		}
+		if err := s.Repository.SaveCollectionHistory(lnmcCollectionHistory); err != nil {
+			s.logger.Error("商户到账记录 SaveCollectionHistory  error", zap.Error(err))
+		} else {
+			s.logger.Debug("商户到账记录 SaveCollectionHistory succeed")
+		}
+
 	} else if req.PayType == LMCommon.OrderTransferForCancel {
 		//买家钱包余额
 		balanceLNMCBuyUser, err := s.ethService.GetLNMCTokenBalance(buyUserWalletAddress)
@@ -240,6 +260,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			zap.Uint64("买家转账之前的代币余额", balanceLNMCBuyUser),
 			zap.Uint64("买家转账之后的代币余额", balanceLNMCBuyUserAfter),
 		)
+		
 		//增加退款记录到 MySQL
 		lnmcOrderTransferHistory := &models.LnmcOrderTransferHistory{
 			OrderID:                   orderID,                   //订单ID
