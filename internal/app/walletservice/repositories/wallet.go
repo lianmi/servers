@@ -29,11 +29,11 @@ type WalletRepository interface {
 
 	GetCollectionHistorys(toUsername, fromUsername string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcCollectionHistory
 
-	GetDepositHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcDepositHistory
+	GetDepositHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcDepositHistory
 
-	GetWithdrawHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcWithdrawHistory
+	GetWithdrawHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcWithdrawHistory
 
-	GetTransferHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcTransferHistory
+	GetTransferHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcTransferHistory
 
 	GetDepositInfo(txHash string) (*models.LnmcDepositHistory, error)
 
@@ -260,27 +260,27 @@ func (m *MysqlWalletRepository) GetCollectionHistorys(toUsername, fromUsername s
 }
 
 //分页获取充值历史
-func (m *MysqlWalletRepository) GetDepositHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcDepositHistory {
+func (m *MysqlWalletRepository) GetDepositHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcDepositHistory {
 	var deposits []*models.LnmcDepositHistory
-	if err := m.GetPages(&models.LnmcDepositHistory{}, &deposits, PageNum, PageSize, total, where); err != nil {
+	if err := m.GetPages(&models.LnmcDepositHistory{Username: username}, &deposits, PageNum, PageSize, total, where); err != nil {
 		m.logger.Error("获取充值历史失败", zap.Error(err))
 	}
 	return deposits
 }
 
 //分页获取提现历史
-func (m *MysqlWalletRepository) GetWithdrawHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcWithdrawHistory {
+func (m *MysqlWalletRepository) GetWithdrawHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcWithdrawHistory {
 	var withdraws []*models.LnmcWithdrawHistory
-	if err := m.GetPages(&models.LnmcWithdrawHistory{}, &withdraws, PageNum, PageSize, total, where); err != nil {
+	if err := m.GetPages(&models.LnmcWithdrawHistory{Username: username}, &withdraws, PageNum, PageSize, total, where); err != nil {
 		m.logger.Error("获取提现历史失败", zap.Error(err))
 	}
 	return withdraws
 }
 
 //分页获取转账历史
-func (m *MysqlWalletRepository) GetTransferHistorys(PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcTransferHistory {
+func (m *MysqlWalletRepository) GetTransferHistorys(username string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.LnmcTransferHistory {
 	var transfers []*models.LnmcTransferHistory
-	if err := m.GetPages(&models.LnmcTransferHistory{}, &transfers, PageNum, PageSize, total, where); err != nil {
+	if err := m.GetPages(&models.LnmcTransferHistory{Username: username}, &transfers, PageNum, PageSize, total, where); err != nil {
 		m.logger.Error("获取转账历史失败", zap.Error(err))
 	}
 	return transfers

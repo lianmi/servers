@@ -1840,14 +1840,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		pageSize = int(req.PageSize)
 
 		// GetPages 分页返回数据
-		// maps = &models.LnmcCollectionHistory{ToUsername: username}
-
-		// if req.FromUsername != "" {
-		// 	maps = &models.LnmcCollectionHistory{ToUsername: username, FromUsername: req.FromUsername}
-		// }
-
 		if req.StartAt > 0 && req.EndAt > 0 {
-			// maps = &models.LnmcCollectionHistory{ToUsername: username, FromUsername: req.FromUsername, CreatedAt}
 			maps = fmt.Sprintf("created_at >= %d and created_at <= %d", req.StartAt, req.EndAt)
 		}
 
@@ -1992,15 +1985,13 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 
 		}
 
-		maps = fmt.Sprintf("username=%s and recharge_amount >= %f", username, depositRecharge)
-
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d and recharge_amount >= %f", username, req.StartAt, req.EndAt, depositRecharge)
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and recharge_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
 
 		}
 
-		deposits := nc.Repository.GetDepositHistorys(page, pageSize, &total, maps)
+		deposits := nc.Repository.GetDepositHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetDepositHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
@@ -2110,15 +2101,14 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
-		maps = fmt.Sprintf("username=%s", username)
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("ucreated_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
 
 		}
 
-		withdraws := nc.Repository.GetWithdrawHistorys(page, pageSize, &total, maps)
+		withdraws := nc.Repository.GetWithdrawHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetWithdrawHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
@@ -2228,15 +2218,14 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
-		maps = fmt.Sprintf("username='%s'", username)
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("username='%s' and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
 
 		}
 
-		transfers := nc.Repository.GetTransferHistorys(page, pageSize, &total, maps)
+		transfers := nc.Repository.GetTransferHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetTransferHistorys", zap.Uint64("total", total))
 
 		rsp.Total = int32(total) //总页数
