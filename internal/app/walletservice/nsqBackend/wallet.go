@@ -1840,15 +1840,15 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		pageSize = int(req.PageSize)
 
 		// GetPages 分页返回数据
-		maps = fmt.Sprintf("to_username=%s", username) //当前用户
+		maps = fmt.Sprintf("to_username=\"%s\"", username) //当前用户
 
 		if req.FromUsername != "" {
-			maps = fmt.Sprintf("to_username=%s and from_username=%s", username, req.FromUsername) //接收方账号
+			maps = fmt.Sprintf("to_username=\"%s\" and from_username=\"%s\"", username, req.FromUsername) //接收方账号
 		}
 
 		if req.FromUsername != "" && req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("to_username=%s and from_username=%s and created_at >= %d and created_at <= %d", username, req.FromUsername, req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("to_username=\"%s\" and from_username=\"%s\" and created_at >= %d and created_at <= %d", username, req.FromUsername, req.StartAt, req.EndAt)
 		}
 
 		collections := nc.Repository.GetCollectionHistorys(page, pageSize, &total, maps)
@@ -2228,11 +2228,11 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 		page = int(req.Page)
 		pageSize = int(req.PageSize)
 
-		maps = fmt.Sprintf("username=%s", username)
+		maps = fmt.Sprintf("username=\"%s\"", username)
 
 		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("username=%s and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
+			maps = fmt.Sprintf("username=\"%s\" and created_at >= %d and created_at <= %d ", username, req.StartAt, req.EndAt)
 
 		}
 
