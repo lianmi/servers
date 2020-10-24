@@ -1782,7 +1782,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 	errorCode := 200
 	var errorMsg string
 	var data []byte
-	var maps string
+	var maps interface{}
 	var page, pageSize int
 	var total uint64
 
@@ -1840,15 +1840,16 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		pageSize = int(req.PageSize)
 
 		// GetPages 分页返回数据
-		maps = fmt.Sprintf("to_username='%s''", username) //当前用户
+		// maps = fmt.Sprintf("to_username='%s''", username) //当前用户
+		maps = &models.LnmcCollectionHistory{ToUsername: username}
 
 		if req.FromUsername != "" {
-			maps = fmt.Sprintf("to_username='%s' and from_username='%s'", username, req.FromUsername) //接收方账号
+			// maps = fmt.Sprintf("to_username='%s' and from_username='%s'", username, req.FromUsername) //接收方账号
 		}
 
 		if req.FromUsername != "" && req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("to_username='%s' and from_username='%s' and created_at >= %d and created_at <= %d", username, req.FromUsername, req.StartAt, req.EndAt)
+			// maps = fmt.Sprintf("to_username='%s' and from_username='%s' and created_at >= %d and created_at <= %d", username, req.FromUsername, req.StartAt, req.EndAt)
 		}
 
 		collections := nc.Repository.GetCollectionHistorys(page, pageSize, &total, maps)
