@@ -746,3 +746,47 @@ func (pc *LianmiApisController) SubmitGrade(c *gin.Context) {
 	}
 
 }
+
+func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
+	var req Service.MembershipCardSaleModeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		saleMode, err := pc.service.GetMembershipCardSaleMode(req.BusinessUsername)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Get Membership Card Sale Mode failed")
+		} else {
+
+			RespData(c, http.StatusOK, 200, int32(saleMode))
+		}
+	}
+
+}
+
+func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
+	var req Service.MembershipCardSaleModeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		saleType := int(req.SaleType)
+		if saleType == 0 {
+			saleType = 1
+		}
+		if !(saleType == 1 || saleType == 2) {
+			RespFail(c, http.StatusBadRequest, 400, "Set Membership Card Sale Mode failed")
+		}
+
+		err := pc.service.SetMembershipCardSaleMode(req.BusinessUsername, saleType)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Set Membership Card Sale Mode failed")
+		} else {
+
+			RespOk(c, http.StatusOK, 200)
+		}
+	}
+
+}

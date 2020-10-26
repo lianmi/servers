@@ -73,6 +73,10 @@ type LianmiApisService interface {
 	AddGrade(req *Service.AddGradeReq) (string, error)
 
 	SubmitGrade(req *Service.SubmitGradeReq) error
+
+	GetMembershipCardSaleMode(businessUsername string) (int, error)
+
+	SetMembershipCardSaleMode(businessUsername string, saleType int) error
 }
 
 type DefaultLianmiApisService struct {
@@ -279,4 +283,12 @@ func (s *DefaultLianmiApisService) AddGrade(req *Service.AddGradeReq) (string, e
 
 func (s *DefaultLianmiApisService) SubmitGrade(req *Service.SubmitGradeReq) error {
 	return s.Repository.SubmitGrade(req)
+}
+
+func (s *DefaultLianmiApisService) GetMembershipCardSaleMode(businessUsername string) (int, error) {
+	return s.Repository.GetMembershipCardSaleMode(businessUsername)
+}
+
+func (s *DefaultLianmiApisService) SetMembershipCardSaleMode(businessUsername string, saleType int) error {
+	return s.Repository.SetMembershipCardSaleMode(businessUsername, saleType)
 }

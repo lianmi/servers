@@ -286,11 +286,17 @@ func CreateInitControllersFn(
 			//查询评分
 			r.GET("/querygrades", pc.QueryGrades)
 
-			//客服增加评分标题及内容 
+			//客服增加评分标题及内容
 			r.GET("/addgrade", pc.AddGrade)
 
 			//用户提交评分
 			r.GET("/submitgrade", pc.SubmitGrade)
+
+			//查询商户营销方式
+			r.GET("/getmembershipcardsalemode", pc.GetMembershipCardSaleMode)
+
+			// 设置商户营销方式
+			r.POST("/Setmembershipcardsalemode", pc.SetMembershipCardSaleMode)
 
 		}
 

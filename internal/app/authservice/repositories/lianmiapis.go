@@ -103,6 +103,10 @@ type LianmiRepository interface {
 	AddGrade(req *Service.AddGradeReq) (string, error)
 
 	SubmitGrade(req *Service.SubmitGradeReq) error
+
+	GetMembershipCardSaleMode(businessUsername string) (int, error)
+
+	SetMembershipCardSaleMode(businessUsername string, saleType int) error
 }
 
 type MysqlLianmiRepository struct {
@@ -1348,4 +1352,37 @@ func (s *MysqlLianmiRepository) SubmitGrade(req *Service.SubmitGradeReq) error {
 
 	return nil
 
+}
+
+func (s *MysqlLianmiRepository) GetMembershipCardSaleMode(businessUsername string) (int, error) {
+	var err error
+
+	c := new(models.User)
+	if err = s.db.Model(c).Where("username = ?", businessUsername).First(c).Error; err != nil {
+		return 0, errors.Wrapf(err, "GetMembershipCardSaleMode error[businessUsername=%s]", businessUsername)
+	}
+
+	return c.MembershipCardSaleMode, nil
+}
+
+func (s *MysqlLianmiRepository) SetMembershipCardSaleMode(businessUsername string, saleType int) error {
+	var err error
+
+	c := new(models.User)
+	if err = s.db.Model(c).Where("username = ?", businessUsername).First(c).Error; err != nil {
+		return errors.Wrapf(err, "GetMembershipCardSaleMode error[businessUsername=%s]", businessUsername)
+	}
+
+	c.MembershipCardSaleMode = int(saleType)
+
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(c).Error; err != nil {
+		s.logger.Error("用户提交评分保存失败", zap.Error(err))
+		tx.Rollback()
+		return errors.Wrapf(err, "Submit Grade error[businessUsername=%s]", businessUsername)
+	}
+	//提交
+	tx.Commit()
+	return nil
 }

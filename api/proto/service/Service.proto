@@ -47,6 +47,11 @@ service LianmiApis {
     // app用户提交评分
     rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
 
+    //查询商户营销方式
+    rpc GetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
+
+    //查询商户营销方式, 更改后立即有效 
+    rpc SetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
 }
 
 message RespHeader {
@@ -276,3 +281,18 @@ message SubmitGradeReq {
 message SubmitGradeResp {
    RespHeader status = 1;
 }
+
+//商户会员卡的营销模式选择
+message MembershipCardSaleModeReq {
+    string businessUsername =1;
+    //会员卡营销方式，1-一级，2-二级
+    global.MembershipCardSaleType saleType =2;
+}
+
+message MembershipCardSaleModeResp {
+   RespHeader status = 1;
+
+   //会员卡营销方式，1-一级，2-二级
+   global.MembershipCardSaleType saleType =2;
+}
+

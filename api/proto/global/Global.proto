@@ -248,5 +248,11 @@ enum CustomerServiceType {
       CS_Undefined   = 0;          //proto3必须从0开始
       CS_CustomerService =1;       //客服
       CS_TechnologyService =2;       // 技术支持
+}
 
+//会员卡营销方式枚举 
+enum MembershipCardSaleType {
+      MCST_Undefined   = 0;          //proto3必须从0开始
+      MCST_Direct =1;                //一级，直接销售 
+      MCST_SecondLevel =2;           //二级分销
 }
