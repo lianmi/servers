@@ -156,9 +156,9 @@ func (nc *NsqClient) GetPages(model interface{}, out interface{}, pageIndex, pag
 }
 
 //分页获取群成员
-func (nc *NsqClient) GetTeamUsers(PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+func (nc *NsqClient) GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
-	if err := nc.GetPages(&models.TeamUser{}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+	if err := nc.GetPages(&models.TeamUser{TeamID: teamID}, &teamUsers, PageNum, PageSize, total, where); err != nil {
 		nc.logger.Error("获取群成员信息失败", zap.Error(err))
 	}
 	return teamUsers

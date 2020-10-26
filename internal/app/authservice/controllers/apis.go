@@ -1,12 +1,14 @@
 package controllers
 
 import (
-	"time"
-	// "encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
+	Service "github.com/lianmi/servers/api/proto/service"
 	"github.com/lianmi/servers/util/conv"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -333,6 +335,7 @@ func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	userName := claims[common.IdentityKey].(string)
 	deviceID := claims["deviceID"].(string)
 	token := jwt_v2.GetToken(c)
+
 	pc.logger.Debug("ApproveTeam",
 		zap.String("userName", userName),
 		zap.String("deviceID", deviceID),
@@ -534,6 +537,212 @@ func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	} else {
 		RespFail(c, http.StatusBadRequest, 400, "delete GeneralProduct failed")
+	}
+
+}
+
+//获取空闲的在线客服id数组
+func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
+
+	csList, err := pc.service.QueryCustomerServices()
+
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 400, "Query CustomerServices failed")
+	} else {
+		RespData(c, http.StatusOK, 200, csList)
+	}
+
+}
+
+//增加在线客服id
+func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
+
+	var sc Service.CustomerServiceInfo
+	if c.BindJSON(&sc) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		if !(sc.Type == 1 || sc.Type == 2) {
+			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
+		}
+		if sc.Username == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+		}
+		if sc.JobNumber == "" {
+			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
+		}
+		if sc.Evaluation == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
+		}
+		if sc.NickName == "" {
+			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
+		}
+
+		csList, err := pc.service.AddCustomerService(&sc)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Add CustomerService failed")
+		} else {
+			RespData(c, http.StatusOK, 200, csList)
+		}
+	}
+
+}
+
+//删除在线客服id
+func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
+
+	var sc Service.CustomerServiceInfo
+	if c.BindJSON(&sc) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		if sc.Username == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+		}
+
+		if pc.service.DeleteCustomerService(&sc) == false {
+			RespFail(c, http.StatusBadRequest, 400, "Delete CustomerServices failed")
+		} else {
+			RespOk(c, http.StatusOK, 200)
+		}
+	}
+
+}
+
+func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
+
+	var sc Service.CustomerServiceInfo
+	if c.BindJSON(&sc) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if !(sc.Type == 1 || sc.Type == 2) {
+			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
+		}
+		if sc.Username == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+		}
+		if sc.JobNumber == "" {
+			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
+		}
+		if sc.Evaluation == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
+		}
+		if sc.NickName == "" {
+			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
+		}
+		csList, err := pc.service.UpdateCustomerService(&sc)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Update CustomerServices failed")
+		} else {
+			RespData(c, http.StatusOK, 200, csList)
+		}
+	}
+
+}
+
+func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
+	var maps string
+	var req Service.GradeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		pageIndex := int(req.PageIndex)
+		pageSize := int(req.PageSize)
+		total := new(uint64)
+		if pageIndex == 0 {
+			pageIndex = 1
+		}
+		if pageSize == 0 {
+			pageSize = 100
+		}
+
+		// GetPages 分页返回数据
+		if req.StartAt > 0 && req.EndAt > 0 {
+			maps = fmt.Sprintf("created_at >= %d and created_at <= %d", req.StartAt, req.EndAt)
+		}
+		pfList, err := pc.service.QueryGrades(&req, pageIndex, pageSize, total, maps)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Query Grades( failed")
+		} else {
+			pages := Service.GradesPage{
+				Total: *total,
+				// Grades: pfList,
+			}
+			for _, grade := range pfList {
+				pages.Grades = append(pages.Grades, &Service.GradeInfo{
+					Title:                   grade.Title,
+					AppUsername:             grade.AppUsername,
+					CustomerServiceUsername: grade.CustomerServiceUsername,
+					JobNumber:               grade.JobNumber,
+					Type:                    Global.CustomerServiceType(grade.Type),
+					Evaluation:              grade.Evaluation,
+					NickName:                grade.NickName,
+					Catalog:                 grade.Catalog,
+					Desc:                    grade.Desc,
+					GradeNum:                int32(grade.GradeNum),
+				})
+			}
+
+			RespData(c, http.StatusOK, 200, pages)
+		}
+
+	}
+}
+
+//客服人员增加求助记录，以便发给用户评分
+func (pc *LianmiApisController) AddGrade(c *gin.Context) {
+	var req Service.AddGradeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		if req.CustomerServiceUsername == "" {
+			RespFail(c, http.StatusBadRequest, 400, "CustomerServiceUsername参数错误")
+		}
+
+		title, err := pc.service.AddGrade(&req)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Add Grade failed")
+		} else {
+
+			RespData(c, http.StatusOK, 200, &Service.GradeTitleInfo{
+				CustomerServiceUsername: req.CustomerServiceUsername,
+				Title:                   title,
+			})
+		}
+	}
+
+}
+
+//用户提交评分
+func (pc *LianmiApisController) SubmitGrade(c *gin.Context) {
+	var req Service.SubmitGradeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		if req.AppUsername == "" {
+			RespFail(c, http.StatusBadRequest, 400, "AppUsername参数错误")
+		}
+
+		err := pc.service.SubmitGrade(&req)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Submit Grade failed")
+		} else {
+
+			RespOk(c, http.StatusOK, 200)
+		}
 	}
 
 }

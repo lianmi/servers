@@ -142,7 +142,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 				}
 
-				//判断 本次会话是不是 客服与用户 的会话， 如果是则放行
+				//判断 本次会话是不是 客服 与 用户 的会话， 如果是则放行
 				isCustomerService = nc.CheckIsCustomerService(username, toUser)
 
 				if isCustomerService {
@@ -159,16 +159,16 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 						goto COMPLETE
 					}
 
-				}
-
-				//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
-				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
-					if reply != nil {
-						nc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
-						errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
-						goto COMPLETE
+					//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
+					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
+						if reply != nil {
+							nc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
+							errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+							errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+							goto COMPLETE
+						}
 					}
+
 				}
 
 				//构造转发消息数据

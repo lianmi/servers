@@ -1837,7 +1837,14 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 			zap.Int32("PageSize", req.PageSize),
 		)
 		page = int(req.Page)
+		if page == 0 {
+			page = 1
+		}
+
 		pageSize = int(req.PageSize)
+		if pageSize == 0 {
+			pageSize = 100
+		}
 
 		// GetPages 分页返回数据
 		if req.StartAt > 0 && req.EndAt > 0 {
@@ -1954,7 +1961,14 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 			zap.Int32("PageSize", req.PageSize),
 		)
 		page = int(req.Page)
+		if page == 0 {
+			page = 1
+		}
+
 		pageSize = int(req.PageSize)
+		if pageSize == 0 {
+			pageSize = 100
+		}
 
 		//  DR_100         = 1;     //100元
 		//  DR_200         = 2;     //200元
@@ -2099,9 +2113,14 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 			zap.Int32("PageSize", req.PageSize),
 		)
 		page = int(req.Page)
+		if page == 0 {
+			page = 1
+		}
+
 		pageSize = int(req.PageSize)
-
-
+		if pageSize == 0 {
+			pageSize = 100
+		}
 		if req.StartAt > 0 && req.EndAt > 0 {
 
 			maps = fmt.Sprintf("ucreated_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
@@ -2216,9 +2235,14 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 			zap.Int32("PageSize", req.PageSize),
 		)
 		page = int(req.Page)
+		if page == 0 {
+			page = 1
+		}
+
 		pageSize = int(req.PageSize)
-
-
+		if pageSize == 0 {
+			pageSize = 100
+		}
 		if req.StartAt > 0 && req.EndAt > 0 {
 
 			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)

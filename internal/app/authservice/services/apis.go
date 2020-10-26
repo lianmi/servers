@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	Service "github.com/lianmi/servers/api/proto/service"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -58,6 +59,20 @@ type LianmiApisService interface {
 	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	DeleteGeneralProduct(productID string) bool
+
+	QueryCustomerServices() ([]*models.CustomerServiceInfo, error)
+
+	AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+
+	DeleteCustomerService(sc *Service.CustomerServiceInfo) bool
+
+	UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+
+	QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
+
+	AddGrade(req *Service.AddGradeReq) (string, error)
+
+	SubmitGrade(req *Service.SubmitGradeReq) error
 }
 
 type DefaultLianmiApisService struct {
@@ -227,4 +242,41 @@ func (s *DefaultLianmiApisService) DeleteGeneralProduct(productID string) bool {
 
 	return s.Repository.DeleteGeneralProduct(productID)
 
+}
+
+//获取在线客服id数组
+func (s *DefaultLianmiApisService) QueryCustomerServices() ([]*models.CustomerServiceInfo, error) {
+
+	return s.Repository.QueryCustomerServices()
+
+}
+
+//增加在线客服id
+func (s *DefaultLianmiApisService) AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+
+	return s.Repository.AddCustomerService(sc)
+
+}
+
+func (s *DefaultLianmiApisService) DeleteCustomerService(sc *Service.CustomerServiceInfo) bool {
+	return s.Repository.DeleteCustomerService(sc)
+
+}
+
+func (s *DefaultLianmiApisService) UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+
+	return s.Repository.UpdateCustomerService(sc)
+
+}
+
+func (s *DefaultLianmiApisService) QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
+	return s.Repository.QueryGrades(req, pageIndex, pageSize, total, where)
+}
+
+func (s *DefaultLianmiApisService) AddGrade(req *Service.AddGradeReq) (string, error) {
+	return s.Repository.AddGrade(req)
+}
+
+func (s *DefaultLianmiApisService) SubmitGrade(req *Service.SubmitGradeReq) error {
+	return s.Repository.SubmitGrade(req)
 }

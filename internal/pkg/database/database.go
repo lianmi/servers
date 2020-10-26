@@ -57,6 +57,8 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.LnmcWithdrawHistory{})      // 用户提现记录
 	db.AutoMigrate(&models.LnmcCollectionHistory{})    // 用户收款记录
 	db.AutoMigrate(&models.LnmcOrderTransferHistory{}) // 订单完成后的商户到账或撤单退款记录
+	db.AutoMigrate(&models.CustomerServiceInfo{})      //  在线客服技术表
+	db.AutoMigrate(&models.Grade{})                    //  客服满意度评分
 	return db, nil
 }
 

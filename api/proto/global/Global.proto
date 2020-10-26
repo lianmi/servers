@@ -242,3 +242,11 @@ enum DepositRecharge {
      DR_3000        = 6;    //3000元 
      DR_10000       = 7;   //10000元 
 }
+
+//客服技术类型枚举 
+enum CustomerServiceType {
+      CS_Undefined   = 0;          //proto3必须从0开始
+      CS_CustomerService =1;       //客服
+      CS_TechnologyService =2;       // 技术支持
+
+}

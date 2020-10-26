@@ -5015,7 +5015,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		}
 
 		var total uint64
-		teamUsers := nc.GetTeamUsers(int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		teamUsers := nc.GetTeamUsers(teamID, int(req.GetPage()), int(req.GetPageSize()), &total, maps)
 		nc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {

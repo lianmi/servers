@@ -233,7 +233,7 @@ func CreateInitControllersFn(
 			auth.GET("/user/:id", pc.GetUser)                    //根据id获取用户信息
 			auth.GET("/blockuser/:username", pc.BlockUser)       //根据用户账号, 将此用户封号
 			auth.GET("/disblockuser/:username", pc.DisBlockUser) //根据用户账号，将此用户解封
-			auth.POST("/chanpassword", pc.ChanPassword)          //修改用户密码
+			auth.POST("/chanpassword", pc.ChanPassword)          //修改(重置)用户密码
 
 			auth.GET("/approveteam/:teamid", pc.ApproveTeam)   //授权新创建的群组
 			auth.GET("/blockteam/:teamid", pc.BlockTeam)       //封禁群组
@@ -265,11 +265,32 @@ func CreateInitControllersFn(
 			//查询通用商品by productid
 			auth.GET("/getgeneralproduct/:productid", pc.GetGeneralProductByID)
 
-			//查询通用商品分页
+			//查询通用商品分页-按商品种类查询, /getgeneralproductspage?producttype=1
 			auth.GET("/getgeneralproductspage", pc.GetGeneralProductPage)
 
 			//删除通用商品 by productid
-			auth.DELETE("/getgeneralproduct/:productid", pc.DeleteGeneralProduct)
+			auth.DELETE("/generalproduct/:productid", pc.DeleteGeneralProduct)
+
+			//获取在线客服id数组
+			r.GET("/querycustomerservices", pc.QueryCustomerServices)
+
+			//增加在线客服id
+			r.GET("/addcustomerservice", pc.AddCustomerService)
+
+			//删除 在线客服id
+			r.GET("/deletecustomerservice", pc.DeleteCustomerService)
+
+			//编辑 在线客服id
+			r.GET("/updatecustomerservice", pc.UpdateCustomerService)
+
+			//查询评分
+			r.GET("/querygrades", pc.QueryGrades)
+
+			//客服增加评分标题及内容 
+			r.GET("/addgrade", pc.AddGrade)
+
+			//用户提交评分
+			r.GET("/submitgrade", pc.SubmitGrade)
 
 		}
 

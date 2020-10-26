@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "api/proto/user/User.proto";
+import "api/proto/global/Global.proto";
 
 package cloud.lianmi.im.serivce;
 option go_package = "github.com/lianmi/servers/api/proto/serivce";
@@ -24,6 +25,27 @@ service LianmiApis {
 
     //修改密码
     rpc ChanPasswd (ChanPasswdReq) returns (ChanPasswdResp);
+
+    //查出当前所有空闲的客服id, 用于UI端的联系客服人员
+    rpc QueryCustomerServices(CustomerServicesReq) returns (CustomerServicesResp);
+
+    //增加客服技术人员名单， 要先注册
+    rpc AddCustomerService(CustomerServicesReq) returns (CustomerServicesResp);
+
+    // 删除客服技术人员
+    rpc DeleteCustomerService(CustomerServicesReq) returns (CustomerServicesResp);
+
+    // 修改客服技术人员
+    rpc UpdateCustomerService(CustomerServicesReq) returns (CustomerServicesResp);
+
+    // 按条件查出客服评分
+    rpc QueryGrades(GradeReq) returns (GradesResp);
+
+    //客服人员增加客服评分记录，以便生成title发送给用户提交评分 
+    rpc AddGrade(AddGradeReq) returns (AddGradesResp);
+ 
+    // app用户提交评分
+    rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
 
 }
 
@@ -91,5 +113,166 @@ message SignOutReq {
 }
 
 message SignOutResp {
+ RespHeader status = 1;
+}
 
+message CustomerServiceInfo {
+
+    //客服或技术人员的注册账号id
+    string username =1;
+
+    //客服或技术人员的工号
+    string jobNumber =2;
+
+    //客服或技术人员的类型， 1-客服，2-技术
+    global.CustomerServiceType type =3;
+
+    //职称, 技术工程师，技术员等
+    string evaluation =4;
+
+    //呢称, 
+    string nickName  =5;
+
+}
+
+message CustomerServicesReq {
+    //true查询空闲, false -所有 
+    bool isIdle = 1;
+
+     //客服或技术人员的注册账号id
+    string username =2;
+
+    //客服或技术人员的工号
+    string jobNumber =3;
+
+    //客服或技术人员的类型， 1-客服，2-技术 0 - 所有 
+    global.CustomerServiceType type =4;
+
+    //职称, 技术工程师，技术员等
+    string evaluation =5;
+
+    //呢称, 
+    string nickName  =6;
+}
+
+message CustomerServicesResp {
+    RespHeader status = 1;
+    repeated CustomerServiceInfo onlineCustomerServices =2;
+}
+
+message GradeInfo  {
+    // 本次app用户求助的标题，约定： consult + _+ 日期字符串(20201025) + _ + 编号（自增）
+    string Title=1;
+
+	//APP用户的注册账号id
+	string AppUsername =2;
+
+	//客服或技术人员的注册账号id
+	string CustomerServiceUsername =3;
+
+    //客服或技术人员的工号
+	string JobNumber =4;
+
+    //客服或技术人员的类型， 1-客服，2-技术
+    global.CustomerServiceType type =5;
+
+    //职称, 技术工程师，技术员等
+	string Evaluation =6;
+
+     //呢称
+	string NickName =7;
+
+     //问题类型
+	string Catalog =8;
+
+    //问题描述
+	string Desc =9;
+                  
+    //评分, 0-3 4-6 7-10
+	int32 GradeNum =10;
+    
+}
+
+//必须由客服技术人员构造title，然后用约定的方式发送给用户，用户在UI弹出评分页面， 填写后提交 
+message GradeReq{
+    // 本次app用户求助的标题，约定： consult + _+ 日期字符串(20201025) + _ + 编号（自增）
+    string Title=1;
+
+	//APP用户的注册账号id
+	string AppUsername =2;
+
+	//客服或技术人员的注册账号id
+	string CustomerServiceUsername =3;
+
+	 //评分, 0-3 4-6 7-10
+	int32 GradeNum =4;
+
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 pageIndex = 5; // [default=1];
+
+    //每页成员数量
+    //默认100,最大只允许100
+    //是否必填-否
+    int32 pageSize = 6; // [default=100];
+
+    //开始时间
+    fixed64 startAt = 7;
+
+    //结束时间
+    fixed64 endAt = 8;
+}
+
+message GradesPage {
+    fixed64 total =1;
+    repeated GradeInfo grades =2;
+}
+
+message GradesResp {
+    RespHeader status = 1;
+    GradesPage pages =2;
+}
+
+//客服人员增加求助记录，以便发给用户评分
+message AddGradeReq{
+
+	//客服或技术人员的注册账号id
+	string CustomerServiceUsername =1;
+
+     //问题类型
+	string Catalog =2;
+
+    //问题描述
+	string Desc =3;
+}
+
+message GradeTitleInfo {
+   //客服或技术人员的注册账号id
+   string CustomerServiceUsername =1;
+
+   // 本次app用户求助的标题，约定： consult + _+ 日期字符串(20201025) + _ + 编号（自增）
+   string Title=2;
+}
+
+message AddGradesResp {
+    RespHeader status = 1;
+    GradeTitleInfo info =2;
+}
+
+//app用户提交评分
+message SubmitGradeReq {
+  //APP用户的注册账号id
+  string AppUsername =1;
+  
+  // 本次app用户求助的标题，约定： consult + _+ 日期字符串(20201025) + _ + 编号（自增）
+  string Title=2;
+
+  //评分, 0-3 4-6 7-10
+  int32 GradeNum =3;
+
+}
+
+message SubmitGradeResp {
+   RespHeader status = 1;
 }
