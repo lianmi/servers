@@ -112,11 +112,17 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到user变量中，必填字段一定要填
 	if c.BindJSON(&user) != nil {
-		pc.logger.Error("binding JSON error ")
+		pc.logger.Error("Register, binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册",
-			zap.Int("user.UserType", user.UserType))
+			zap.String("user.Nick", user.Nick),
+			zap.String("user.Mobile", user.Mobile),
+			zap.String("user.SmsCode", user.SmsCode),
+			zap.String("user.ContactPerson", user.ContactPerson),
+			zap.Int("user.UserType", user.UserType),
+			zap.Int("user.Gender", user.Gender),
+		)
 
 		//初始化一些默认值及当期时间
 		user.CreatedAt = time.Now().UnixNano() / 1e6 //注意，必须要unix时间戳，毫秒
