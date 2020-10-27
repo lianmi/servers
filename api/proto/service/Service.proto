@@ -52,6 +52,20 @@ service LianmiApis {
 
     //查询商户营销方式, 更改后立即有效 
     rpc SetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
+
+    //用户付费成为会员
+    rpc PayForMembership(PayForMembershipReq) returns (PayForMembershipResp);
+
+    //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
+    rpc GetBusinessMembership(BusinessMembershipReq) returns (BusinessMembershipResp);
+
+    //用户查询当前发展用户总数（5， 10， 35）及按月统计返佣
+   rpc GetNormalMembership(NormalMembershipReq) returns (NormalMembershipResp);
+
+    //申请返佣提现,  商户及用户均可适用,  当用户申请返佣，服务端校验后会下发系统通知给商户，商户收到系统通知后，在专门的页面显示出用户申请返佣的明细，核对正确后，商户转账给用户,  并且提交已返佣的结果。
+    //商户返佣则服务端收到申请，运营后台查看，如果核对正确，则转账给商户，并记录转账结果，商户刷新列表，显示已返佣
+    rpc AskedWithdraw(AskedWithdrawReq) returns (AskedWithdrawResp);
+
 }
 
 message RespHeader {
@@ -65,8 +79,7 @@ message UserReq {
 }
 
 message UserRsp {
-    RespHeader status  = 1;
-    user.User       user    = 2;
+    user.User  user  = 1;
 }
 
 //==== 注册 ===//
@@ -76,8 +89,7 @@ message RegisterReq {
 }
 
 message RegisterResp {
-    RespHeader status = 1;
-    string accesstoken = 2; //注册成功后返回token
+    string username = 1; //注册成功后返回username
 }
 
 //=== 获取短信验证码 ===//
@@ -215,12 +227,12 @@ message GradeReq{
     //页数,第几页
     //默认1
     //是否必填-否
-    int32 pageIndex = 5; // [default=1];
+    int32 page = 5; // [default=1];
 
     //每页成员数量
-    //默认100,最大只允许100
+    //默认20,最大只允许100
     //是否必填-否
-    int32 pageSize = 6; // [default=100];
+    int32 limit = 6; // [default=20];
 
     //开始时间
     fixed64 startAt = 7;
@@ -230,7 +242,7 @@ message GradeReq{
 }
 
 message GradesPage {
-    fixed64 total =1;
+    fixed64 totalPage =1;
     repeated GradeInfo grades =2;
 }
 
@@ -296,3 +308,122 @@ message MembershipCardSaleModeResp {
    global.MembershipCardSaleType saleType =2;
 }
 
+
+message PayForMembershipReq {
+    
+}
+
+
+message PayForMembershipResp {
+
+}
+
+message BusinessMembershipReq {
+
+}
+
+message MembershipMonth {
+    //月份 2020-10
+    string month =1;
+
+    //当月付费会员数量
+    int32 count =2;
+
+    //当月返佣金额
+    double rebateMoney =3;
+
+    //是否已经返佣
+    bool isRebate =4;
+
+    //返佣的区块高度
+    fixed64 blockNumber =5;
+
+    //返佣的交易哈希
+    string txHash =6;
+
+    //操作时间
+    fixed64 rebateTime =7;
+
+
+}
+
+message BusinessMembershipInfo {
+    // 会员总数
+    int32  totalmembers =1;
+
+    //按月统计付费会员 
+    repeated MembershipMonth members=2;
+
+}
+
+message BusinessMembershipResp {
+  RespHeader status = 1;
+  BusinessMembershipInfo monthRecord=2;
+}
+
+message NormalMembershipReq {
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 1; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 2; // [default=20];
+
+    //开始时间
+    fixed64 startAt = 3;
+
+    //结束时间
+    fixed64 endAt = 4;
+}
+
+
+//用户三级分销的按月统计记录
+message PerLevelSummary{
+    //月份 2020-10
+    string month =1;
+
+    //5元返佣会员数量
+    int32 fiveCount =2;
+
+    //10元返佣会员数量
+    int32 tenCount =3;
+
+    //35元返佣会员数量
+    int32 ThirtyFiveCount =4;
+
+    //当月返佣金额总计
+    double rebateTotalMoney =5;
+
+    //是否已经返佣
+    bool isRebate =6;
+
+    //返佣的区块高度
+    fixed64 blockNumber =7;
+
+    //返佣的交易哈希
+    string txHash =8;
+
+    //操作时间
+    fixed64 rebateTime =9;
+}
+
+message NormalMembershipResp {
+    RespHeader status = 1;
+    
+    //总页数
+    fixed64 totalPage =2;
+
+    //按月统计各级返佣
+    repeated PerLevelSummary summary=3;
+}
+
+message AskedWithdrawReq {
+
+}
+
+message  AskedWithdrawResp {
+    
+}

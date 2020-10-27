@@ -226,6 +226,8 @@ func (s *MysqlLianmiRepository) DisBlockUser(username string) (p *models.User, e
 func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	//获取redis里最新id， 生成唯一的username
 	var newIndex uint64
+	var businessUserType int
+	var belongBusinessUser string
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -239,36 +241,38 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		user.Username = fmt.Sprintf("admin%d", newIndex)
 	} else {
 		user.Username = fmt.Sprintf("id%d", newIndex)
+
 	}
 
-	//将用户信息缓存到redis里
-	userKey := fmt.Sprintf("userData:%s", user.Username)
-	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user)...); err != nil {
-		s.logger.Error("错误：HMSET", zap.Error(err))
+	//如果是普通用户注册，需要查找推荐人及种子商户
+	if user.GetUserType() == User.UserType_Ut_Normal {
+		if user.ReferrerUsername != "" {
+			//查询出邀请人的类型
+			businessUserKey := fmt.Sprintf("userData:%s", user.ReferrerUsername)
+			businessUserType, _ = redis.Int(redisConn.Do("HGET", businessUserKey, "UserType"))
+
+			if businessUserType == int(User.UserType_Ut_Normal) { //如果是用户，则查出对应的商户
+				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", businessUserKey, "BelongBusinessUser"))
+
+			} else if businessUserType == int(User.UserType_Ut_Business) { //商户
+				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", businessUserKey, "Username"))
+
+			}
+
+			if belongBusinessUser != "" {
+				user.BelongBusinessUser = belongBusinessUser
+			}
+		}
 	}
 
-	if err := s.base.Create(user); err != nil {
-		s.logger.Error("db写入错误，注册用户失败")
-		return err
-	}
-
-	//创建redis的sync:{用户账号} myInfoAt 时间戳
-	//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt, productAt,  generalProductAt
-
-	syncKey := fmt.Sprintf("sync:%s", user.Username)
-	redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "friendsAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "systemMsgAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "productAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "generalProductAt", time.Now().UnixNano()/1e6)
-
-	//网点商户自动建群
 	if user.GetUserType() == User.UserType_Ut_Business {
 
+		//如果是商户注册，则无须记录推荐人，种子商户是自己
+		user.BelongBusinessUser = user.Username
+
+		//
+
+		//网点商户自动建群
 		var newTeamIndex uint64
 		if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
 			s.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
@@ -303,6 +307,31 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		//提交
 		tx.Commit()
 	}
+
+	//将用户信息缓存到redis里
+	userKey := fmt.Sprintf("userData:%s", user.Username)
+	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user)...); err != nil {
+		s.logger.Error("错误：HMSET", zap.Error(err))
+	}
+
+	if err := s.base.Create(user); err != nil {
+		s.logger.Error("db写入错误，注册用户失败")
+		return err
+	}
+
+	//创建redis的sync:{用户账号} myInfoAt 时间戳
+	//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt, productAt,  generalProductAt
+
+	syncKey := fmt.Sprintf("sync:%s", user.Username)
+	redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "friendsAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "systemMsgAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "productAt", time.Now().UnixNano()/1e6)
+	redisConn.Do("HSET", syncKey, "generalProductAt", time.Now().UnixNano()/1e6)
 
 	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 	return nil

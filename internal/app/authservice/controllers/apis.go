@@ -127,7 +127,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		//检测手机是数字
 		if !conv.IsDigit(user.Mobile) {
 			pc.logger.Error("Register user error, Mobile is not digital")
-			code = codes.InvalidParams
+			code = codes.ErrNotDigital
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
 			return
 		}
@@ -143,7 +143,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		//检测校验码是否正确
 		if !pc.service.CheckSmsCode(user.Mobile, user.SmsCode) {
 			pc.logger.Error("Register user error, SmsCode is wrong")
-			code = codes.InvalidParams
+			code = codes.ErrWrongSmsCode
 			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
 			return
 		}
@@ -165,14 +165,15 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			)
 		}
 
-		//检查邀请码，也就是用户账号id的数字部分
+		//检测推荐人，UI负责将id拼接邀请码，也就是用户账号id+ 邀请码
 		if user.ReferrerUsername != "" {
-			if !pc.service.ExistUserByName("id" + user.ReferrerUsername) {
+			if !pc.service.ExistUserByName(user.ReferrerUsername) {
 				pc.logger.Error("Register user error, ReferrerUsername is not registered")
-				code = codes.ErrExistMobile
+				code = codes.ErrNotFoundInviter
 				RespFail(c, http.StatusBadRequest, code, "ReferrerUsername is not registered")
 				return
 			}
+
 		}
 
 		if userName, err := pc.service.Register(&user); err == nil {
@@ -184,7 +185,9 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "Register user error")
 			return
 		}
-		RespData(c, http.StatusOK, code, user.Username)
+		RespData(c, http.StatusOK, code, Service.RegisterResp{
+			Username: user.Username,
+		})
 	}
 }
 
@@ -211,7 +214,7 @@ func (pc *LianmiApisController) Resetpwd(c *gin.Context) {
 		//检测手机是否已经注册， 如果未注册，则返回失败
 		if !pc.service.ExistUserByMobile(rp.Mobile) {
 			pc.logger.Error("ResetPassword error, Mobile is not registered")
-			code = codes.ErrExistMobile
+			code = codes.ErrNotRegisterMobile
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not registered")
 			return
 		}
@@ -652,8 +655,8 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		pageIndex := int(req.PageIndex)
-		pageSize := int(req.PageSize)
+		pageIndex := int(req.Page)
+		pageSize := int(req.Limit)
 		total := new(uint64)
 		if pageIndex == 0 {
 			pageIndex = 1
@@ -672,7 +675,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, 400, "Query Grades( failed")
 		} else {
 			pages := Service.GradesPage{
-				Total: *total,
+				TotalPage: *total,
 				// Grades: pfList,
 			}
 			for _, grade := range pfList {

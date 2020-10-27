@@ -68,7 +68,7 @@ func GetPage(c *gin.Context) (page, pagesize int) {
 	page, _ = strconv.Atoi(c.Query("page"))
 	pagesize, _ = strconv.Atoi(c.Query("limit"))
 	if pagesize == 0 {
-		pagesize = 20  //默认是20
+		pagesize = 20 //默认是20
 	}
 	if page == 0 {
 		page = 1

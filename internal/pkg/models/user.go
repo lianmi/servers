@@ -30,7 +30,7 @@ type User struct {
 	Mobile                 string  `form:"mobile" json:"mobile" binding:"required"`                               //注册手机
 	Email                  string  `form:"email" json:"email,omitempty" `                                         //密保邮件，需要发送校验邮件确认
 	AllowType              int     `form:"allow_type" json:"allow_type"`                                          //用户加好友枚举，默认是3
-	UserType               int     `form:"user_type" json:"user_type" binding:"required"`                         //用户类型
+	UserType               int     `form:"user_type" json:"user_type" binding:"required"`                         //用户类型 1-普通，2-商户
 	BankCard               string  `form:"bank_card" json:"bank_card,omitempty" `                                 //银行卡账号
 	Bank                   string  `form:"bank" json:"bank,omitempty" `                                           //开户银行
 	TrueName               string  `form:"true_name" json:"true_name,omitempty" `                                 //用户实名
@@ -47,10 +47,12 @@ type User struct {
 	Branchesname           string  `form:"branches_name" json:"branches,omitempty" `                              //网点名称
 	LegalPerson            string  `form:"legal_person" json:"legal_person,omitempty" `                           //法人姓名
 	LegalIdentityCard      string  `form:"legal_identity_card" json:"legal_identity_card,omitempty" `             //法人身份证
-	ReferrerUsername       string  `form:"referrer_username" json:"referrer_username,omitempty" `                 //推荐人用户账号id，  app的推荐码就是用户id的数字
+	ReferrerUsername       string  `form:"referrer_username" json:"referrer_username,omitempty" `                 //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
+	BelongBusinessUser     string  `form:"belong_business_user" json:"belong_business_user,omitempty" `           //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
 	Longitude              float64 `form:"longitude" json:"longitude,omitempty" `                                 //商户地址的经度
 	Latitude               float64 `form:"latitude" json:"latitude,omitempty" `                                   //商户地址的纬度
 	MembershipCardSaleMode int     `form:"membership_card_sale_mode" json:"membership_card_sale_mode,omitempty"`  //会员卡营销模式
+	WeChat                 string  `form:"wechat" json:"wechat,omitempty" `                                       //商户联系人微信号
 	CreatedBy              string  `form:"created_by" json:"created_by,omitempty"`                                //由谁创建， 分为注册或后台添加
 	ModifiedBy             string  `form:"modified_by" json:"modified_by,omitempty"`                              //最后由哪个操作员修改
 }

@@ -13,8 +13,12 @@ var MsgFlags = map[int]string{
 	ErrAuthToken:             "Token生成失败",
 	ErrAuth:                  "Token错误",
 	PageNotFound:             "Page not found",
+	ErrNotDigital:            "非数字",
+	ErrWrongSmsCode:          "短信校验码错误",
 	ErrExistUser:             "用户名已存在",
 	ErrExistMobile:           "手机号已存在",
+	ErrNotRegisterMobile:     "此手机号没注册",
+	ErrNotFoundInviter:       "邀请码对应的用户不存在",
 }
 
 //GetMsg 获取错误信息

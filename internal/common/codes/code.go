@@ -15,8 +15,13 @@ const (
 	ErrAuthToken             = 20003
 	ErrAuth                  = 20004
 
-	ErrExistUser   = 30001
-	ErrExistMobile = 30002
+	ErrNotDigital     = 29001
+	ErrWrongSmsCode = 29002
+
+	ErrExistUser         = 30001
+	ErrExistMobile       = 30002
+	ErrNotRegisterMobile = 30003
+	ErrNotFoundInviter   = 30004
 
 	PageNotFound = 40001
 )
