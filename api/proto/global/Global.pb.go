@@ -884,7 +884,7 @@ func (OrderState) EnumDescriptor() ([]byte, []int) {
 	return file_api_proto_global_Global_proto_rawDescGZIP(), []int{10}
 }
 
-//商品种类类型
+//商户类型
 type ProductType int32
 
 const (

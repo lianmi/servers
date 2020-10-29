@@ -30,6 +30,9 @@ service LianmiApis {
     //重置密码， 需要输入smscode
     rpc ResetPassword (ResetPasswordReq) returns (ResetPasswordResp);
 
+    //根据百度坐标经纬度查找出指定范围内的所有商户列表
+    rpc QueryShopsNearby (QueryShopsNearbyReq) returns (QueryShopsNearbyResp);
+
     //根据条件查出所有客服及技术列表, 用于UI端的联系客服人员
     rpc QueryCustomerServices(QueryCustomerServiceReq) returns (QueryCustomerServiceResp);
 
@@ -127,6 +130,77 @@ message ResetPasswordResp {
     string username = 1; //用户名
 }
 
+//======查询经纬度范围内的商户列表=====//
+message QueryShopsNearbyReq {
+    //商户经营范围搜索关键字, 用半角的逗号隔开
+    string  keys = 1;
+
+    //用户当前位置的经度
+    double longitude=2; 
+
+    //用户当前位置的经度
+    double latitude=3;
+
+    //距离范围, 默认10km
+    double distance=4;
+
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 5; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 6; // [default=20];
+}
+
+//商店信息
+message Shop {
+     //商户注册号，自动生成，字母 + 数字
+    string businessUsername =1;
+
+    //商户呢称，必填
+	string nick             =2;   
+
+    //头像url
+	string avatar           =3;                                     
+
+    //商店名称
+    string branchesName     =4; 
+
+    //商店简介
+    string introductory      =5;
+
+    //省份, 如广东省
+    string province         =6;
+
+    //城市，如广州市
+    string city             =7; 
+
+    //区，如天河区
+	string county           =8;
+    
+    //街道
+	string street           =9;
+
+    //地址
+	string address          =10;
+
+    //商店位置的经度
+    double longitude        =11; 
+
+    //商店位置的经度
+    double latitude         =12;
+}
+
+message QueryShopsNearbyResp {
+    //总页数
+    fixed64 totalPage =1;
+
+    //搜索结果列表
+    repeated Shop shops =2;
+}
 
 //==== 根据用户名及密码登录 ===//
 message LoginReq {

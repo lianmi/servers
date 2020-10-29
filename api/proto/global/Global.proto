@@ -189,7 +189,7 @@ enum OrderState {
     OS_Urge         = 15;   /**< 买家催单, 商户可以回复7*/
 }
 
-//商品种类类型
+//商户类型
 enum ProductType {
     OT_Undefined     = 0;     //proto3必须从0开始
     OT_FreshProduct  = 1;     /**< 生鲜产品*/

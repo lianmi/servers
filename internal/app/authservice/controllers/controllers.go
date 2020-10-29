@@ -224,7 +224,11 @@ func CreateInitControllersFn(
 			c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
 		})
 
-		auth := r.Group("/v1") //带v1的路由都必须使用Bearer JWT 才能正常访问
+		authNone := r.Group("/shops")
+		authNone.GET("/nearby", pc.QueryShopsNearby)
+
+
+		auth := r.Group("/v1/") //带v1的路由都必须使用Bearer JWT 才能正常访问
 		// Refresh time can be longer than token timeout
 		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 		auth.Use(authMiddleware.MiddlewareFunc())
