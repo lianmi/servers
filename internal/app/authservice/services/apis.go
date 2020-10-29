@@ -14,10 +14,10 @@ import (
 
 type LianmiApisService interface {
 	GetUser(ID uint64) (*models.User, error)
-	BlockUser(username string) (*models.User, error)
+	BlockUser(username string) error
 	DisBlockUser(username string) (*models.User, error)
 	Register(user *models.User) (string, error)
-	Resetpwd(mobile, password string, user *models.User) error
+	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
 
 	//检测用户登录
@@ -38,7 +38,7 @@ type LianmiApisService interface {
 	CheckSmsCode(mobile, smscode string) bool
 
 	//修改密码
-	ChanPassword(username, oldPassword, newPassword string) error
+	ChanPassword(username string, req *Service.ChanPasswordReq) error
 
 	//授权新创建的群组
 	ApproveTeam(teamID string) error
@@ -60,13 +60,13 @@ type LianmiApisService interface {
 
 	DeleteGeneralProduct(productID string) bool
 
-	QueryCustomerServices() ([]*models.CustomerServiceInfo, error)
+	QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
 
-	AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+	AddCustomerService(req *Service.AddCustomerServiceReq) error
 
-	DeleteCustomerService(sc *Service.CustomerServiceInfo) bool
+	DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool
 
-	UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+	UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error
 
 	QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
 
@@ -77,6 +77,10 @@ type LianmiApisService interface {
 	GetMembershipCardSaleMode(businessUsername string) (int, error)
 
 	SetMembershipCardSaleMode(businessUsername string, saleType int) error
+
+	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
+
+	PayForMembership(payForUsername string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -100,13 +104,13 @@ func (s *DefaultLianmiApisService) GetUser(ID uint64) (p *models.User, err error
 	return
 }
 
-func (s *DefaultLianmiApisService) BlockUser(username string) (p *models.User, err error) {
+func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
 	s.logger.Debug("BlockUser", zap.String("username", username))
-	if p, err = s.Repository.BlockUser(username); err != nil {
-		return nil, errors.Wrap(err, "Block user error")
+	if err = s.Repository.BlockUser(username); err != nil {
+		return errors.Wrap(err, "Block user error")
 	}
 
-	return
+	return nil
 }
 func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User, err error) {
 	s.logger.Debug("DisBlockUser", zap.String("username", username))
@@ -156,18 +160,18 @@ func (s *DefaultLianmiApisService) Register(user *models.User) (string, error) {
 	return user.Username, nil
 }
 
-func (s *DefaultLianmiApisService) Resetpwd(mobile, password string, user *models.User) error {
-	if err := s.Repository.Resetpwd(mobile, password, user); err != nil {
-		return errors.Wrap(err, "Resetpwd error")
+func (s *DefaultLianmiApisService) ResetPassword(mobile, password string, user *models.User) error {
+	if err := s.Repository.ResetPassword(mobile, password, user); err != nil {
+		return errors.Wrap(err, "ResetPassword error")
 	}
 
 	return nil
 }
 
 //修改密码
-func (s *DefaultLianmiApisService) ChanPassword(username, oldPassword, newPassword string) error {
+func (s *DefaultLianmiApisService) ChanPassword(username string, req *Service.ChanPasswordReq) error {
 
-	return s.Repository.ChanPassword(username, oldPassword, newPassword)
+	return s.Repository.ChanPassword(username, req)
 }
 
 func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role {
@@ -249,27 +253,27 @@ func (s *DefaultLianmiApisService) DeleteGeneralProduct(productID string) bool {
 }
 
 //获取在线客服id数组
-func (s *DefaultLianmiApisService) QueryCustomerServices() ([]*models.CustomerServiceInfo, error) {
+func (s *DefaultLianmiApisService) QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error) {
 
-	return s.Repository.QueryCustomerServices()
+	return s.Repository.QueryCustomerServices(req)
 
 }
 
 //增加在线客服id
-func (s *DefaultLianmiApisService) AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+func (s *DefaultLianmiApisService) AddCustomerService(req *Service.AddCustomerServiceReq) error {
 
-	return s.Repository.AddCustomerService(sc)
-
-}
-
-func (s *DefaultLianmiApisService) DeleteCustomerService(sc *Service.CustomerServiceInfo) bool {
-	return s.Repository.DeleteCustomerService(sc)
+	return s.Repository.AddCustomerService(req)
 
 }
 
-func (s *DefaultLianmiApisService) UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+func (s *DefaultLianmiApisService) DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool {
+	return s.Repository.DeleteCustomerService(req)
 
-	return s.Repository.UpdateCustomerService(sc)
+}
+
+func (s *DefaultLianmiApisService) UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error {
+
+	return s.Repository.UpdateCustomerService(req)
 
 }
 
@@ -291,4 +295,12 @@ func (s *DefaultLianmiApisService) GetMembershipCardSaleMode(businessUsername st
 
 func (s *DefaultLianmiApisService) SetMembershipCardSaleMode(businessUsername string, saleType int) error {
 	return s.Repository.SetMembershipCardSaleMode(businessUsername, saleType)
+}
+
+func (s *DefaultLianmiApisService) GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error) {
+	return s.Repository.GetBusinessMembership(isRebate)
+}
+
+func (s *DefaultLianmiApisService) PayForMembership(payForUsername string) error {
+	return s.Repository.PayForMembership(payForUsername)
 }

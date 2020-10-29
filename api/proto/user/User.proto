@@ -1,5 +1,4 @@
 syntax = "proto3";
-import "google/protobuf/timestamp.proto";
 
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
@@ -68,6 +67,6 @@ message User {
     string branchesname  = 20;
     string legalPerson   = 21;
     string legalIdentityCard = 22;
-    google.protobuf.Timestamp createdAt = 23;     //用户注册时间,Unix时间戳
-    google.protobuf.Timestamp updatedAt = 24;     //用户资料最后更新时间,Unix时间戳
+    fixed64 createdAt = 23;     //用户注册时间,Unix时间戳
+    fixed64 updatedAt = 24;     //用户资料最后更新时间,Unix时间戳
 }

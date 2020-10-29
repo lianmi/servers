@@ -22,11 +22,11 @@ import (
 
 type LianmiRepository interface {
 	GetUser(ID uint64) (p *models.User, err error)
-	BlockUser(username string) (p *models.User, err error)
+	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
-	Resetpwd(mobile, password string, user *models.User) error
-	ChanPassword(username, oldPassword, newPassword string) error
+	ResetPassword(mobile, password string, user *models.User) error
+	ChanPassword(username string, req *Service.ChanPasswordReq) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
@@ -89,13 +89,13 @@ type LianmiRepository interface {
 
 	DeleteGeneralProduct(productID string) bool
 
-	QueryCustomerServices() ([]*models.CustomerServiceInfo, error)
+	QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
 
-	AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+	AddCustomerService(req *Service.AddCustomerServiceReq) error
 
-	DeleteCustomerService(sc *Service.CustomerServiceInfo) bool
+	DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool
 
-	UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error)
+	UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error
 
 	QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
 
@@ -107,6 +107,10 @@ type LianmiRepository interface {
 	GetMembershipCardSaleMode(businessUsername string) (int, error)
 
 	SetMembershipCardSaleMode(businessUsername string, saleType int) error
+
+	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
+
+	PayForMembership(payForUsername string) error
 }
 
 type MysqlLianmiRepository struct {
@@ -143,14 +147,14 @@ func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
 1. 将users表的用户记录的state设置为3
 2. 踢出此用户的所有主从设备
 */
-func (s *MysqlLianmiRepository) BlockUser(username string) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	p = new(models.User)
+	p := new(models.User)
 	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
-		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
+		return errors.Wrapf(err, "Get user error[username=%s]", username)
 	}
 
 	p.State = 2 //1-正常， 2-封号
@@ -193,7 +197,7 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (p *models.User, err 
 
 	s.logger.Debug("BlockUser run.")
 
-	return
+	return nil
 }
 
 /*
@@ -339,7 +343,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 }
 
 //重置密码
-func (s *MysqlLianmiRepository) Resetpwd(mobile, password string, user *models.User) error {
+func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *models.User) error {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -363,7 +367,7 @@ func (s *MysqlLianmiRepository) Resetpwd(mobile, password string, user *models.U
 
 	tx := s.base.GetTransaction()
 	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("更新用户失败", zap.Error(err))
+		s.logger.Error("更新用户密码失败", zap.Error(err))
 		tx.Rollback()
 		return err
 	}
@@ -374,9 +378,12 @@ func (s *MysqlLianmiRepository) Resetpwd(mobile, password string, user *models.U
 }
 
 //修改密码
-func (s *MysqlLianmiRepository) ChanPassword(username, oldPassword, newPassword string) error {
+func (s *MysqlLianmiRepository) ChanPassword(username string, req *Service.ChanPasswordReq) error {
 	var user models.User
 	sel := "id"
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
 	where := models.User{Username: username}
 	err := s.base.First(&where, &user, sel)
 	//记录不存在错误(RecordNotFound)，返回false
@@ -389,9 +396,16 @@ func (s *MysqlLianmiRepository) ChanPassword(username, oldPassword, newPassword 
 		return err
 	}
 
+	userKey := fmt.Sprintf("userData:%s", username)
+	mobile, _ := redis.String(redisConn.Do("HGET", userKey, "Mobile"))
+	if !s.CheckSmsCode(mobile, req.SmsCode) {
+		s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", req.SmsCode))
+		return err
+	}
+
 	//判断旧密码
-	if oldPassword == user.Password {
-		user.Password = newPassword
+	if req.Oldpasswd == user.Password {
+		user.Password = req.Password
 	}
 
 	tx := s.base.GetTransaction()
@@ -672,6 +686,7 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
 		targetMsg.SetCode(200) //成功的状态码
+
 		//构建数据完成，向dispatcher发送
 		topic := "Auth.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
@@ -1067,7 +1082,7 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 }
 
 //获取空闲的在线客服id数组
-func (s *MysqlLianmiRepository) QueryCustomerServices() ([]*models.CustomerServiceInfo, error) {
+func (s *MysqlLianmiRepository) QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error) {
 
 	var err error
 
@@ -1088,50 +1103,68 @@ func (s *MysqlLianmiRepository) QueryCustomerServices() ([]*models.CustomerServi
 		jobNumber, _ := redis.String(redisConn.Do("HGET", key, "JobNumber"))   //工号
 		evaluation, _ := redis.String(redisConn.Do("HGET", key, "Evaluation")) //职称
 		nickName, _ := redis.String(redisConn.Do("HGET", key, "NickName"))     //呢称
-		if isIdle && cstype == 1 {
-			csList = append(csList, &models.CustomerServiceInfo{
-				Username:   csUsername, //客服或技术人员的注册账号id
-				JobNumber:  jobNumber,  //客服或技术人员的工号
-				Type:       cstype,     //客服或技术人员的类型， 1-客服，2-技术
-				Evaluation: evaluation, //职称, 技术工程师，技术员等
-				NickName:   nickName,   //呢称,
-			})
+		if int(req.Type) == 0 {
+			if isIdle == req.IsIdle {
+				csList = append(csList, &models.CustomerServiceInfo{
+					Username:   csUsername, //客服或技术人员的注册账号id
+					JobNumber:  jobNumber,  //客服或技术人员的工号
+					Type:       cstype,     //客服或技术人员的类型， 1-客服，2-技术
+					Evaluation: evaluation, //职称, 技术工程师，技术员等
+					NickName:   nickName,   //呢称,
+				})
+			}
+		} else {
+			if isIdle == req.IsIdle && cstype == int(req.Type) {
+				csList = append(csList, &models.CustomerServiceInfo{
+					Username:   csUsername, //客服或技术人员的注册账号id
+					JobNumber:  jobNumber,  //客服或技术人员的工号
+					Type:       cstype,     //客服或技术人员的类型， 1-客服，2-技术
+					Evaluation: evaluation, //职称, 技术工程师，技术员等
+					NickName:   nickName,   //呢称,
+				})
+			}
 		}
 
 	}
 	return csList, nil
 }
 
-func (s *MysqlLianmiRepository) AddCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+func (s *MysqlLianmiRepository) AddCustomerService(req *Service.AddCustomerServiceReq) error {
 	var err error
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	username := sc.Username
+	username := req.Username
 
 	userKey := fmt.Sprintf("userData:%s", username)
 	username2, _ := redis.String(redisConn.Do("HGET", userKey, "Username"))
 	if username2 != username {
-		return nil, errors.Wrapf(err, "Username is not exists error[username=%s]", username)
+		return errors.Wrapf(err, "Username is not exists error[username=%s]", username)
 	}
 	if reply, err := redisConn.Do("ZRANK", "CustomerServiceList", username); err == nil {
 		if reply != nil {
 
 			//已经存在，不能重复增加
-			return nil, errors.Wrapf(err, "Username is exists error[username=%s]", username)
+			return errors.Wrapf(err, "Username is exists error[username=%s]", username)
 		}
 
 	}
-	csList := make([]*models.CustomerServiceInfo, 0)
 
-	c := new(models.CustomerServiceInfo)
+	c := &models.CustomerServiceInfo{
+		Username:   req.Username,
+		JobNumber:  req.JobNumber,
+		Type:       int(req.Type),
+		Evaluation: req.Evaluation,
+		NickName:   req.NickName,
+	}
 
 	tx := s.base.GetTransaction()
 
 	if err := tx.Save(c).Error; err != nil {
-		s.logger.Error("增加客户技术失败", zap.Error(err))
+		s.logger.Error("增加客户技术人员失败", zap.Error(err))
 		tx.Rollback()
+		return errors.Wrapf(err, "Save error")
 
 	}
 	//提交
@@ -1143,46 +1176,24 @@ func (s *MysqlLianmiRepository) AddCustomerService(sc *Service.CustomerServiceIn
 
 	_, err = redisConn.Do("HMSET",
 		fmt.Sprintf("CustomerServiceInfo:%s", username),
-		"Username", sc.Username,
 		"IsIdle", false,
-		"Type", sc.Type,
-		"JobNumber", sc.JobNumber,
-		"NickName", sc.NickName,
+		"Username", req.Username,
+		"Type", req.Type,
+		"JobNumber", req.JobNumber,
+		"Evaluation", req.Evaluation,
+		"NickName", req.NickName,
 	)
 
-	csUsernameList, err := redis.Strings(redisConn.Do("ZRANGE", "CustomerServiceList", 0, -1))
-	if err != nil {
-		return nil, err
-	}
-	for _, csUsername := range csUsernameList {
-		key := fmt.Sprintf("CustomerServiceInfo:%s", csUsername)
-
-		isIdle, _ := redis.Bool(redisConn.Do("HGET", key, "IsIdle"))           //是否空闲
-		cstype, _ := redis.Int(redisConn.Do("HGET", key, "Type"))              //账号类型，1-客服，2-技术
-		jobNumber, _ := redis.String(redisConn.Do("HGET", key, "JobNumber"))   //工号
-		evaluation, _ := redis.String(redisConn.Do("HGET", key, "Evaluation")) //职称
-		nickName, _ := redis.String(redisConn.Do("HGET", key, "NickName"))     //呢称
-		if isIdle && cstype == 1 {
-			csList = append(csList, &models.CustomerServiceInfo{
-				Username:   csUsername, //客服或技术人员的注册账号id
-				JobNumber:  jobNumber,  //客服或技术人员的工号
-				Type:       cstype,     //客服或技术人员的类型， 1-客服，2-技术
-				Evaluation: evaluation, //职称, 技术工程师，技术员等
-				NickName:   nickName,   //呢称,
-			})
-		}
-
-	}
-	return csList, nil
+	return nil
 
 }
 
-func (s *MysqlLianmiRepository) DeleteCustomerService(sc *Service.CustomerServiceInfo) bool {
+func (s *MysqlLianmiRepository) DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	username := sc.Username
+	username := req.Username
 
 	userKey := fmt.Sprintf("userData:%s", username)
 	username2, _ := redis.String(redisConn.Do("HGET", userKey, "Username"))
@@ -1195,7 +1206,7 @@ func (s *MysqlLianmiRepository) DeleteCustomerService(sc *Service.CustomerServic
 	)
 	tx := s.base.GetTransaction()
 	if err := tx.Where(&gpWhere).Delete(&customerServiceInfo).Error; err != nil {
-		s.logger.Error("删除在线客服表失败", zap.Error(err))
+		s.logger.Error("删除在线客服人员失败", zap.Error(err))
 		tx.Rollback()
 		return false
 	}
@@ -1204,82 +1215,59 @@ func (s *MysqlLianmiRepository) DeleteCustomerService(sc *Service.CustomerServic
 
 }
 
-func (s *MysqlLianmiRepository) UpdateCustomerService(sc *Service.CustomerServiceInfo) ([]*models.CustomerServiceInfo, error) {
+func (s *MysqlLianmiRepository) UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error {
 	var err error
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	username := sc.Username
+	username := req.Username
 
 	userKey := fmt.Sprintf("userData:%s", username)
 	username2, _ := redis.String(redisConn.Do("HGET", userKey, "Username"))
 	if username2 != username {
-		return nil, errors.Wrapf(err, "Username is not exists error[username=%s]", username)
+		return errors.Wrapf(err, "Username is not exists error[username=%s]", username)
 	}
 	if reply, err := redisConn.Do("ZRANK", "CustomerServiceList", username); err == nil {
 		if reply == nil {
 
 			//不存在，必须先增加
-			return nil, errors.Wrapf(err, "Username is not exists in list error[username=%s]", username)
+			return errors.Wrapf(err, "Username is not exists in list error[username=%s]", username)
 		}
 
 	}
-	csList := make([]*models.CustomerServiceInfo, 0)
 
 	c := new(models.CustomerServiceInfo)
 	if err = s.db.Model(c).Where("username = ?", username).First(c).Error; err != nil {
-		return nil, errors.Wrapf(err, "Get customerServiceInfo error[username=%s]", username)
+		return errors.Wrapf(err, "Get customerServiceInfo error[username=%s]", username)
 	}
 
-	c.JobNumber = sc.JobNumber
-	c.Evaluation = sc.Evaluation
-	c.NickName = sc.NickName
-	c.Type = int(sc.Type)
+	c.JobNumber = req.JobNumber
+	c.Evaluation = req.Evaluation
+	c.NickName = req.NickName
+	c.Type = int(req.Type)
 
 	tx := s.base.GetTransaction()
 
 	if err := tx.Save(c).Error; err != nil {
 		s.logger.Error("修改客户技术失败", zap.Error(err))
 		tx.Rollback()
-
+		return errors.Wrapf(err, "Save error")
 	}
 	//提交
 	tx.Commit()
 
 	_, err = redisConn.Do("HMSET",
 		fmt.Sprintf("CustomerServiceInfo:%s", username),
-		"Username", sc.Username,
+		"Username", req.Username,
 		"IsIdle", false,
-		"Type", sc.Type,
-		"JobNumber", sc.JobNumber,
-		"NickName", sc.NickName,
+		"Type", req.Type,
+		"JobNumber", req.JobNumber,
+		"Evaluation", req.Evaluation,
+		"NickName", req.NickName,
 	)
 
-	csUsernameList, err := redis.Strings(redisConn.Do("ZRANGE", "CustomerServiceList", 0, -1))
-	if err != nil {
-		return nil, err
-	}
-	for _, csUsername := range csUsernameList {
-		key := fmt.Sprintf("CustomerServiceInfo:%s", csUsername)
-
-		isIdle, _ := redis.Bool(redisConn.Do("HGET", key, "IsIdle"))           //是否空闲
-		cstype, _ := redis.Int(redisConn.Do("HGET", key, "Type"))              //账号类型，1-客服，2-技术
-		jobNumber, _ := redis.String(redisConn.Do("HGET", key, "JobNumber"))   //工号
-		evaluation, _ := redis.String(redisConn.Do("HGET", key, "Evaluation")) //职称
-		nickName, _ := redis.String(redisConn.Do("HGET", key, "NickName"))     //呢称
-		if isIdle && cstype == 1 {
-			csList = append(csList, &models.CustomerServiceInfo{
-				Username:   csUsername, //客服或技术人员的注册账号id
-				JobNumber:  jobNumber,  //客服或技术人员的工号
-				Type:       cstype,     //客服或技术人员的类型， 1-客服，2-技术
-				Evaluation: evaluation, //职称, 技术工程师，技术员等
-				NickName:   nickName,   //呢称,
-			})
-		}
-
-	}
-	return csList, nil
+	return nil
 
 }
 
@@ -1413,5 +1401,25 @@ func (s *MysqlLianmiRepository) SetMembershipCardSaleMode(businessUsername strin
 	}
 	//提交
 	tx.Commit()
+	return nil
+}
+
+//TODO
+//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
+func (s *MysqlLianmiRepository) GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error) {
+	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	return nil, err
+
+}
+
+//TODO
+func (s *MysqlLianmiRepository) PayForMembership(payForUsername string) error {
+
+	//支付完成后，需要向商户，支付者，会员获得者推送系统通知
+	//构建数据完成，向dispatcher发送
 	return nil
 }

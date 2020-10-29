@@ -9,6 +9,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 	Service "github.com/lianmi/servers/api/proto/service"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/util/conv"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -26,19 +27,12 @@ type LianmiApisController struct {
 	service services.LianmiApisService
 }
 
-type ResetPassword struct {
-	Mobile   string `form:"mobile" json:"mobile" binding:"required"` //注册手机
-	Password string `json:"password" validate:"required"`            //用户密码，md5加密
-	SmsCode  string `json:"smscode" validate:"required"`             //校验码
+// type ResetPassword struct {
+// 	Mobile   string `form:"mobile" json:"mobile" binding:"required"` //注册手机
+// 	Password string `json:"password" validate:"required"`            //用户密码，md5加密
+// 	SmsCode  string `json:"smscode" validate:"required"`             //校验码
 
-}
-
-type ChangePassword struct {
-	Username    string `json:"username" validate:"username"`     //用户账号s
-	OldPassword string `json:"old_password" validate:"required"` //用户密码，md5加密
-	NewPassword string `json:"new_password" validate:"required"` //用户密码，md5加密
-
-}
+// }
 
 func NewLianmiApisController(logger *zap.Logger, s services.LianmiApisService) *LianmiApisController {
 	return &LianmiApisController{
@@ -51,18 +45,47 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("GetUser start ...")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
+		RespFail(c, http.StatusBadRequest, 500, "id is wrong number")
+		return
+	}
+	if id <= 0 {
+		RespFail(c, http.StatusBadRequest, 500, "id is wrong number")
 		return
 	}
 
 	p, err := pc.service.GetUser(id)
 	if err != nil {
 		pc.logger.Error("get User by id error", zap.Error(err))
-		c.String(http.StatusInternalServerError, "%+v", err)
+		RespFail(c, http.StatusBadRequest, 500, "Get User by id error")
 		return
 	}
 
-	c.JSON(http.StatusOK, p)
+	RespData(c, http.StatusBadRequest, http.StatusOK, &Service.UserRsp{
+		User: &User.User{
+			Username:          p.Username,
+			Gender:            User.Gender(p.Gender),
+			Nick:              p.Nick,
+			Avatar:            p.Avatar,
+			Label:             p.Label,
+			Mobile:            p.Mobile,
+			Email:             p.Email,
+			UserType:          User.UserType(p.UserType),
+			State:             User.UserState(p.State),
+			Extend:            p.Extend,
+			ContactPerson:     p.ContactPerson,
+			Introductory:      p.Introductory,
+			Province:          p.Province,
+			City:              p.City,
+			County:            p.County,
+			Street:            p.Street,
+			Address:           p.Address,
+			Branchesname:      p.Branchesname,
+			LegalPerson:       p.LegalPerson,
+			LegalIdentityCard: p.LegalIdentityCard,
+			CreatedAt:         uint64(p.CreatedAt),
+			UpdatedAt:         uint64(p.UpdatedAt),
+		},
+	})
 }
 
 //封号
@@ -71,18 +94,19 @@ func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 	pc.logger.Debug("BlockUser start ...")
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusNotFound, 404, "Param is  empty")
 		return
 	}
 
-	p, err := pc.service.BlockUser(username)
+	err := pc.service.BlockUser(username)
 	if err != nil {
 		pc.logger.Error("Block User by username error", zap.Error(err))
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusBadRequest, 500, "Block User by username error")
+
 		return
 	}
 
-	c.JSON(http.StatusOK, p)
+	RespOk(c, http.StatusOK, 200)
 }
 
 //解封
@@ -90,19 +114,18 @@ func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 	pc.logger.Debug("DisBlockUser start ...")
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusNotFound, 404, "Param is empty")
 		return
 	}
 
-	p, err := pc.service.DisBlockUser(username)
+	_, err := pc.service.DisBlockUser(username)
 	if err != nil {
 		pc.logger.Error("DisBlockUser User by username error", zap.Error(err))
-		// c.String(http.StatusInternalServerError, "%+v", err)
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusNotFound, 404, "username  not found")
 		return
 	}
 
-	c.JSON(http.StatusOK, p)
+	RespOk(c, http.StatusOK, 200)
 }
 
 // 用户注册
@@ -171,7 +194,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			)
 		}
 
-		//检测推荐人，UI负责将id拼接邀请码，也就是用户账号id+ 邀请码
+		//检测推荐人，UI负责将id拼接邀请码，也就是用户账号(id+邀请码)
 		if user.ReferrerUsername != "" {
 			if !pc.service.ExistUserByName(user.ReferrerUsername) {
 				pc.logger.Error("Register user error, ReferrerUsername is not registered")
@@ -198,9 +221,9 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 }
 
 // 重置密码
-func (pc *LianmiApisController) Resetpwd(c *gin.Context) {
+func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 	var user models.User
-	var rp ResetPassword
+	var rp Service.ResetPasswordReq
 	code := codes.InvalidParams
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到ResetPassword变量中，必填字段一定要填
@@ -233,7 +256,7 @@ func (pc *LianmiApisController) Resetpwd(c *gin.Context) {
 			return
 		}
 
-		if err := pc.service.Resetpwd(rp.Mobile, rp.Password, &user); err == nil {
+		if err := pc.service.ResetPassword(rp.Mobile, rp.Password, &user); err == nil {
 			pc.logger.Debug("ResetPassword success", zap.String("userName", user.Username))
 			code = codes.SUCCESS
 		} else {
@@ -242,7 +265,10 @@ func (pc *LianmiApisController) Resetpwd(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "Reset password error")
 			return
 		}
-		RespData(c, http.StatusOK, code, user.Username)
+
+		RespData(c, http.StatusOK, code, &Service.ResetPasswordResp{
+			Username: user.Username,
+		})
 	}
 }
 
@@ -280,20 +306,52 @@ func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) ChanPassword(c *gin.Context) {
+	var mobile string
+	code := codes.InvalidParams
 
-	var cp ChangePassword
-	if c.BindJSON(&cp) != nil {
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[common.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+
+	pc.logger.Debug("ChanPassword",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
+	var req Service.ChanPasswordReq
+	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+		if req.Oldpasswd == "" {
+			pc.logger.Error("Oldpasswd is empty")
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Oldpasswd")
+		}
+		if req.Password == "" {
+			pc.logger.Error("Password is empty")
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Password")
+		}
+		if req.SmsCode == "" {
+			pc.logger.Error("SmsCode is empty")
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段SmsCode")
+		}
+
+		//检测校验码是否正确
+		if !pc.service.CheckSmsCode(mobile, req.SmsCode) {
+			pc.logger.Error("ChanPassword error, SmsCode is wrong")
+			code = codes.ErrWrongSmsCode
+			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
+			return
+		}
+
 		//修改密码
-		if err := pc.service.ChanPassword(cp.Username, cp.OldPassword, cp.NewPassword); err == nil {
+		if err := pc.service.ChanPassword(userName, &req); err == nil {
 			pc.logger.Debug("ChanPassword  run ok")
 			RespOk(c, http.StatusOK, 200)
 		} else {
 			pc.logger.Debug("ChanPassword  run FAILD")
 			RespFail(c, http.StatusBadRequest, 400, "修改密码失败")
-
 		}
 
 	}
@@ -318,11 +376,11 @@ func (pc *LianmiApisController) ExistsTokenInRedis(deviceID, token string) bool 
 }
 
 func (pc *LianmiApisController) SignOut(c *gin.Context) {
-	// c.ClientIP
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[common.IdentityKey].(string)
 	deviceID := claims["deviceID"].(string)
 	token := jwt_v2.GetToken(c)
+
 	pc.logger.Debug("SignOut",
 		zap.String("userName", userName),
 		zap.String("deviceID", deviceID),
@@ -353,7 +411,7 @@ func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.ApproveTeam(teamID); err == nil {
@@ -372,7 +430,7 @@ func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
-		c.JSON(http.StatusNotFound, nil) //404
+		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.BlockTeam(teamID); err == nil {
@@ -391,7 +449,8 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
-		c.JSON(http.StatusNotFound, nil) //404
+
+		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.DisBlockTeam(teamID); err == nil {
@@ -497,10 +556,11 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 	p, err := pc.service.GetGeneralProductByID(productId)
 	if err != nil {
 		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
-		c.String(http.StatusInternalServerError, "%+v", err)
+		RespFail(c, http.StatusBadRequest, 5000, "Get GeneralProduct by productId error")
 		return
 	}
 
+	//TODO
 	c.JSON(http.StatusOK, p)
 }
 
@@ -552,13 +612,30 @@ func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
 
 //获取空闲的在线客服id数组
 func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
-
-	csList, err := pc.service.QueryCustomerServices()
-
-	if err != nil {
-		RespFail(c, http.StatusBadRequest, 400, "Query CustomerServices failed")
+	var req Service.QueryCustomerServiceReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		RespData(c, http.StatusOK, 200, csList)
+		csList, err := pc.service.QueryCustomerServices(&req)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Query CustomerServices failed")
+		} else {
+			resp := &Service.QueryCustomerServiceResp{}
+			for _, onlineCustomerService := range csList {
+				resp.OnlineCustomerServices = append(resp.OnlineCustomerServices, &Service.CustomerServiceInfo{
+					Username:   onlineCustomerService.Username,
+					JobNumber:  onlineCustomerService.JobNumber,
+					Type:       Global.CustomerServiceType(onlineCustomerService.Type),
+					Evaluation: onlineCustomerService.Evaluation,
+					NickName:   onlineCustomerService.Evaluation,
+				})
+			}
+
+			RespData(c, http.StatusOK, 200, resp)
+		}
+
 	}
 
 }
@@ -566,34 +643,34 @@ func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
 //增加在线客服id
 func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 
-	var sc Service.CustomerServiceInfo
-	if c.BindJSON(&sc) != nil {
+	var req Service.AddCustomerServiceReq
+	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
-		if !(sc.Type == 1 || sc.Type == 2) {
+		if !(req.Type == 1 || req.Type == 2) {
 			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
 		}
-		if sc.Username == "" {
+		if req.Username == "" {
 			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
 		}
-		if sc.JobNumber == "" {
+		if req.JobNumber == "" {
 			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
 		}
-		if sc.Evaluation == "" {
+		if req.Evaluation == "" {
 			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
 		}
-		if sc.NickName == "" {
+		if req.NickName == "" {
 			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
 		}
 
-		csList, err := pc.service.AddCustomerService(&sc)
+		err := pc.service.AddCustomerService(&req)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Add CustomerService failed")
 		} else {
-			RespData(c, http.StatusOK, 200, csList)
+			RespOk(c, http.StatusOK, 200)
 		}
 	}
 
@@ -602,17 +679,17 @@ func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 //删除在线客服id
 func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 
-	var sc Service.CustomerServiceInfo
-	if c.BindJSON(&sc) != nil {
+	var req Service.DeleteCustomerServiceReq
+	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
-		if sc.Username == "" {
+		if req.Username == "" {
 			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
 		}
 
-		if pc.service.DeleteCustomerService(&sc) == false {
+		if pc.service.DeleteCustomerService(&req) == false {
 			RespFail(c, http.StatusBadRequest, 400, "Delete CustomerServices failed")
 		} else {
 			RespOk(c, http.StatusOK, 200)
@@ -623,32 +700,32 @@ func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 
 func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 
-	var sc Service.CustomerServiceInfo
-	if c.BindJSON(&sc) != nil {
+	var req Service.UpdateCustomerServiceReq
+	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		if !(sc.Type == 1 || sc.Type == 2) {
+		if !(req.Type == 1 || req.Type == 2) {
 			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
 		}
-		if sc.Username == "" {
+		if req.Username == "" {
 			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
 		}
-		if sc.JobNumber == "" {
+		if req.JobNumber == "" {
 			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
 		}
-		if sc.Evaluation == "" {
+		if req.Evaluation == "" {
 			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
 		}
-		if sc.NickName == "" {
+		if req.NickName == "" {
 			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
 		}
-		csList, err := pc.service.UpdateCustomerService(&sc)
+		err := pc.service.UpdateCustomerService(&req)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Update CustomerServices failed")
 		} else {
-			RespData(c, http.StatusOK, 200, csList)
+			RespOk(c, http.StatusOK, 200)
 		}
 	}
 
@@ -762,13 +839,19 @@ func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+
+		if req.BusinessUsername == "" {
+			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
+		}
 		saleMode, err := pc.service.GetMembershipCardSaleMode(req.BusinessUsername)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Get Membership Card Sale Mode failed")
 		} else {
 
-			RespData(c, http.StatusOK, 200, int32(saleMode))
+			RespData(c, http.StatusOK, 200, &Service.MembershipCardSaleModeResp{
+				SaleType: Global.MembershipCardSaleType(saleMode),
+			})
 		}
 	}
 
@@ -780,10 +863,16 @@ func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+
+		if req.BusinessUsername == "" {
+			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
+		}
+
 		saleType := int(req.SaleType)
 		if saleType == 0 {
 			saleType = 1
 		}
+
 		if !(saleType == 1 || saleType == 2) {
 			RespFail(c, http.StatusBadRequest, 400, "Set Membership Card Sale Mode failed")
 		}
@@ -798,4 +887,58 @@ func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
 		}
 	}
 
+}
+
+func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
+	var req Service.GetBusinessMembershipReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		resp, err := pc.service.GetBusinessMembership(req.IsRebate)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Get BusinessMembership failed")
+		} else {
+			// resp := &Service.GetBusinessMembershipResp{
+			// 	Totalmembers: 1,
+			// }
+			//TODO
+			RespData(c, http.StatusOK, 200, resp)
+		}
+	}
+
+}
+
+//调用此接口前，需要调用10-3 发起转账,
+//在本地签名，然后携带签名后的交易数据提交到服务端，返回区块高度，交易哈希
+//会员付费， 可以他人代付， 如果他人代付，自动成为其推荐人, 强制归属同一个商户,
+//支付成功后，向用户发出通知
+//如果用户是自行注册的，提醒用户输入商户的推荐码
+func (pc *LianmiApisController) PayForMembership(c *gin.Context) {
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[common.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+
+	pc.logger.Debug("PayForMembership",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
+	var req Service.PayForMembershipReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		err := pc.service.PayForMembership(req.PayUsername)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "PayForMembership failed")
+		} else {
+			RespOk(c, http.StatusOK, 200)
+		}
+	}
 }

@@ -50,7 +50,7 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
 		r.POST("/register", pc.Register)              //注册用户
-		r.POST("/resetpwd", pc.Resetpwd)              //重置密码
+		r.POST("/resetpassword", pc.ResetPassword)    //重置密码， 可以不登录
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode) //根据手机生成短信注册码
 
 		//TODO 增加JWT中间件
@@ -297,6 +297,11 @@ func CreateInitControllersFn(
 
 			// 设置商户营销方式
 			r.POST("/Setmembershipcardsalemode", pc.SetMembershipCardSaleMode)
+
+			r.POST("/payformembership", pc.PayForMembership)
+
+			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
+			r.GET("/getbusinessmembership", pc.GetBusinessMembership)
 
 		}
 
