@@ -1,19 +1,19 @@
 package services
 
 import (
-	"time"
-
+	"context"
 	Service "github.com/lianmi/servers/api/proto/service"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"time"
 
 	pb "github.com/lianmi/servers/api/proto/user"
 )
 
-type LianmiApisService interface {
-	GetUser(ID uint64) (*models.User, error)
+type AuthService interface {
 	BlockUser(username string) error
 	DisBlockUser(username string) (*models.User, error)
 	Register(user *models.User) (string, error)
@@ -33,6 +33,8 @@ type LianmiApisService interface {
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
+
+	// GetUser(ID uint64) (*models.User, error)
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
@@ -81,6 +83,9 @@ type LianmiApisService interface {
 	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
 
 	PayForMembership(payForUsername string) error
+
+	//Grpc 获取用户信息
+	GetUser(ctx context.Context, in *Service.UserReq) (*Service.UserRsp, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -88,20 +93,43 @@ type DefaultLianmiApisService struct {
 	Repository repositories.LianmiRepository
 }
 
-func NewLianmiApisService(logger *zap.Logger, Repository repositories.LianmiRepository) LianmiApisService {
+func NewLianmiApisService(logger *zap.Logger, Repository repositories.LianmiRepository) AuthService {
 	return &DefaultLianmiApisService{
-		logger:     logger.With(zap.String("type", "DefaultLianmiApisService")),
+		logger:     logger.With(zap.String("type", "authservice.services")),
 		Repository: Repository,
 	}
 }
 
-func (s *DefaultLianmiApisService) GetUser(ID uint64) (p *models.User, err error) {
-	s.logger.Debug("GetUser", zap.Uint64("ID", ID))
-	if p, err = s.Repository.GetUser(ID); err != nil {
+func (s *DefaultLianmiApisService) GetUser(ctx context.Context, in *Service.UserReq) (*Service.UserRsp, error) {
+	s.logger.Debug("GrpcServer: GetUser", zap.Uint64("ID", in.Id))
+	if p, err := s.Repository.GetUser(in.Id); err != nil {
 		return nil, errors.Wrap(err, "Get user error")
+	} else {
+		return &Service.UserRsp{
+			User: &User.User{
+				Username:          p.Username,
+				Gender:            User.Gender(p.Gender),
+				Nick:              p.Nick,
+				Avatar:            p.Avatar,
+				Label:             p.Label,
+				Mobile:            p.Mobile,
+				Email:             p.Email,
+				UserType:          User.UserType(p.UserType),
+				Extend:            p.Extend,
+				ContactPerson:     p.ContactPerson,
+				Introductory:      p.Introductory,
+				Province:          p.Province,
+				City:              p.City,
+				County:            p.County,
+				Street:            p.Street,
+				Address:           p.Address,
+				Branchesname:      p.Branchesname,
+				LegalPerson:       p.LegalPerson,
+				LegalIdentityCard: p.LegalIdentityCard,
+			},
+		}, nil
 	}
 
-	return
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
@@ -123,9 +151,7 @@ func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User
 
 //生成短信校验码
 func (s *DefaultLianmiApisService) GenerateSmsCode(mobile string) bool {
-
 	return s.Repository.GenerateSmsCode(mobile)
-
 }
 
 //检测校验码是否正确

@@ -9,7 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/orderservice"
 	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
-	"github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
@@ -40,7 +40,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
+	nsqOptions, err := nsqMq.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger, lianmiWalletClient)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, lianmiWalletClient)
 	application, err := orderservice.NewApp(orderserviceOptions, logger, nsqClient)
 	if err != nil {
 		return nil, err
@@ -94,4 +94,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, nsqBackend.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)

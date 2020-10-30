@@ -363,7 +363,7 @@ func (mc *MQTTClient) Run() {
 					// log.Println(err)
 					mc.logger.Error("Failed to Publish ", zap.Error(err))
 				} else {
-					mc.logger.Info("Succeed Publish  to sdk", zap.String("topic", topic))
+					mc.logger.Info("Succeed Publish to sdk", zap.String("topic", topic))
 				}
 			} else {
 				mc.logger.Warn("msg is nil")

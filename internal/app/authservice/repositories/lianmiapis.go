@@ -11,7 +11,7 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Service "github.com/lianmi/servers/api/proto/service"
 	User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -117,11 +117,11 @@ type MysqlLianmiRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	nsqClient *nsqBackend.NsqClient
+	nsqClient *nsqMq.NsqClient
 	base      *BaseRepository
 }
 
-func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqBackend.NsqClient) LianmiRepository {
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqMq.NsqClient) LianmiRepository {
 	return &MysqlLianmiRepository{
 		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,
@@ -132,13 +132,14 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 }
 
 func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
+	s.logger.Debug("GetUser run, Query data from db")
 	p = new(models.User)
 	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		// fmt.Println("GetUser first error:", err.Error())
 		return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
 	}
-	s.logger.Debug("GetUser run...")
+
 	return
 }
 

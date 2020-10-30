@@ -2,9 +2,10 @@ package authservice
 
 import (
 	"github.com/google/wire"
-	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
+	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/app"
-	"github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -29,9 +30,9 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, kc *authNsq.NsqClient, hs *http.Server) (*app.Application, error) {
+func NewApp(o *Options, logger *zap.Logger, kc *authNsq.NsqClient, gs *grpc.Server) (*app.Application, error) {
 
-	a, err := app.New(o.Name, logger, app.AuthNsqOption(kc), app.HttpServerOption(hs))
+	a, err := app.New(o.Name, logger, app.AuthNsqOption(kc), app.GrpcServerOption(gs))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "new app error")

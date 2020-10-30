@@ -5,7 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	// "github.com/lianmi/servers/internal/pkg/models"
 
-	// "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
+	// "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	// "github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -17,7 +17,7 @@ type MysqlOrderRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	// nsq     *nsqBackend.NsqClient
+	// nsq     *nsqMq.NsqClient
 	base *BaseRepository
 }
 

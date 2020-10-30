@@ -20,6 +20,7 @@ type WalletService interface {
 
 	//订单完成或退款
 	TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error)
+	//grpc.pb.go: TransferByOrder(context.Context, *TransferReq) (*TransferResp, error)
 }
 
 type DefaultApisService struct {
@@ -260,7 +261,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			zap.Uint64("买家转账之前的代币余额", balanceLNMCBuyUser),
 			zap.Uint64("买家转账之后的代币余额", balanceLNMCBuyUserAfter),
 		)
-		
+
 		//增加退款记录到 MySQL
 		lnmcOrderTransferHistory := &models.LnmcOrderTransferHistory{
 			OrderID:                   orderID,                   //订单ID

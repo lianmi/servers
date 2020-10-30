@@ -11,7 +11,7 @@ import (
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
-	// "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
+	// "github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )

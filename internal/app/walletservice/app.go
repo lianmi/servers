@@ -2,7 +2,7 @@ package walletservice
 
 import (
 	"github.com/google/wire"
-	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
+	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"

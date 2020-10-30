@@ -16,7 +16,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (LianmiApisService, error) {
+func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (AuthService, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -29,8 +29,8 @@ func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (Lian
 	if err != nil {
 		return nil, err
 	}
-	usersService := NewLianmiApisService(logger, sto)
-	return usersService, nil
+	authService := NewLianmiApisService(logger, sto)
+	return authService, nil
 }
 
 // wire.go:

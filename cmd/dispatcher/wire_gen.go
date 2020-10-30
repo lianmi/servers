@@ -9,12 +9,21 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/channel"
 	"github.com/lianmi/servers/internal/app/dispatcher"
+	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
+	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
+	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
+	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
+	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
+	"github.com/lianmi/servers/internal/pkg/consul"
+	"github.com/lianmi/servers/internal/pkg/database"
+	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
+	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
-	"github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 )
 
 // Injectors from wire.go:
@@ -36,7 +45,15 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqOptions, err := nsqclient.NewNsqOptions(viper)
+	nsqOptions, err := nsqMq.NewNsqOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	databaseOptions, err := database.NewOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	db, err := database.New(databaseOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +66,54 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	nsqMqttChannel := channel.NewChannnel()
-	nsqClient := nsqclient.NewNsqClient(nsqOptions, pool, nsqMqttChannel, logger)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
 		return nil, err
 	}
 	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
-	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient)
+	httpOptions, err := http.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqClient)
+	consulOptions, err := consul.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	configuration, err := jaeger.NewConfiguration(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	tracer, err := jaeger.New(configuration)
+	if err != nil {
+		return nil, err
+	}
+	clientOptions, err := grpc.NewClientOptions(viper, tracer)
+	if err != nil {
+		return nil, err
+	}
+	client, err := grpc.NewClient(consulOptions, clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	lianmiApisClient, err := grpcclients.NewApisClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiApisClient)
+	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService)
+	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
+	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
+	apiClient, err := consul.New(consulOptions)
+	if err != nil {
+		return nil, err
+	}
+	server, err := http.New(httpOptions, logger, engine, apiClient)
+	if err != nil {
+		return nil, err
+	}
+	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient, server)
 	if err != nil {
 		return nil, err
 	}
@@ -64,4 +122,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, redis.ProviderSet, channel.ProviderSet, nsqclient.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, http.ProviderSet, redis.ProviderSet, jaeger.ProviderSet, channel.ProviderSet, nsqMq.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet, controllers.ProviderSet, grpc.ProviderSet, grpcclients.ProviderSet)

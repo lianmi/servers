@@ -4,25 +4,22 @@ package repositories
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
-	"github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
-	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/log"
+	"github.com/lianmi/servers/internal/pkg/redis"
 )
-
-
 
 var testProviderSet = wire.NewSet(
 	log.ProviderSet,
 	config.ProviderSet,
 	database.ProviderSet,
 	redis.ProviderSet,
-	nsqBackend.ProviderSet,
+	nsqMq.ProviderSet,
 	ProviderSet,
 )
 
 func CreateOrderRepository(f string) (OrderRepository, error) {
 	panic(wire.Build(testProviderSet))
 }
-

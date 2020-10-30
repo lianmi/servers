@@ -3,8 +3,8 @@ import "api/proto/user/User.proto";
 import "api/proto/global/Global.proto";
 import "api/proto/wallet/PreTransfer.proto";
 
-package cloud.lianmi.im.serivce;
-option go_package = "github.com/lianmi/servers/api/proto/serivce";
+package cloud.lianmi.im.service;
+option go_package = "github.com/lianmi/servers/api/proto/service";
 
 
 //Restful 接口
@@ -13,77 +13,77 @@ service LianmiApis {
     rpc GetUser (UserReq) returns (UserRsp);
 
     //短信验证码
-    rpc GenerateSmsCode (SmsCodeReq) returns (SmsCodeResp);
+   // rpc GenerateSmsCode (SmsCodeReq) returns (SmsCodeResp);
 
     //注册
-    rpc Register (RegisterReq) returns (RegisterResp);
+   // rpc Register (RegisterReq) returns (RegisterResp);
 
     //登录 Login,  根据手机号及密码， 获取token 
-    rpc Login (LoginReq) returns (LoginResp);
+    //rpc Login (LoginReq) returns (LoginResp);
 
     //登出 SignOut,  服务端会删除此用户的Token
-    rpc SignOut (SignOutReq) returns (SignOutResp);
+    //rpc SignOut (SignOutReq) returns (SignOutResp);
 
     //修改密码， 需要输入正确的旧密码及smscode
-    rpc ChanPassword (ChanPasswordReq) returns (ChanPasswordResp);
+   // rpc ChanPassword (ChanPasswordReq) returns (ChanPasswordResp);
 
     //重置密码， 需要输入smscode
-    rpc ResetPassword (ResetPasswordReq) returns (ResetPasswordResp);
+    //rpc ResetPassword (ResetPasswordReq) returns (ResetPasswordResp);
 
     //根据百度坐标经纬度查找出指定范围内的所有商户列表
-    rpc QueryShopsNearby (QueryShopsNearbyReq) returns (QueryShopsNearbyResp);
+    //rpc QueryShopsNearby (QueryShopsNearbyReq) returns (QueryShopsNearbyResp);
 
     //根据条件查出所有客服及技术列表, 用于UI端的联系客服人员
-    rpc QueryCustomerServices(QueryCustomerServiceReq) returns (QueryCustomerServiceResp);
+   // rpc QueryCustomerServices(QueryCustomerServiceReq) returns (QueryCustomerServiceResp);
 
     //增加客服技术人员名单， 要先注册
-    rpc AddCustomerService(AddCustomerServiceReq) returns (AddCustomerServiceResp);
+    //rpc AddCustomerService(AddCustomerServiceReq) returns (AddCustomerServiceResp);
 
     //删除客服技术人员
-    rpc DeleteCustomerService(DeleteCustomerServiceReq) returns (DeleteCustomerServiceResp);
+   // rpc DeleteCustomerService(DeleteCustomerServiceReq) returns (DeleteCustomerServiceResp);
 
     //修改客服技术人员
-    rpc UpdateCustomerService(UpdateCustomerServiceReq) returns (UpdateCustomerServiceResp);
+    //rpc UpdateCustomerService(UpdateCustomerServiceReq) returns (UpdateCustomerServiceResp);
 
     // 按条件查出客服评分
-    rpc QueryGrades(GradeReq) returns (GradesResp);
+    //rpc QueryGrades(GradeReq) returns (GradesResp);
 
     //客服人员增加客服评分记录，以便生成title发送给用户提交评分 
-    rpc AddGrade(AddGradeReq) returns (AddGradesResp);
+   // rpc AddGrade(AddGradeReq) returns (AddGradesResp);
  
     // app用户提交评分
-    rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
+    //rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
 
     //查询商户营销方式
-    rpc GetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
+    //rpc GetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
 
     //查询商户营销方式, 更改后立即有效 
-    rpc SetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
+    //rpc SetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
 
     //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-    rpc PreOrderForPayMembership(PreOrderForPayMembershipReq) returns (PreOrderForPayMembershipResp);
+    //rpc PreOrderForPayMembership(PreOrderForPayMembershipReq) returns (PreOrderForPayMembershipResp);
 
     //会员付费， 可以他人代付， 如果他人代付，自动成为其推荐人, 强制归属同一个商户,
     //支付成功后，向用户发出通知 
     //如果用户是自行注册的，提醒用户输入商户的推荐码
-    rpc PayForMembership(PayForMembershipReq) returns (PayForMembershipResp);
+    //rpc PayForMembership(PayForMembershipReq) returns (PayForMembershipResp);
 
     //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-    rpc GetBusinessMembership(GetBusinessMembershipReq) returns (GetBusinessMembershipResp);
+    //rpc GetBusinessMembership(GetBusinessMembershipReq) returns (GetBusinessMembershipResp);
 
     //用户查询当前发展用户总数（5， 10， 35）及按月统计返佣
-   rpc GetNormalMembership(NormalMembershipReq) returns (NormalMembershipResp);
+   //rpc GetNormalMembership(NormalMembershipReq) returns (NormalMembershipResp);
 
     //申请返佣提现,  商户及用户均可适用,  当用户申请返佣，服务端校验后会下发系统通知给商户，商户收到系统通知后，在专门的页面显示出用户申请返佣的明细，核对正确后，商户转账给用户,  并且提交已返佣的结果。
     //商户返佣则服务端收到申请，运营后台查看，如果核对正确，则转账给商户，并记录转账结果，商户刷新列表，显示已返佣
-    rpc AskedWithdraw(AskedWithdrawReq) returns (AskedWithdrawResp);
+    //rpc AskedWithdraw(AskedWithdrawReq) returns (AskedWithdrawResp);
 
 }
 
 
 //=== 用户信息 === //
 message UserReq {
-    string user = 1;
+    fixed64 id = 1;
 }
 
 message UserRsp {

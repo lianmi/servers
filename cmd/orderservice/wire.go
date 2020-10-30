@@ -7,7 +7,7 @@ import (
 
 	"github.com/lianmi/servers/internal/app/orderservice"
 	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
-	"github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
@@ -29,7 +29,7 @@ var providerSet = wire.NewSet(
 	jaeger.ProviderSet,
 	redis.ProviderSet,
 	grpc.ProviderSet,
-	nsqBackend.ProviderSet,
+	nsqMq.ProviderSet,
 	orderservice.ProviderSet,
 	grpcclients.ProviderSet,
 )

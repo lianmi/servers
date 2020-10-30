@@ -7,7 +7,7 @@ import (
 
 	"github.com/lianmi/servers/internal/app/walletservice"
 	"github.com/lianmi/servers/internal/app/walletservice/grpcservers"
-	"github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/app/walletservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -32,7 +32,7 @@ var providerSet = wire.NewSet(
 	redis.ProviderSet,
 	grpc.ProviderSet,
 	grpcservers.ProviderSet,
-	nsqBackend.ProviderSet,
+	nsqMq.ProviderSet,
 	walletservice.ProviderSet,
 	blockchain.ProviderSet,
 )

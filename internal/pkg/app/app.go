@@ -7,29 +7,29 @@ import (
 	"syscall"
 
 	"github.com/google/wire"
-	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
-	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
-	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
-	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
+	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqMq"
+	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqMq"
+	dispatcherNsq "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
+	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
+	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
-	"github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 
 	"go.uber.org/zap"
 )
 
 type Application struct {
-	name            string
-	logger          *zap.Logger
-	httpServer      *http.Server
-	grpcServer      *grpc.Server
-	nsqClient       *nsqclient.NsqClient
-	authNsqClient   *authNsq.NsqClient
-	chatNsqClient   *chatNsq.NsqClient
-	orderNsqClient  *orderNsq.NsqClient
-	walletNsqClient *walletNsq.NsqClient
-	mqttClient      *mqtt.MQTTClient
+	name                string
+	logger              *zap.Logger
+	httpServer          *http.Server
+	grpcServer          *grpc.Server
+	dispatcherNsqClient *dispatcherNsq.NsqClient
+	authNsqClient       *authNsq.NsqClient
+	chatNsqClient       *chatNsq.NsqClient
+	orderNsqClient      *orderNsq.NsqClient
+	walletNsqClient     *walletNsq.NsqClient
+	mqttClient          *mqtt.MQTTClient
 }
 
 type Option func(app *Application) error
@@ -51,10 +51,10 @@ func GrpcServerOption(svr *grpc.Server) Option {
 	}
 }
 
-func NsqOption(nc *nsqclient.NsqClient) Option {
+func NsqOption(nc *dispatcherNsq.NsqClient) Option {
 	return func(app *Application) error {
 		nc.Application(app.name)
-		app.nsqClient = nc
+		app.dispatcherNsqClient = nc
 		return nil
 	}
 }
@@ -98,7 +98,6 @@ func MQTTOption(mc *mqtt.MQTTClient) Option {
 		return nil
 	}
 }
-
 
 func New(name string, logger *zap.Logger, options ...Option) (*Application, error) {
 	app := &Application{
@@ -153,8 +152,8 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.nsqClient != nil {
-		if err := a.nsqClient.Start(); err != nil {
+	if a.dispatcherNsqClient != nil {
+		if err := a.dispatcherNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "nsq client start error")
 		}
 	}
@@ -193,9 +192,10 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		if a.nsqClient != nil {
-			if err := a.nsqClient.Stop(); err != nil {
-				a.logger.Warn("stop nsq client error", zap.Error(err))
+		//Dispatcher的nsq
+		if a.dispatcherNsqClient != nil {
+			if err := a.dispatcherNsqClient.Stop(); err != nil {
+				a.logger.Warn("stop dispatcher nsq client error", zap.Error(err))
 			}
 		}
 

@@ -10,7 +10,7 @@ import (
 	// // "github.com/jinzhu/gorm"
 	// Auth "github.com/lianmi/servers/api/proto/auth"
 	// pb "github.com/lianmi/servers/api/proto/user"
-	// "github.com/lianmi/servers/internal/app/authservice/nsqBackend"
+	// "github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	// "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"

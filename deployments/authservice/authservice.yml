@@ -1,8 +1,5 @@
 app:
   name: authservice
-http:
-  mode: release
-  port: 28080
 db:
   url: lianmidba:12345678@tcp(mariadb:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
   debug: false  

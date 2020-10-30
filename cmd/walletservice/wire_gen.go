@@ -9,7 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/walletservice"
 	"github.com/lianmi/servers/internal/app/walletservice/grpcservers"
-	"github.com/lianmi/servers/internal/app/walletservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	"github.com/lianmi/servers/internal/app/walletservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -42,7 +42,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
+	nsqOptions, err := nsqMq.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, walletRepository, pool, logger, service)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, walletRepository, pool, logger, service)
 	serverOptions, err := grpc.NewServerOptions(viper)
 	if err != nil {
 		return nil, err
@@ -111,4 +111,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqBackend.ProviderSet, walletservice.ProviderSet, blockchain.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, walletservice.ProviderSet, blockchain.ProviderSet)

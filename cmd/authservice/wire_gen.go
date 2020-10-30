@@ -8,8 +8,8 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/authservice"
-	"github.com/lianmi/servers/internal/app/authservice/controllers"
-	"github.com/lianmi/servers/internal/app/authservice/nsqBackend"
+	"github.com/lianmi/servers/internal/app/authservice/grpcservers"
+	"github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/authservice/repositories"
 	"github.com/lianmi/servers/internal/app/authservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
@@ -19,8 +19,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
-	"github.com/lianmi/servers/internal/pkg/transports/http"
-	"go.uber.org/zap"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 // Injectors from wire.go:
@@ -40,73 +39,62 @@ func CreateApp(cf string) (*app.Application, error) {
 	}
 	authserviceOptions, err := authservice.NewOptions(viper, logger)
 	if err != nil {
-		logger.Error("authserviceOptions", zap.Error(err))
 		return nil, err
 	}
-	nsqOptions, err := nsqBackend.NewNsqOptions(viper)
+	nsqOptions, err := nsqMq.NewNsqOptions(viper)
 	if err != nil {
-		logger.Error("nsqOptions", zap.Error(err))
 		return nil, err
 	}
 	databaseOptions, err := database.NewOptions(viper, logger)
 	if err != nil {
-		logger.Error("databaseOptions", zap.Error(err))
 		return nil, err
 	}
 	db, err := database.New(databaseOptions)
 	if err != nil {
-		logger.Error("db", zap.Error(err))
 		return nil, err
 	}
 	redisOptions, err := redis.NewRedisOptions(viper, logger)
 	if err != nil {
-		logger.Error("redisOptions", zap.Error(err))
 		return nil, err
 	}
 	pool, err := redis.New(redisOptions)
 	if err != nil {
-		logger.Error("poll", zap.Error(err))
 		return nil, err
 	}
-	nsqClient := nsqBackend.NewNsqClient(nsqOptions, db, pool, logger)
-	httpOptions, err := http.NewOptions(viper)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger)
+	serverOptions, err := grpc.NewServerOptions(viper)
 	if err != nil {
-		logger.Error("httpOptions", zap.Error(err))
 		return nil, err
 	}
 	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqClient)
-	usersService := services.NewLianmiApisService(logger, lianmiRepository)
-	lianmiApisController := controllers.NewLianmiApisController(logger, usersService)
-	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
-	configuration, err := jaeger.NewConfiguration(viper, logger)
+	authService := services.NewLianmiApisService(logger, lianmiRepository)
+	authGrpcServer, err := grpcservers.NewAuthGrpcServer(logger, authService)
 	if err != nil {
-		logger.Error("configuration", zap.Error(err))
 		return nil, err
 	}
-	tracer, err := jaeger.New(configuration)
-	if err != nil {
-		logger.Error("tracer", zap.Error(err))
-		return nil, err
-	}
-	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
+	initServers := grpcservers.CreateInitServersFn(authGrpcServer)
 	consulOptions, err := consul.NewOptions(viper)
 	if err != nil {
-		logger.Error("consulOptions", zap.Error(err))
 		return nil, err
 	}
 	client, err := consul.New(consulOptions)
 	if err != nil {
-		logger.Error("client", zap.Error(err))
 		return nil, err
 	}
-	server, err := http.New(httpOptions, logger, engine, client)
+	configuration, err := jaeger.NewConfiguration(viper, logger)
 	if err != nil {
-		logger.Error("server", zap.Error(err))
+		return nil, err
+	}
+	tracer, err := jaeger.New(configuration)
+	if err != nil {
+		return nil, err
+	}
+	server, err := grpc.NewServer(serverOptions, logger, initServers, client, tracer)
+	if err != nil {
 		return nil, err
 	}
 	application, err := authservice.NewApp(authserviceOptions, logger, nsqClient, server)
 	if err != nil {
-		logger.Error("application", zap.Error(err))
 		return nil, err
 	}
 	return application, nil
@@ -114,4 +102,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, http.ProviderSet, nsqBackend.ProviderSet, authservice.ProviderSet, controllers.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, authservice.ProviderSet)

@@ -4,7 +4,7 @@ import (
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/lianmi/servers/internal/pkg/app"
-	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqBackend"
+	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )

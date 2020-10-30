@@ -2,7 +2,7 @@ package orderservice
 
 import (
 	"github.com/google/wire"
-	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqBackend"
+	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
