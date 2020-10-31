@@ -17,11 +17,9 @@ import (
 //see: https://studygolang.com/articles/20408
 //https://docs.github.com/en/free-pro-team@latest/developers/apps/creating-an-oauth-app
 func (pc *LianmiApisController) GitHubOAuth(c *gin.Context) {
-	code := c.Param("code")
+	code := c.Query("code")
 	pc.logger.Debug("GitHubOAuth start ...", zap.String("code", code))
 
 	//TODO 根据获得的code，以及注册号的client_id, client_secret，用POST方法提交到GitHub获取令牌
-
-	
 
 }
