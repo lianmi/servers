@@ -218,6 +218,9 @@ func CreateInitControllersFn(
 			log.Fatal("JWT Error:" + err.Error())
 		}
 
+		// github的OAuth授权登录回调uri
+		r.GET("/login-github", pc.GitHubOAuth)
+
 		r.POST("/login", authMiddleware.LoginHandler)
 
 		r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
