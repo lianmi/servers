@@ -10,8 +10,8 @@ import (
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Service "github.com/lianmi/servers/api/proto/service"
+	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	// User "github.com/lianmi/servers/api/proto/user"
-	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	// "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -111,6 +111,8 @@ type LianmiRepository interface {
 	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
 
 	PayForMembership(payForUsername string) error
+
+	PreOrderForPayMembership(username, deviceID string) error
 }
 
 type MysqlLianmiRepository struct {
@@ -118,16 +120,16 @@ type MysqlLianmiRepository struct {
 	db        *gorm.DB
 	redisPool *redis.Pool
 	nsqClient *nsqMq.NsqClient
-	base      *BaseRepository
+	base *BaseRepository
 }
 
-func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqMq.NsqClient) LianmiRepository {
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqMq.NsqClient) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
 	return &MysqlLianmiRepository{
 		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,
 		redisPool: redisPool,
 		nsqClient: nc,
-		base:      NewBaseRepository(logger, db),
+		base: NewBaseRepository(logger, db),
 	}
 }
 

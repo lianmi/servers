@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	Order "github.com/lianmi/servers/api/proto/order"
 	Service "github.com/lianmi/servers/api/proto/service"
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	// User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -84,58 +86,35 @@ type LianmiApisService interface {
 
 	PayForMembership(payForUsername string) error
 
+	PreOrderForPayMembership(username, deviceID string) error
+
 	//Grpc 获取用户信息
 	GetUser(ctx context.Context, in *Service.UserReq) (*Service.UserRsp, error)
 }
 
 type DefaultLianmiApisService struct {
-	logger        *zap.Logger
-	Repository    repositories.LianmiRepository
-	grpcClientSvc Service.LianmiApisClient
+	logger              *zap.Logger
+	Repository          repositories.LianmiRepository
+	authGrpcClientSvc   Service.LianmiApisClient  //auth的grpc client
+	orderGrpcClientSvc  Order.LianmiOrderClient   //order的grpc client
+	walletGrpcClientSvc Wallet.LianmiWalletClient //wallet的grpc client
 }
 
-func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, lc Service.LianmiApisClient) LianmiApisService {
+func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, lc Service.LianmiApisClient, oc Order.LianmiOrderClient, wc Wallet.LianmiWalletClient) LianmiApisService {
 	return &DefaultLianmiApisService{
-		logger:        logger.With(zap.String("type", "DefaultLianmiApisService")),
-		Repository:    repository,
-		grpcClientSvc: lc,
+		logger:              logger.With(zap.String("type", "DefaultLianmiApisService")),
+		Repository:          repository,
+		authGrpcClientSvc:   lc,
+		orderGrpcClientSvc:  oc,
+		walletGrpcClientSvc: wc,
 	}
 }
 
 func (s *DefaultLianmiApisService) GetUser(ctx context.Context, in *Service.UserReq) (*Service.UserRsp, error) {
 	s.logger.Debug("GetUser", zap.Uint64("ID", in.Id))
-	/*
-		if p, err := s.Repository.GetUser(in.Id); err != nil {
-			return nil, errors.Wrap(err, "Get user error")
-		} else {
-			return &Service.UserRsp{
-				User: &User.User{
-					Username:          p.Username,
-					Gender:            User.Gender(p.Gender),
-					Nick:              p.Nick,
-					Avatar:            p.Avatar,
-					Label:             p.Label,
-					Mobile:            p.Mobile,
-					Email:             p.Email,
-					UserType:          User.UserType(p.UserType),
-					Extend:            p.Extend,
-					ContactPerson:     p.ContactPerson,
-					Introductory:      p.Introductory,
-					Province:          p.Province,
-					City:              p.City,
-					County:            p.County,
-					Street:            p.Street,
-					Address:           p.Address,
-					Branchesname:      p.Branchesname,
-					LegalPerson:       p.LegalPerson,
-					LegalIdentityCard: p.LegalIdentityCard,
-				},
-			}, nil
-		}
-	*/
 
 	//从微服务获取用户数据
-	resp, err := s.grpcClientSvc.GetUser(ctx, in)
+	resp, err := s.authGrpcClientSvc.GetUser(ctx, in)
 
 	return resp, err
 }
@@ -382,4 +361,8 @@ func (s *DefaultLianmiApisService) PayForMembership(payForUsername string) error
 
 	//TODO
 	return nil
+}
+
+func (s *DefaultLianmiApisService) PreOrderForPayMembership(username, deviceID string) error {
+	return s.Repository.PreOrderForPayMembership(username, deviceID)
 }

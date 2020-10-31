@@ -1,9 +1,12 @@
 // +build wireinject
 
-package repositories
+package services
 
 import (
 	"github.com/google/wire"
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/app/orderservice/repositories"
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -15,9 +18,12 @@ var testProviderSet = wire.NewSet(
 	config.ProviderSet,
 	database.ProviderSet,
 	redis.ProviderSet,
+	blockchain.ProviderSet,
 	ProviderSet,
 )
 
-func CreateOrderRepository(f string) (OrderRepository, error) {
+func CreateApisService(cf string, sto repositories.OrderRepository, wlc Wallet.LianmiWalletClient) (OrderService, error) {
 	panic(wire.Build(testProviderSet))
 }
+
+//

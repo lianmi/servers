@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+
+//商品及 订单的Grpc接口
+service LianmiOrder{
+    //创建一个会员付费订单
+    //rpc CreateOrder (CreateOrderReq) returns (CreateOrderResp);
+}
+
+
+
+//====创建一个会员付费订单=====//
+message CreateOrderReq {
+    //商品id
+    string productID=1;
+
+    //
+    string username=2;
+
+}
+
+message CreateOrderResp {
+    //订单ID
+    string orderID =1;
+    
+}

@@ -341,7 +341,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//保存到MySQL
-		if err = nc.SaveProduct(product); err != nil {
+		if err = nc.service.SaveProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 
@@ -516,7 +516,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//保存到MySQL
-		if err = nc.SaveProduct(product); err != nil {
+		if err = nc.service.SaveProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 
@@ -666,7 +666,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		}
 
 		//从MySQL删除此商品
-		if err = nc.DeleteProduct(req.ProductID, username); err != nil {
+		if err = nc.service.DeleteProduct(req.ProductID, username); err != nil {
 			nc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
 		}
 
@@ -798,7 +798,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 			nc.logger.Debug("ZADD "+fmt.Sprintf("prekeys:%s", username), zap.String("opk", opk))
 		}
 
-		if err = nc.SavePreKeys(prekeys); err != nil {
+		if err = nc.service.SavePreKeys(prekeys); err != nil {
 			nc.logger.Error("SavePreKeys错误", zap.Error(err))
 		}
 
@@ -2021,7 +2021,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
 				OrderID: orderID,
 				PayType: LMCommon.OrderTransferForCancel, //退款
 			})
@@ -2065,7 +2065,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
 				OrderID: orderID,
 				PayType: LMCommon.OrderTransferForDone, //完成结算
 			})
@@ -2114,7 +2114,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			//向买家发送通知，并且发送grpc消息给钱包服务端，完成退款操作
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.walletSvc.TransferByOrder(ctx, &Wallet.TransferReq{
+			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
 				OrderID: orderID,
 				PayType: LMCommon.OrderTransferForCancel, //退款
 			})

@@ -23,7 +23,8 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	// Wallet "github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/app/orderservice/services"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"github.com/nsqio/go-nsq"
@@ -58,7 +59,8 @@ type NsqClient struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	walletSvc Wallet.LianmiWalletClient
+	service   services.OrderService
+
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 	handleFuncMap map[uint32]func(payload *models.Message) error
 }
@@ -137,16 +139,14 @@ func initProducer(addr string) (*nsqProducer, error) {
 	return &nsqProducer{producer}, nil
 }
 
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger, walletSvc Wallet.LianmiWalletClient) *NsqClient {
+func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap.Logger, ps services.OrderService) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
 	}
-	if walletSvc != nil {
-		logger.Info("LianmiWalletClient 连接walletservice微服务成功")
-	}
+
 
 	logger.Info("启动Nsq生产者成功")
 
@@ -156,10 +156,9 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		logger:        logger.With(zap.String("type", "OrderService")),
 		db:            db,
 		redisPool:     redisPool,
-		walletSvc:     walletSvc,
+		service:       ps,
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
-
 
 	//注册每个业务子类型的处理方法
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(7, 1)] = nsqClient.HandleQueryProducts  //7-1  查询某个商户的所有商品信息

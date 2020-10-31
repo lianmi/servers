@@ -101,7 +101,15 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiApisClient)
+	lianmiOrderClient, err := grpcclients.NewOrderClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiApisClient, lianmiOrderClient, lianmiWalletClient)
 	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService)
 	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)

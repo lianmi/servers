@@ -9,9 +9,12 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/orderservice"
 	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
+	"github.com/lianmi/servers/internal/app/orderservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
+	"github.com/lianmi/servers/internal/app/orderservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
@@ -60,6 +63,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	orderRepository := repositories.NewMysqlOrderRepository(logger, db, pool)
 	consulOptions, err := consul.NewOptions(viper)
 	if err != nil {
 		return nil, err
@@ -84,8 +88,34 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, lianmiWalletClient)
-	application, err := orderservice.NewApp(orderserviceOptions, logger, nsqClient)
+	blockchainOptions, err := blockchain.NewEthClientProviderOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	service, err := blockchain.New(blockchainOptions, logger)
+	if err != nil {
+		return nil, err
+	}
+	orderService := services.NewApisService(logger, orderRepository, pool, lianmiWalletClient, service)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, orderService)
+	serverOptions, err := grpc.NewServerOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	orderServer, err := grpcservers.NewOrderServer(logger, orderService)
+	if err != nil {
+		return nil, err
+	}
+	initServers := grpcservers.CreateInitServersFn(orderServer)
+	apiClient, err := consul.New(consulOptions)
+	if err != nil {
+		return nil, err
+	}
+	server, err := grpc.NewServer(serverOptions, logger, initServers, apiClient, tracer)
+	if err != nil {
+		return nil, err
+	}
+	application, err := orderservice.NewApp(orderserviceOptions, logger, nsqClient, server)
 	if err != nil {
 		return nil, err
 	}
@@ -94,4 +124,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet, blockchain.ProviderSet)

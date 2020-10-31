@@ -277,7 +277,7 @@ func CreateInitControllersFn(
 		authProduct := r.Group("/v1/product")
 		authProduct.Use(authMiddleware.MiddlewareFunc())
 		{
-			//查询通用商品by productid
+			//查询通用商品 by productid
 			authProduct.GET("/getgeneralproduct/:productid", pc.GetGeneralProductByID)
 
 			//查询通用商品分页-按商品种类查询, /getgeneralproductspage?producttype=1
@@ -305,7 +305,10 @@ func CreateInitControllersFn(
 			authMembership.GET("/getmembershipcardsalemode", pc.GetMembershipCardSaleMode)
 
 			// 设置商户会员营销方式
-			authMembership.POST("/Setmembershipcardsalemode", pc.SetMembershipCardSaleMode)
+			authMembership.POST("/setmembershipcardsalemode", pc.SetMembershipCardSaleMode)
+
+			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
+			authMembership.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
 
 			//为自己或他人支付会员费
 			authMembership.POST("/payformembership", pc.PayForMembership)
@@ -325,10 +328,10 @@ func CreateInitControllersFn(
 			authCustomerService.GET("/querygrades", pc.QueryGrades)
 
 			//客服增加评分标题及内容
-			authCustomerService.GET("/addgrade", pc.AddGrade)
+			authCustomerService.POST("/addgrade", pc.AddGrade)
 
 			//用户提交评分
-			authCustomerService.GET("/submitgrade", pc.SubmitGrade)
+			authCustomerService.POST("/submitgrade", pc.SubmitGrade)
 		}
 
 		//=======后台各个功能模块==========/
@@ -337,19 +340,19 @@ func CreateInitControllersFn(
 		{
 
 			//根据用户账号, 将此用户封号
-			adminAuth.GET("/blockuser/:username", pc.BlockUser)
+			adminAuth.POST("/blockuser/:username", pc.BlockUser)
 
 			//根据用户账号，将此用户解封
-			adminAuth.GET("/disblockuser/:username", pc.DisBlockUser)
+			adminAuth.POST("/disblockuser/:username", pc.DisBlockUser)
 
 			//授权新创建的群组
-			adminAuth.GET("/approveteam/:teamid", pc.ApproveTeam)
+			adminAuth.POST("/approveteam/:teamid", pc.ApproveTeam)
 
 			//封禁群组
-			adminAuth.GET("/blockteam/:teamid", pc.BlockTeam)
+			adminAuth.POST("/blockteam/:teamid", pc.BlockTeam)
 
 			//解封群组
-			adminAuth.GET("/disblockteam/:teamid", pc.DisBlockTeam)
+			adminAuth.POST("/disblockteam/:teamid", pc.DisBlockTeam)
 
 			//增加通用商品
 			adminAuth.POST("/addgeneralproduct", pc.AddGeneralProduct)
@@ -361,13 +364,13 @@ func CreateInitControllersFn(
 			adminAuth.DELETE("/generalproduct/:productid", pc.DeleteGeneralProduct)
 
 			//增加在线客服id
-			adminAuth.GET("/addcustomerservice", pc.AddCustomerService)
+			adminAuth.POST("/addcustomerservice", pc.AddCustomerService)
 
-			//删除 在线客服id
-			adminAuth.GET("/deletecustomerservice", pc.DeleteCustomerService)
+			//删除在线客服id
+			adminAuth.DELETE("/deletecustomerservice/:id", pc.DeleteCustomerService)
 
-			//编辑 在线客服id
-			adminAuth.GET("/updatecustomerservice", pc.UpdateCustomerService)
+			//编辑在线客服id
+			adminAuth.POST("/updatecustomerservice", pc.UpdateCustomerService)
 
 		}
 	}

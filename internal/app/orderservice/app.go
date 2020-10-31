@@ -4,6 +4,7 @@ import (
 	"github.com/google/wire"
 	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -28,9 +29,9 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, nc *orderNsq.NsqClient) (*app.Application, error) {
+func NewApp(o *Options, logger *zap.Logger, nc *orderNsq.NsqClient, gs *grpc.Server) (*app.Application, error) {
 
-	a, err := app.New(o.Name, logger, app.OrderNsqOption(nc))
+	a, err := app.New(o.Name, logger, app.OrderNsqOption(nc), app.GrpcServerOption(gs))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "new app error")

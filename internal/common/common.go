@@ -87,13 +87,18 @@ const (
 				Private key1 of account in hex: 387153a31bf48456fed325e1a5be9e17c1c87e00cd5bac8721db3b0cc79a1d74
 				Public key1 of account  in hex: 906abda2050da89224a1d9e13d64f38b14de1f0f46b2043354f7032d2ba1ebdb0b7a88bb40700ce2a0deca6e9e28524f2bff3f63654dc6e94561ed5babedf5eb
 
-			三 、2-9号索引保留，10-以后 ，用于接收转账
+			三、第2号存储提现的LNMC代币
+
+			四、第3号索引派生的负责接收会员费的代币LNMC，当用户购买会员时，以此地址作为接收地址
+
+			五、4-9号索引保留，10-以后 ，用于接收转账
 
 
 	*/
-	ETHINDEX      = 0 // 第0号叶子存储eth
-	LNMCINDEX     = 1 //第1号存储LNMC代币
-	WITHDRAWINDEX = 2 //第2号存储提现的LNMC代币
+	ETHINDEX        = 0 // 第0号叶子存储eth
+	LNMCINDEX       = 1 //第1号存储LNMC代币
+	WITHDRAWINDEX   = 2 //第2号存储提现的LNMC代币
+	MEMBERSHIPINDEX = 3 //第3号负责接收会员费的LNMC代币
 
 	//1个eth
 	ETHER = 100000000000000000
@@ -109,6 +114,11 @@ const (
 
 	//抽取佣金费率
 	FEERATE float64 = 0.002
+)
+
+//会员相关
+const (
+	MEMBERSHIPPRICE = 99.00
 )
 
 //订单相关

@@ -94,7 +94,31 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 
 }
 
-//调用此接口前，需要调用10-3 发起转账,
+//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
+func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[common.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+
+	pc.logger.Debug("PreOrderForPayMembership",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
+	err := pc.service.PreOrderForPayMembership(userName, deviceID)
+
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 400, "PreOrderForPayMembership failed")
+	} else {
+		RespData(c, http.StatusOK, 200, &Service.PreOrderForPayMembershipResp{
+			//TODO
+		})
+	}
+
+}
+
+//调用此接口前，需要调用 PreOrderForPayMembership 发起会员付费转账,
 //在本地签名，然后携带签名后的交易数据提交到服务端，返回区块高度，交易哈希
 //会员付费， 可以他人代付， 如果他人代付，自动成为其推荐人, 强制归属同一个商户,
 //支付成功后，向用户发出通知
