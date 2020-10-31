@@ -16,25 +16,6 @@ services:
         fluentd-max-retries: '30'
         tag: lianmi.lm-cloud.authservice
 
-
-  lianmi-dispatcher:
-    image: lianmi/dispatcher:0.1
-    build: ./dispatcher
-    container_name: lianmi-dispatcher
-    restart: unless-stopped
-    ports:
-      - 28080:28080    
-    volumes:
-      # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
-      - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.dispatcher
-
   lianmi-chatservice:
     image: lianmi/chatservice:0.1
     build: ./chatservice
@@ -82,6 +63,24 @@ services:
         fluentd-retry-wait: '1s'
         fluentd-max-retries: '30'
         tag: lianmi.lm-cloud.walletservice
+
+  lianmi-dispatcher:
+    image: lianmi/dispatcher:0.1
+    build: ./dispatcher
+    container_name: lianmi-dispatcher 
+    restart: unless-stopped
+    ports:
+      - 28080:28080    
+    volumes:
+      # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
+      - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        fluentd-retry-wait: '1s'
+        fluentd-max-retries: '30'
+        tag: lianmi.lm-cloud.dispatcher
 
 networks:
   default:
