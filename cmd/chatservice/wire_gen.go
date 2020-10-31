@@ -10,6 +10,7 @@ import (
 	"github.com/lianmi/servers/internal/app/chatservice"
 	"github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
+	"github.com/lianmi/servers/internal/app/chatservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -68,4 +69,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqMq.ProviderSet, chatservice.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqMq.ProviderSet, chatservice.ProviderSet)

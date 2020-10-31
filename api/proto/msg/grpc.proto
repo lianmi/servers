@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+
+//聊天的Grpc接口
+service LianmiChat {
+
+}

@@ -6,7 +6,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/lianmi/servers/internal/app/chatservice"
-	"github.com/lianmi/servers/internal/app/chatservice/grpcservers"
+	// "github.com/lianmi/servers/internal/app/chatservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
 	"github.com/lianmi/servers/internal/app/chatservice/services"

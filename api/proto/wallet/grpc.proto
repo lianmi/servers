@@ -8,6 +8,8 @@ option go_package = "github.com/lianmi/servers/api/proto/wallet";
 service LianmiWallet {
     //订单的转账(完成，退款)
     rpc TransferByOrder (TransferReq) returns (TransferResp);
+
+    //rpc GetKeyPairsFromLeafIndex (GetKeyPairsFromLeafIndexReq) returns (GetKeyPairsFromLeafIndexResp);
 }
 
 
