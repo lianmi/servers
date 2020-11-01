@@ -6,7 +6,8 @@ import (
 	"github.com/google/wire"
 
 	"github.com/lianmi/servers/internal/app/chatservice"
-	// "github.com/lianmi/servers/internal/app/chatservice/grpcservers"
+	"github.com/lianmi/servers/internal/app/chatservice/grpcclients"
+	"github.com/lianmi/servers/internal/app/chatservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
 	"github.com/lianmi/servers/internal/app/chatservice/services"
@@ -17,6 +18,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 var providerSet = wire.NewSet(
@@ -28,8 +30,11 @@ var providerSet = wire.NewSet(
 	consul.ProviderSet,
 	jaeger.ProviderSet,
 	redis.ProviderSet,
+	grpc.ProviderSet,
+	grpcservers.ProviderSet,
 	nsqMq.ProviderSet,
 	chatservice.ProviderSet,
+	grpcclients.ProviderSet,
 )
 
 func CreateApp(cf string) (*app.Application, error) {

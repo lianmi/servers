@@ -8,11 +8,11 @@ import (
 )
 
 func CreateInitServersFn(
-	ps *OrderServer,
+	ps *OrderGrpcServer,
 ) grpc.InitServers {
 	return func(s *stdgrpc.Server) {
 		Order.RegisterLianmiOrderServer(s, ps)
 	}
 }
 
-var ProviderSet = wire.NewSet(NewOrderServer, CreateInitServersFn)
+var ProviderSet = wire.NewSet(NewOrderGrpcServer, CreateInitServersFn)

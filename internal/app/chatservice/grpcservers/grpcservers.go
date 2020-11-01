@@ -10,14 +10,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type ChatServer struct {
+type ChatGrpcServer struct {
 	logger *zap.Logger
 
 	service services.ChatService
 }
 
-func NewChatServer(logger *zap.Logger, ps services.ChatService) (*ChatServer, error) {
-	return &ChatServer{
+func NewChatGrpcServer(logger *zap.Logger, ps services.ChatService) (*ChatGrpcServer, error) {
+	return &ChatGrpcServer{
 		logger:  logger,
 		service: ps,
 	}, nil

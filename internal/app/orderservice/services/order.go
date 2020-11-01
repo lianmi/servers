@@ -5,7 +5,7 @@ import (
 	// "fmt"
 	// "time"
 
-	// Order "github.com/lianmi/servers/api/proto/order"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	// LMCommon "github.com/lianmi/servers/internal/common"
@@ -13,7 +13,6 @@ import (
 	// "github.com/pkg/errors"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"go.uber.org/zap"
 )
 
@@ -29,17 +28,17 @@ type DefaultApisService struct {
 	logger     *zap.Logger
 	Repository repositories.OrderRepository
 	redisPool  *redis.Pool
+	authSvc    Auth.LianmiAuthClient
 	walletSvc  Wallet.LianmiWalletClient
-	ethService *blockchain.Service //连接以太坊geth的websocket
 }
 
-func NewApisService(logger *zap.Logger, Repository repositories.OrderRepository, redisPool *redis.Pool, walletSvc Wallet.LianmiWalletClient, ethService *blockchain.Service) OrderService {
+func NewApisService(logger *zap.Logger, repository repositories.OrderRepository, redisPool *redis.Pool, authSvc Auth.LianmiAuthClient, walletSvc Wallet.LianmiWalletClient) OrderService {
 	return &DefaultApisService{
 		logger:     logger.With(zap.String("type", "OrderService")),
-		Repository: Repository,
+		Repository: repository,
 		redisPool:  redisPool,
+		authSvc:    authSvc,
 		walletSvc:  walletSvc,
-		ethService: ethService,
 	}
 }
 

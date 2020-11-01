@@ -9,7 +9,7 @@ import (
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	// Order "github.com/lianmi/servers/api/proto/order"
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	// User "github.com/lianmi/servers/api/proto/user"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,7 @@ import (
 
 //获取空闲的在线客服id数组
 func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
-	var req Service.QueryCustomerServiceReq
+	var req Auth.QueryCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -27,9 +27,9 @@ func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Query CustomerServices failed")
 		} else {
-			resp := &Service.QueryCustomerServiceResp{}
+			resp := &Auth.QueryCustomerServiceResp{}
 			for _, onlineCustomerService := range csList {
-				resp.OnlineCustomerServices = append(resp.OnlineCustomerServices, &Service.CustomerServiceInfo{
+				resp.OnlineCustomerServices = append(resp.OnlineCustomerServices, &Auth.CustomerServiceInfo{
 					Username:   onlineCustomerService.Username,
 					JobNumber:  onlineCustomerService.JobNumber,
 					Type:       Global.CustomerServiceType(onlineCustomerService.Type),
@@ -47,7 +47,7 @@ func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
 
 func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 	var maps string
-	var req Service.GradeReq
+	var req Auth.GradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -71,12 +71,12 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Query Grades( failed")
 		} else {
-			pages := Service.GradesPage{
+			pages := Auth.GradesPage{
 				TotalPage: *total,
 				// Grades: pfList,
 			}
 			for _, grade := range pfList {
-				pages.Grades = append(pages.Grades, &Service.GradeInfo{
+				pages.Grades = append(pages.Grades, &Auth.GradeInfo{
 					Title:                   grade.Title,
 					AppUsername:             grade.AppUsername,
 					CustomerServiceUsername: grade.CustomerServiceUsername,
@@ -98,7 +98,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 
 //客服人员增加求助记录，以便发给用户评分
 func (pc *LianmiApisController) AddGrade(c *gin.Context) {
-	var req Service.AddGradeReq
+	var req Auth.AddGradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -114,7 +114,7 @@ func (pc *LianmiApisController) AddGrade(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, 400, "Add Grade failed")
 		} else {
 
-			RespData(c, http.StatusOK, 200, &Service.GradeTitleInfo{
+			RespData(c, http.StatusOK, 200, &Auth.GradeTitleInfo{
 				CustomerServiceUsername: req.CustomerServiceUsername,
 				Title:                   title,
 			})
@@ -125,7 +125,7 @@ func (pc *LianmiApisController) AddGrade(c *gin.Context) {
 
 //用户提交评分
 func (pc *LianmiApisController) SubmitGrade(c *gin.Context) {
-	var req Service.SubmitGradeReq
+	var req Auth.SubmitGradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")

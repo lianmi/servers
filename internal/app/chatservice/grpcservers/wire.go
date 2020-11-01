@@ -17,6 +17,6 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateChatServer(cf string, service services.ChatService) (*ChatServer, error) {
+func CreateChatServer(cf string, service services.ChatService) (*ChatGrpcServer, error) {
 	panic(wire.Build(testProviderSet))
 }

@@ -8,7 +8,7 @@ import (
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	// Order "github.com/lianmi/servers/api/proto/order"
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,7 @@ import (
 )
 
 func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
-	var req Service.MembershipCardSaleModeReq
+	var req Auth.MembershipCardSaleModeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -32,7 +32,7 @@ func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, 400, "Get Membership Card Sale Mode failed")
 		} else {
 
-			RespData(c, http.StatusOK, 200, &Service.MembershipCardSaleModeResp{
+			RespData(c, http.StatusOK, 200, &Auth.MembershipCardSaleModeResp{
 				SaleType: Global.MembershipCardSaleType(saleMode),
 			})
 		}
@@ -41,7 +41,7 @@ func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
-	var req Service.MembershipCardSaleModeReq
+	var req Auth.MembershipCardSaleModeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -73,7 +73,7 @@ func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
-	var req Service.GetBusinessMembershipReq
+	var req Auth.GetBusinessMembershipReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -84,7 +84,7 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Get BusinessMembership failed")
 		} else {
-			// resp := &Service.GetBusinessMembershipResp{
+			// resp := &Auth.GetBusinessMembershipResp{
 			// 	Totalmembers: 1,
 			// }
 			//TODO
@@ -111,7 +111,7 @@ func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
 	if err != nil {
 		RespFail(c, http.StatusBadRequest, 400, "PreOrderForPayMembership failed")
 	} else {
-		RespData(c, http.StatusOK, 200, &Service.PreOrderForPayMembershipResp{
+		RespData(c, http.StatusOK, 200, &Auth.PreOrderForPayMembershipResp{
 			//TODO
 		})
 	}
@@ -134,7 +134,7 @@ func (pc *LianmiApisController) PayForMembership(c *gin.Context) {
 		zap.String("deviceID", deviceID),
 		zap.String("token", token))
 
-	var req Service.PayForMembershipReq
+	var req Auth.PayForMembershipReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")

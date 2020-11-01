@@ -8,11 +8,11 @@ import (
 )
 
 func CreateInitServersFn(
-	ps *ChatServer,
+	ps *ChatGrpcServer,
 ) grpc.InitServers {
 	return func(s *stdgrpc.Server) {
 		Msg.RegisterLianmiChatServer(s, ps)
 	}
 }
 
-var ProviderSet = wire.NewSet(NewChatServer, CreateInitServersFn)
+var ProviderSet = wire.NewSet(NewChatGrpcServer, CreateInitServersFn)

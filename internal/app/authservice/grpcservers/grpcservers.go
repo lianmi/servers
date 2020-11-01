@@ -5,7 +5,7 @@ package grpcservers
 
 import (
 	"context"
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	"github.com/lianmi/servers/internal/app/authservice/services"
 	"go.uber.org/zap"
 )
@@ -23,6 +23,6 @@ func NewAuthGrpcServer(logger *zap.Logger, ps services.AuthService) (*AuthGrpcSe
 	}, nil
 }
 
-func (s *AuthGrpcServer) GetUser(ctx context.Context, in *Service.UserReq) (*Service.UserRsp, error) {
+func (s *AuthGrpcServer) GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error) {
 	return s.service.GetUser(ctx, in)
 }

@@ -10,14 +10,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type OrderServer struct {
+type OrderGrpcServer struct {
 	logger *zap.Logger
 
 	service services.OrderService
 }
 
-func NewOrderServer(logger *zap.Logger, ps services.OrderService) (*OrderServer, error) {
-	return &OrderServer{
+func NewOrderGrpcServer(logger *zap.Logger, ps services.OrderService) (*OrderGrpcServer, error) {
+	return &OrderGrpcServer{
 		logger:  logger,
 		service: ps,
 	}, nil

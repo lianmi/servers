@@ -9,7 +9,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	Service "github.com/lianmi/servers/api/proto/service"
 	User "github.com/lianmi/servers/api/proto/user"
 	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
 	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
@@ -265,7 +264,7 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 }
 
 //修改密码
-func (s *MysqlLianmiRepository) ChanPassword(username string, req *Service.ChanPasswordReq) error {
+func (s *MysqlLianmiRepository) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
 	var user models.User
 	sel := "id"
 	redisConn := s.redisPool.Get()

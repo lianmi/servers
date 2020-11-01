@@ -15,7 +15,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateChatServer(cf string, service services.ChatService) (*ChatServer, error) {
+func CreateChatServer(cf string, service services.ChatService) (*ChatGrpcServer, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -28,11 +28,11 @@ func CreateChatServer(cf string, service services.ChatService) (*ChatServer, err
 	if err != nil {
 		return nil, err
 	}
-	chatServer, err := NewChatServer(logger, service)
+	chatGrpcServer, err := NewChatGrpcServer(logger, service)
 	if err != nil {
 		return nil, err
 	}
-	return chatServer, nil
+	return chatGrpcServer, nil
 }
 
 // wire.go:

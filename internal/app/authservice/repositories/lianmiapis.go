@@ -9,7 +9,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	Service "github.com/lianmi/servers/api/proto/service"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	"github.com/lianmi/servers/internal/common"
@@ -26,7 +25,7 @@ type LianmiRepository interface {
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
 	ResetPassword(mobile, password string, user *models.User) error
-	ChanPassword(username string, req *Service.ChanPasswordReq) error
+	ChanPassword(username string, req *Auth.ChanPasswordReq) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
@@ -89,26 +88,26 @@ type LianmiRepository interface {
 
 	DeleteGeneralProduct(productID string) bool
 
-	QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
+	QueryCustomerServices(req *Auth.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
 
-	AddCustomerService(req *Service.AddCustomerServiceReq) error
+	AddCustomerService(req *Auth.AddCustomerServiceReq) error
 
-	DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool
+	DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool
 
-	UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error
+	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
-	QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
+	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
 
 	//客服人员增加求助记录，以便发给用户评分
-	AddGrade(req *Service.AddGradeReq) (string, error)
+	AddGrade(req *Auth.AddGradeReq) (string, error)
 
-	SubmitGrade(req *Service.SubmitGradeReq) error
+	SubmitGrade(req *Auth.SubmitGradeReq) error
 
 	GetMembershipCardSaleMode(businessUsername string) (int, error)
 
 	SetMembershipCardSaleMode(businessUsername string, saleType int) error
 
-	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
+	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
 
 	PayForMembership(payForUsername string) error
 }
@@ -379,7 +378,7 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 }
 
 //修改密码
-func (s *MysqlLianmiRepository) ChanPassword(username string, req *Service.ChanPasswordReq) error {
+func (s *MysqlLianmiRepository) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
 	var user models.User
 	sel := "id"
 	redisConn := s.redisPool.Get()
@@ -1083,7 +1082,7 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 }
 
 //获取空闲的在线客服id数组
-func (s *MysqlLianmiRepository) QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error) {
+func (s *MysqlLianmiRepository) QueryCustomerServices(req *Auth.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error) {
 
 	var err error
 
@@ -1130,7 +1129,7 @@ func (s *MysqlLianmiRepository) QueryCustomerServices(req *Service.QueryCustomer
 	return csList, nil
 }
 
-func (s *MysqlLianmiRepository) AddCustomerService(req *Service.AddCustomerServiceReq) error {
+func (s *MysqlLianmiRepository) AddCustomerService(req *Auth.AddCustomerServiceReq) error {
 	var err error
 
 	redisConn := s.redisPool.Get()
@@ -1189,7 +1188,7 @@ func (s *MysqlLianmiRepository) AddCustomerService(req *Service.AddCustomerServi
 
 }
 
-func (s *MysqlLianmiRepository) DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool {
+func (s *MysqlLianmiRepository) DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -1216,7 +1215,7 @@ func (s *MysqlLianmiRepository) DeleteCustomerService(req *Service.DeleteCustome
 
 }
 
-func (s *MysqlLianmiRepository) UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error {
+func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error {
 	var err error
 
 	redisConn := s.redisPool.Get()
@@ -1272,7 +1271,7 @@ func (s *MysqlLianmiRepository) UpdateCustomerService(req *Service.UpdateCustome
 
 }
 
-func (s *MysqlLianmiRepository) QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
+func (s *MysqlLianmiRepository) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
 	var grades []*models.Grade
 
 	//构造查询条件
@@ -1298,7 +1297,7 @@ func (s *MysqlLianmiRepository) QueryGrades(req *Service.GradeReq, pageIndex int
 }
 
 //客服人员增加求助记录，以便发给用户评分
-func (s *MysqlLianmiRepository) AddGrade(req *Service.AddGradeReq) (string, error) {
+func (s *MysqlLianmiRepository) AddGrade(req *Auth.AddGradeReq) (string, error) {
 	var err error
 	var index uint64
 
@@ -1346,7 +1345,7 @@ func (s *MysqlLianmiRepository) AddGrade(req *Service.AddGradeReq) (string, erro
 
 }
 
-func (s *MysqlLianmiRepository) SubmitGrade(req *Service.SubmitGradeReq) error {
+func (s *MysqlLianmiRepository) SubmitGrade(req *Auth.SubmitGradeReq) error {
 
 	var err error
 
@@ -1407,7 +1406,7 @@ func (s *MysqlLianmiRepository) SetMembershipCardSaleMode(businessUsername strin
 
 //TODO
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-func (s *MysqlLianmiRepository) GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error) {
+func (s *MysqlLianmiRepository) GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error) {
 	var err error
 
 	redisConn := s.redisPool.Get()

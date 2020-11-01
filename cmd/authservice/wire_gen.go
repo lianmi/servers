@@ -67,7 +67,7 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqClient)
-	authService := services.NewLianmiApisService(logger, lianmiRepository)
+	authService := services.NewLianmiAuthService(logger, lianmiRepository)
 	authGrpcServer, err := grpcservers.NewAuthGrpcServer(logger, authService)
 	if err != nil {
 		return nil, err

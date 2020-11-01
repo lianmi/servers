@@ -8,6 +8,8 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/chatservice"
+	"github.com/lianmi/servers/internal/app/chatservice/grpcclients"
+	"github.com/lianmi/servers/internal/app/chatservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
 	"github.com/lianmi/servers/internal/app/chatservice/services"
@@ -18,6 +20,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 // Injectors from wire.go:
@@ -60,7 +63,58 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger)
-	application, err := chatservice.NewApp(chatserviceOptions, logger, nsqClient)
+	serverOptions, err := grpc.NewServerOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	chatRepository := repositories.NewMysqlChatRepository(logger, db, pool)
+	consulOptions, err := consul.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	configuration, err := jaeger.NewConfiguration(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	tracer, err := jaeger.New(configuration)
+	if err != nil {
+		return nil, err
+	}
+	clientOptions, err := grpc.NewClientOptions(viper, tracer)
+	if err != nil {
+		return nil, err
+	}
+	client, err := grpc.NewClient(consulOptions, clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	lianmiAuthClient, err := grpcclients.NewApisClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiOrderClient, err := grpcclients.NewOrderClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
+	if err != nil {
+		return nil, err
+	}
+	chatService := services.NewApisService(logger, chatRepository, pool, lianmiAuthClient, lianmiOrderClient, lianmiWalletClient)
+	chatGrpcServer, err := grpcservers.NewChatGrpcServer(logger, chatService)
+	if err != nil {
+		return nil, err
+	}
+	initServers := grpcservers.CreateInitServersFn(chatGrpcServer)
+	apiClient, err := consul.New(consulOptions)
+	if err != nil {
+		return nil, err
+	}
+	server, err := grpc.NewServer(serverOptions, logger, initServers, apiClient, tracer)
+	if err != nil {
+		return nil, err
+	}
+	application, err := chatservice.NewApp(chatserviceOptions, logger, nsqClient, server)
 	if err != nil {
 		return nil, err
 	}
@@ -69,4 +123,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, nsqMq.ProviderSet, chatservice.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, chatservice.ProviderSet, grpcclients.ProviderSet)

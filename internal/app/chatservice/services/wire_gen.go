@@ -7,17 +7,20 @@ package services
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/chatservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/chatservice/repositories"
-	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
+	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
+	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 // Injectors from wire.go:
 
-func CreateApisService(cf string, sto repositories.MysqlChatRepository) (ChatService, error) {
+func CreateApisService(cf string, sto repositories.ChatRepository) (ChatService, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -38,10 +41,42 @@ func CreateApisService(cf string, sto repositories.MysqlChatRepository) (ChatSer
 	if err != nil {
 		return nil, err
 	}
-	chatService := NewApisService(logger, sto, pool)
+	consulOptions, err := consul.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	configuration, err := jaeger.NewConfiguration(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	tracer, err := jaeger.New(configuration)
+	if err != nil {
+		return nil, err
+	}
+	clientOptions, err := grpc.NewClientOptions(viper, tracer)
+	if err != nil {
+		return nil, err
+	}
+	client, err := grpc.NewClient(consulOptions, clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	lianmiAuthClient, err := grpcclients.NewApisClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiOrderClient, err := grpcclients.NewOrderClient(client)
+	if err != nil {
+		return nil, err
+	}
+	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
+	if err != nil {
+		return nil, err
+	}
+	chatService := NewApisService(logger, sto, pool, lianmiAuthClient, lianmiOrderClient, lianmiWalletClient)
 	return chatService, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, blockchain.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, consul.ProviderSet, grpcclients.ProviderSet, grpc.ProviderSet, jaeger.ProviderSet, ProviderSet)

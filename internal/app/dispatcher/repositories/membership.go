@@ -10,7 +10,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	// "github.com/jinzhu/gorm"
 	// Auth "github.com/lianmi/servers/api/proto/auth"
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	// User "github.com/lianmi/servers/api/proto/user"
 	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
 	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
@@ -23,7 +23,7 @@ import (
 
 //TODO
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-func (s *MysqlLianmiRepository) GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error) {
+func (s *MysqlLianmiRepository) GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error) {
 	var err error
 
 	redisConn := s.redisPool.Get()

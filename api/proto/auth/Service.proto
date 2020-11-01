@@ -3,12 +3,12 @@ import "api/proto/user/User.proto";
 import "api/proto/global/Global.proto";
 import "api/proto/wallet/PreTransfer.proto";
 
-package cloud.lianmi.im.service;
-option go_package = "github.com/lianmi/servers/api/proto/service";
+package cloud.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
 
 
 //Restful 接口
-service LianmiApis {
+service LianmiAuth {
     //获取用户信息
     rpc GetUser (UserReq) returns (UserRsp);
 
@@ -211,13 +211,6 @@ message LoginReq {
 
 message LoginResp {
     string accesstoken = 2; //用户token, jwt
-}
-
-//==== 登出 =====//
-message SignOutReq {
-}
-
-message SignOutResp {
 }
 
 message CustomerServiceInfo {

@@ -31,7 +31,6 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-// func NewApp(o *Options, logger *zap.Logger, kc *authNsq.NsqClient, hs *http.Server) (*app.Application, error) {
 func NewApp(o *Options, logger *zap.Logger, kc *nsqMq.NsqClient, mc *mqtt.MQTTClient, hs *http.Server) (*app.Application, error) {
 
 	a, err := app.New(o.Name, logger, app.NsqOption(kc), app.MQTTOption(mc), app.HttpServerOption(hs))

@@ -4,13 +4,15 @@ package services
 
 import (
 	"github.com/google/wire"
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
-	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
+	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
+	"github.com/lianmi/servers/internal/pkg/jaeger"
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
+	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 )
 
 var testProviderSet = wire.NewSet(
@@ -18,12 +20,13 @@ var testProviderSet = wire.NewSet(
 	config.ProviderSet,
 	database.ProviderSet,
 	redis.ProviderSet,
-	blockchain.ProviderSet,
+	consul.ProviderSet,
+	grpcclients.ProviderSet,
+	grpc.ProviderSet,
+	jaeger.ProviderSet,
 	ProviderSet,
 )
 
-func CreateApisService(cf string, sto repositories.OrderRepository, wlc Wallet.LianmiWalletClient) (OrderService, error) {
+func CreateApisService(cf string, sto repositories.OrderRepository) (OrderService, error) {
 	panic(wire.Build(testProviderSet))
 }
-
-//

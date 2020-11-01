@@ -17,6 +17,6 @@ var testProviderSet = wire.NewSet(
 	ProviderSet,
 )
 
-func CreateOrderServer(cf string, service services.OrderService) (*OrderServer, error) {
+func CreateOrderServer(cf string, service services.OrderService) (*OrderGrpcServer, error) {
 	panic(wire.Build(testProviderSet))
 }

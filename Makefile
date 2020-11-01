@@ -70,9 +70,6 @@ proto:
 	rm -f api/proto/wallet/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/wallet/*.proto
 
-	rm -f api/proto/service/*.go
-	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/service/*.proto
-
 .PHONY: clear
 clear:
 
@@ -85,7 +82,6 @@ clear:
 	rm -f api/proto/team/*.go
 	rm -f api/proto/user/*.go
 	rm -f api/proto/wallet/*.go
-	rm -f api/proto/service/*.go
 	
 .PHONY: stop
 stop:

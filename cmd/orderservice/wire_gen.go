@@ -14,7 +14,6 @@ import (
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/app/orderservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
-	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
@@ -84,29 +83,25 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	lianmiAuthClient, err := grpcclients.NewApisClient(client)
+	if err != nil {
+		return nil, err
+	}
 	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
 	if err != nil {
 		return nil, err
 	}
-	blockchainOptions, err := blockchain.NewEthClientProviderOptions(viper, logger)
-	if err != nil {
-		return nil, err
-	}
-	service, err := blockchain.New(blockchainOptions, logger)
-	if err != nil {
-		return nil, err
-	}
-	orderService := services.NewApisService(logger, orderRepository, pool, lianmiWalletClient, service)
+	orderService := services.NewApisService(logger, orderRepository, pool, lianmiAuthClient, lianmiWalletClient)
 	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, orderService)
 	serverOptions, err := grpc.NewServerOptions(viper)
 	if err != nil {
 		return nil, err
 	}
-	orderServer, err := grpcservers.NewOrderServer(logger, orderService)
+	orderGrpcServer, err := grpcservers.NewOrderGrpcServer(logger, orderService)
 	if err != nil {
 		return nil, err
 	}
-	initServers := grpcservers.CreateInitServersFn(orderServer)
+	initServers := grpcservers.CreateInitServersFn(orderGrpcServer)
 	apiClient, err := consul.New(consulOptions)
 	if err != nil {
 		return nil, err
@@ -124,4 +119,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet, blockchain.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)

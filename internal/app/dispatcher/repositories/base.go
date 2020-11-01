@@ -9,7 +9,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	Service "github.com/lianmi/servers/api/proto/service"
 	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	// User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
@@ -26,7 +25,7 @@ type LianmiRepository interface {
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
 	ResetPassword(mobile, password string, user *models.User) error
-	ChanPassword(username string, req *Service.ChanPasswordReq) error
+	ChanPassword(username string, req *Auth.ChanPasswordReq) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
@@ -89,26 +88,26 @@ type LianmiRepository interface {
 
 	DeleteGeneralProduct(productID string) bool
 
-	QueryCustomerServices(req *Service.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
+	QueryCustomerServices(req *Auth.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error)
 
-	AddCustomerService(req *Service.AddCustomerServiceReq) error
+	AddCustomerService(req *Auth.AddCustomerServiceReq) error
 
-	DeleteCustomerService(req *Service.DeleteCustomerServiceReq) bool
+	DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool
 
-	UpdateCustomerService(req *Service.UpdateCustomerServiceReq) error
+	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
-	QueryGrades(req *Service.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
+	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
 
 	//客服人员增加求助记录，以便发给用户评分
-	AddGrade(req *Service.AddGradeReq) (string, error)
+	AddGrade(req *Auth.AddGradeReq) (string, error)
 
-	SubmitGrade(req *Service.SubmitGradeReq) error
+	SubmitGrade(req *Auth.SubmitGradeReq) error
 
 	GetMembershipCardSaleMode(businessUsername string) (int, error)
 
 	SetMembershipCardSaleMode(businessUsername string, saleType int) error
 
-	GetBusinessMembership(isRebate bool) (*Service.GetBusinessMembershipResp, error)
+	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
 
 	PayForMembership(payForUsername string) error
 
@@ -120,7 +119,7 @@ type MysqlLianmiRepository struct {
 	db        *gorm.DB
 	redisPool *redis.Pool
 	nsqClient *nsqMq.NsqClient
-	base *BaseRepository
+	base      *BaseRepository
 }
 
 func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqMq.NsqClient) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
@@ -129,7 +128,7 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		db:        db,
 		redisPool: redisPool,
 		nsqClient: nc,
-		base: NewBaseRepository(logger, db),
+		base:      NewBaseRepository(logger, db),
 	}
 }
 

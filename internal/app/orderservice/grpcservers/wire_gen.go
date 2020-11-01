@@ -15,7 +15,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateOrderServer(cf string, service services.OrderService) (*OrderServer, error) {
+func CreateOrderServer(cf string, service services.OrderService) (*OrderGrpcServer, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -28,11 +28,11 @@ func CreateOrderServer(cf string, service services.OrderService) (*OrderServer, 
 	if err != nil {
 		return nil, err
 	}
-	orderServer, err := NewOrderServer(logger, service)
+	orderGrpcServer, err := NewOrderGrpcServer(logger, service)
 	if err != nil {
 		return nil, err
 	}
-	return orderServer, nil
+	return orderGrpcServer, nil
 }
 
 // wire.go:

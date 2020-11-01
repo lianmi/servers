@@ -11,8 +11,8 @@ import (
 	// "time"
 
 	// Global "github.com/lianmi/servers/api/proto/global"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
-	Service "github.com/lianmi/servers/api/proto/service"
 	// User "github.com/lianmi/servers/api/proto/user"
 	// "github.com/lianmi/servers/util/conv"
 
@@ -284,7 +284,7 @@ func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 		return
 	}
 
-	var req Service.AddCustomerServiceReq
+	var req Auth.AddCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -323,7 +323,7 @@ func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 		return
 	}
 
-	var req Service.DeleteCustomerServiceReq
+	var req Auth.DeleteCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
@@ -347,7 +347,7 @@ func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 		return
 	}
 
-	var req Service.UpdateCustomerServiceReq
+	var req Auth.UpdateCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")

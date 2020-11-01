@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewAuthClient(client *grpc.Client) (Auth.LianmiAuthClient, error) {
+func NewApisClient(client *grpc.Client) (Auth.LianmiAuthClient, error) {
 	conn, err := client.Dial("cloud.lianmi.im.service.LianmiAuth")
 	if err != nil {
 		return nil, errors.Wrap(err, "service grpc client dial error")

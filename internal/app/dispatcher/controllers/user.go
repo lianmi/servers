@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 	"github.com/lianmi/servers/util/conv"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -32,7 +32,7 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 		return
 	}
 
-	p, err := pc.service.GetUser(c, &Service.UserReq{
+	p, err := pc.service.GetUser(c, &Auth.UserReq{
 		Id: id,
 	})
 	if err != nil {
@@ -131,7 +131,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "Register user error")
 			return
 		}
-		RespData(c, http.StatusOK, code, Service.RegisterResp{
+		RespData(c, http.StatusOK, code, Auth.RegisterResp{
 			Username: user.Username,
 		})
 	}
@@ -140,7 +140,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 // 重置密码
 func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 	var user models.User
-	var rp Service.ResetPasswordReq
+	var rp Auth.ResetPasswordReq
 	code := codes.InvalidParams
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到ResetPassword变量中，必填字段一定要填
@@ -183,7 +183,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 			return
 		}
 
-		RespData(c, http.StatusOK, code, &Service.ResetPasswordResp{
+		RespData(c, http.StatusOK, code, &Auth.ResetPasswordResp{
 			Username: user.Username,
 		})
 	}
@@ -236,7 +236,7 @@ func (pc *LianmiApisController) ChanPassword(c *gin.Context) {
 		zap.String("deviceID", deviceID),
 		zap.String("token", token))
 
-	var req Service.ChanPasswordReq
+	var req Auth.ChanPasswordReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")

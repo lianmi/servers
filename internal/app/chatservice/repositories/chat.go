@@ -3,6 +3,8 @@ package repositories
 import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
+	// "github.com/lianmi/servers/internal/pkg/models"
+
 	"go.uber.org/zap"
 )
 

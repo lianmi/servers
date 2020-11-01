@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	Service "github.com/lianmi/servers/api/proto/service"
+	Auth "github.com/lianmi/servers/api/proto/auth"
 )
 
 //根据用户当前经纬度查询附近商店信息
@@ -26,10 +26,10 @@ func (pc *LianmiApisController) QueryShopsNearby(c *gin.Context) {
 
 	*/
 
-	resp := &Service.QueryShopsNearbyResp{
+	resp := &Auth.QueryShopsNearbyResp{
 		TotalPage: 1,
 	}
-	resp.Shops = append(resp.Shops, &Service.Shop{
+	resp.Shops = append(resp.Shops, &Auth.Shop{
 		BusinessUsername: "吴记牛肉店",    //商户账号id
 		Nick:             "吴老板",      //商户呢称
 		Avatar:           "",         //TODO, 阿里云的头像上传功能

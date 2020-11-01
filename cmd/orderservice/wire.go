@@ -12,7 +12,6 @@ import (
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/app/orderservice/services"
 	"github.com/lianmi/servers/internal/pkg/app"
-	"github.com/lianmi/servers/internal/pkg/blockchain"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
@@ -36,7 +35,6 @@ var providerSet = wire.NewSet(
 	nsqMq.ProviderSet,
 	orderservice.ProviderSet,
 	grpcclients.ProviderSet,
-	blockchain.ProviderSet,
 )
 
 func CreateApp(cf string) (*app.Application, error) {
