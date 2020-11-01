@@ -1,5 +1,5 @@
 /*
-本文件实现grpc client的远程调用服务，在此实现对应的逻辑
+本文件实现 api/proto/wallet/grpc.proto 钱包的Grpc接口, rpc接口方法必须全部实现
 */
 package grpcservers
 
@@ -26,4 +26,24 @@ func NewWalletServer(logger *zap.Logger, ps services.WalletService) (*WalletServ
 //订单完成或退款
 func (s *WalletServer) TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error) {
 	return s.service.TransferByOrder(ctx, req)
+}
+
+//获取余额
+func (s *WalletServer) GetUserBalance(ctx context.Context, req *Wallet.GetUserBalanceReq) (*Wallet.GetUserBalanceResp, error) {
+	return s.service.GetUserBalance(ctx, req)
+}
+
+//根据bip32索引号获取地址
+func (s *WalletServer) GetWalletAddressbyBip32Index(ctx context.Context, req *Wallet.GetWalletAddressbyBip32IndexReq) (*Wallet.GetWalletAddressbyBip32IndexResp, error) {
+	return s.service.GetWalletAddressbyBip32Index(ctx, req)
+}
+
+//预支付购买会员
+func (s *WalletServer) SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error) {
+	return s.service.SendPrePayForMembership(ctx, req)
+}
+
+//确认购买会员
+func (s *WalletServer) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
+	return s.service.SendConfirmPayForMembership(ctx, req)
 }

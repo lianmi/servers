@@ -142,31 +142,591 @@ func (x *TransferResp) GetErrMsg() string {
 	return ""
 }
 
+//======获取钱包余额======//
+type GetUserBalanceReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+}
+
+func (x *GetUserBalanceReq) Reset() {
+	*x = GetUserBalanceReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetUserBalanceReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserBalanceReq) ProtoMessage() {}
+
+func (x *GetUserBalanceReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserBalanceReq.ProtoReflect.Descriptor instead.
+func (*GetUserBalanceReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetUserBalanceReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type GetUserBalanceResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	BalanceEth  uint64 `protobuf:"fixed64,1,opt,name=balanceEth,proto3" json:"balanceEth,omitempty"`
+	BalanceLNMC uint64 `protobuf:"fixed64,2,opt,name=balanceLNMC,proto3" json:"balanceLNMC,omitempty"`
+}
+
+func (x *GetUserBalanceResp) Reset() {
+	*x = GetUserBalanceResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetUserBalanceResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserBalanceResp) ProtoMessage() {}
+
+func (x *GetUserBalanceResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserBalanceResp.ProtoReflect.Descriptor instead.
+func (*GetUserBalanceResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetUserBalanceResp) GetBalanceEth() uint64 {
+	if x != nil {
+		return x.BalanceEth
+	}
+	return 0
+}
+
+func (x *GetUserBalanceResp) GetBalanceLNMC() uint64 {
+	if x != nil {
+		return x.BalanceLNMC
+	}
+	return 0
+}
+
+//======根据HD的索引号，获取对应的钱包地址 ======//
+type GetWalletAddressbyBip32IndexReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Bip32Index uint64 `protobuf:"fixed64,1,opt,name=bip32index,proto3" json:"bip32index,omitempty"`
+}
+
+func (x *GetWalletAddressbyBip32IndexReq) Reset() {
+	*x = GetWalletAddressbyBip32IndexReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetWalletAddressbyBip32IndexReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWalletAddressbyBip32IndexReq) ProtoMessage() {}
+
+func (x *GetWalletAddressbyBip32IndexReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWalletAddressbyBip32IndexReq.ProtoReflect.Descriptor instead.
+func (*GetWalletAddressbyBip32IndexReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetWalletAddressbyBip32IndexReq) GetBip32Index() uint64 {
+	if x != nil {
+		return x.Bip32Index
+	}
+	return 0
+}
+
+type GetWalletAddressbyBip32IndexResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	WalletAddress string `protobuf:"bytes,1,opt,name=walletAddress,proto3" json:"walletAddress,omitempty"`
+}
+
+func (x *GetWalletAddressbyBip32IndexResp) Reset() {
+	*x = GetWalletAddressbyBip32IndexResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetWalletAddressbyBip32IndexResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWalletAddressbyBip32IndexResp) ProtoMessage() {}
+
+func (x *GetWalletAddressbyBip32IndexResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWalletAddressbyBip32IndexResp.ProtoReflect.Descriptor instead.
+func (*GetWalletAddressbyBip32IndexResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetWalletAddressbyBip32IndexResp) GetWalletAddress() string {
+	if x != nil {
+		return x.WalletAddress
+	}
+	return ""
+}
+
+//======发起一个购买会员的预支付，返回裸交易 ======//
+type SendPrePayForMembershipReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//发起购买的用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//为谁购买
+	PayForUsername string `protobuf:"bytes,2,opt,name=payForUsername,proto3" json:"payForUsername,omitempty"`
+}
+
+func (x *SendPrePayForMembershipReq) Reset() {
+	*x = SendPrePayForMembershipReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendPrePayForMembershipReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendPrePayForMembershipReq) ProtoMessage() {}
+
+func (x *SendPrePayForMembershipReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendPrePayForMembershipReq.ProtoReflect.Descriptor instead.
+func (*SendPrePayForMembershipReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SendPrePayForMembershipReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *SendPrePayForMembershipReq) GetPayForUsername() string {
+	if x != nil {
+		return x.PayForUsername
+	}
+	return ""
+}
+
+type SendPrePayForMembershipResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//订单ID
+	OrderID string `protobuf:"bytes,1,opt,name=orderID,proto3" json:"orderID,omitempty"`
+	//裸交易结构体
+	RawDescToTarget *RawDesc `protobuf:"bytes,2,opt,name=rawDescToTarget,proto3" json:"rawDescToTarget,omitempty"`
+	//时间
+	Time uint64 `protobuf:"fixed64,3,opt,name=time,proto3" json:"time,omitempty"`
+}
+
+func (x *SendPrePayForMembershipResp) Reset() {
+	*x = SendPrePayForMembershipResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendPrePayForMembershipResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendPrePayForMembershipResp) ProtoMessage() {}
+
+func (x *SendPrePayForMembershipResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendPrePayForMembershipResp.ProtoReflect.Descriptor instead.
+func (*SendPrePayForMembershipResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SendPrePayForMembershipResp) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+func (x *SendPrePayForMembershipResp) GetRawDescToTarget() *RawDesc {
+	if x != nil {
+		return x.RawDescToTarget
+	}
+	return nil
+}
+
+func (x *SendPrePayForMembershipResp) GetTime() uint64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
+type SendConfirmPayForMembershipReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//发起购买的用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//订单ID（ 非空的时候，targetUserName 必须是空
+	OrderID string `protobuf:"bytes,2,opt,name=orderID,proto3" json:"orderID,omitempty"`
+	//签名后的转给目标接收者的Tx(A签) hex格式
+	SignedTxToTarget string `protobuf:"bytes,3,opt,name=signedTxToTarget,proto3" json:"signedTxToTarget,omitempty"`
+	//附言
+	Content string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+}
+
+func (x *SendConfirmPayForMembershipReq) Reset() {
+	*x = SendConfirmPayForMembershipReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendConfirmPayForMembershipReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendConfirmPayForMembershipReq) ProtoMessage() {}
+
+func (x *SendConfirmPayForMembershipReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendConfirmPayForMembershipReq.ProtoReflect.Descriptor instead.
+func (*SendConfirmPayForMembershipReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SendConfirmPayForMembershipReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *SendConfirmPayForMembershipReq) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+func (x *SendConfirmPayForMembershipReq) GetSignedTxToTarget() string {
+	if x != nil {
+		return x.SignedTxToTarget
+	}
+	return ""
+}
+
+func (x *SendConfirmPayForMembershipReq) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type SendConfirmPayForMembershipResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//要给谁付费
+	PayForUsername string `protobuf:"bytes,1,opt,name=payForUsername,proto3" json:"payForUsername,omitempty"`
+	// 区块高度
+	BlockNumber uint64 `protobuf:"fixed64,2,opt,name=blockNumber,proto3" json:"blockNumber,omitempty"`
+	// 交易哈希hex
+	Hash string `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	//时间
+	Time uint64 `protobuf:"fixed64,4,opt,name=time,proto3" json:"time,omitempty"`
+}
+
+func (x *SendConfirmPayForMembershipResp) Reset() {
+	*x = SendConfirmPayForMembershipResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_wallet_grpc_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendConfirmPayForMembershipResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendConfirmPayForMembershipResp) ProtoMessage() {}
+
+func (x *SendConfirmPayForMembershipResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_wallet_grpc_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendConfirmPayForMembershipResp.ProtoReflect.Descriptor instead.
+func (*SendConfirmPayForMembershipResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SendConfirmPayForMembershipResp) GetPayForUsername() string {
+	if x != nil {
+		return x.PayForUsername
+	}
+	return ""
+}
+
+func (x *SendConfirmPayForMembershipResp) GetBlockNumber() uint64 {
+	if x != nil {
+		return x.BlockNumber
+	}
+	return 0
+}
+
+func (x *SendConfirmPayForMembershipResp) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *SendConfirmPayForMembershipResp) GetTime() uint64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
 var File_api_proto_wallet_grpc_proto protoreflect.FileDescriptor
 
 var file_api_proto_wallet_grpc_proto_rawDesc = []byte{
 	0x0a, 0x1b, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x77, 0x61, 0x6c, 0x6c,
 	0x65, 0x74, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x16, 0x63,
 	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77,
-	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x22, 0x41, 0x0a, 0x0b, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65,
-	0x72, 0x52, 0x65, 0x71, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x12, 0x18,
-	0x0a, 0x07, 0x70, 0x61, 0x79, 0x54, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52,
-	0x07, 0x70, 0x61, 0x79, 0x54, 0x79, 0x70, 0x65, 0x22, 0x40, 0x0a, 0x0c, 0x54, 0x72, 0x61, 0x6e,
-	0x73, 0x66, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x72, 0x72, 0x43,
-	0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x65, 0x72, 0x72, 0x43, 0x6f,
-	0x64, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x65, 0x72, 0x72, 0x4d, 0x73, 0x67, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x06, 0x65, 0x72, 0x72, 0x4d, 0x73, 0x67, 0x32, 0x6c, 0x0a, 0x0c, 0x4c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x12, 0x5c, 0x0a, 0x0f, 0x54, 0x72,
-	0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x42, 0x79, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x12, 0x23, 0x2e,
+	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x1a, 0x22, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2f, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2f, 0x50, 0x72, 0x65, 0x54, 0x72, 0x61, 0x6e, 0x73,
+	0x66, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x41, 0x0a, 0x0b, 0x54, 0x72, 0x61,
+	0x6e, 0x73, 0x66, 0x65, 0x72, 0x52, 0x65, 0x71, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65,
+	0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72,
+	0x49, 0x44, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x54, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x05, 0x52, 0x07, 0x70, 0x61, 0x79, 0x54, 0x79, 0x70, 0x65, 0x22, 0x40, 0x0a, 0x0c,
+	0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x18, 0x0a, 0x07,
+	0x65, 0x72, 0x72, 0x43, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x65,
+	0x72, 0x72, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x65, 0x72, 0x72, 0x4d, 0x73, 0x67,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x65, 0x72, 0x72, 0x4d, 0x73, 0x67, 0x22, 0x2f,
+	0x0a, 0x11, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65,
+	0x52, 0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x22,
+	0x56, 0x0a, 0x12, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x1e, 0x0a, 0x0a, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65,
+	0x45, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0a, 0x62, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x65, 0x45, 0x74, 0x68, 0x12, 0x20, 0x0a, 0x0b, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65,
+	0x4c, 0x4e, 0x4d, 0x43, 0x18, 0x02, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0b, 0x62, 0x61, 0x6c, 0x61,
+	0x6e, 0x63, 0x65, 0x4c, 0x4e, 0x4d, 0x43, 0x22, 0x41, 0x0a, 0x1f, 0x47, 0x65, 0x74, 0x57, 0x61,
+	0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x62, 0x79, 0x42, 0x69, 0x70,
+	0x33, 0x32, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x52, 0x65, 0x71, 0x12, 0x1e, 0x0a, 0x0a, 0x62, 0x69,
+	0x70, 0x33, 0x32, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0a,
+	0x62, 0x69, 0x70, 0x33, 0x32, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x22, 0x48, 0x0a, 0x20, 0x47, 0x65,
+	0x74, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x62, 0x79,
+	0x42, 0x69, 0x70, 0x33, 0x32, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x52, 0x65, 0x73, 0x70, 0x12, 0x24,
+	0x0a, 0x0d, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64,
+	0x72, 0x65, 0x73, 0x73, 0x22, 0x60, 0x0a, 0x1a, 0x53, 0x65, 0x6e, 0x64, 0x50, 0x72, 0x65, 0x50,
+	0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52,
+	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x26,
+	0x0a, 0x0e, 0x70, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x70, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x55, 0x73,
+	0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x96, 0x01, 0x0a, 0x1b, 0x53, 0x65, 0x6e, 0x64, 0x50,
+	0x72, 0x65, 0x50, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68,
+	0x69, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49,
+	0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44,
+	0x12, 0x49, 0x0a, 0x0f, 0x72, 0x61, 0x77, 0x44, 0x65, 0x73, 0x63, 0x54, 0x6f, 0x54, 0x61, 0x72,
+	0x67, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x63, 0x6c, 0x6f, 0x75,
+	0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c,
+	0x65, 0x74, 0x2e, 0x52, 0x61, 0x77, 0x44, 0x65, 0x73, 0x63, 0x52, 0x0f, 0x72, 0x61, 0x77, 0x44,
+	0x65, 0x73, 0x63, 0x54, 0x6f, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x74,
+	0x69, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x06, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22,
+	0x9c, 0x01, 0x0a, 0x1e, 0x53, 0x65, 0x6e, 0x64, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x72, 0x6d, 0x50,
+	0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52,
+	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18,
+	0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x12, 0x2a, 0x0a, 0x10, 0x73, 0x69, 0x67, 0x6e,
+	0x65, 0x64, 0x54, 0x78, 0x54, 0x6f, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x10, 0x73, 0x69, 0x67, 0x6e, 0x65, 0x64, 0x54, 0x78, 0x54, 0x6f, 0x54, 0x61,
+	0x72, 0x67, 0x65, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18,
+	0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22, 0x93,
+	0x01, 0x0a, 0x1f, 0x53, 0x65, 0x6e, 0x64, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x72, 0x6d, 0x50, 0x61,
+	0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x26, 0x0a, 0x0e, 0x70, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x55, 0x73, 0x65, 0x72,
+	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x70, 0x61, 0x79, 0x46,
+	0x6f, 0x72, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x06, 0x52,
+	0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x12, 0x0a, 0x04,
+	0x68, 0x61, 0x73, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68,
+	0x12, 0x12, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x06, 0x52, 0x04,
+	0x74, 0x69, 0x6d, 0x65, 0x32, 0xff, 0x04, 0x0a, 0x0c, 0x4c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x57,
+	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x12, 0x5c, 0x0a, 0x0f, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65,
+	0x72, 0x42, 0x79, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x12, 0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65,
+	0x74, 0x2e, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x24, 0x2e,
 	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e,
 	0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, 0x52,
-	0x65, 0x71, 0x1a, 0x24, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d,
-	0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x54, 0x72, 0x61, 0x6e,
-	0x73, 0x66, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x42, 0x2c, 0x5a, 0x2a, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65,
-	0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f,
-	0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x73, 0x70, 0x12, 0x67, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x42, 0x61,
+	0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
+	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x47,
+	0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71,
+	0x1a, 0x2a, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e,
+	0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65,
+	0x72, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x91, 0x01, 0x0a,
+	0x1c, 0x47, 0x65, 0x74, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x62, 0x79, 0x42, 0x69, 0x70, 0x33, 0x32, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x37, 0x2e,
+	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e,
+	0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x47, 0x65, 0x74, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74,
+	0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x62, 0x79, 0x42, 0x69, 0x70, 0x33, 0x32, 0x49, 0x6e,
+	0x64, 0x65, 0x78, 0x52, 0x65, 0x71, 0x1a, 0x38, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c,
+	0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e,
+	0x47, 0x65, 0x74, 0x57, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
+	0x62, 0x79, 0x42, 0x69, 0x70, 0x33, 0x32, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x52, 0x65, 0x73, 0x70,
+	0x12, 0x82, 0x01, 0x0a, 0x17, 0x53, 0x65, 0x6e, 0x64, 0x50, 0x72, 0x65, 0x50, 0x61, 0x79, 0x46,
+	0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x12, 0x32, 0x2e, 0x63,
+	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77,
+	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x53, 0x65, 0x6e, 0x64, 0x50, 0x72, 0x65, 0x50, 0x61, 0x79,
+	0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x71,
+	0x1a, 0x33, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e,
+	0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x53, 0x65, 0x6e, 0x64, 0x50, 0x72,
+	0x65, 0x50, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69,
+	0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x8e, 0x01, 0x0a, 0x1b, 0x53, 0x65, 0x6e, 0x64, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x72, 0x6d, 0x50, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65,
+	0x72, 0x73, 0x68, 0x69, 0x70, 0x12, 0x36, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
+	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x53,
+	0x65, 0x6e, 0x64, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x72, 0x6d, 0x50, 0x61, 0x79, 0x46, 0x6f, 0x72,
+	0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x71, 0x1a, 0x37, 0x2e,
+	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e,
+	0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2e, 0x53, 0x65, 0x6e, 0x64, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x72, 0x6d, 0x50, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68,
+	0x69, 0x70, 0x52, 0x65, 0x73, 0x70, 0x42, 0x2c, 0x5a, 0x2a, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76,
+	0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x77, 0x61,
+	0x6c, 0x6c, 0x65, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -181,19 +741,37 @@ func file_api_proto_wallet_grpc_proto_rawDescGZIP() []byte {
 	return file_api_proto_wallet_grpc_proto_rawDescData
 }
 
-var file_api_proto_wallet_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_api_proto_wallet_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_api_proto_wallet_grpc_proto_goTypes = []interface{}{
-	(*TransferReq)(nil),  // 0: cloud.lianmi.im.wallet.TransferReq
-	(*TransferResp)(nil), // 1: cloud.lianmi.im.wallet.TransferResp
+	(*TransferReq)(nil),                      // 0: cloud.lianmi.im.wallet.TransferReq
+	(*TransferResp)(nil),                     // 1: cloud.lianmi.im.wallet.TransferResp
+	(*GetUserBalanceReq)(nil),                // 2: cloud.lianmi.im.wallet.GetUserBalanceReq
+	(*GetUserBalanceResp)(nil),               // 3: cloud.lianmi.im.wallet.GetUserBalanceResp
+	(*GetWalletAddressbyBip32IndexReq)(nil),  // 4: cloud.lianmi.im.wallet.GetWalletAddressbyBip32IndexReq
+	(*GetWalletAddressbyBip32IndexResp)(nil), // 5: cloud.lianmi.im.wallet.GetWalletAddressbyBip32IndexResp
+	(*SendPrePayForMembershipReq)(nil),       // 6: cloud.lianmi.im.wallet.SendPrePayForMembershipReq
+	(*SendPrePayForMembershipResp)(nil),      // 7: cloud.lianmi.im.wallet.SendPrePayForMembershipResp
+	(*SendConfirmPayForMembershipReq)(nil),   // 8: cloud.lianmi.im.wallet.SendConfirmPayForMembershipReq
+	(*SendConfirmPayForMembershipResp)(nil),  // 9: cloud.lianmi.im.wallet.SendConfirmPayForMembershipResp
+	(*RawDesc)(nil),                          // 10: cloud.lianmi.im.wallet.RawDesc
 }
 var file_api_proto_wallet_grpc_proto_depIdxs = []int32{
-	0, // 0: cloud.lianmi.im.wallet.LianmiWallet.TransferByOrder:input_type -> cloud.lianmi.im.wallet.TransferReq
-	1, // 1: cloud.lianmi.im.wallet.LianmiWallet.TransferByOrder:output_type -> cloud.lianmi.im.wallet.TransferResp
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	10, // 0: cloud.lianmi.im.wallet.SendPrePayForMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
+	0,  // 1: cloud.lianmi.im.wallet.LianmiWallet.TransferByOrder:input_type -> cloud.lianmi.im.wallet.TransferReq
+	2,  // 2: cloud.lianmi.im.wallet.LianmiWallet.GetUserBalance:input_type -> cloud.lianmi.im.wallet.GetUserBalanceReq
+	4,  // 3: cloud.lianmi.im.wallet.LianmiWallet.GetWalletAddressbyBip32Index:input_type -> cloud.lianmi.im.wallet.GetWalletAddressbyBip32IndexReq
+	6,  // 4: cloud.lianmi.im.wallet.LianmiWallet.SendPrePayForMembership:input_type -> cloud.lianmi.im.wallet.SendPrePayForMembershipReq
+	8,  // 5: cloud.lianmi.im.wallet.LianmiWallet.SendConfirmPayForMembership:input_type -> cloud.lianmi.im.wallet.SendConfirmPayForMembershipReq
+	1,  // 6: cloud.lianmi.im.wallet.LianmiWallet.TransferByOrder:output_type -> cloud.lianmi.im.wallet.TransferResp
+	3,  // 7: cloud.lianmi.im.wallet.LianmiWallet.GetUserBalance:output_type -> cloud.lianmi.im.wallet.GetUserBalanceResp
+	5,  // 8: cloud.lianmi.im.wallet.LianmiWallet.GetWalletAddressbyBip32Index:output_type -> cloud.lianmi.im.wallet.GetWalletAddressbyBip32IndexResp
+	7,  // 9: cloud.lianmi.im.wallet.LianmiWallet.SendPrePayForMembership:output_type -> cloud.lianmi.im.wallet.SendPrePayForMembershipResp
+	9,  // 10: cloud.lianmi.im.wallet.LianmiWallet.SendConfirmPayForMembership:output_type -> cloud.lianmi.im.wallet.SendConfirmPayForMembershipResp
+	6,  // [6:11] is the sub-list for method output_type
+	1,  // [1:6] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_wallet_grpc_proto_init() }
@@ -201,6 +779,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 	if File_api_proto_wallet_grpc_proto != nil {
 		return
 	}
+	file_api_proto_wallet_PreTransfer_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_api_proto_wallet_grpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TransferReq); i {
@@ -226,6 +805,102 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
+		file_api_proto_wallet_grpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetUserBalanceReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetUserBalanceResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetWalletAddressbyBip32IndexReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetWalletAddressbyBip32IndexResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendPrePayForMembershipReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendPrePayForMembershipResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendConfirmPayForMembershipReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_wallet_grpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendConfirmPayForMembershipResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -233,7 +908,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_wallet_grpc_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -261,6 +936,14 @@ const _ = grpc.SupportPackageIsVersion6
 type LianmiWalletClient interface {
 	//订单的转账(完成，退款)
 	TransferByOrder(ctx context.Context, in *TransferReq, opts ...grpc.CallOption) (*TransferResp, error)
+	//获取用户钱包eth及LNMC代币余额
+	GetUserBalance(ctx context.Context, in *GetUserBalanceReq, opts ...grpc.CallOption) (*GetUserBalanceResp, error)
+	//根据HD的索引号，获取对应的钱包地址
+	GetWalletAddressbyBip32Index(ctx context.Context, in *GetWalletAddressbyBip32IndexReq, opts ...grpc.CallOption) (*GetWalletAddressbyBip32IndexResp, error)
+	//发起一个购买会员的预支付，返回裸交易
+	SendPrePayForMembership(ctx context.Context, in *SendPrePayForMembershipReq, opts ...grpc.CallOption) (*SendPrePayForMembershipResp, error)
+	//确认购买会员的支付交易
+	SendConfirmPayForMembership(ctx context.Context, in *SendConfirmPayForMembershipReq, opts ...grpc.CallOption) (*SendConfirmPayForMembershipResp, error)
 }
 
 type lianmiWalletClient struct {
@@ -280,10 +963,54 @@ func (c *lianmiWalletClient) TransferByOrder(ctx context.Context, in *TransferRe
 	return out, nil
 }
 
+func (c *lianmiWalletClient) GetUserBalance(ctx context.Context, in *GetUserBalanceReq, opts ...grpc.CallOption) (*GetUserBalanceResp, error) {
+	out := new(GetUserBalanceResp)
+	err := c.cc.Invoke(ctx, "/cloud.lianmi.im.wallet.LianmiWallet/GetUserBalance", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lianmiWalletClient) GetWalletAddressbyBip32Index(ctx context.Context, in *GetWalletAddressbyBip32IndexReq, opts ...grpc.CallOption) (*GetWalletAddressbyBip32IndexResp, error) {
+	out := new(GetWalletAddressbyBip32IndexResp)
+	err := c.cc.Invoke(ctx, "/cloud.lianmi.im.wallet.LianmiWallet/GetWalletAddressbyBip32Index", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lianmiWalletClient) SendPrePayForMembership(ctx context.Context, in *SendPrePayForMembershipReq, opts ...grpc.CallOption) (*SendPrePayForMembershipResp, error) {
+	out := new(SendPrePayForMembershipResp)
+	err := c.cc.Invoke(ctx, "/cloud.lianmi.im.wallet.LianmiWallet/SendPrePayForMembership", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lianmiWalletClient) SendConfirmPayForMembership(ctx context.Context, in *SendConfirmPayForMembershipReq, opts ...grpc.CallOption) (*SendConfirmPayForMembershipResp, error) {
+	out := new(SendConfirmPayForMembershipResp)
+	err := c.cc.Invoke(ctx, "/cloud.lianmi.im.wallet.LianmiWallet/SendConfirmPayForMembership", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LianmiWalletServer is the server API for LianmiWallet service.
 type LianmiWalletServer interface {
 	//订单的转账(完成，退款)
 	TransferByOrder(context.Context, *TransferReq) (*TransferResp, error)
+	//获取用户钱包eth及LNMC代币余额
+	GetUserBalance(context.Context, *GetUserBalanceReq) (*GetUserBalanceResp, error)
+	//根据HD的索引号，获取对应的钱包地址
+	GetWalletAddressbyBip32Index(context.Context, *GetWalletAddressbyBip32IndexReq) (*GetWalletAddressbyBip32IndexResp, error)
+	//发起一个购买会员的预支付，返回裸交易
+	SendPrePayForMembership(context.Context, *SendPrePayForMembershipReq) (*SendPrePayForMembershipResp, error)
+	//确认购买会员的支付交易
+	SendConfirmPayForMembership(context.Context, *SendConfirmPayForMembershipReq) (*SendConfirmPayForMembershipResp, error)
 }
 
 // UnimplementedLianmiWalletServer can be embedded to have forward compatible implementations.
@@ -292,6 +1019,18 @@ type UnimplementedLianmiWalletServer struct {
 
 func (*UnimplementedLianmiWalletServer) TransferByOrder(context.Context, *TransferReq) (*TransferResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TransferByOrder not implemented")
+}
+func (*UnimplementedLianmiWalletServer) GetUserBalance(context.Context, *GetUserBalanceReq) (*GetUserBalanceResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserBalance not implemented")
+}
+func (*UnimplementedLianmiWalletServer) GetWalletAddressbyBip32Index(context.Context, *GetWalletAddressbyBip32IndexReq) (*GetWalletAddressbyBip32IndexResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWalletAddressbyBip32Index not implemented")
+}
+func (*UnimplementedLianmiWalletServer) SendPrePayForMembership(context.Context, *SendPrePayForMembershipReq) (*SendPrePayForMembershipResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendPrePayForMembership not implemented")
+}
+func (*UnimplementedLianmiWalletServer) SendConfirmPayForMembership(context.Context, *SendConfirmPayForMembershipReq) (*SendConfirmPayForMembershipResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendConfirmPayForMembership not implemented")
 }
 
 func RegisterLianmiWalletServer(s *grpc.Server, srv LianmiWalletServer) {
@@ -316,6 +1055,78 @@ func _LianmiWallet_TransferByOrder_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LianmiWallet_GetUserBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserBalanceReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LianmiWalletServer).GetUserBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cloud.lianmi.im.wallet.LianmiWallet/GetUserBalance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LianmiWalletServer).GetUserBalance(ctx, req.(*GetUserBalanceReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LianmiWallet_GetWalletAddressbyBip32Index_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWalletAddressbyBip32IndexReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LianmiWalletServer).GetWalletAddressbyBip32Index(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cloud.lianmi.im.wallet.LianmiWallet/GetWalletAddressbyBip32Index",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LianmiWalletServer).GetWalletAddressbyBip32Index(ctx, req.(*GetWalletAddressbyBip32IndexReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LianmiWallet_SendPrePayForMembership_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendPrePayForMembershipReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LianmiWalletServer).SendPrePayForMembership(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cloud.lianmi.im.wallet.LianmiWallet/SendPrePayForMembership",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LianmiWalletServer).SendPrePayForMembership(ctx, req.(*SendPrePayForMembershipReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LianmiWallet_SendConfirmPayForMembership_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendConfirmPayForMembershipReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LianmiWalletServer).SendConfirmPayForMembership(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cloud.lianmi.im.wallet.LianmiWallet/SendConfirmPayForMembership",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LianmiWalletServer).SendConfirmPayForMembership(ctx, req.(*SendConfirmPayForMembershipReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _LianmiWallet_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cloud.lianmi.im.wallet.LianmiWallet",
 	HandlerType: (*LianmiWalletServer)(nil),
@@ -323,6 +1134,22 @@ var _LianmiWallet_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TransferByOrder",
 			Handler:    _LianmiWallet_TransferByOrder_Handler,
+		},
+		{
+			MethodName: "GetUserBalance",
+			Handler:    _LianmiWallet_GetUserBalance_Handler,
+		},
+		{
+			MethodName: "GetWalletAddressbyBip32Index",
+			Handler:    _LianmiWallet_GetWalletAddressbyBip32Index_Handler,
+		},
+		{
+			MethodName: "SendPrePayForMembership",
+			Handler:    _LianmiWallet_SendPrePayForMembership_Handler,
+		},
+		{
+			MethodName: "SendConfirmPayForMembership",
+			Handler:    _LianmiWallet_SendConfirmPayForMembership_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

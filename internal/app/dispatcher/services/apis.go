@@ -5,7 +5,8 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
-	// User "github.com/lianmi/servers/api/proto/user"
+	LMCommon "github.com/lianmi/servers/internal/common"
+
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -84,9 +85,9 @@ type LianmiApisService interface {
 
 	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
 
-	PayForMembership(payForUsername string) error
+	PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error)
 
-	PreOrderForPayMembership(username, deviceID string) error
+	ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error)
 
 	//Grpc 获取用户信息
 	GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error)
@@ -356,13 +357,82 @@ func (s *DefaultLianmiApisService) GetBusinessMembership(isRebate bool) (*Auth.G
 	return nil, nil
 }
 
-func (s *DefaultLianmiApisService) PayForMembership(payForUsername string) error {
-	// return s.Repository.PayForMembership(payForUsername)
+func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error) {
+	//通过grpc获取发起购买者用户的余额
+	//当前用户的代币余额
+	getUserBalanceResp, err := s.walletGrpcClientSvc.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
+		Username: username,
+	})
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.GetUserBalance 错误", zap.Error(err))
+		return nil, err
+	}
 
-	//TODO
-	return nil
+	//由于会员价格是99元，是人民币，以元为单位，因此，需要乘以100
+	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+
+	s.logger.Info("当前用户的钱包信息",
+		zap.String("username", username),
+		zap.Uint64("当前代币余额 balanceLNMC", getUserBalanceResp.BalanceLNMC),
+		zap.Uint64("当前ETH余额 balanceETH", getUserBalanceResp.BalanceEth),
+	)
+	if getUserBalanceResp.BalanceEth < LMCommon.GASLIMIT {
+		return nil, errors.Wrap(err, "gas余额不足")
+	}
+
+	//判断是否有足够代币数量
+	if getUserBalanceResp.BalanceLNMC < amountLNMC {
+		return nil, errors.Wrap(err, "LNMC余额不足")
+	}
+
+	//调用钱包Grpcserver，生成一个类似 10-3 的预支付裸交易
+	sendPrePayForMembershipResp, err := s.walletGrpcClientSvc.SendPrePayForMembership(ctx, &Wallet.SendPrePayForMembershipReq{
+		Username:       username,
+		PayForUsername: payForUsername,
+	})
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.SendPrePayForMembership 错误", zap.Error(err))
+		return nil, err
+	}
+
+	return &Auth.PreOrderForPayMembershipResp{
+		//订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
+		OrderTotalAmount: LMCommon.MEMBERSHIPPRICE,
+		//服务端生成的订单id
+		OrderID: sendPrePayForMembershipResp.OrderID,
+		//向收款方转账的裸交易结构体
+		RawDescToTarget: sendPrePayForMembershipResp.RawDescToTarget,
+		//时间
+		Time: sendPrePayForMembershipResp.Time,
+	}, nil
 }
 
-func (s *DefaultLianmiApisService) PreOrderForPayMembership(username, deviceID string) error {
-	return s.Repository.PreOrderForPayMembership(username, deviceID)
+func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error) {
+
+	//TODO 调用钱包的GrpcServer接口，进行类似 10-4 的确认交易
+	resp, err := s.walletGrpcClientSvc.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
+		Username: username,
+		//订单ID（ 非空的时候，targetUserName 必须是空
+		OrderID: req.OrderID,
+		//签名后的转给目标接收者的Tx(A签) hex格式
+		SignedTxToTarget: req.SignedTxToTarget,
+		//附言
+		Content: req.Content,
+	})
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
+		return nil, err
+	}
+	return &Auth.ConfirmPayForMembershipResp{
+		//要给谁付费
+		PayForUsername: resp.PayForUsername,
+		//订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
+		OrderTotalAmount: LMCommon.MEMBERSHIPPRICE,
+		// 区块高度
+		BlockNumber: resp.BlockNumber,
+		// 交易哈希hex
+		Hash: resp.Hash,
+		//交易时间
+		Time: resp.Time,
+	}, nil
 }

@@ -13,7 +13,6 @@ var testProviderSet = wire.NewSet(
 	log.ProviderSet,
 	config.ProviderSet,
 	channel.ProviderSet,
-
 	ProviderSet,
 )
 

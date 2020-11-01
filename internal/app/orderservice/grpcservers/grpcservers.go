@@ -1,5 +1,5 @@
 /*
-本文件实现grpc client的远程调用服务，在此实现对应的逻辑
+本文件实现 api/proto/order/Service.proto 的全部Grpc接口
 */
 package grpcservers
 
@@ -22,8 +22,3 @@ func NewOrderGrpcServer(logger *zap.Logger, ps services.OrderService) (*OrderGrp
 		service: ps,
 	}, nil
 }
-
-// //订单完成或退款
-// func (s *OrderServer) TransferByOrder(ctx context.Context, req *Order.TransferReq) (*Order.TransferResp, error) {
-// 	return s.service.TransferByOrder(ctx, req)
-// }

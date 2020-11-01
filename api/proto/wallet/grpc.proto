@@ -1,4 +1,5 @@
 syntax = "proto3";
+import 'api/proto/wallet/PreTransfer.proto';
 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
@@ -9,7 +10,19 @@ service LianmiWallet {
     //订单的转账(完成，退款)
     rpc TransferByOrder (TransferReq) returns (TransferResp);
 
-    //rpc GetKeyPairsFromLeafIndex (GetKeyPairsFromLeafIndexReq) returns (GetKeyPairsFromLeafIndexResp);
+    //获取用户钱包eth及LNMC代币余额
+    rpc GetUserBalance (GetUserBalanceReq) returns (GetUserBalanceResp);
+
+    //根据HD的索引号，获取对应的钱包地址 
+    rpc GetWalletAddressbyBip32Index (GetWalletAddressbyBip32IndexReq) returns (GetWalletAddressbyBip32IndexResp);
+
+    //发起一个购买会员的预支付，返回裸交易
+    rpc SendPrePayForMembership (SendPrePayForMembershipReq) returns (SendPrePayForMembershipResp);
+    
+    //确认购买会员的支付交易
+    rpc SendConfirmPayForMembership (SendConfirmPayForMembershipReq) returns (SendConfirmPayForMembershipResp);
+
+
 }
 
 
@@ -29,4 +42,72 @@ message TransferResp {
     int32 errCode = 1; //错误码  默认是0为成功， 非0-失败
     string errMsg = 2; //错误描述
 
+}
+
+//======获取钱包余额======//
+message GetUserBalanceReq {
+    string username =1;
+}
+
+message GetUserBalanceResp {
+    fixed64 balanceEth  =1;
+    fixed64 balanceLNMC =2;
+}
+
+//======根据HD的索引号，获取对应的钱包地址 ======//
+message GetWalletAddressbyBip32IndexReq {
+    fixed64 bip32index  =1;
+}
+
+message GetWalletAddressbyBip32IndexResp {
+    string walletAddress  =1;
+}
+
+//======发起一个购买会员的预支付，返回裸交易 ======//
+message SendPrePayForMembershipReq {
+    //发起购买的用户账号 
+    string username =1;
+    //为谁购买
+    string payForUsername=2;
+}
+
+message SendPrePayForMembershipResp {
+    //订单ID
+    string orderID =1;
+
+    //裸交易结构体
+    RawDesc rawDescToTarget=2;
+
+    //时间
+    fixed64 time=3;
+
+}
+
+message SendConfirmPayForMembershipReq{
+    //发起购买的用户账号 
+    string  username =1;
+
+    //订单ID（ 非空的时候，targetUserName 必须是空
+    string orderID=2;
+
+    //签名后的转给目标接收者的Tx(A签) hex格式 
+    string signedTxToTarget=3;
+
+    //附言
+    string content=4;
+}
+
+message SendConfirmPayForMembershipResp{
+       //要给谁付费
+    string payForUsername =1;
+
+
+    // 区块高度 
+    fixed64 blockNumber=2;
+
+    // 交易哈希hex
+    string hash=3;
+
+    //时间
+    fixed64 time=4;
 }

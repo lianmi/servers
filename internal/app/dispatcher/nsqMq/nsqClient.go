@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/lianmi/servers/internal/app/channel"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	"github.com/nsqio/go-nsq"

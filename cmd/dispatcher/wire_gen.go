@@ -7,7 +7,7 @@ package main
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/app/channel"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
 	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"

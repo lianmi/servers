@@ -1,5 +1,5 @@
 /*
-本文件实现grpc client的远程调用服务，在此实现对应的逻辑
+本文件实现 api/proto/msg/grpc.proto 全部Grpc接口
 */
 package grpcservers
 
@@ -22,4 +22,3 @@ func NewChatGrpcServer(logger *zap.Logger, ps services.ChatService) (*ChatGrpcSe
 		service: ps,
 	}, nil
 }
-

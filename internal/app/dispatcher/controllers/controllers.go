@@ -310,8 +310,8 @@ func CreateInitControllersFn(
 			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 			authMembership.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
 
-			//为自己或他人支付会员费
-			authMembership.POST("/payformembership", pc.PayForMembership)
+			//确认为自己或他人支付会员费
+			authMembership.POST("/confirmpayformembership", pc.ConfirmPayForMembership)
 
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 			authMembership.GET("/getbusinessmembership", pc.GetBusinessMembership)

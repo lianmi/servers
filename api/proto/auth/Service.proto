@@ -49,34 +49,13 @@ service LianmiAuth {
     //rpc QueryGrades(GradeReq) returns (GradesResp);
 
     //客服人员增加客服评分记录，以便生成title发送给用户提交评分 
-   // rpc AddGrade(AddGradeReq) returns (AddGradesResp);
+    // rpc AddGrade(AddGradeReq) returns (AddGradesResp);
  
     // app用户提交评分
     //rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
 
     //查询商户营销方式
     //rpc GetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
-
-    //查询商户营销方式, 更改后立即有效 
-    //rpc SetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
-
-    //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-    //rpc PreOrderForPayMembership(PreOrderForPayMembershipReq) returns (PreOrderForPayMembershipResp);
-
-    //会员付费， 可以他人代付， 如果他人代付，自动成为其推荐人, 强制归属同一个商户,
-    //支付成功后，向用户发出通知 
-    //如果用户是自行注册的，提醒用户输入商户的推荐码
-    //rpc PayForMembership(PayForMembershipReq) returns (PayForMembershipResp);
-
-    //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-    //rpc GetBusinessMembership(GetBusinessMembershipReq) returns (GetBusinessMembershipResp);
-
-    //用户查询当前发展用户总数（5， 10， 35）及按月统计返佣
-   //rpc GetNormalMembership(NormalMembershipReq) returns (NormalMembershipResp);
-
-    //申请返佣提现,  商户及用户均可适用,  当用户申请返佣，服务端校验后会下发系统通知给商户，商户收到系统通知后，在专门的页面显示出用户申请返佣的明细，核对正确后，商户转账给用户,  并且提交已返佣的结果。
-    //商户返佣则服务端收到申请，运营后台查看，如果核对正确，则转账给商户，并记录转账结果，商户刷新列表，显示已返佣
-    //rpc AskedWithdraw(AskedWithdrawReq) returns (AskedWithdrawResp);
 
 }
 
@@ -424,48 +403,43 @@ message MembershipCardSaleModeResp {
    global.MembershipCardSaleType saleType =1;
 }
 
+//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 message PreOrderForPayMembershipReq {
-
+    //要给谁付费
+    string PayForUsername =1; 
 }
 
 message PreOrderForPayMembershipResp {
-   //商户用户id，这里是固定为服务端
-   string businessUser=1; 
 
    //订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-   double OrderTotalAmount=2;
+   double OrderTotalAmount=1;
 
    //服务端生成的订单id
-   string orderID =3; 
+   string orderID =2; 
 
    //向收款方转账的裸交易结构体
-   wallet.RawDesc rawDescToTarget=4;
+   wallet.RawDesc rawDescToTarget=3;
 
-    //时间
-    fixed64 time=5;
+   //时间
+   fixed64 time=4;
 }
 
-message PayForMembershipReq {
+//确认购买会员
+message ConfirmPayForMembershipReq {
     //订单id
     string orderID =1;
 
-    //要给谁付费
-    string PayUsername =2; 
-
-    //订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-    double OrderTotalAmount=3;
-
     //签名后的转给目标接收者的Tx(A签) hex格式
-    wallet.RawDesc signedTxToTarget=4;
+    string signedTxToTarget=2;
 
-    //附言
-    string content =5;
+    //附言， 会通知给被购买的会员
+    string content =3;
 
 }
 
-message PayForMembershipResp {
+message ConfirmPayForMembershipResp {
     //要给谁付费
-    string PayUsername =1;
+    string PayForUsername =1;
 
     //订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
     double OrderTotalAmount=2;

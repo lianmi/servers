@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	// "time"
+	"time"
 
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
@@ -13,6 +13,8 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
+
+	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +23,19 @@ type WalletService interface {
 	//订单完成或退款
 	TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error)
 	//grpc.pb.go: TransferByOrder(context.Context, *TransferReq) (*TransferResp, error)
+
+	//获取用户钱包eth及LNMC代币余额
+	GetUserBalance(ctx context.Context, req *Wallet.GetUserBalanceReq) (*Wallet.GetUserBalanceResp, error)
+	// GetUserBalance(ctx context.Context, in *GetUserBalanceReq, opts ...grpc.CallOption) (*GetUserBalanceResp, error) {
+
+	//根据HD的索引号，获取对应的钱包地址
+	GetWalletAddressbyBip32Index(ctx context.Context, req *Wallet.GetWalletAddressbyBip32IndexReq) (*Wallet.GetWalletAddressbyBip32IndexResp, error)
+
+	//发起一个购买会员的预支付，返回裸交易
+	SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error)
+
+	//确认购买会员的支付交易
+	SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error)
 }
 
 type DefaultApisService struct {
@@ -296,4 +311,245 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	}
 
 	return resp, nil
+}
+
+//获取用户钱包eth及LNMC代币余额
+func (s *DefaultApisService) GetUserBalance(ctx context.Context, req *Wallet.GetUserBalanceReq) (*Wallet.GetUserBalanceResp, error) {
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	username := req.Username
+	userWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+	if s.ethService.CheckIsvalidAddress(userWalletAddress) == false {
+		s.logger.Warn("user非法钱包地址", zap.String("username", username), zap.String("userWalletAddress", userWalletAddress))
+		return nil, errors.Wrap(err, "username wallet address is not valid")
+	}
+
+	balanceEth, err := s.ethService.GetWeiBalance(userWalletAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &Wallet.GetUserBalanceResp{
+		BalanceEth:  balanceEth,
+		BalanceLNMC: balanceLNMC,
+	}
+
+	return resp, nil
+}
+
+//根据HD的索引号，获取对应的钱包地址
+func (s *DefaultApisService) GetWalletAddressbyBip32Index(ctx context.Context, req *Wallet.GetWalletAddressbyBip32IndexReq) (*Wallet.GetWalletAddressbyBip32IndexResp, error) {
+	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(req.Bip32Index)
+	bip32WalletAddress := newKeyPair.AddressHex //中转账号
+	return &Wallet.GetWalletAddressbyBip32IndexResp{
+		WalletAddress: bip32WalletAddress,
+	}, nil
+}
+
+//发起一个购买会员的预支付，返回裸交易
+func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error) {
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	username := req.Username
+	userWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+	if s.ethService.CheckIsvalidAddress(userWalletAddress) == false {
+		s.logger.Warn("user非法钱包地址", zap.String("username", username), zap.String("userWalletAddress", userWalletAddress))
+		return nil, errors.Wrap(err, "username wallet address is not valid")
+	}
+
+	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+
+	//生成一个OrderID, 发起一个预支付
+	orderID := uuid.NewV4().String()
+
+	//约定 凡是购买会员的接收钱包账户是叶子3
+	bip32Index := uint64(LMCommon.MEMBERSHIPINDEX)
+	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
+	toWalletAddress := newKeyPair.AddressHex //中转账号
+
+	//保存预审核转账记录到 MySQL
+	lnmcTransferHistory := &models.LnmcTransferHistory{
+		Username:          req.Username,      //发起支付
+		ToUsername:        "",                //如果是普通转账，toUsername非空
+		OrderID:           orderID,           //如果是订单支付 ，非空
+		WalletAddress:     userWalletAddress, //发起方钱包账户
+		ToWalletAddress:   toWalletAddress,   //接收者钱包账户
+		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
+		AmountLNMC:        amountLNMC,        //本次转账的用户连米币数量
+		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
+		State:             0,                 //执行状态，0-默认未执行，1-A签，2-全部完成
+	}
+	s.Repository.SaveLnmcTransferHistory(lnmcTransferHistory)
+
+	//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
+	tokens := int64(amountLNMC)
+	rawDescToTarget, err := s.ethService.GenerateTransferLNMCTokenTx(userWalletAddress, toWalletAddress, tokens)
+	if err != nil {
+		s.logger.Error("构造购买会员的交易 失败", zap.String("userWalletAddress", userWalletAddress), zap.String("toWalletAddress", toWalletAddress), zap.Error(err))
+	}
+
+	//保存预审核转账记录到 redis
+	_, err = redisConn.Do("HMSET",
+		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		"Username", username,
+		"OrderID", orderID,
+		"PayForUsername", req.PayForUsername,
+		"WalletAddress", userWalletAddress,
+		"ToWalletAddress", toWalletAddress,
+		"AmountLNMC", amountLNMC,
+		"BalanceLNMCBefore", balanceLNMC,
+		"Bip32Index", bip32Index,
+		"State", 0,
+		"CreateAt", uint64(time.Now().UnixNano()/1e6),
+	)
+
+	return &Wallet.SendPrePayForMembershipResp{
+		//向收款方转账的裸交易结构体
+		RawDescToTarget: &Wallet.RawDesc{
+			ContractAddress: rawDescToTarget.ContractAddress, //发币智能合约地址
+			ToWalletAddress: toWalletAddress,                 //接收者钱包地址
+			Nonce:           rawDescToTarget.Nonce,
+			GasPrice:        rawDescToTarget.GasPrice,
+			GasLimit:        rawDescToTarget.GasLimit,
+			ChainID:         rawDescToTarget.ChainID,
+			Txdata:          rawDescToTarget.Txdata,
+			Value:           amountLNMC, //要转账的代币数量
+			TxHash:          rawDescToTarget.TxHash,
+		},
+		OrderID: orderID,
+		Time:    uint64(time.Now().UnixNano() / 1e6),
+	}, nil
+}
+
+//确认购买会员的支付交易
+func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
+	//发起购买会员的账号
+	username := req.Username
+	orderID := req.OrderID
+	content := req.Content
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//约定 凡是购买会员的接收钱包账户是叶子3
+	bip32Index := uint64(LMCommon.MEMBERSHIPINDEX)
+	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
+	toWalletAddress := newKeyPair.AddressHex //中转账号
+
+	//本次购买会员的代币数量
+	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+
+	//获得会员的账号
+	payForUsername, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "PayForUsername"))
+	if err != nil {
+		return nil, err
+	}
+
+	//发起支付的用户钱包地址
+	userWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "WalletAddress"))
+	if err != nil {
+		return nil, err
+	}
+
+	//附言
+	content, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "Content"))
+	if err != nil {
+		return nil, err
+	}
+
+	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+	// toBalanceLNMC, err := s.ethService.GetLNMCTokenBalance(toWalletAddress)
+
+	//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
+	blockNumber, hash, err := s.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("发起方转到目标接收者的交易数据广播到链上 A签成功 ",
+		zap.String("username", username),
+		zap.String("toWalletAddress", toWalletAddress),
+		zap.Uint64("blockNumber", blockNumber),
+		zap.String("hash", hash),
+	)
+
+	// 获取发送者链上代币余额
+	balanceAfter, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+	if err != nil {
+		return nil, err
+	}
+	s.logger.Info("获取发送者链上代币余额",
+		zap.String("username", username),
+		zap.String("userWalletAddress", userWalletAddress),
+		zap.Uint64("balanceAfter", balanceAfter),
+	)
+
+	//更新Redis里用户钱包的代币数量
+	redisConn.Do("HSET",
+		fmt.Sprintf("userWallet:%s", username),
+		"LNMCAmount",
+		balanceAfter)
+
+	//更新转账记录到 MySQL
+	lnmcTransferHistory := &models.LnmcTransferHistory{
+		Username:          username,          //发起支付
+		OrderID:           orderID,           //如果是订单支付 ，非空
+		WalletAddress:     userWalletAddress, //发起方钱包账户
+		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
+		AmountLNMC:        amountLNMC,        //本次转账的用户连米币数量
+		BalanceLNMCAfter:  balanceAfter,      //发送方用户在转账之后的连米币数量
+		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
+		State:             1,                 //执行状态，0-默认未执行，1-A签，2-全部完成
+		BlockNumber:       blockNumber,
+		TxHash:            hash,
+		Content:           content,
+	}
+	s.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
+
+	//更新转账记录到 redis  HSET
+	_, err = redisConn.Do("HSET",
+		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		"State", 1,
+	)
+
+	_, err = redisConn.Do("HSET",
+		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		"SignedTx", req.GetSignedTxToTarget(),
+	)
+	_, err = redisConn.Do("HSET",
+		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		"BlockNumber", blockNumber,
+	)
+	_, err = redisConn.Do("HSET",
+		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		"Hash", hash,
+	)
+
+	//如果替他人支付，通知对方
+	if username != payForUsername {
+
+		//TODO
+
+	}
+
+	return &Wallet.SendConfirmPayForMembershipResp{
+		PayForUsername: payForUsername,
+		BlockNumber:    blockNumber,
+		Hash:           hash,
+		Time:           uint64(time.Now().UnixNano() / 1e6),
+	}, nil
 }

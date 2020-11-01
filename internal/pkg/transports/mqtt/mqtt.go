@@ -8,9 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-
-	// "encoding/hex"
-	// "strings"
 	"syscall"
 	"time"
 
@@ -23,7 +20,7 @@ import (
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 
 	Global "github.com/lianmi/servers/api/proto/global"
-	"github.com/lianmi/servers/internal/app/channel"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	jwt "github.com/dgrijalva/jwt-go"
