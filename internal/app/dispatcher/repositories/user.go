@@ -140,24 +140,49 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	if user.GetUserType() == User.UserType_Ut_Normal {
 		if user.ReferrerUsername != "" {
 			//查询出邀请人的类型
-			businessUserKey := fmt.Sprintf("userData:%s", user.ReferrerUsername)
-			businessUserType, _ = redis.Int(redisConn.Do("HGET", businessUserKey, "UserType"))
+			referrerKey := fmt.Sprintf("userData:%s", user.ReferrerUsername)
+			businessUserType, _ = redis.Int(redisConn.Do("HGET", referrerKey, "UserType"))
 
 			if businessUserType == int(User.UserType_Ut_Normal) { //如果是用户，则查出对应的商户
-				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", businessUserKey, "BelongBusinessUser"))
+				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "BelongBusinessUser"))
 
 			} else if businessUserType == int(User.UserType_Ut_Business) { //商户
-				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", businessUserKey, "Username"))
+				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "Username"))
 
 			}
 
 			if belongBusinessUser != "" {
 				user.BelongBusinessUser = belongBusinessUser
 			}
-		}
-	}
 
-	if user.GetUserType() == User.UserType_Ut_Business {
+			//查出user.ReferrerUsername对应的 ReferrerUsername, 即推荐人的推荐人
+			userLevelTwo, _ := redis.String(redisConn.Do("HGET", referrerKey, "ReferrerUsername"))
+
+			//查出userLevelTwo对应的 ReferrerUsername, 即推荐人的推荐人的推荐人
+			userLevelThree, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userLevelTwo), "ReferrerUsername"))
+
+			//会员层级表
+			distribution := models.Distribution{
+				Username:           user.Username,         //用户注册账号id
+				BusinessUsername:   belongBusinessUser,    //归属的商户注册账号id
+				UsernameLevelOne:   user.ReferrerUsername, //向后的一级, 即推荐人
+				UsernameLevelTwo:   userLevelTwo,          //向后的二级, 即推荐人的推荐人
+				UsernameLevelThree: userLevelThree,        //向后的三级, 即推荐人的推荐人的推荐人
+			}
+
+			//使用事务同时增加Distribution数据
+			tx := s.base.GetTransaction()
+			if err := tx.Save(distribution).Error; err != nil {
+				s.logger.Error("增加Distribution表失败", zap.Error(err))
+				tx.Rollback()
+				return err
+			}
+
+			//提交
+			tx.Commit()
+
+		}
+	} else if user.GetUserType() == User.UserType_Ut_Business {
 
 		//如果是商户注册，则无须记录推荐人，种子商户是自己
 		user.BelongBusinessUser = user.Username
@@ -229,7 +254,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 }
 
 //重置密码
-func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *models.User) error {
+func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *models.User) (err error) {
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -237,7 +262,7 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 	// var user models.User
 	sel := "id"
 	where := models.User{Mobile: mobile}
-	err := s.base.First(&where, &user, sel)
+	err = s.base.First(&where, &user, sel)
 	//记录不存在错误(RecordNotFound)，返回false
 	if gorm.IsRecordNotFoundError(err) {
 		return err

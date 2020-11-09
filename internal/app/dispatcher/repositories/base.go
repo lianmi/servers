@@ -103,15 +103,10 @@ type LianmiRepository interface {
 
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
-	GetMembershipCardSaleMode(businessUsername string) (int, error)
-
-	SetMembershipCardSaleMode(businessUsername string, saleType int) error
-
 	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
 
-	PayForMembership(payForUsername string) error
-
-	PreOrderForPayMembership(username, deviceID string) error
+	//会员付费成功后，需要新增4条佣金记录
+	SaveToCommission(username, orderID, content string, blockNumber uint64, txHash string) error
 }
 
 type MysqlLianmiRepository struct {

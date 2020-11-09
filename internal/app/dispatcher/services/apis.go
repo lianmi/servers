@@ -79,10 +79,7 @@ type LianmiApisService interface {
 
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
-	GetMembershipCardSaleMode(businessUsername string) (int, error)
-
-	SetMembershipCardSaleMode(businessUsername string, saleType int) error
-
+	//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
 
 	PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error)
@@ -338,18 +335,7 @@ func (s *DefaultLianmiApisService) SubmitGrade(req *Auth.SubmitGradeReq) error {
 	return nil
 }
 
-func (s *DefaultLianmiApisService) GetMembershipCardSaleMode(businessUsername string) (int, error) {
-	// return s.Repository.GetMembershipCardSaleMode(businessUsername)
-	//TODO
-	return 0, nil
-}
-
-func (s *DefaultLianmiApisService) SetMembershipCardSaleMode(businessUsername string, saleType int) error {
-	// return s.Repository.SetMembershipCardSaleMode(businessUsername, saleType)
-	//TODO
-	return nil
-}
-
+//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 func (s *DefaultLianmiApisService) GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error) {
 	// return s.Repository.GetBusinessMembership(isRebate)
 
@@ -409,7 +395,7 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 
 func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error) {
 
-	//TODO 调用钱包的GrpcServer接口，进行类似 10-4 的确认交易
+	//调用钱包的GrpcServer接口，进行类似 10-4 的确认交易
 	resp, err := s.walletGrpcClientSvc.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
 		Username: username,
 		//订单ID（ 非空的时候，targetUserName 必须是空
@@ -423,6 +409,10 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 		s.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
 		return nil, err
 	}
+
+
+	s.Repository.SaveToCommission(username, req.OrderID,req.Content,resp.BlockNumber,resp.Hash)
+
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费
 		PayForUsername: resp.PayForUsername,

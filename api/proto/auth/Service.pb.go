@@ -2093,111 +2093,6 @@ func (*SubmitGradeResp) Descriptor() ([]byte, []int) {
 	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{32}
 }
 
-//商户会员卡的营销模式选择
-type MembershipCardSaleModeReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	BusinessUsername string `protobuf:"bytes,1,opt,name=businessUsername,proto3" json:"businessUsername,omitempty"`
-	//会员卡营销方式，1-直销，2-多级
-	SaleType global.MembershipCardSaleType `protobuf:"varint,2,opt,name=saleType,proto3,enum=cloud.lianmi.im.global.MembershipCardSaleType" json:"saleType,omitempty"`
-}
-
-func (x *MembershipCardSaleModeReq) Reset() {
-	*x = MembershipCardSaleModeReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[33]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MembershipCardSaleModeReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MembershipCardSaleModeReq) ProtoMessage() {}
-
-func (x *MembershipCardSaleModeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[33]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MembershipCardSaleModeReq.ProtoReflect.Descriptor instead.
-func (*MembershipCardSaleModeReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *MembershipCardSaleModeReq) GetBusinessUsername() string {
-	if x != nil {
-		return x.BusinessUsername
-	}
-	return ""
-}
-
-func (x *MembershipCardSaleModeReq) GetSaleType() global.MembershipCardSaleType {
-	if x != nil {
-		return x.SaleType
-	}
-	return global.MembershipCardSaleType_MCST_Undefined
-}
-
-type MembershipCardSaleModeResp struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	//会员卡营销方式，1-一级，2-二级
-	SaleType global.MembershipCardSaleType `protobuf:"varint,1,opt,name=saleType,proto3,enum=cloud.lianmi.im.global.MembershipCardSaleType" json:"saleType,omitempty"`
-}
-
-func (x *MembershipCardSaleModeResp) Reset() {
-	*x = MembershipCardSaleModeResp{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[34]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MembershipCardSaleModeResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MembershipCardSaleModeResp) ProtoMessage() {}
-
-func (x *MembershipCardSaleModeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[34]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MembershipCardSaleModeResp.ProtoReflect.Descriptor instead.
-func (*MembershipCardSaleModeResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *MembershipCardSaleModeResp) GetSaleType() global.MembershipCardSaleType {
-	if x != nil {
-		return x.SaleType
-	}
-	return global.MembershipCardSaleType_MCST_Undefined
-}
-
 //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 type PreOrderForPayMembershipReq struct {
 	state         protoimpl.MessageState
@@ -2211,7 +2106,7 @@ type PreOrderForPayMembershipReq struct {
 func (x *PreOrderForPayMembershipReq) Reset() {
 	*x = PreOrderForPayMembershipReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[35]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2224,7 +2119,7 @@ func (x *PreOrderForPayMembershipReq) String() string {
 func (*PreOrderForPayMembershipReq) ProtoMessage() {}
 
 func (x *PreOrderForPayMembershipReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[35]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2237,7 +2132,7 @@ func (x *PreOrderForPayMembershipReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreOrderForPayMembershipReq.ProtoReflect.Descriptor instead.
 func (*PreOrderForPayMembershipReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{35}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *PreOrderForPayMembershipReq) GetPayForUsername() string {
@@ -2265,7 +2160,7 @@ type PreOrderForPayMembershipResp struct {
 func (x *PreOrderForPayMembershipResp) Reset() {
 	*x = PreOrderForPayMembershipResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[36]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2278,7 +2173,7 @@ func (x *PreOrderForPayMembershipResp) String() string {
 func (*PreOrderForPayMembershipResp) ProtoMessage() {}
 
 func (x *PreOrderForPayMembershipResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[36]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2291,7 +2186,7 @@ func (x *PreOrderForPayMembershipResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreOrderForPayMembershipResp.ProtoReflect.Descriptor instead.
 func (*PreOrderForPayMembershipResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{36}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *PreOrderForPayMembershipResp) GetOrderTotalAmount() float64 {
@@ -2339,7 +2234,7 @@ type ConfirmPayForMembershipReq struct {
 func (x *ConfirmPayForMembershipReq) Reset() {
 	*x = ConfirmPayForMembershipReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[37]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2352,7 +2247,7 @@ func (x *ConfirmPayForMembershipReq) String() string {
 func (*ConfirmPayForMembershipReq) ProtoMessage() {}
 
 func (x *ConfirmPayForMembershipReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[37]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2365,7 +2260,7 @@ func (x *ConfirmPayForMembershipReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPayForMembershipReq.ProtoReflect.Descriptor instead.
 func (*ConfirmPayForMembershipReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{37}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ConfirmPayForMembershipReq) GetOrderID() string {
@@ -2409,7 +2304,7 @@ type ConfirmPayForMembershipResp struct {
 func (x *ConfirmPayForMembershipResp) Reset() {
 	*x = ConfirmPayForMembershipResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[38]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2422,7 +2317,7 @@ func (x *ConfirmPayForMembershipResp) String() string {
 func (*ConfirmPayForMembershipResp) ProtoMessage() {}
 
 func (x *ConfirmPayForMembershipResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[38]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2435,7 +2330,7 @@ func (x *ConfirmPayForMembershipResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPayForMembershipResp.ProtoReflect.Descriptor instead.
 func (*ConfirmPayForMembershipResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{38}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ConfirmPayForMembershipResp) GetPayForUsername() string {
@@ -2485,7 +2380,7 @@ type GetBusinessMembershipReq struct {
 func (x *GetBusinessMembershipReq) Reset() {
 	*x = GetBusinessMembershipReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[39]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2498,7 +2393,7 @@ func (x *GetBusinessMembershipReq) String() string {
 func (*GetBusinessMembershipReq) ProtoMessage() {}
 
 func (x *GetBusinessMembershipReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[39]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2511,7 +2406,7 @@ func (x *GetBusinessMembershipReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBusinessMembershipReq.ProtoReflect.Descriptor instead.
 func (*GetBusinessMembershipReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{39}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetBusinessMembershipReq) GetIsRebate() bool {
@@ -2545,7 +2440,7 @@ type MembershipMonth struct {
 func (x *MembershipMonth) Reset() {
 	*x = MembershipMonth{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2558,7 +2453,7 @@ func (x *MembershipMonth) String() string {
 func (*MembershipMonth) ProtoMessage() {}
 
 func (x *MembershipMonth) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2571,7 +2466,7 @@ func (x *MembershipMonth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MembershipMonth.ProtoReflect.Descriptor instead.
 func (*MembershipMonth) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{40}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *MembershipMonth) GetMonth() string {
@@ -2637,7 +2532,7 @@ type GetBusinessMembershipResp struct {
 func (x *GetBusinessMembershipResp) Reset() {
 	*x = GetBusinessMembershipResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2650,7 +2545,7 @@ func (x *GetBusinessMembershipResp) String() string {
 func (*GetBusinessMembershipResp) ProtoMessage() {}
 
 func (x *GetBusinessMembershipResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2663,7 +2558,7 @@ func (x *GetBusinessMembershipResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBusinessMembershipResp.ProtoReflect.Descriptor instead.
 func (*GetBusinessMembershipResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{41}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetBusinessMembershipResp) GetTotalmembers() int32 {
@@ -2702,7 +2597,7 @@ type NormalMembershipReq struct {
 func (x *NormalMembershipReq) Reset() {
 	*x = NormalMembershipReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[40]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2715,7 +2610,7 @@ func (x *NormalMembershipReq) String() string {
 func (*NormalMembershipReq) ProtoMessage() {}
 
 func (x *NormalMembershipReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[40]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2728,7 +2623,7 @@ func (x *NormalMembershipReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NormalMembershipReq.ProtoReflect.Descriptor instead.
 func (*NormalMembershipReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{42}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *NormalMembershipReq) GetPage() int32 {
@@ -2788,7 +2683,7 @@ type PerLevelSummary struct {
 func (x *PerLevelSummary) Reset() {
 	*x = PerLevelSummary{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[43]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[41]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2801,7 +2696,7 @@ func (x *PerLevelSummary) String() string {
 func (*PerLevelSummary) ProtoMessage() {}
 
 func (x *PerLevelSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[43]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[41]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2814,7 +2709,7 @@ func (x *PerLevelSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PerLevelSummary.ProtoReflect.Descriptor instead.
 func (*PerLevelSummary) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{43}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *PerLevelSummary) GetMonth() string {
@@ -2894,7 +2789,7 @@ type NormalMembershipResp struct {
 func (x *NormalMembershipResp) Reset() {
 	*x = NormalMembershipResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[44]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[42]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2907,7 +2802,7 @@ func (x *NormalMembershipResp) String() string {
 func (*NormalMembershipResp) ProtoMessage() {}
 
 func (x *NormalMembershipResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[44]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[42]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2920,7 +2815,7 @@ func (x *NormalMembershipResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NormalMembershipResp.ProtoReflect.Descriptor instead.
 func (*NormalMembershipResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{44}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *NormalMembershipResp) GetTotalPage() uint64 {
@@ -2946,7 +2841,7 @@ type AskedWithdrawReq struct {
 func (x *AskedWithdrawReq) Reset() {
 	*x = AskedWithdrawReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[45]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[43]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2959,7 +2854,7 @@ func (x *AskedWithdrawReq) String() string {
 func (*AskedWithdrawReq) ProtoMessage() {}
 
 func (x *AskedWithdrawReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[45]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[43]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2972,7 +2867,7 @@ func (x *AskedWithdrawReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskedWithdrawReq.ProtoReflect.Descriptor instead.
 func (*AskedWithdrawReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{45}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{43}
 }
 
 type AskedWithdrawResp struct {
@@ -2984,7 +2879,7 @@ type AskedWithdrawResp struct {
 func (x *AskedWithdrawResp) Reset() {
 	*x = AskedWithdrawResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[46]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[44]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2997,7 +2892,7 @@ func (x *AskedWithdrawResp) String() string {
 func (*AskedWithdrawResp) ProtoMessage() {}
 
 func (x *AskedWithdrawResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[46]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[44]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3010,7 +2905,7 @@ func (x *AskedWithdrawResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskedWithdrawResp.ProtoReflect.Descriptor instead.
 func (*AskedWithdrawResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{46}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{44}
 }
 
 var File_api_proto_auth_Service_proto protoreflect.FileDescriptor
@@ -3245,23 +3140,7 @@ var file_api_proto_auth_Service_proto_rawDesc = []byte{
 	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x54, 0x69, 0x74, 0x6c, 0x65, 0x12, 0x1a,
 	0x0a, 0x08, 0x47, 0x72, 0x61, 0x64, 0x65, 0x4e, 0x75, 0x6d, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05,
 	0x52, 0x08, 0x47, 0x72, 0x61, 0x64, 0x65, 0x4e, 0x75, 0x6d, 0x22, 0x11, 0x0a, 0x0f, 0x53, 0x75,
-	0x62, 0x6d, 0x69, 0x74, 0x47, 0x72, 0x61, 0x64, 0x65, 0x52, 0x65, 0x73, 0x70, 0x22, 0x93, 0x01,
-	0x0a, 0x19, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x43, 0x61, 0x72, 0x64,
-	0x53, 0x61, 0x6c, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x71, 0x12, 0x2a, 0x0a, 0x10, 0x62,
-	0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55,
-	0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x4a, 0x0a, 0x08, 0x73, 0x61, 0x6c, 0x65, 0x54,
-	0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75,
-	0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x67, 0x6c, 0x6f, 0x62,
-	0x61, 0x6c, 0x2e, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x43, 0x61, 0x72,
-	0x64, 0x53, 0x61, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65, 0x52, 0x08, 0x73, 0x61, 0x6c, 0x65, 0x54,
-	0x79, 0x70, 0x65, 0x22, 0x68, 0x0a, 0x1a, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69,
-	0x70, 0x43, 0x61, 0x72, 0x64, 0x53, 0x61, 0x6c, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x73,
-	0x70, 0x12, 0x4a, 0x0a, 0x08, 0x73, 0x61, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0e, 0x32, 0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e,
-	0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x2e, 0x4d, 0x65, 0x6d,
-	0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x43, 0x61, 0x72, 0x64, 0x53, 0x61, 0x6c, 0x65, 0x54,
-	0x79, 0x70, 0x65, 0x52, 0x08, 0x73, 0x61, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65, 0x22, 0x45, 0x0a,
+	0x62, 0x6d, 0x69, 0x74, 0x47, 0x72, 0x61, 0x64, 0x65, 0x52, 0x65, 0x73, 0x70, 0x22, 0x45, 0x0a,
 	0x1b, 0x50, 0x72, 0x65, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x46, 0x6f, 0x72, 0x50, 0x61, 0x79, 0x4d,
 	0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x71, 0x12, 0x26, 0x0a, 0x0e,
 	0x50, 0x61, 0x79, 0x46, 0x6f, 0x72, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
@@ -3383,7 +3262,7 @@ func file_api_proto_auth_Service_proto_rawDescGZIP() []byte {
 	return file_api_proto_auth_Service_proto_rawDescData
 }
 
-var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
+var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
 var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*UserReq)(nil),                      // 0: cloud.lianmi.im.auth.UserReq
 	(*UserRsp)(nil),                      // 1: cloud.lianmi.im.auth.UserRsp
@@ -3418,50 +3297,45 @@ var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*AddGradesResp)(nil),                // 30: cloud.lianmi.im.auth.AddGradesResp
 	(*SubmitGradeReq)(nil),               // 31: cloud.lianmi.im.auth.SubmitGradeReq
 	(*SubmitGradeResp)(nil),              // 32: cloud.lianmi.im.auth.SubmitGradeResp
-	(*MembershipCardSaleModeReq)(nil),    // 33: cloud.lianmi.im.auth.MembershipCardSaleModeReq
-	(*MembershipCardSaleModeResp)(nil),   // 34: cloud.lianmi.im.auth.MembershipCardSaleModeResp
-	(*PreOrderForPayMembershipReq)(nil),  // 35: cloud.lianmi.im.auth.PreOrderForPayMembershipReq
-	(*PreOrderForPayMembershipResp)(nil), // 36: cloud.lianmi.im.auth.PreOrderForPayMembershipResp
-	(*ConfirmPayForMembershipReq)(nil),   // 37: cloud.lianmi.im.auth.ConfirmPayForMembershipReq
-	(*ConfirmPayForMembershipResp)(nil),  // 38: cloud.lianmi.im.auth.ConfirmPayForMembershipResp
-	(*GetBusinessMembershipReq)(nil),     // 39: cloud.lianmi.im.auth.GetBusinessMembershipReq
-	(*MembershipMonth)(nil),              // 40: cloud.lianmi.im.auth.MembershipMonth
-	(*GetBusinessMembershipResp)(nil),    // 41: cloud.lianmi.im.auth.GetBusinessMembershipResp
-	(*NormalMembershipReq)(nil),          // 42: cloud.lianmi.im.auth.NormalMembershipReq
-	(*PerLevelSummary)(nil),              // 43: cloud.lianmi.im.auth.PerLevelSummary
-	(*NormalMembershipResp)(nil),         // 44: cloud.lianmi.im.auth.NormalMembershipResp
-	(*AskedWithdrawReq)(nil),             // 45: cloud.lianmi.im.auth.AskedWithdrawReq
-	(*AskedWithdrawResp)(nil),            // 46: cloud.lianmi.im.auth.AskedWithdrawResp
-	(*user.User)(nil),                    // 47: cloud.lianmi.im.user.User
-	(global.CustomerServiceType)(0),      // 48: cloud.lianmi.im.global.CustomerServiceType
-	(global.MembershipCardSaleType)(0),   // 49: cloud.lianmi.im.global.MembershipCardSaleType
-	(*wallet.RawDesc)(nil),               // 50: cloud.lianmi.im.wallet.RawDesc
+	(*PreOrderForPayMembershipReq)(nil),  // 33: cloud.lianmi.im.auth.PreOrderForPayMembershipReq
+	(*PreOrderForPayMembershipResp)(nil), // 34: cloud.lianmi.im.auth.PreOrderForPayMembershipResp
+	(*ConfirmPayForMembershipReq)(nil),   // 35: cloud.lianmi.im.auth.ConfirmPayForMembershipReq
+	(*ConfirmPayForMembershipResp)(nil),  // 36: cloud.lianmi.im.auth.ConfirmPayForMembershipResp
+	(*GetBusinessMembershipReq)(nil),     // 37: cloud.lianmi.im.auth.GetBusinessMembershipReq
+	(*MembershipMonth)(nil),              // 38: cloud.lianmi.im.auth.MembershipMonth
+	(*GetBusinessMembershipResp)(nil),    // 39: cloud.lianmi.im.auth.GetBusinessMembershipResp
+	(*NormalMembershipReq)(nil),          // 40: cloud.lianmi.im.auth.NormalMembershipReq
+	(*PerLevelSummary)(nil),              // 41: cloud.lianmi.im.auth.PerLevelSummary
+	(*NormalMembershipResp)(nil),         // 42: cloud.lianmi.im.auth.NormalMembershipResp
+	(*AskedWithdrawReq)(nil),             // 43: cloud.lianmi.im.auth.AskedWithdrawReq
+	(*AskedWithdrawResp)(nil),            // 44: cloud.lianmi.im.auth.AskedWithdrawResp
+	(*user.User)(nil),                    // 45: cloud.lianmi.im.user.User
+	(global.CustomerServiceType)(0),      // 46: cloud.lianmi.im.global.CustomerServiceType
+	(*wallet.RawDesc)(nil),               // 47: cloud.lianmi.im.wallet.RawDesc
 }
 var file_api_proto_auth_Service_proto_depIdxs = []int32{
-	47, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
-	47, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
+	45, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
+	45, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
 	11, // 2: cloud.lianmi.im.auth.QueryShopsNearbyResp.shops:type_name -> cloud.lianmi.im.auth.Shop
-	48, // 3: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 4: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	46, // 3: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	46, // 4: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	15, // 5: cloud.lianmi.im.auth.QueryCustomerServiceResp.onlineCustomerServices:type_name -> cloud.lianmi.im.auth.CustomerServiceInfo
-	48, // 6: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 7: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 8: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	46, // 6: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	46, // 7: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	46, // 8: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	24, // 9: cloud.lianmi.im.auth.GradesPage.grades:type_name -> cloud.lianmi.im.auth.GradeInfo
 	26, // 10: cloud.lianmi.im.auth.GradesResp.pages:type_name -> cloud.lianmi.im.auth.GradesPage
 	29, // 11: cloud.lianmi.im.auth.AddGradesResp.info:type_name -> cloud.lianmi.im.auth.GradeTitleInfo
-	49, // 12: cloud.lianmi.im.auth.MembershipCardSaleModeReq.saleType:type_name -> cloud.lianmi.im.global.MembershipCardSaleType
-	49, // 13: cloud.lianmi.im.auth.MembershipCardSaleModeResp.saleType:type_name -> cloud.lianmi.im.global.MembershipCardSaleType
-	50, // 14: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
-	40, // 15: cloud.lianmi.im.auth.GetBusinessMembershipResp.members:type_name -> cloud.lianmi.im.auth.MembershipMonth
-	43, // 16: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
-	0,  // 17: cloud.lianmi.im.auth.LianmiAuth.GetUser:input_type -> cloud.lianmi.im.auth.UserReq
-	1,  // 18: cloud.lianmi.im.auth.LianmiAuth.GetUser:output_type -> cloud.lianmi.im.auth.UserRsp
-	18, // [18:19] is the sub-list for method output_type
-	17, // [17:18] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	47, // 12: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
+	38, // 13: cloud.lianmi.im.auth.GetBusinessMembershipResp.members:type_name -> cloud.lianmi.im.auth.MembershipMonth
+	41, // 14: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
+	0,  // 15: cloud.lianmi.im.auth.LianmiAuth.GetUser:input_type -> cloud.lianmi.im.auth.UserReq
+	1,  // 16: cloud.lianmi.im.auth.LianmiAuth.GetUser:output_type -> cloud.lianmi.im.auth.UserRsp
+	16, // [16:17] is the sub-list for method output_type
+	15, // [15:16] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_auth_Service_proto_init() }
@@ -3867,30 +3741,6 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MembershipCardSaleModeReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_proto_auth_Service_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MembershipCardSaleModeResp); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_proto_auth_Service_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PreOrderForPayMembershipReq); i {
 			case 0:
 				return &v.state
@@ -3902,7 +3752,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PreOrderForPayMembershipResp); i {
 			case 0:
 				return &v.state
@@ -3914,7 +3764,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfirmPayForMembershipReq); i {
 			case 0:
 				return &v.state
@@ -3926,7 +3776,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfirmPayForMembershipResp); i {
 			case 0:
 				return &v.state
@@ -3938,7 +3788,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetBusinessMembershipReq); i {
 			case 0:
 				return &v.state
@@ -3950,7 +3800,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MembershipMonth); i {
 			case 0:
 				return &v.state
@@ -3962,7 +3812,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetBusinessMembershipResp); i {
 			case 0:
 				return &v.state
@@ -3974,7 +3824,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*NormalMembershipReq); i {
 			case 0:
 				return &v.state
@@ -3986,7 +3836,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PerLevelSummary); i {
 			case 0:
 				return &v.state
@@ -3998,7 +3848,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*NormalMembershipResp); i {
 			case 0:
 				return &v.state
@@ -4010,7 +3860,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AskedWithdrawReq); i {
 			case 0:
 				return &v.state
@@ -4022,7 +3872,7 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_auth_Service_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_auth_Service_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AskedWithdrawResp); i {
 			case 0:
 				return &v.state
@@ -4041,7 +3891,7 @@ func file_api_proto_auth_Service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_auth_Service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   47,
+			NumMessages:   45,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

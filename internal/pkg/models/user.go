@@ -51,7 +51,6 @@ type User struct {
 	BelongBusinessUser     string  `form:"belong_business_user" json:"belong_business_user,omitempty" `           //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
 	Longitude              float64 `form:"longitude" json:"longitude,omitempty" `                                 //商户地址的经度
 	Latitude               float64 `form:"latitude" json:"latitude,omitempty" `                                   //商户地址的纬度
-	MembershipCardSaleMode int     `form:"membership_card_sale_mode" json:"membership_card_sale_mode,omitempty"`  //会员卡营销模式
 	WeChat                 string  `form:"wechat" json:"wechat,omitempty" `                                       //商户联系人微信号
 	Keys                   string  `form:"keys" json:"keys,omitempty" `                                           //商户经营范围搜索关键字
 	CreatedBy              string  `form:"created_by" json:"created_by,omitempty"`                                //由谁创建， 分为注册或后台添加

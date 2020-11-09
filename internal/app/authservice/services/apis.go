@@ -76,14 +76,6 @@ type AuthService interface {
 
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
-	GetMembershipCardSaleMode(businessUsername string) (int, error)
-
-	SetMembershipCardSaleMode(businessUsername string, saleType int) error
-
-	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
-
-	PayForMembership(payForUsername string) error
-
 	//Grpc 获取用户信息
 	GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error)
 }
@@ -315,18 +307,3 @@ func (s *DefaultLianmiAuthService) SubmitGrade(req *Auth.SubmitGradeReq) error {
 	return s.Repository.SubmitGrade(req)
 }
 
-func (s *DefaultLianmiAuthService) GetMembershipCardSaleMode(businessUsername string) (int, error) {
-	return s.Repository.GetMembershipCardSaleMode(businessUsername)
-}
-
-func (s *DefaultLianmiAuthService) SetMembershipCardSaleMode(businessUsername string, saleType int) error {
-	return s.Repository.SetMembershipCardSaleMode(businessUsername, saleType)
-}
-
-func (s *DefaultLianmiAuthService) GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error) {
-	return s.Repository.GetBusinessMembership(isRebate)
-}
-
-func (s *DefaultLianmiAuthService) PayForMembership(payForUsername string) error {
-	return s.Repository.PayForMembership(payForUsername)
-}

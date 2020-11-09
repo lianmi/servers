@@ -119,6 +119,9 @@ const (
 //会员相关
 const (
 	MEMBERSHIPPRICE = 99.00
+	CommissionOne = 35.0
+	CommissionTwo = 10.0
+	CommissionThree = 5.0
 )
 
 //订单相关

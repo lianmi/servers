@@ -1238,56 +1238,6 @@ func (CustomerServiceType) EnumDescriptor() ([]byte, []int) {
 	return file_api_proto_global_Global_proto_rawDescGZIP(), []int{16}
 }
 
-//会员卡营销方式枚举
-type MembershipCardSaleType int32
-
-const (
-	MembershipCardSaleType_MCST_Undefined   MembershipCardSaleType = 0 //proto3必须从0开始
-	MembershipCardSaleType_MCST_Direct      MembershipCardSaleType = 1 //一级，直接销售
-	MembershipCardSaleType_MCST_SecondLevel MembershipCardSaleType = 2 //二级分销
-)
-
-// Enum value maps for MembershipCardSaleType.
-var (
-	MembershipCardSaleType_name = map[int32]string{
-		0: "MCST_Undefined",
-		1: "MCST_Direct",
-		2: "MCST_SecondLevel",
-	}
-	MembershipCardSaleType_value = map[string]int32{
-		"MCST_Undefined":   0,
-		"MCST_Direct":      1,
-		"MCST_SecondLevel": 2,
-	}
-)
-
-func (x MembershipCardSaleType) Enum() *MembershipCardSaleType {
-	p := new(MembershipCardSaleType)
-	*p = x
-	return p
-}
-
-func (x MembershipCardSaleType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (MembershipCardSaleType) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_global_Global_proto_enumTypes[17].Descriptor()
-}
-
-func (MembershipCardSaleType) Type() protoreflect.EnumType {
-	return &file_api_proto_global_Global_proto_enumTypes[17]
-}
-
-func (x MembershipCardSaleType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use MembershipCardSaleType.Descriptor instead.
-func (MembershipCardSaleType) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_global_Global_proto_rawDescGZIP(), []int{17}
-}
-
 var File_api_proto_global_Global_proto protoreflect.FileDescriptor
 
 var file_api_proto_global_Global_proto_rawDesc = []byte{
@@ -1509,16 +1459,10 @@ var file_api_proto_global_Global_proto_rawDesc = []byte{
 	0x65, 0x66, 0x69, 0x6e, 0x65, 0x64, 0x10, 0x00, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x53, 0x5f, 0x43,
 	0x75, 0x73, 0x74, 0x6f, 0x6d, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x10, 0x01,
 	0x12, 0x18, 0x0a, 0x14, 0x43, 0x53, 0x5f, 0x54, 0x65, 0x63, 0x68, 0x6e, 0x6f, 0x6c, 0x6f, 0x67,
-	0x79, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x10, 0x02, 0x2a, 0x53, 0x0a, 0x16, 0x4d, 0x65,
-	0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x43, 0x61, 0x72, 0x64, 0x53, 0x61, 0x6c, 0x65,
-	0x54, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x0e, 0x4d, 0x43, 0x53, 0x54, 0x5f, 0x55, 0x6e, 0x64,
-	0x65, 0x66, 0x69, 0x6e, 0x65, 0x64, 0x10, 0x00, 0x12, 0x0f, 0x0a, 0x0b, 0x4d, 0x43, 0x53, 0x54,
-	0x5f, 0x44, 0x69, 0x72, 0x65, 0x63, 0x74, 0x10, 0x01, 0x12, 0x14, 0x0a, 0x10, 0x4d, 0x43, 0x53,
-	0x54, 0x5f, 0x53, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x10, 0x02, 0x42,
-	0x2c, 0x5a, 0x2a, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69,
-	0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x79, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x10, 0x02, 0x42, 0x2c, 0x5a, 0x2a, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f,
+	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2f, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1533,26 +1477,25 @@ func file_api_proto_global_Global_proto_rawDescGZIP() []byte {
 	return file_api_proto_global_Global_proto_rawDescData
 }
 
-var file_api_proto_global_Global_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
+var file_api_proto_global_Global_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
 var file_api_proto_global_Global_proto_goTypes = []interface{}{
-	(BusinessType)(0),           // 0: cloud.lianmi.im.global.BusinessType
-	(AuthSubType)(0),            // 1: cloud.lianmi.im.global.AuthSubType
-	(UserSubType)(0),            // 2: cloud.lianmi.im.global.UserSubType
-	(FriendSubType)(0),          // 3: cloud.lianmi.im.global.FriendSubType
-	(TeamSubType)(0),            // 4: cloud.lianmi.im.global.TeamSubType
-	(MsgSubType)(0),             // 5: cloud.lianmi.im.global.MsgSubType
-	(SyncSubType)(0),            // 6: cloud.lianmi.im.global.SyncSubType
-	(ProductSubType)(0),         // 7: cloud.lianmi.im.global.ProductSubType
-	(OrderSubType)(0),           // 8: cloud.lianmi.im.global.OrderSubType
-	(WalletSubType)(0),          // 9: cloud.lianmi.im.global.WalletSubType
-	(OrderState)(0),             // 10: cloud.lianmi.im.global.OrderState
-	(ProductType)(0),            // 11: cloud.lianmi.im.global.ProductType
-	(TransactionType)(0),        // 12: cloud.lianmi.im.global.TransactionType
-	(OrderType)(0),              // 13: cloud.lianmi.im.global.OrderType
-	(ThirdPartyPaymentType)(0),  // 14: cloud.lianmi.im.global.ThirdPartyPaymentType
-	(DepositRecharge)(0),        // 15: cloud.lianmi.im.global.DepositRecharge
-	(CustomerServiceType)(0),    // 16: cloud.lianmi.im.global.CustomerServiceType
-	(MembershipCardSaleType)(0), // 17: cloud.lianmi.im.global.MembershipCardSaleType
+	(BusinessType)(0),          // 0: cloud.lianmi.im.global.BusinessType
+	(AuthSubType)(0),           // 1: cloud.lianmi.im.global.AuthSubType
+	(UserSubType)(0),           // 2: cloud.lianmi.im.global.UserSubType
+	(FriendSubType)(0),         // 3: cloud.lianmi.im.global.FriendSubType
+	(TeamSubType)(0),           // 4: cloud.lianmi.im.global.TeamSubType
+	(MsgSubType)(0),            // 5: cloud.lianmi.im.global.MsgSubType
+	(SyncSubType)(0),           // 6: cloud.lianmi.im.global.SyncSubType
+	(ProductSubType)(0),        // 7: cloud.lianmi.im.global.ProductSubType
+	(OrderSubType)(0),          // 8: cloud.lianmi.im.global.OrderSubType
+	(WalletSubType)(0),         // 9: cloud.lianmi.im.global.WalletSubType
+	(OrderState)(0),            // 10: cloud.lianmi.im.global.OrderState
+	(ProductType)(0),           // 11: cloud.lianmi.im.global.ProductType
+	(TransactionType)(0),       // 12: cloud.lianmi.im.global.TransactionType
+	(OrderType)(0),             // 13: cloud.lianmi.im.global.OrderType
+	(ThirdPartyPaymentType)(0), // 14: cloud.lianmi.im.global.ThirdPartyPaymentType
+	(DepositRecharge)(0),       // 15: cloud.lianmi.im.global.DepositRecharge
+	(CustomerServiceType)(0),   // 16: cloud.lianmi.im.global.CustomerServiceType
 }
 var file_api_proto_global_Global_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1572,7 +1515,7 @@ func file_api_proto_global_Global_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_global_Global_proto_rawDesc,
-			NumEnums:      18,
+			NumEnums:      17,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

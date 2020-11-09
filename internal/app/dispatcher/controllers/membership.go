@@ -8,9 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	Global "github.com/lianmi/servers/api/proto/global"
-	// Order "github.com/lianmi/servers/api/proto/order"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	// Global "github.com/lianmi/servers/api/proto/global"
 	// LMCommon "github.com/lianmi/servers/internal/common"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -19,62 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (pc *LianmiApisController) GetMembershipCardSaleMode(c *gin.Context) {
-	var req Auth.MembershipCardSaleModeReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
-	} else {
-
-		if req.BusinessUsername == "" {
-			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
-		}
-		saleMode, err := pc.service.GetMembershipCardSaleMode(req.BusinessUsername)
-
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Get Membership Card Sale Mode failed")
-		} else {
-
-			RespData(c, http.StatusOK, 200, &Auth.MembershipCardSaleModeResp{
-				SaleType: Global.MembershipCardSaleType(saleMode),
-			})
-		}
-	}
-
-}
-
-func (pc *LianmiApisController) SetMembershipCardSaleMode(c *gin.Context) {
-	var req Auth.MembershipCardSaleModeReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
-	} else {
-
-		if req.BusinessUsername == "" {
-			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
-		}
-
-		saleType := int(req.SaleType)
-		if saleType == 0 {
-			saleType = 1
-		}
-
-		if !(saleType == 1 || saleType == 2) {
-			RespFail(c, http.StatusBadRequest, 400, "Set Membership Card Sale Mode failed")
-		}
-
-		err := pc.service.SetMembershipCardSaleMode(req.BusinessUsername, saleType)
-
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Set Membership Card Sale Mode failed")
-		} else {
-
-			RespOk(c, http.StatusOK, 200)
-		}
-	}
-
-}
-
+//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 	var req Auth.GetBusinessMembershipReq
 	if c.BindJSON(&req) != nil {
@@ -143,7 +87,7 @@ func (pc *LianmiApisController) ConfirmPayForMembership(c *gin.Context) {
 	deviceID := claims["deviceID"].(string)
 	token := jwt_v2.GetToken(c)
 
-	pc.logger.Debug("PayForMembership",
+	pc.logger.Debug("ConfirmPayForMembership",
 		zap.String("userName", userName),
 		zap.String("deviceID", deviceID),
 		zap.String("token", token))

@@ -54,8 +54,6 @@ service LianmiAuth {
     // app用户提交评分
     //rpc SubmitGrade(SubmitGradeReq) returns (SubmitGradeResp);
 
-    //查询商户营销方式
-    //rpc GetMembershipCardSaleMode(MembershipCardSaleModeReq) returns (MembershipCardSaleModeResp);
 
 }
 
@@ -391,17 +389,6 @@ message SubmitGradeReq {
 message SubmitGradeResp {
 }
 
-//商户会员卡的营销模式选择
-message MembershipCardSaleModeReq {
-    string businessUsername =1;
-    //会员卡营销方式，1-直销，2-多级
-    global.MembershipCardSaleType saleType =2;
-}
-
-message MembershipCardSaleModeResp {
-   //会员卡营销方式，1-一级，2-二级
-   global.MembershipCardSaleType saleType =1;
-}
 
 //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 message PreOrderForPayMembershipReq {

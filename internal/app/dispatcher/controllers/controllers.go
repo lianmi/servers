@@ -231,146 +231,150 @@ func CreateInitControllersFn(
 
 		//=======无须登录也能访问的uri==========/
 		authNone := r.Group("/shops")
-		authNone.GET("/nearby", pc.QueryShopsNearby)
-
-		//=======用户模块==========/
-		authUser := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
-		// Refresh time can be longer than token timeout
-		authUser.GET("/refresh_token", authMiddleware.RefreshHandler)
-		authUser.Use(authMiddleware.MiddlewareFunc())
 		{
-			authUser.GET("/signout", pc.SignOut)            //登出
-			authUser.GET("/info/:id", pc.GetUser)           //根据id获取用户信息
-			authUser.POST("/chanpassword", pc.ChanPassword) //修改(重置)用户密码
+			//根据用户gps位置获取一定范围内的商户列表
+			authNone.GET("/nearby", pc.QueryShopsNearby)
 
 		}
 
+		//=======鉴权授权模块==========/
+		auth := r.Group("/v1") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
+		// Refresh time can be longer than token timeout
+		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
+		auth.Use(authMiddleware.MiddlewareFunc())
+		{
+			auth.GET("/signout", pc.SignOut) //登出
+
+		}
+
+		//=======用户模块==========/
+		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
+		userGroup.Use(authMiddleware.MiddlewareFunc())
+		{
+			userGroup.GET("/getuser/:id", pc.GetUser)   //根据id获取用户信息
+			auth.POST("/chanpassword", pc.ChanPassword) //修改(重置)用户密码
+		}
+
 		//=======好友模块==========/
-		authFriend := r.Group("/v1/friend")
-		authFriend.Use(authMiddleware.MiddlewareFunc())
+		friendGroup := r.Group("/v1/friend")
+		friendGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
 		}
 
 		//=======群组模块==========/
-		authTeam := r.Group("/v1/team")
-		authTeam.Use(authMiddleware.MiddlewareFunc())
+		teamGroup := r.Group("/v1/team")
+		teamGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
 			//4-2 获取群组成员信息
-			// authTeam.GET("/teammembers/:teamid", pc.GetTeamMembers)
+			// teamGroup.GET("/teammembers/:teamid", pc.GetTeamMembers)
 
 			// 4-3 查询群信息
-			// authTeam.GET("/getteam/:teamid", pc.GetTeam)
+			// teamGroup.GET("/getteam/:teamid", pc.GetTeam)
 
 			//4-24 获取指定群组成员
-			// authTeam.POST("/pullteammembers", pc.PullTeamMembers)
+			// teamGroup.POST("/pullteammembers", pc.PullTeamMembers)
 
 			// 4-27 分页获取群成员信息
-			// authTeam.POST("/getteammemberspage", pc.GetTeamMembersPage)
+			// teamGroup.POST("/getteammemberspage", pc.GetTeamMembersPage)
 
 			//5-1发送吸顶式群消息
-			// authTeam.POST("/sendteamroofmsg", pc.SendTeamRoofMsg)
+			// teamGroup.POST("/sendteamroofmsg", pc.SendTeamRoofMsg)
 		}
 
 		//=======商品模块==========/
-		authProduct := r.Group("/v1/product")
-		authProduct.Use(authMiddleware.MiddlewareFunc())
+		productGroup := r.Group("/v1/product")
+		productGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//查询通用商品 by productid
-			authProduct.GET("/getgeneralproduct/:productid", pc.GetGeneralProductByID)
+			productGroup.GET("/getgeneralproduct/:productid", pc.GetGeneralProductByID)
 
 			//查询通用商品分页-按商品种类查询, /getgeneralproductspage?producttype=1
-			authProduct.GET("/getgeneralproductspage", pc.GetGeneralProductPage)
+			productGroup.GET("/getgeneralproductspage", pc.GetGeneralProductPage)
 
 		}
 
 		//=======订单模块==========/
-		authOrder := r.Group("/v1/order")
-		authOrder.Use(authMiddleware.MiddlewareFunc())
+		orderGroup := r.Group("/v1/order")
+		orderGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 		}
 
 		//=======钱包模块==========/
-		authWallet := r.Group("/v1/wallet")
-		authWallet.Use(authMiddleware.MiddlewareFunc())
+		walletGroup := r.Group("/v1/wallet")
+		walletGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 		}
 
 		//=======会员付费分销模块==========/
-		authMembership := r.Group("/v1/membership")
-		authMembership.Use(authMiddleware.MiddlewareFunc())
+		membershipGroup := r.Group("/v1/membership")
+		membershipGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			//查询商户会员营销方式
-			authMembership.GET("/getmembershipcardsalemode", pc.GetMembershipCardSaleMode)
-
-			// 设置商户会员营销方式
-			authMembership.POST("/setmembershipcardsalemode", pc.SetMembershipCardSaleMode)
-
 			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-			authMembership.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
+			membershipGroup.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
 
 			//确认为自己或他人支付会员费
-			authMembership.POST("/confirmpayformembership", pc.ConfirmPayForMembership)
+			membershipGroup.POST("/confirmpayformembership", pc.ConfirmPayForMembership)
 
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-			authMembership.GET("/getbusinessmembership", pc.GetBusinessMembership)
+			membershipGroup.GET("/getbusinessmembership", pc.GetBusinessMembership)
 		}
 
 		//=======客服模块==========/
-		authCustomerService := r.Group("/v1/customerservice")
-		authCustomerService.Use(authMiddleware.MiddlewareFunc())
+		customerServiceGroup := r.Group("/v1/customerservice")
+		customerServiceGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//查询在线客服id数组
-			authCustomerService.GET("/querycustomerservices", pc.QueryCustomerServices)
+			customerServiceGroup.GET("/querycustomerservices", pc.QueryCustomerServices)
 
 			//查询评分
-			authCustomerService.GET("/querygrades", pc.QueryGrades)
+			customerServiceGroup.GET("/querygrades", pc.QueryGrades)
 
 			//客服增加评分标题及内容
-			authCustomerService.POST("/addgrade", pc.AddGrade)
+			customerServiceGroup.POST("/addgrade", pc.AddGrade)
 
 			//用户提交评分
-			authCustomerService.POST("/submitgrade", pc.SubmitGrade)
+			customerServiceGroup.POST("/submitgrade", pc.SubmitGrade)
 		}
 
 		//=======后台各个功能模块==========/
-		adminAuth := r.Group("/admin") //带/admin的路由都必须使用Bearer JWT，并且Role为admin才能正常访问
-		adminAuth.Use(authMiddleware.MiddlewareFunc())
+		adminGroup := r.Group("/admin") //带/admin的路由都必须使用Bearer JWT，并且Role为admin才能正常访问
+		adminGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
 			//根据用户账号, 将此用户封号
-			adminAuth.POST("/blockuser/:username", pc.BlockUser)
+			adminGroup.POST("/blockuser/:username", pc.BlockUser)
 
 			//根据用户账号，将此用户解封
-			adminAuth.POST("/disblockuser/:username", pc.DisBlockUser)
+			adminGroup.POST("/disblockuser/:username", pc.DisBlockUser)
 
 			//授权新创建的群组
-			adminAuth.POST("/approveteam/:teamid", pc.ApproveTeam)
+			adminGroup.POST("/approveteam/:teamid", pc.ApproveTeam)
 
 			//封禁群组
-			adminAuth.POST("/blockteam/:teamid", pc.BlockTeam)
+			adminGroup.POST("/blockteam/:teamid", pc.BlockTeam)
 
 			//解封群组
-			adminAuth.POST("/disblockteam/:teamid", pc.DisBlockTeam)
+			adminGroup.POST("/disblockteam/:teamid", pc.DisBlockTeam)
 
 			//增加通用商品
-			adminAuth.POST("/addgeneralproduct", pc.AddGeneralProduct)
+			adminGroup.POST("/addgeneralproduct", pc.AddGeneralProduct)
 
 			//修改通用商品
-			adminAuth.POST("/updategeneralproduct", pc.UpdateGeneralProduct)
+			adminGroup.POST("/updategeneralproduct", pc.UpdateGeneralProduct)
 
 			//删除通用商品 by productid
-			adminAuth.DELETE("/generalproduct/:productid", pc.DeleteGeneralProduct)
+			adminGroup.DELETE("/generalproduct/:productid", pc.DeleteGeneralProduct)
 
 			//增加在线客服id
-			adminAuth.POST("/addcustomerservice", pc.AddCustomerService)
+			adminGroup.POST("/addcustomerservice", pc.AddCustomerService)
 
 			//删除在线客服id
-			adminAuth.DELETE("/deletecustomerservice/:id", pc.DeleteCustomerService)
+			adminGroup.DELETE("/deletecustomerservice/:id", pc.DeleteCustomerService)
 
 			//编辑在线客服id
-			adminAuth.POST("/updatecustomerservice", pc.UpdateCustomerService)
+			adminGroup.POST("/updatecustomerservice", pc.UpdateCustomerService)
 
 		}
 	}
