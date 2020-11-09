@@ -24,7 +24,7 @@ services:
     volumes:
       # - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
       - /root/developments/lianmi/work/logs/chatservice.log:/tmp/chatservice.log
-      - /root/developments/lianmi/work/basic/mosquitto/ca:/ca
+      - /root/developments/lianmi/work/basic/mosquitto/ca:/tmp/ca
     logging:
       driver: fluentd
       options:
