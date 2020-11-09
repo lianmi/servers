@@ -24,7 +24,7 @@ services:
     volumes:
       # - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
       - /root/developments/lianmi/work/logs/chatservice.log:/tmp/chatservice.log
-      - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
+     
     logging:
       driver: fluentd
       options:
@@ -75,6 +75,7 @@ services:
     volumes:
       # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
+      - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
     logging:
       driver: fluentd
       options:
