@@ -61,6 +61,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Grade{})                            // 客服满意度评分
 	db.AutoMigrate(&models.Distribution{})                     // 用户层级表
 	db.AutoMigrate(&models.Commission{})                       // 用户佣金表
+	db.AutoMigrate(&models.BusinessCommission{})               // 商户下属的会员表
 	db.AutoMigrate(&models.NormalUserCommissionStatistics{})   // 普通用户佣金月统计表
 	db.AutoMigrate(&models.BusinessUserCommissionStatistics{}) // 商户佣金月统计表
 	return db, nil

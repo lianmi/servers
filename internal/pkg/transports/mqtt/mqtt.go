@@ -3,8 +3,11 @@ package mqtt
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-	"net"
+	"log"
+	// "net"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -102,13 +105,27 @@ func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
 }
 
 func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *MQTTClient {
-	cer, err := tls.LoadX509KeyPair(o.CaPath+"/mqtt.lianmi.cloud.crt", o.CaPath+"/mqtt.lianmi.cloud.key")
+
+	certpool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(o.CaPath + "/ca.crt")
 	if err != nil {
-		logger.Error("LoadX509KeyPair error ", zap.Error(err))
-		return nil
+		log.Fatalln(err.Error())
+	}
+	certpool.AppendCertsFromPEM(ca)
+	// Import client certificate/key pair
+	clientKeyPair, err := tls.LoadX509KeyPair(o.CaPath+"/mqtt.lianmi.cloud.crt", o.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		panic(err)
 	}
 
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	tlsConfig := &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientKeyPair},
+	}
+
 	mc := &MQTTClient{
 		o:                   o,
 		Addr:                o.Addr,
@@ -150,11 +167,17 @@ func (mc *MQTTClient) Application(name string) {
 }
 
 func (mc *MQTTClient) Start() error {
+	//TODO 需要验证
+	//利用TCP协议连接broker
+	conn, err := tls.Dial("tcp", mc.Addr, mc.TLSConfig)
 
-	conn, err := net.Dial("tcp", mc.Addr)
+	// conn, err := net.Dial("tcp", mc.Addr)
 	if err != nil {
 		mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-		return errors.New("BrokerServer dial error")
+		return errors.New("tls.Dial error")
+	}
+	if conn == nil {
+		return errors.New("tls.Dial error, conn is nil")
 	}
 
 	// Create paho client.
@@ -279,7 +302,7 @@ func (mc *MQTTClient) Start() error {
 	}
 
 	//订阅的topic， 客户端发送这个topic
-	subTopic := mc.o.ResponseTopic //lianmi/cloud/dispatcher
+	subTopic := mc.o.ResponseTopic
 	for i := 0; i < retryCount; i++ {
 		ca, err := mc.client.Connect(context.Background(), cp)
 		if err == nil {

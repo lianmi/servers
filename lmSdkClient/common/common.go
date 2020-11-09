@@ -9,7 +9,9 @@ const (
 	ENDPOINT_SMSCODE = "/smscode/%s"
 	ENDPOINT_LOGIN   = "/login"
 
-	BrokerAddr = "127.0.0.1:1883"
+	CaPath     = "/Users/mac/developments/lianmi/lm-cloud/servers/lmSdkClient/193"
+	BrokerAddr = "192.168.1.193:1883"
+	// BrokerAddr = "mqtt.lianmi.cloud:1883"
 
 	RedisAddr = "127.0.0.1:6379"
 

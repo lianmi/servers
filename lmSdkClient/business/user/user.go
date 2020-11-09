@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
+	// "net"
+	"crypto/tls"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -79,9 +80,19 @@ func SendGetUsers(userNames []string) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", common.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(common.CaPath+"/mqtt.lianmi.cloud.crt", common.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", common.BrokerAddr, tlsConfig)
+	// conn, err := net.Dial("tcp", common.BrokerAddr)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 

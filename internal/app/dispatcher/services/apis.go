@@ -410,8 +410,8 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 		return nil, err
 	}
 
-
-	s.Repository.SaveToCommission(username, req.OrderID,req.Content,resp.BlockNumber,resp.Hash)
+	//确认支付成功后，就需要分配佣金
+	s.Repository.SaveToCommission(username, req.OrderID, req.Content, resp.BlockNumber, resp.Hash)
 
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费

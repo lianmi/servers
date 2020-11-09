@@ -161,7 +161,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 		nsqMqttChannel: channel,
 		Producer:       p,
 		consumers:      make([]*nsq.Consumer, 0),
-		logger:         logger.With(zap.String("type", "nsqclient")),
+		logger:         logger.With(zap.String("type", "dispatcher.nsq")),
 		redisPool:      redisPool,
 		db:             db,
 	}
