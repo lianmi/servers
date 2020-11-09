@@ -41,6 +41,7 @@ type MQTTOptions struct {
 	ClientID      string `yaml:"clientid"`      // broker node name
 	TopicPrefix   string `yaml:"topicprefix"`   //topic prefix to client
 	ResponseTopic string `yaml:"responseTopic"` //topic for response
+	CaPath        string `yaml:"caPath"`        //ca path
 }
 
 type MQTTClient struct {
@@ -95,11 +96,19 @@ func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
 	fmt.Println("clientid:", o.ClientID)
 	fmt.Println("topicPrefix:", o.TopicPrefix)
 	fmt.Println("responseTopic:", o.ResponseTopic)
+	fmt.Println("caPath:", o.CaPath)
 
 	return o, err
 }
 
 func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *MQTTClient {
+	cer, err := tls.LoadX509KeyPair(o.CaPath+"/mqtt.lianmi.cloud.crt", o.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		logger.Error("LoadX509KeyPair error ", zap.Error(err))
+		return nil
+	}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
 	mc := &MQTTClient{
 		o:                   o,
 		Addr:                o.Addr,
@@ -115,6 +124,7 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMq
 		CleanSession:        true,
 		FileStorePath:       "memory",
 		WillTopic:           "", //no will topic.
+		TLSConfig:           tlsConfig,
 		nsqMqttChannel:      channel,
 		logger:              logger.With(zap.String("type", "mqtt.Client")),
 		redisPool:           redisPool,

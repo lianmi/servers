@@ -18,6 +18,7 @@ mqtt:
   clientid: dispatcher-client01
   topicprefix: lianmi/cloud/device/
   responseTopic: lianmi/cloud/dispatcher
+  caPath: /root/developments/lianmi/work/basic/mosquitto/ca
 redis:
   addr: redis:6379
   password: 

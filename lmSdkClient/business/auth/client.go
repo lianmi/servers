@@ -149,7 +149,6 @@ func (c *Client) callApi(ctx context.Context, r *request, bodyString string) (da
 	return data, nil
 }
 
-
 func (c *Client) NewAuthService() *AuthService {
 	return &AuthService{c: c}
 }

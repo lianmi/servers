@@ -21,6 +21,7 @@ mqtt:
   clientid: dispatcher-client01
   topicprefix: lianmi/cloud/device/
   responseTopic: lianmi/cloud/dispatcher
+  caPath: /Users/mac/developments/lianmi/ssl/mqtt/lianmica/ca
 redis:
   addr: 127.0.0.1:6379
   password: 
