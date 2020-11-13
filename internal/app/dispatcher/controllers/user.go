@@ -248,7 +248,7 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 
 	username, err := pc.service.GetUsernameByMobile(mobile)
 	if err != nil {
-		code = codes.ERROR
+		code = codes.NONEREGISTER
 	} else {
 		code = codes.SUCCESS
 	}

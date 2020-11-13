@@ -5,6 +5,7 @@ const (
 	SUCCESS       = 200
 	ERROR         = 500
 	InvalidParams = 400
+	NONEREGISTER  = 404
 
 	ErrExistTag        = 10001
 	ErrNotExistTag     = 10002
@@ -15,7 +16,7 @@ const (
 	ErrAuthToken             = 20003
 	ErrAuth                  = 20004
 
-	ErrNotDigital     = 29001
+	ErrNotDigital   = 29001
 	ErrWrongSmsCode = 29002
 
 	ErrExistUser         = 30001
