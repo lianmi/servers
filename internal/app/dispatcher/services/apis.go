@@ -37,6 +37,9 @@ type LianmiApisService interface {
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
 
+	//根据手机号返回注册账号
+	GetUsernameByMobile(mobile string) (string, error)
+
 	// GetUser(ID uint64) (*models.User, error)
 
 	//检测校验码是否正确
@@ -80,7 +83,10 @@ type LianmiApisService interface {
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
 	//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
+	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
+
+	//普通用户佣金返佣统计
+	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
 
 	PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error)
 
@@ -88,6 +94,9 @@ type LianmiApisService interface {
 
 	//Grpc 获取用户信息
 	GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error)
+
+	//提交佣金提现申请(商户，用户)
+	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -137,6 +146,10 @@ func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User
 //生成短信校验码
 func (s *DefaultLianmiApisService) GenerateSmsCode(mobile string) bool {
 	return s.Repository.GenerateSmsCode(mobile)
+}
+
+func (s *DefaultLianmiApisService) GetUsernameByMobile(mobile string) (string, error) {
+	return s.Repository.GetUsernameByMobile(mobile)
 }
 
 //检测校验码是否正确
@@ -336,14 +349,43 @@ func (s *DefaultLianmiApisService) SubmitGrade(req *Auth.SubmitGradeReq) error {
 }
 
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-func (s *DefaultLianmiApisService) GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error) {
-	// return s.Repository.GetBusinessMembership(isRebate)
+func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error) {
+	return s.Repository.GetBusinessMembership(businessUsername)
 
-	//TODO
-	return nil, nil
 }
 
+//普通用户佣金返佣统计
+func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.GetMembershipResp, error) {
+	return s.Repository.GetNormalMembership(username)
+}
+
+//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
+//payForUsername  - 要给谁付费
 func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error) {
+
+	//查询当前用户是否已经付费
+	userInfo, err := s.Repository.GetUserByUsername(username)
+	if err != nil {
+		s.logger.Error("s.Repository.GetUserByUsername 错误", zap.Error(err))
+		return nil, err
+	}
+	//用户不是付费会员
+	if userInfo.State == 0 || userInfo.State == 2 {
+		return nil, errors.Wrap(err, "用户不是付费会员")
+	}
+
+	//查询payForUsername是否已经付费
+	payForUsernameInfo, err := s.Repository.GetUserByUsername(payForUsername)
+	if err != nil {
+		s.logger.Error("s.Repository.GetUserByUsername 错误", zap.Error(err))
+		return nil, err
+	}
+
+	//接受支付的用户已经是付费会员， 不能重复支付
+	if payForUsernameInfo.State == 1 {
+		return nil, errors.Wrapf(err, "接受支付的用户已经是付费会员[%s]", payForUsername)
+	}
+
 	//通过grpc获取发起购买者用户的余额
 	//当前用户的代币余额
 	getUserBalanceResp, err := s.walletGrpcClientSvc.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
@@ -425,4 +467,9 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 		//交易时间
 		Time: resp.Time,
 	}, nil
+}
+
+//提交佣金提现申请(商户，用户)
+func (s *DefaultLianmiApisService) SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error) {
+	return s.Repository.SubmitCommssionWithdraw(username, yearMonth)
 }

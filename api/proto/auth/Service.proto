@@ -442,41 +442,67 @@ message ConfirmPayForMembershipResp {
 }
 
 message GetBusinessMembershipReq {
-    //是否支付了佣金
-    bool isRebate = 1;
+     //商户账号
+    string businessUsername =1;
 }
 
-message MembershipMonth {
+message BusinessUserMonthDetail {
+    //商户账号
+    string businessUsername =1;
+
     //月份 2020-10
-    string month =1;
+    string yearMonth =2;
 
     //当月付费会员数量
-    int32 count =2;
+    fixed64 total =3;
 
     //当月返佣金额
-    double rebateMoney =3;
+    double totalCommission =4;
 
     //是否已经返佣
-    bool isRebate =4;
-
-    //返佣的区块高度
-    fixed64 blockNumber =5;
-
-    //返佣的交易哈希
-    string txHash =6;
+    bool isRebate =5;
 
     //操作时间
-    fixed64 rebateTime =7;
+    fixed64 rebateTime =6;
 }
 
 
 message GetBusinessMembershipResp {
-    // 会员总数
-    int32  totalmembers =1;
+    // 当前商户所属的会员总数
+    fixed64  totalmembers =1;
 
     //按月统计付费会员 
-    repeated MembershipMonth members=2;
+    repeated BusinessUserMonthDetail details=2;
 }
+
+
+message GetMembershipReq{
+    //用户账号
+    string username =1;
+}
+
+message UserMonthCommssionDetail{
+    //用户账号
+    string username =1;
+
+    //月份 2020-10
+    string yearMonth =2;
+
+    //当月返佣金额
+    double totalCommission =3;
+
+    //是否已经返佣
+    bool isRebate =4;
+
+    //操作时间
+    fixed64 rebateTime =5;
+}
+
+message GetMembershipResp{
+    //按月统计佣金记录 
+    repeated UserMonthCommssionDetail commssionDetails=1;
+}
+
 
 message NormalMembershipReq {
     //页数,第几页
@@ -542,4 +568,24 @@ message AskedWithdrawReq {
 
 message  AskedWithdrawResp {
     
+}
+
+//商户或用户申请分销佣金返现  
+message CommssionWithdrawReq {
+    //用户账号
+    string username =1;
+
+    //月份 2020-10
+    string yearMonth =2;
+}
+
+message CommssionWithdrawResp {
+    //用户账号
+    string username =1;
+
+    //月份 2020-10
+    string yearMonth =2;
+
+    //对应月份的返佣
+    double commssionAmount =3;
 }

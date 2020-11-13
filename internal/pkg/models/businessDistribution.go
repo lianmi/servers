@@ -38,12 +38,13 @@ func (d *Distribution) BeforeUpdate(scope *gorm.Scope) error {
 /*
 会员付费后佣金分配详情表
 一旦归属于某个商户的用户付费，就需要根据BusinessDistribution表的归属商户以及如果向后3级用户账号非空（1，2，3）的话新增佣金数据
-UsCommissioner:  One:35, Two:10, Three: 5
+Commission:  One:35, Two:10, Three: 5
 */
 type Commission struct {
 	ID               uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`                   //自动递增id
 	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
 	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`                      //修改时间
+	YearMonth        string  `json:"year_month" validate:"required"`                              //统计月份
 	UsernameLevel    string  `json:"username_level" validate:"required"`                          //One Two Three
 	BusinessUsername string  `json:"business_username" validate:"required"`                       //归属的商户注册账号id
 	Amount           float64 `json:"amount" validate:"required"`                                  //会员费用金额，单位是人民币
@@ -67,8 +68,7 @@ func (c *Commission) BeforeUpdate(scope *gorm.Scope) error {
 }
 
 /*
-普通用户的佣金月统计, 每日凌晨4点由定时任务生成(一旦返佣或IsClose=true不再统计), 用户佣金由经过用户申请，由平台转账到用户钱包
-当redis里的时间戳更改才统计，这样就节省资源
+普通用户的佣金月统计, IsClose=true不再统计
 */
 type NormalUserCommissionStatistics struct {
 	ID              uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
@@ -77,8 +77,8 @@ type NormalUserCommissionStatistics struct {
 	Username        string  `json:"username" validate:"required"`              //用户户注册账号id
 	YearMonth       string  `json:"year_month" validate:"required"`            //统计月份
 	TotalCommission float64 `json:"total_commission" validate:"required"`      //本月佣金合计
-	IsClose         bool    `json:"is_close" `                                 //是否关闭自动统计，true-已关闭， 不会自动统计
 	IsRebate        bool    `json:"is_rebate" `                                //是否支付了佣金
+	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"`  //平台操作返佣时间
 }
 
 //BeforeCreate CreatedAt赋值
@@ -101,6 +101,7 @@ type BusinessCommission struct {
 	ID                 uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`                   //自动递增id
 	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
 	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`                      //修改时间
+	YearMonth          string  `json:"year_month" validate:"required"`                              //统计月份
 	MembershipUsername string  `json:"membership_username" validate:"required"`                     //缴费的会员账户
 	BusinessUsername   string  `json:"business_username" validate:"required"`                       //归属的商户注册账号id
 	Amount             float64 `json:"amount" validate:"required"`                                  //会员费用金额，单位是人民币
@@ -124,8 +125,7 @@ func (bc *BusinessCommission) BeforeUpdate(scope *gorm.Scope) error {
 }
 
 /*
-商户的所属月统计(统计BusinessCommission表), 一旦返佣后就不统计, 商户佣金由经过商户申请，由平台转账到商户钱包
-当redis里的时间戳更改才统计，这样就节省资源
+商户的所属月统计(统计BusinessCommission表)
 */
 type BusinessUserCommissionStatistics struct {
 	ID               uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
@@ -136,6 +136,7 @@ type BusinessUserCommissionStatistics struct {
 	Total            int64   `json:"total" validate:"required"`                 //下属用户总数
 	TotalCommission  float64 `json:"total_commission" validate:"required"`      //本月佣金合计
 	IsRebate         bool    `json:"is_rebate" `                                //是否支付了佣金
+	RebateTime       int64   `form:"rebate_time" json:"rebate_time,omitempty"`  //平台操作返佣时间
 }
 
 //BeforeCreate CreatedAt赋值
@@ -146,6 +147,34 @@ func (b *BusinessUserCommissionStatistics) BeforeCreate(scope *gorm.Scope) error
 
 //BeforeUpdate UpdatedAt赋值
 func (b *BusinessUserCommissionStatistics) BeforeUpdate(scope *gorm.Scope) error {
+	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+/*
+佣金提现申请表 CommissionWithdraw
+佣金由经过申请，由平台转账到用户或商户钱包
+*/
+type CommissionWithdraw struct {
+	ID                 uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`     //自动递增id
+	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
+	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`        //修改时间
+	Username           string  `json:"username" validate:"required"`                  //用户或商户注册账号id
+	UserType           int     `form:"user_type" json:"user_type" binding:"required"` //用户类型 1-普通，2-商户
+	YearMonth          string  `json:"year_month" validate:"required"`                //统计月份
+	WithdrawCommission float64 `json:"withdraw_commission,omitempty"`                 //佣金提现金额
+	IsConfirm          bool    `json:"is_confirm,omitempty" `                         //审核是否通过
+	OpUsername         string  `json:"op_username,omitempty"`                         //操作员账号，谁审核
+}
+
+//BeforeCreate CreatedAt赋值
+func (bw *CommissionWithdraw) BeforeCreate(scope *gorm.Scope) error {
+	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (bw *CommissionWithdraw) BeforeUpdate(scope *gorm.Scope) error {
 	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

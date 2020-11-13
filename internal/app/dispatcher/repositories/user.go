@@ -30,6 +30,16 @@ func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
 	return
 }
 
+func (s *MysqlLianmiRepository) GetUserByUsername(username string) (p *models.User, err error) {
+	p = new(models.User)
+	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+		//记录找不到也会触发错误
+		return nil, errors.Wrapf(err, "GetUserByUsername error[username=%s]", username)
+	}
+	s.logger.Debug("GetUserByUsername run...")
+	return
+}
+
 /*
 封号
 1. 将users表的用户记录的state设置为3
@@ -894,6 +904,16 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 	_ = err
 
 	return true
+}
+
+func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, error) {
+	var err error
+	p := new(models.User)
+	if err = s.db.Model(&models.User{Mobile: mobile}).First(p).Error; err != nil {
+		return "", errors.Wrapf(err, "Get username  error[mobile=%s]", mobile)
+	} else {
+		return p.Username, nil
+	}
 }
 
 //检测校验码是否正确

@@ -21,6 +21,7 @@ import (
 
 type LianmiRepository interface {
 	GetUser(ID uint64) (p *models.User, err error)
+	GetUserByUsername(username string) (p *models.User, err error)
 	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
@@ -65,6 +66,8 @@ type LianmiRepository interface {
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
 
+	GetUsernameByMobile(mobile string) (string, error)
+
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
 
@@ -103,10 +106,15 @@ type LianmiRepository interface {
 
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
-	GetBusinessMembership(isRebate bool) (*Auth.GetBusinessMembershipResp, error)
+	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
+
+	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
 
 	//会员付费成功后，需要新增4条佣金记录
 	SaveToCommission(username, orderID, content string, blockNumber uint64, txHash string) error
+
+	//提交佣金提现申请(商户，用户)
+	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 }
 
 type MysqlLianmiRepository struct {

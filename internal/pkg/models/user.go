@@ -35,7 +35,7 @@ type User struct {
 	Bank                   string  `form:"bank" json:"bank,omitempty" `                                           //开户银行
 	TrueName               string  `form:"true_name" json:"true_name,omitempty" `                                 //用户实名
 	Deleted                int     `form:"deteled" json:"deteled"`                                                //软删除开关
-	State                  int     `form:"state" json:"state"`                                                    //状态 0-预审核 1-付费用户(至少充值一次) 2-封号
+	State                  int     `form:"state" json:"state"`                                                    //状态 0-预审核 1-付费用户(购买会员) 2-封号
 	Extend                 string  `form:"extend" json:"extend,omitempty" `                                       //扩展字段
 	ContactPerson          string  `form:"contact_person" json:"contact_person" binding:"required"`               //联系人
 	Introductory           string  `gorm:"type:longtext;null" form:"introductory" json:"introductory,omitempty" ` //商店简介 Text文本类型

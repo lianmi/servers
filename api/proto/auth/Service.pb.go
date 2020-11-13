@@ -2373,8 +2373,8 @@ type GetBusinessMembershipReq struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	//是否支付了佣金
-	IsRebate bool `protobuf:"varint,1,opt,name=isRebate,proto3" json:"isRebate,omitempty"`
+	//商户账号
+	BusinessUsername string `protobuf:"bytes,1,opt,name=businessUsername,proto3" json:"businessUsername,omitempty"`
 }
 
 func (x *GetBusinessMembershipReq) Reset() {
@@ -2409,36 +2409,34 @@ func (*GetBusinessMembershipReq) Descriptor() ([]byte, []int) {
 	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{37}
 }
 
-func (x *GetBusinessMembershipReq) GetIsRebate() bool {
+func (x *GetBusinessMembershipReq) GetBusinessUsername() string {
 	if x != nil {
-		return x.IsRebate
+		return x.BusinessUsername
 	}
-	return false
+	return ""
 }
 
-type MembershipMonth struct {
+type BusinessUserMonthDetail struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	//商户账号
+	BusinessUsername string `protobuf:"bytes,1,opt,name=businessUsername,proto3" json:"businessUsername,omitempty"`
 	//月份 2020-10
-	Month string `protobuf:"bytes,1,opt,name=month,proto3" json:"month,omitempty"`
+	YearMonth string `protobuf:"bytes,2,opt,name=yearMonth,proto3" json:"yearMonth,omitempty"`
 	//当月付费会员数量
-	Count int32 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	Total uint64 `protobuf:"fixed64,3,opt,name=total,proto3" json:"total,omitempty"`
 	//当月返佣金额
-	RebateMoney float64 `protobuf:"fixed64,3,opt,name=rebateMoney,proto3" json:"rebateMoney,omitempty"`
+	TotalCommission float64 `protobuf:"fixed64,4,opt,name=totalCommission,proto3" json:"totalCommission,omitempty"`
 	//是否已经返佣
-	IsRebate bool `protobuf:"varint,4,opt,name=isRebate,proto3" json:"isRebate,omitempty"`
-	//返佣的区块高度
-	BlockNumber uint64 `protobuf:"fixed64,5,opt,name=blockNumber,proto3" json:"blockNumber,omitempty"`
-	//返佣的交易哈希
-	TxHash string `protobuf:"bytes,6,opt,name=txHash,proto3" json:"txHash,omitempty"`
+	IsRebate bool `protobuf:"varint,5,opt,name=isRebate,proto3" json:"isRebate,omitempty"`
 	//操作时间
-	RebateTime uint64 `protobuf:"fixed64,7,opt,name=rebateTime,proto3" json:"rebateTime,omitempty"`
+	RebateTime uint64 `protobuf:"fixed64,6,opt,name=rebateTime,proto3" json:"rebateTime,omitempty"`
 }
 
-func (x *MembershipMonth) Reset() {
-	*x = MembershipMonth{}
+func (x *BusinessUserMonthDetail) Reset() {
+	*x = BusinessUserMonthDetail{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_api_proto_auth_Service_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2446,13 +2444,13 @@ func (x *MembershipMonth) Reset() {
 	}
 }
 
-func (x *MembershipMonth) String() string {
+func (x *BusinessUserMonthDetail) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MembershipMonth) ProtoMessage() {}
+func (*BusinessUserMonthDetail) ProtoMessage() {}
 
-func (x *MembershipMonth) ProtoReflect() protoreflect.Message {
+func (x *BusinessUserMonthDetail) ProtoReflect() protoreflect.Message {
 	mi := &file_api_proto_auth_Service_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2464,54 +2462,47 @@ func (x *MembershipMonth) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MembershipMonth.ProtoReflect.Descriptor instead.
-func (*MembershipMonth) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusinessUserMonthDetail.ProtoReflect.Descriptor instead.
+func (*BusinessUserMonthDetail) Descriptor() ([]byte, []int) {
 	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{38}
 }
 
-func (x *MembershipMonth) GetMonth() string {
+func (x *BusinessUserMonthDetail) GetBusinessUsername() string {
 	if x != nil {
-		return x.Month
+		return x.BusinessUsername
 	}
 	return ""
 }
 
-func (x *MembershipMonth) GetCount() int32 {
+func (x *BusinessUserMonthDetail) GetYearMonth() string {
 	if x != nil {
-		return x.Count
+		return x.YearMonth
+	}
+	return ""
+}
+
+func (x *BusinessUserMonthDetail) GetTotal() uint64 {
+	if x != nil {
+		return x.Total
 	}
 	return 0
 }
 
-func (x *MembershipMonth) GetRebateMoney() float64 {
+func (x *BusinessUserMonthDetail) GetTotalCommission() float64 {
 	if x != nil {
-		return x.RebateMoney
+		return x.TotalCommission
 	}
 	return 0
 }
 
-func (x *MembershipMonth) GetIsRebate() bool {
+func (x *BusinessUserMonthDetail) GetIsRebate() bool {
 	if x != nil {
 		return x.IsRebate
 	}
 	return false
 }
 
-func (x *MembershipMonth) GetBlockNumber() uint64 {
-	if x != nil {
-		return x.BlockNumber
-	}
-	return 0
-}
-
-func (x *MembershipMonth) GetTxHash() string {
-	if x != nil {
-		return x.TxHash
-	}
-	return ""
-}
-
-func (x *MembershipMonth) GetRebateTime() uint64 {
+func (x *BusinessUserMonthDetail) GetRebateTime() uint64 {
 	if x != nil {
 		return x.RebateTime
 	}
@@ -2523,10 +2514,10 @@ type GetBusinessMembershipResp struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// 会员总数
-	Totalmembers int32 `protobuf:"varint,1,opt,name=totalmembers,proto3" json:"totalmembers,omitempty"`
+	// 当前商户所属的会员总数
+	Totalmembers uint64 `protobuf:"fixed64,1,opt,name=totalmembers,proto3" json:"totalmembers,omitempty"`
 	//按月统计付费会员
-	Members []*MembershipMonth `protobuf:"bytes,2,rep,name=members,proto3" json:"members,omitempty"`
+	Details []*BusinessUserMonthDetail `protobuf:"bytes,2,rep,name=details,proto3" json:"details,omitempty"`
 }
 
 func (x *GetBusinessMembershipResp) Reset() {
@@ -2561,16 +2552,196 @@ func (*GetBusinessMembershipResp) Descriptor() ([]byte, []int) {
 	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{39}
 }
 
-func (x *GetBusinessMembershipResp) GetTotalmembers() int32 {
+func (x *GetBusinessMembershipResp) GetTotalmembers() uint64 {
 	if x != nil {
 		return x.Totalmembers
 	}
 	return 0
 }
 
-func (x *GetBusinessMembershipResp) GetMembers() []*MembershipMonth {
+func (x *GetBusinessMembershipResp) GetDetails() []*BusinessUserMonthDetail {
 	if x != nil {
-		return x.Members
+		return x.Details
+	}
+	return nil
+}
+
+type GetMembershipReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+}
+
+func (x *GetMembershipReq) Reset() {
+	*x = GetMembershipReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetMembershipReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMembershipReq) ProtoMessage() {}
+
+func (x *GetMembershipReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMembershipReq.ProtoReflect.Descriptor instead.
+func (*GetMembershipReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *GetMembershipReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type UserMonthCommssionDetail struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//月份 2020-10
+	YearMonth string `protobuf:"bytes,2,opt,name=yearMonth,proto3" json:"yearMonth,omitempty"`
+	//当月返佣金额
+	TotalCommission float64 `protobuf:"fixed64,3,opt,name=totalCommission,proto3" json:"totalCommission,omitempty"`
+	//是否已经返佣
+	IsRebate bool `protobuf:"varint,4,opt,name=isRebate,proto3" json:"isRebate,omitempty"`
+	//操作时间
+	RebateTime uint64 `protobuf:"fixed64,5,opt,name=rebateTime,proto3" json:"rebateTime,omitempty"`
+}
+
+func (x *UserMonthCommssionDetail) Reset() {
+	*x = UserMonthCommssionDetail{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UserMonthCommssionDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserMonthCommssionDetail) ProtoMessage() {}
+
+func (x *UserMonthCommssionDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserMonthCommssionDetail.ProtoReflect.Descriptor instead.
+func (*UserMonthCommssionDetail) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *UserMonthCommssionDetail) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *UserMonthCommssionDetail) GetYearMonth() string {
+	if x != nil {
+		return x.YearMonth
+	}
+	return ""
+}
+
+func (x *UserMonthCommssionDetail) GetTotalCommission() float64 {
+	if x != nil {
+		return x.TotalCommission
+	}
+	return 0
+}
+
+func (x *UserMonthCommssionDetail) GetIsRebate() bool {
+	if x != nil {
+		return x.IsRebate
+	}
+	return false
+}
+
+func (x *UserMonthCommssionDetail) GetRebateTime() uint64 {
+	if x != nil {
+		return x.RebateTime
+	}
+	return 0
+}
+
+type GetMembershipResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//按月统计佣金记录
+	CommssionDetails []*UserMonthCommssionDetail `protobuf:"bytes,1,rep,name=commssionDetails,proto3" json:"commssionDetails,omitempty"`
+}
+
+func (x *GetMembershipResp) Reset() {
+	*x = GetMembershipResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetMembershipResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMembershipResp) ProtoMessage() {}
+
+func (x *GetMembershipResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMembershipResp.ProtoReflect.Descriptor instead.
+func (*GetMembershipResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetMembershipResp) GetCommssionDetails() []*UserMonthCommssionDetail {
+	if x != nil {
+		return x.CommssionDetails
 	}
 	return nil
 }
@@ -2597,7 +2768,7 @@ type NormalMembershipReq struct {
 func (x *NormalMembershipReq) Reset() {
 	*x = NormalMembershipReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[43]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2610,7 +2781,7 @@ func (x *NormalMembershipReq) String() string {
 func (*NormalMembershipReq) ProtoMessage() {}
 
 func (x *NormalMembershipReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[40]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[43]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2623,7 +2794,7 @@ func (x *NormalMembershipReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NormalMembershipReq.ProtoReflect.Descriptor instead.
 func (*NormalMembershipReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{40}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *NormalMembershipReq) GetPage() int32 {
@@ -2683,7 +2854,7 @@ type PerLevelSummary struct {
 func (x *PerLevelSummary) Reset() {
 	*x = PerLevelSummary{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[44]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2696,7 +2867,7 @@ func (x *PerLevelSummary) String() string {
 func (*PerLevelSummary) ProtoMessage() {}
 
 func (x *PerLevelSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[41]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[44]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2709,7 +2880,7 @@ func (x *PerLevelSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PerLevelSummary.ProtoReflect.Descriptor instead.
 func (*PerLevelSummary) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{41}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *PerLevelSummary) GetMonth() string {
@@ -2789,7 +2960,7 @@ type NormalMembershipResp struct {
 func (x *NormalMembershipResp) Reset() {
 	*x = NormalMembershipResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[45]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2802,7 +2973,7 @@ func (x *NormalMembershipResp) String() string {
 func (*NormalMembershipResp) ProtoMessage() {}
 
 func (x *NormalMembershipResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[42]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[45]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2815,7 +2986,7 @@ func (x *NormalMembershipResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NormalMembershipResp.ProtoReflect.Descriptor instead.
 func (*NormalMembershipResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{42}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *NormalMembershipResp) GetTotalPage() uint64 {
@@ -2841,7 +3012,7 @@ type AskedWithdrawReq struct {
 func (x *AskedWithdrawReq) Reset() {
 	*x = AskedWithdrawReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[43]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[46]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2854,7 +3025,7 @@ func (x *AskedWithdrawReq) String() string {
 func (*AskedWithdrawReq) ProtoMessage() {}
 
 func (x *AskedWithdrawReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[43]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[46]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2867,7 +3038,7 @@ func (x *AskedWithdrawReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskedWithdrawReq.ProtoReflect.Descriptor instead.
 func (*AskedWithdrawReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{43}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{46}
 }
 
 type AskedWithdrawResp struct {
@@ -2879,7 +3050,7 @@ type AskedWithdrawResp struct {
 func (x *AskedWithdrawResp) Reset() {
 	*x = AskedWithdrawResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_auth_Service_proto_msgTypes[44]
+		mi := &file_api_proto_auth_Service_proto_msgTypes[47]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2892,7 +3063,7 @@ func (x *AskedWithdrawResp) String() string {
 func (*AskedWithdrawResp) ProtoMessage() {}
 
 func (x *AskedWithdrawResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_auth_Service_proto_msgTypes[44]
+	mi := &file_api_proto_auth_Service_proto_msgTypes[47]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2905,7 +3076,131 @@ func (x *AskedWithdrawResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AskedWithdrawResp.ProtoReflect.Descriptor instead.
 func (*AskedWithdrawResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{44}
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{47}
+}
+
+//商户或用户申请分销佣金返现
+type CommssionWithdrawReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//月份 2020-10
+	YearMonth string `protobuf:"bytes,2,opt,name=yearMonth,proto3" json:"yearMonth,omitempty"`
+}
+
+func (x *CommssionWithdrawReq) Reset() {
+	*x = CommssionWithdrawReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[48]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CommssionWithdrawReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommssionWithdrawReq) ProtoMessage() {}
+
+func (x *CommssionWithdrawReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[48]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommssionWithdrawReq.ProtoReflect.Descriptor instead.
+func (*CommssionWithdrawReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *CommssionWithdrawReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CommssionWithdrawReq) GetYearMonth() string {
+	if x != nil {
+		return x.YearMonth
+	}
+	return ""
+}
+
+type CommssionWithdrawResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//用户账号
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	//月份 2020-10
+	YearMonth string `protobuf:"bytes,2,opt,name=yearMonth,proto3" json:"yearMonth,omitempty"`
+	//对应月份的返佣
+	CommssionAmount float64 `protobuf:"fixed64,3,opt,name=commssionAmount,proto3" json:"commssionAmount,omitempty"`
+}
+
+func (x *CommssionWithdrawResp) Reset() {
+	*x = CommssionWithdrawResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[49]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CommssionWithdrawResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommssionWithdrawResp) ProtoMessage() {}
+
+func (x *CommssionWithdrawResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[49]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommssionWithdrawResp.ProtoReflect.Descriptor instead.
+func (*CommssionWithdrawResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *CommssionWithdrawResp) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CommssionWithdrawResp) GetYearMonth() string {
+	if x != nil {
+		return x.YearMonth
+	}
+	return ""
+}
+
+func (x *CommssionWithdrawResp) GetCommssionAmount() float64 {
+	if x != nil {
+		return x.CommssionAmount
+	}
+	return 0
 }
 
 var File_api_proto_auth_Service_proto protoreflect.FileDescriptor
@@ -3177,32 +3472,56 @@ var file_api_proto_auth_Service_proto_rawDesc = []byte{
 	0x06, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x12,
 	0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61,
 	0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x06,
-	0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x36, 0x0a, 0x18, 0x47, 0x65, 0x74, 0x42, 0x75, 0x73,
+	0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x46, 0x0a, 0x18, 0x47, 0x65, 0x74, 0x42, 0x75, 0x73,
 	0x69, 0x6e, 0x65, 0x73, 0x73, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52,
-	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x08, 0x52, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x22, 0xd5,
-	0x01, 0x0a, 0x0f, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x4d, 0x6f, 0x6e,
-	0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x6d, 0x6f, 0x6e, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x05, 0x6d, 0x6f, 0x6e, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e,
-	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x20,
-	0x0a, 0x0b, 0x72, 0x65, 0x62, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x6e, 0x65, 0x79, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x01, 0x52, 0x0b, 0x72, 0x65, 0x62, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x6e, 0x65, 0x79,
-	0x12, 0x1a, 0x0a, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x18, 0x04, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x12, 0x20, 0x0a, 0x0b,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x05, 0x20, 0x01, 0x28,
-	0x06, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x16,
-	0x0a, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06,
-	0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x12, 0x1e, 0x0a, 0x0a, 0x72, 0x65, 0x62, 0x61, 0x74, 0x65,
-	0x54, 0x69, 0x6d, 0x65, 0x18, 0x07, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0a, 0x72, 0x65, 0x62, 0x61,
-	0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x22, 0x80, 0x01, 0x0a, 0x19, 0x47, 0x65, 0x74, 0x42, 0x75,
-	0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70,
-	0x52, 0x65, 0x73, 0x70, 0x12, 0x22, 0x0a, 0x0c, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x6d, 0x65, 0x6d,
-	0x62, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x74, 0x6f, 0x74, 0x61,
-	0x6c, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x12, 0x3f, 0x0a, 0x07, 0x6d, 0x65, 0x6d, 0x62,
-	0x65, 0x72, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x63, 0x6c, 0x6f, 0x75,
-	0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68,
-	0x2e, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x4d, 0x6f, 0x6e, 0x74, 0x68,
-	0x52, 0x07, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x22, 0x6f, 0x0a, 0x13, 0x4e, 0x6f, 0x72,
+	0x65, 0x71, 0x12, 0x2a, 0x0a, 0x10, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73,
+	0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x62, 0x75,
+	0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0xdf,
+	0x01, 0x0a, 0x17, 0x42, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x4d,
+	0x6f, 0x6e, 0x74, 0x68, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x12, 0x2a, 0x0a, 0x10, 0x62, 0x75,
+	0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73,
+	0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f,
+	0x6e, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d,
+	0x6f, 0x6e, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x06, 0x52, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x12, 0x28, 0x0a, 0x0f, 0x74, 0x6f,
+	0x74, 0x61, 0x6c, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x01, 0x52, 0x0f, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x08, 0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65,
+	0x12, 0x1e, 0x0a, 0x0a, 0x72, 0x65, 0x62, 0x61, 0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x06, 0x52, 0x0a, 0x72, 0x65, 0x62, 0x61, 0x74, 0x65, 0x54, 0x69, 0x6d, 0x65,
+	0x22, 0x88, 0x01, 0x0a, 0x19, 0x47, 0x65, 0x74, 0x42, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73,
+	0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x22,
+	0x0a, 0x0c, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x06, 0x52, 0x0c, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x6d, 0x65, 0x6d, 0x62, 0x65,
+	0x72, 0x73, 0x12, 0x47, 0x0a, 0x07, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x02, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e,
+	0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x42, 0x75, 0x73, 0x69, 0x6e,
+	0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x44, 0x65, 0x74, 0x61,
+	0x69, 0x6c, 0x52, 0x07, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x22, 0x2e, 0x0a, 0x10, 0x47,
+	0x65, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x71, 0x12,
+	0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0xba, 0x01, 0x0a, 0x18,
+	0x55, 0x73, 0x65, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x43, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72,
+	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72,
+	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74,
+	0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e,
+	0x74, 0x68, 0x12, 0x28, 0x0a, 0x0f, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x43, 0x6f, 0x6d, 0x6d, 0x69,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x01, 0x52, 0x0f, 0x74, 0x6f, 0x74,
+	0x61, 0x6c, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08,
+	0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x08, 0x52, 0x08,
+	0x69, 0x73, 0x52, 0x65, 0x62, 0x61, 0x74, 0x65, 0x12, 0x1e, 0x0a, 0x0a, 0x72, 0x65, 0x62, 0x61,
+	0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0a, 0x72, 0x65,
+	0x62, 0x61, 0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x22, 0x6f, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x4d,
+	0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x5a, 0x0a,
+	0x10, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e,
+	0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55,
+	0x73, 0x65, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x43, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f,
+	0x6e, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x52, 0x10, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x22, 0x6f, 0x0a, 0x13, 0x4e, 0x6f, 0x72,
 	0x6d, 0x61, 0x6c, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x52, 0x65, 0x71,
 	0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04,
 	0x70, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x02, 0x20,
@@ -3238,16 +3557,29 @@ var file_api_proto_auth_Service_proto_rawDesc = []byte{
 	0x6c, 0x53, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72,
 	0x79, 0x22, 0x12, 0x0a, 0x10, 0x41, 0x73, 0x6b, 0x65, 0x64, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72,
 	0x61, 0x77, 0x52, 0x65, 0x71, 0x22, 0x13, 0x0a, 0x11, 0x41, 0x73, 0x6b, 0x65, 0x64, 0x57, 0x69,
-	0x74, 0x68, 0x64, 0x72, 0x61, 0x77, 0x52, 0x65, 0x73, 0x70, 0x32, 0x55, 0x0a, 0x0a, 0x4c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x41, 0x75, 0x74, 0x68, 0x12, 0x47, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x55,
-	0x73, 0x65, 0x72, 0x12, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e,
-	0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52,
-	0x65, 0x71, 0x1a, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d,
-	0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x73,
-	0x70, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
-	0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61,
-	0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x68, 0x64, 0x72, 0x61, 0x77, 0x52, 0x65, 0x73, 0x70, 0x22, 0x50, 0x0a, 0x14, 0x43, 0x6f,
+	0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61, 0x77, 0x52,
+	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c,
+	0x0a, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x22, 0x7b, 0x0a, 0x15,
+	0x43, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61,
+	0x77, 0x52, 0x65, 0x73, 0x70, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d,
+	0x65, 0x12, 0x1c, 0x0a, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x12,
+	0x28, 0x0a, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75,
+	0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x01, 0x52, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73,
+	0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x32, 0x55, 0x0a, 0x0a, 0x4c, 0x69, 0x61,
+	0x6e, 0x6d, 0x69, 0x41, 0x75, 0x74, 0x68, 0x12, 0x47, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x55, 0x73,
+	0x65, 0x72, 0x12, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d,
+	0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65,
+	0x71, 0x1a, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69,
+	0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x73, 0x70,
+	0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c,
+	0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70,
+	0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3262,7 +3594,7 @@ func file_api_proto_auth_Service_proto_rawDescGZIP() []byte {
 	return file_api_proto_auth_Service_proto_rawDescData
 }
 
-var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*UserReq)(nil),                      // 0: cloud.lianmi.im.auth.UserReq
 	(*UserRsp)(nil),                      // 1: cloud.lianmi.im.auth.UserRsp
@@ -3302,40 +3634,46 @@ var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*ConfirmPayForMembershipReq)(nil),   // 35: cloud.lianmi.im.auth.ConfirmPayForMembershipReq
 	(*ConfirmPayForMembershipResp)(nil),  // 36: cloud.lianmi.im.auth.ConfirmPayForMembershipResp
 	(*GetBusinessMembershipReq)(nil),     // 37: cloud.lianmi.im.auth.GetBusinessMembershipReq
-	(*MembershipMonth)(nil),              // 38: cloud.lianmi.im.auth.MembershipMonth
+	(*BusinessUserMonthDetail)(nil),      // 38: cloud.lianmi.im.auth.BusinessUserMonthDetail
 	(*GetBusinessMembershipResp)(nil),    // 39: cloud.lianmi.im.auth.GetBusinessMembershipResp
-	(*NormalMembershipReq)(nil),          // 40: cloud.lianmi.im.auth.NormalMembershipReq
-	(*PerLevelSummary)(nil),              // 41: cloud.lianmi.im.auth.PerLevelSummary
-	(*NormalMembershipResp)(nil),         // 42: cloud.lianmi.im.auth.NormalMembershipResp
-	(*AskedWithdrawReq)(nil),             // 43: cloud.lianmi.im.auth.AskedWithdrawReq
-	(*AskedWithdrawResp)(nil),            // 44: cloud.lianmi.im.auth.AskedWithdrawResp
-	(*user.User)(nil),                    // 45: cloud.lianmi.im.user.User
-	(global.CustomerServiceType)(0),      // 46: cloud.lianmi.im.global.CustomerServiceType
-	(*wallet.RawDesc)(nil),               // 47: cloud.lianmi.im.wallet.RawDesc
+	(*GetMembershipReq)(nil),             // 40: cloud.lianmi.im.auth.GetMembershipReq
+	(*UserMonthCommssionDetail)(nil),     // 41: cloud.lianmi.im.auth.UserMonthCommssionDetail
+	(*GetMembershipResp)(nil),            // 42: cloud.lianmi.im.auth.GetMembershipResp
+	(*NormalMembershipReq)(nil),          // 43: cloud.lianmi.im.auth.NormalMembershipReq
+	(*PerLevelSummary)(nil),              // 44: cloud.lianmi.im.auth.PerLevelSummary
+	(*NormalMembershipResp)(nil),         // 45: cloud.lianmi.im.auth.NormalMembershipResp
+	(*AskedWithdrawReq)(nil),             // 46: cloud.lianmi.im.auth.AskedWithdrawReq
+	(*AskedWithdrawResp)(nil),            // 47: cloud.lianmi.im.auth.AskedWithdrawResp
+	(*CommssionWithdrawReq)(nil),         // 48: cloud.lianmi.im.auth.CommssionWithdrawReq
+	(*CommssionWithdrawResp)(nil),        // 49: cloud.lianmi.im.auth.CommssionWithdrawResp
+	(*user.User)(nil),                    // 50: cloud.lianmi.im.user.User
+	(global.CustomerServiceType)(0),      // 51: cloud.lianmi.im.global.CustomerServiceType
+	(*wallet.RawDesc)(nil),               // 52: cloud.lianmi.im.wallet.RawDesc
 }
 var file_api_proto_auth_Service_proto_depIdxs = []int32{
-	45, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
-	45, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
+	50, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
+	50, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
 	11, // 2: cloud.lianmi.im.auth.QueryShopsNearbyResp.shops:type_name -> cloud.lianmi.im.auth.Shop
-	46, // 3: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	46, // 4: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	51, // 3: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	51, // 4: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	15, // 5: cloud.lianmi.im.auth.QueryCustomerServiceResp.onlineCustomerServices:type_name -> cloud.lianmi.im.auth.CustomerServiceInfo
-	46, // 6: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	46, // 7: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	46, // 8: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	51, // 6: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	51, // 7: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	51, // 8: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	24, // 9: cloud.lianmi.im.auth.GradesPage.grades:type_name -> cloud.lianmi.im.auth.GradeInfo
 	26, // 10: cloud.lianmi.im.auth.GradesResp.pages:type_name -> cloud.lianmi.im.auth.GradesPage
 	29, // 11: cloud.lianmi.im.auth.AddGradesResp.info:type_name -> cloud.lianmi.im.auth.GradeTitleInfo
-	47, // 12: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
-	38, // 13: cloud.lianmi.im.auth.GetBusinessMembershipResp.members:type_name -> cloud.lianmi.im.auth.MembershipMonth
-	41, // 14: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
-	0,  // 15: cloud.lianmi.im.auth.LianmiAuth.GetUser:input_type -> cloud.lianmi.im.auth.UserReq
-	1,  // 16: cloud.lianmi.im.auth.LianmiAuth.GetUser:output_type -> cloud.lianmi.im.auth.UserRsp
-	16, // [16:17] is the sub-list for method output_type
-	15, // [15:16] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	52, // 12: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
+	38, // 13: cloud.lianmi.im.auth.GetBusinessMembershipResp.details:type_name -> cloud.lianmi.im.auth.BusinessUserMonthDetail
+	41, // 14: cloud.lianmi.im.auth.GetMembershipResp.commssionDetails:type_name -> cloud.lianmi.im.auth.UserMonthCommssionDetail
+	44, // 15: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
+	0,  // 16: cloud.lianmi.im.auth.LianmiAuth.GetUser:input_type -> cloud.lianmi.im.auth.UserReq
+	1,  // 17: cloud.lianmi.im.auth.LianmiAuth.GetUser:output_type -> cloud.lianmi.im.auth.UserRsp
+	17, // [17:18] is the sub-list for method output_type
+	16, // [16:17] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_auth_Service_proto_init() }
@@ -3801,7 +4139,7 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MembershipMonth); i {
+			switch v := v.(*BusinessUserMonthDetail); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3825,7 +4163,7 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NormalMembershipReq); i {
+			switch v := v.(*GetMembershipReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3837,7 +4175,7 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PerLevelSummary); i {
+			switch v := v.(*UserMonthCommssionDetail); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3849,7 +4187,7 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NormalMembershipResp); i {
+			switch v := v.(*GetMembershipResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3861,7 +4199,7 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AskedWithdrawReq); i {
+			switch v := v.(*NormalMembershipReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3873,7 +4211,67 @@ func file_api_proto_auth_Service_proto_init() {
 			}
 		}
 		file_api_proto_auth_Service_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PerLevelSummary); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NormalMembershipResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AskedWithdrawReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AskedWithdrawResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CommssionWithdrawReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CommssionWithdrawResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3891,7 +4289,7 @@ func file_api_proto_auth_Service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_auth_Service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   45,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

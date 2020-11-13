@@ -222,6 +222,41 @@ func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 	RespOk(c, http.StatusOK, code)
 }
 
+func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
+
+	code := codes.InvalidParams
+
+	mobile := c.Param("mobile")
+	pc.logger.Debug("GetUsernameByMobile start ...", zap.String("mobile", mobile))
+
+	//不是手机
+	if len(mobile) != 11 {
+		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
+
+		code = codes.ERROR
+		RespOk(c, http.StatusOK, code)
+		return
+	}
+
+	//不是全数字
+	if !conv.IsDigit(mobile) {
+		pc.logger.Warn("GetUsernameByMobile Is not Digit")
+		code = codes.ERROR
+		RespOk(c, http.StatusOK, code)
+		return
+	}
+
+	username, err := pc.service.GetUsernameByMobile(mobile)
+	if err != nil {
+		code = codes.ERROR
+	} else {
+		code = codes.SUCCESS
+	}
+	RespData(c, http.StatusOK, code, &Auth.ResetPasswordResp{
+		Username: username,
+	})
+}
+
 func (pc *LianmiApisController) ChanPassword(c *gin.Context) {
 	var mobile string
 	code := codes.InvalidParams

@@ -49,9 +49,10 @@ func CreateInitControllersFn(
 	pc *LianmiApisController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
-		r.POST("/register", pc.Register)              //注册用户
-		r.POST("/resetpassword", pc.ResetPassword)    //重置密码， 可以不登录
-		r.GET("/smscode/:mobile", pc.GenerateSmsCode) //根据手机生成短信注册码
+		r.POST("/register", pc.Register)                              //注册用户
+		r.POST("/resetpassword", pc.ResetPassword)                    //重置密码， 可以不登录
+		r.GET("/smscode/:mobile", pc.GenerateSmsCode)                 //根据手机生成短信注册码
+		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
 
 		//TODO 增加JWT中间件
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
@@ -319,6 +320,13 @@ func CreateInitControllersFn(
 
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 			membershipGroup.GET("/getbusinessmembership", pc.GetBusinessMembership)
+
+			//普通用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+			membershipGroup.GET("/getnormalmembership", pc.GetNormalMembership)
+
+			//提交佣金提现申请
+			membershipGroup.POST("/submitcommssionwithdraw", pc.SubmitCommssionWithdraw)
+
 		}
 
 		//=======客服模块==========/

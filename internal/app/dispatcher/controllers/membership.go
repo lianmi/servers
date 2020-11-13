@@ -26,7 +26,7 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
-		resp, err := pc.service.GetBusinessMembership(req.IsRebate)
+		resp, err := pc.service.GetBusinessMembership(req.BusinessUsername)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Get BusinessMembership failed")
@@ -106,4 +106,47 @@ func (pc *LianmiApisController) ConfirmPayForMembership(c *gin.Context) {
 			RespData(c, http.StatusOK, 200, resp)
 		}
 	}
+}
+
+func (pc *LianmiApisController) GetNormalMembership(c *gin.Context) {
+
+	var req Auth.GetMembershipReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+
+		resp, err := pc.service.GetNormalMembership(req.Username)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Get Membership failed")
+		} else {
+
+			RespData(c, http.StatusOK, 200, resp)
+		}
+	}
+}
+
+//提交佣金提现申请(商户，用户)
+func (pc *LianmiApisController) SubmitCommssionWithdraw(c *gin.Context) {
+
+	var req Auth.CommssionWithdrawReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if req.Username == "" || req.YearMonth == "" {
+			RespFail(c, http.StatusBadRequest, 400, "Submit Commssion Withdraw failed")
+		}
+
+		resp, err := pc.service.SubmitCommssionWithdraw(req.Username, req.YearMonth)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "Submit Commssion Withdraw failed")
+		} else {
+
+			RespData(c, http.StatusOK, 200, resp)
+		}
+	}
+
 }
