@@ -909,8 +909,9 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, error) {
 	var err error
 	p := new(models.User)
-	if err = s.db.Model(&models.User{Mobile: mobile}).First(p).Error; err != nil {
-		return "", errors.Wrapf(err, "Get username  error[mobile=%s]", mobile)
+	if err = s.db.Model(p).Where("mobile=?", mobile).First(p).Error; err != nil {
+		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
+		return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
 	} else {
 		return p.Username, nil
 	}
