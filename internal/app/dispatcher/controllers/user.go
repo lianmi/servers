@@ -62,6 +62,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			zap.String("user.ContactPerson", user.ContactPerson),
 			zap.Int("user.UserType", user.UserType),
 			zap.Int("user.Gender", user.Gender),
+			zap.String("user.ReferrerUsername", user.ReferrerUsername),
 		)
 
 		//初始化一些默认值及当期时间

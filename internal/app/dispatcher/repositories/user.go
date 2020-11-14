@@ -179,6 +179,13 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 				UsernameLevelTwo:   userLevelTwo,          //向后的二级, 即推荐人的推荐人
 				UsernameLevelThree: userLevelThree,        //向后的三级, 即推荐人的推荐人的推荐人
 			}
+			s.logger.Debug("distribution的值",
+				zap.String("Username", user.Username),
+				zap.String("BusinessUsername", belongBusinessUser),
+				zap.String("UsernameLevelOne", user.ReferrerUsername),
+				zap.String("UsernameLevelTwo", userLevelTwo),
+				zap.String("UsernameLevelThree", userLevelThree),
+			)
 
 			//使用事务同时增加Distribution数据
 			tx := s.base.GetTransaction()
