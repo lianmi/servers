@@ -172,7 +172,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 			userLevelThree, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userLevelTwo), "ReferrerUsername"))
 
 			//会员层级表
-			distribution := models.Distribution{
+			distribution := &models.Distribution{
 				Username:           user.Username,         //用户注册账号id
 				BusinessUsername:   belongBusinessUser,    //归属的商户注册账号id
 				UsernameLevelOne:   user.ReferrerUsername, //向后的一级, 即推荐人
