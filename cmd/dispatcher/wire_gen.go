@@ -7,7 +7,6 @@ package main
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
 	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
@@ -15,6 +14,7 @@ import (
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"
@@ -66,17 +66,7 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	nsqMqttChannel := channel.NewChannnel()
-	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger)
-	mqttOptions, err := mqtt.NewMQTTOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
-	httpOptions, err := http.NewOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqClient)
+	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool)
 	consulOptions, err := consul.NewOptions(viper)
 	if err != nil {
 		return nil, err
@@ -97,10 +87,6 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiAuthClient, err := grpcclients.NewAuthClient(client)
-	if err != nil {
-		return nil, err
-	}
 	lianmiOrderClient, err := grpcclients.NewOrderClient(client)
 	if err != nil {
 		return nil, err
@@ -109,7 +95,17 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiAuthClient, lianmiOrderClient, lianmiWalletClient)
+	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiOrderClient, lianmiWalletClient)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService)
+	mqttOptions, err := mqtt.NewMQTTOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
+	httpOptions, err := http.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
 	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService)
 	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)

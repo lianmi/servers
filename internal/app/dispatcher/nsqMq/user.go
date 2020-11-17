@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"strconv"
 
-	// "strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -291,7 +290,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		pUser.UpdatedAt = time.Now().UnixNano() / 1e6
 
-		if err := nc.SaveUser(pUser); err != nil {
+		if err := nc.service.SaveUser(pUser); err != nil {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Update user error[username=%d]", username)
@@ -533,7 +532,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := nc.SaveTag(pTag); err != nil {
+				if err := nc.service.SaveTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"
@@ -624,7 +623,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := nc.SaveTag(pTag); err != nil {
+				if err := nc.service.SaveTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"
@@ -681,7 +680,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				pTag.TagType = int(req.GetType())
 
 				//保存标签MarkTag
-				if err := nc.SaveTag(pTag); err != nil {
+				if err := nc.service.SaveTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "MarkTag error"

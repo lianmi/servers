@@ -44,7 +44,7 @@ func (nc *NsqClient) RunCron() {
 				teamUser.IsMute = false
 
 				//写入MySQL
-				if err := nc.SaveTeamUser(teamUser); err != nil {
+				if err := nc.service.SaveTeamUser(teamUser); err != nil {
 					nc.logger.Error("Save teamUser Error", zap.Error(err))
 					continue
 				}

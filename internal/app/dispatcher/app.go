@@ -6,7 +6,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
-	// "github.com/lianmi/servers/internal/pkg/transports/nsqclient"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

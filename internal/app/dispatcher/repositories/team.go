@@ -143,7 +143,10 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		Time:         uint64(time.Now().UnixNano() / 1e6),
 	}
 
-	s.nsqClient.BroadcastSystemMsgToAllDevices(eRsp, p.Owner, "")
+	//TODO
+	// s.nsqClient.BroadcastSystemMsgToAllDevices(eRsp, p.Owner, "")
+	_ = eRsp
+
 	return nil
 
 }
@@ -191,6 +194,104 @@ func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 		tx.Rollback()
 		return err
 	}
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
+//更新或增加群成员
+func (s *MysqlLianmiRepository) SaveTeamUser(pTeamUser *models.TeamUser) error {
+	//使用事务同时更新或增加群成员
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(pTeamUser).Error; err != nil {
+		s.logger.Error("更新TeamUser表失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
+//删除群成员
+func (s *MysqlLianmiRepository) DeleteTeamUser(teamID, username string) error {
+	where := models.TeamUser{TeamID: teamID, Username: username}
+	db := s.db.Where(&where).Delete(models.TeamUser{})
+	err := db.Error
+	if err != nil {
+		s.logger.Error("DeleteTeamUser", zap.Error(err))
+		return err
+	}
+	count := db.RowsAffected
+	s.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	return nil
+}
+
+//设置群管理员
+func (s *MysqlLianmiRepository) SetTeamManager(teamID, username string) error {
+	where := models.TeamUser{TeamID: teamID, Username: username}
+	db := s.db.Where(&where).Save(models.TeamUser{})
+	err := db.Error
+	if err != nil {
+		s.logger.Error("DeleteTeamUser", zap.Error(err))
+		return err
+	}
+	count := db.RowsAffected
+	s.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	return nil
+}
+
+// GetPages 分页返回数据
+func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+	db := s.db.Model(model).Where(model)
+	db = db.Where(where)
+	if len(orders) > 0 {
+		for _, order := range orders {
+			db = db.Order(order)
+		}
+	}
+	err := db.Count(totalCount).Error
+	if err != nil {
+		s.logger.Error("查询总数出错", zap.Error(err))
+		return err
+	}
+	if *totalCount == 0 {
+		return nil
+	}
+	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+}
+
+//分页获取群成员
+func (s *MysqlLianmiRepository) GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+	var teamUsers []*models.TeamUser
+	if err := s.GetPages(&models.TeamUser{TeamID: teamID}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+		s.logger.Error("获取群成员信息失败", zap.Error(err))
+	}
+	return teamUsers
+}
+
+//获取所有群组id， 返回一个切片
+func (s *MysqlLianmiRepository) GetTeams() []string {
+	var teamIDs []string
+	s.db.Model(&models.Team{}).Pluck("team_id", &teamIDs)
+	return teamIDs
+}
+
+//创建群
+func (s *MysqlLianmiRepository) SaveTeam(pTeam *models.Team) error {
+	//使用事务同时更新创建群数据
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(pTeam).Error; err != nil {
+		s.logger.Error("更新群team表失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+
 	//提交
 	tx.Commit()
 

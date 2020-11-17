@@ -11,8 +11,6 @@ import (
 	"strings"
 	"syscall"
 
-	// "context"
-
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -23,7 +21,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/orderservice/services"
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -59,7 +56,7 @@ type NsqClient struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	service   services.OrderService
+	service   services.OrderService //订单服务
 
 	//定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 	handleFuncMap map[uint32]func(payload *models.Message) error
@@ -146,7 +143,6 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 		logger.Error("init Producer error:", zap.Error(err))
 		return nil
 	}
-
 
 	logger.Info("启动Nsq生产者成功")
 
@@ -261,7 +257,7 @@ func (nc *NsqClient) ProcessRecvPayload() {
 				zap.Uint16("businessType:", businessType),         // 业务类型
 				zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
 				zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
-				zap.String("Target:", msg.GetTarget()),            // 接收者, 这里是自己，authService
+				zap.String("Target:", msg.GetTarget()),            // 接收者
 			)
 
 			//根据businessType以及businessSubType进行处理, func

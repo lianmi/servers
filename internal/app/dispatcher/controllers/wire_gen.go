@@ -7,7 +7,6 @@ package controllers
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/api/proto/auth"
 	"github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
@@ -20,7 +19,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, lc auth.LianmiAuthClient, oc order.LianmiOrderClient, wc wallet.LianmiWalletClient) (*LianmiApisController, error) {
+func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc order.LianmiOrderClient, wc wallet.LianmiWalletClient) (*LianmiApisController, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -33,7 +32,7 @@ func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, lc
 	if err != nil {
 		return nil, err
 	}
-	lianmiApisService := services.NewLianmiApisService(logger, sto, lc, oc, wc)
+	lianmiApisService := services.NewLianmiApisService(logger, sto, oc, wc)
 	lianmiApisController := NewLianmiApisController(logger, lianmiApisService)
 	return lianmiApisController, nil
 }

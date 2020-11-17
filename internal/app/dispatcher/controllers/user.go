@@ -160,6 +160,10 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
+		pc.logger.Debug("Binding JSON succeed",
+			zap.String("Mobile", req.Mobile),
+			zap.String("SmsCode", req.SmsCode))
+
 		//检测手机是数字
 		if !conv.IsDigit(req.Mobile) {
 			pc.logger.Error("Reset Password error, Mobile is not digital")

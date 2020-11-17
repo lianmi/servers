@@ -4,8 +4,6 @@ package repositories
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/pkg/channel"
-	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -17,8 +15,6 @@ var testProviderSet = wire.NewSet(
 	config.ProviderSet,
 	database.ProviderSet,
 	redis.ProviderSet,
-	nsqMq.ProviderSet,
-	channel.ProviderSet,
 	ProviderSet,
 )
 

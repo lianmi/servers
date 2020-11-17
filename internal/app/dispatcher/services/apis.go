@@ -92,26 +92,42 @@ type LianmiApisService interface {
 
 	ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error)
 
+	SaveUser(user *models.User) error
+
+	SaveTag(tag *models.Tag) error
+
 	//Grpc 获取用户信息
 	GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error)
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
+
+	SaveTeamUser(pTeamUser *models.TeamUser) error
+
+	GetTeams() []string
+
+	DeleteTeamUser(teamID, username string) error
+
+	SaveTeam(pTeam *models.Team) error
+
+	GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser
+
+	SaveFriend(pFriend *models.Friend) error
+
+	DeleteFriend(userID, friendUserID uint64) error
 }
 
 type DefaultLianmiApisService struct {
 	logger              *zap.Logger
 	Repository          repositories.LianmiRepository
-	authGrpcClientSvc   Auth.LianmiAuthClient     //auth的grpc client
 	orderGrpcClientSvc  Order.LianmiOrderClient   //order的grpc client
 	walletGrpcClientSvc Wallet.LianmiWalletClient //wallet的grpc client
 }
 
-func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, lc Auth.LianmiAuthClient, oc Order.LianmiOrderClient, wc Wallet.LianmiWalletClient) LianmiApisService {
+func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, oc Order.LianmiOrderClient, wc Wallet.LianmiWalletClient) LianmiApisService {
 	return &DefaultLianmiApisService{
 		logger:              logger.With(zap.String("type", "DefaultLianmiApisService")),
 		Repository:          repository,
-		authGrpcClientSvc:   lc,
 		orderGrpcClientSvc:  oc,
 		walletGrpcClientSvc: wc,
 	}
@@ -120,10 +136,8 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 func (s *DefaultLianmiApisService) GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error) {
 	s.logger.Debug("GetUser", zap.Uint64("ID", in.Id))
 
-	//从微服务获取用户数据
-	resp, err := s.authGrpcClientSvc.GetUser(ctx, in)
-
-	return resp, err
+	//TODO
+	return nil, nil
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
@@ -158,7 +172,6 @@ func (s *DefaultLianmiApisService) CheckSmsCode(mobile, smscode string) bool {
 }
 
 func (s *DefaultLianmiApisService) Register(user *models.User) (string, error) {
-	// var username string
 	var err error
 	if err = s.Repository.Register(user); err != nil {
 		return "", errors.Wrap(err, "Register user error")
@@ -472,4 +485,40 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 //提交佣金提现申请(商户，用户)
 func (s *DefaultLianmiApisService) SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error) {
 	return s.Repository.SubmitCommssionWithdraw(username, yearMonth)
+}
+
+func (s *DefaultLianmiApisService) SaveTeamUser(pTeamUser *models.TeamUser) error {
+	return s.Repository.SaveTeamUser(pTeamUser)
+}
+
+func (s *DefaultLianmiApisService) SaveFriend(pFriend *models.Friend) error {
+	return s.Repository.SaveFriend(pFriend)
+}
+
+func (s *DefaultLianmiApisService) DeleteFriend(userID, friendUserID uint64) error {
+	return s.Repository.DeleteFriend(userID, friendUserID)
+}
+
+func (s *DefaultLianmiApisService) GetTeams() []string {
+	return s.Repository.GetTeams()
+}
+
+func (s *DefaultLianmiApisService) SaveTeam(pTeam *models.Team) error {
+	return s.Repository.SaveTeam(pTeam)
+}
+
+func (s *DefaultLianmiApisService) DeleteTeamUser(teamID, username string) error {
+	return s.Repository.DeleteTeamUser(teamID, username)
+}
+
+func (s *DefaultLianmiApisService) GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+	return s.Repository.GetTeamUsers(teamID, PageNum, PageSize, total, where)
+}
+
+func (s *DefaultLianmiApisService) SaveUser(user *models.User) error {
+	return s.Repository.SaveUser(user)
+}
+
+func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
+	return s.Repository.SaveTag(tag)
 }

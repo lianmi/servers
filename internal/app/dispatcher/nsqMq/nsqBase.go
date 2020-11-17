@@ -1,7 +1,6 @@
 package nsqMq
 
 import (
-	// "encoding/hex"
 	"encoding/json"
 	"strings"
 
@@ -14,13 +13,14 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
-	// "github.com/pkg/errors"
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/randtool"
 
 	"github.com/nsqio/go-nsq"
 
@@ -57,10 +57,17 @@ type NsqClient struct {
 	Producer  *nsqProducer    // 生产者
 	consumers []*nsq.Consumer // 消费者
 
-	logger    *zap.Logger
-	redisPool *redis.Pool
-	db        *gorm.DB
+	service services.LianmiApisService
+
+	logger        *zap.Logger
+	redisPool     *redis.Pool
+	db            *gorm.DB
+	handleFuncMap map[uint32]func(payload *models.Message) error //定义key=cmdid的处理func，当收到消息后，从此map里查出对应的处理方法
 }
+
+var (
+	msgFromDispatcherChan = make(chan *models.Message, 10)
+)
 
 func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	var (
@@ -145,8 +152,7 @@ func initProducer(addr string) (*nsqProducer, error) {
 	return &nsqProducer{producer}, nil
 }
 
-// func NewNsqClient(o *NsqOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *NsqClient {
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *NsqClient {
+func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger, ps services.LianmiApisService) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
@@ -156,7 +162,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 
 	logger.Info("启动Nsq生产者成功")
 
-	return &NsqClient{
+	nsqClient := &NsqClient{
 		o:              o,
 		nsqMqttChannel: channel,
 		Producer:       p,
@@ -164,12 +170,84 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 		logger:         logger.With(zap.String("type", "dispatcher.nsq")),
 		redisPool:      redisPool,
 		db:             db,
+		service:        ps,
+		handleFuncMap:  make(map[uint32]func(payload *models.Message) error),
 	}
+
+	//注册每个业务子类型的处理方法
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 1)] = nsqClient.HandleGetUsers          //1-1 获取用户资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 2)] = nsqClient.HandleUpdateUserProfile //1-2 修改用户资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 5)] = nsqClient.HandleMarkTag           //1-5 打标签
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 2)] = nsqClient.HandleSignOut        //登出处理程序
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 4)] = nsqClient.HandleKick           //Kick处理程序
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 6)] = nsqClient.HandleAddSlaveDevice //Kick处理程序
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 7)] = nsqClient.HandleAuthorizeCode  //2-7 从设备申请授权码
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 10)] = nsqClient.HandleGetAllDevices //向服务端查询所有主从设备列表
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(6, 1)] = nsqClient.HandleSync //6-1 发起同步请求
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 1)] = nsqClient.HandleFriendRequest       //3-1 好友请求发起与处理
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 5)] = nsqClient.HandleDeleteFriend        //3-5 好友请求发起与处理
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 6)] = nsqClient.HandleUpdateFriend        //3-6 刷新好友资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 8)] = nsqClient.HandleGetFriends          //3-8 增量同步好友列表
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 9)] = nsqClient.HandleWatchRequest        //3-9 关注商户
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 10)] = nsqClient.HandleCancelWatchRequest //3-11 取消关注商户
+
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 1)] = nsqClient.HandleCreateTeam          //4-1 创建群组
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 2)] = nsqClient.HandleGetTeamMembers      //4-2 获取群组成员
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 3)] = nsqClient.HandleGetTeam             //4-3 查询群信息
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 4)] = nsqClient.HandleInviteTeamMembers   //4-4 邀请用户加群
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 5)] = nsqClient.HandleRemoveTeamMembers   //4-5 删除群组成员
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 6)] = nsqClient.HandleAcceptTeamInvite    //4-6 接受群邀请
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 7)] = nsqClient.HandleRejectTeamInvitee   //4-7 拒绝群邀请
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 8)] = nsqClient.HandleApplyTeam           //4-8 主动申请加群
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 9)] = nsqClient.HandlePassTeamApply       //4-9 批准加群申请
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 10)] = nsqClient.HandleRejectTeamApply    //4-10 否决加群申请
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 11)] = nsqClient.HandleUpdateTeam         //4-11 更新群组信息
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 13)] = nsqClient.HandleLeaveTeam          //4-13 退群
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 14)] = nsqClient.HandleAddTeamManagers    //4-14 设置群管理员
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 15)] = nsqClient.HandleRemoveTeamManagers //4-15 撤销群管理员
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 18)] = nsqClient.HandleMuteTeam           //4-18 设置群禁言模式
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 19)] = nsqClient.HandleMuteTeamMember     //4-19 设置群成员禁言
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 20)] = nsqClient.HandleSetNotifyType      //4-20 用户设置群消息通知方式
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 21)] = nsqClient.HandleUpdateMyInfo       //4-21 用户设置其在群里的资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 22)] = nsqClient.HandleUpdateMemberInfo   //4-22 管理员设置群成员资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 24)] = nsqClient.HandlePullTeamMembers    //4-24 获取指定群组成员
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 25)] = nsqClient.HandleGetMyTeams         //4-25 增量同步群组信息
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 26)] = nsqClient.HandleCheckTeamInvite    //4-26 管理员审核用户入群申请
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 27)] = nsqClient.HandleGetTeamMembersPage //4-27 分页获取群成员信息
+
+	return nsqClient
 
 }
 
 func (nc *NsqClient) Application(name string) {
 	nc.app = name
+}
+
+/*
+判断redis是否存在键值，如果没，则创建
+*/
+func (nc *NsqClient) RedisInit() {
+	var err error
+
+	nc.logger.Info("RedisInit start...")
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	isExists, _ := redis.Bool(redisConn.Do("EXISTS", "Teams"))
+	if !isExists {
+		teamIDs := nc.service.GetTeams()
+		for _, teamID := range teamIDs {
+			err = redisConn.Send("ZADD", "Teams", time.Now().UnixNano()/1e6, teamID)
+		}
+		redisConn.Flush()
+		nc.logger.Info("ZADD succeed", zap.Int("length of teamIDs ", len(teamIDs)))
+	}
+
+	_ = err
+
 }
 
 //启动Nsq实例
@@ -188,6 +266,12 @@ func (nc *NsqClient) Start() error {
 	}
 
 	nc.logger.Info("启动Nsq消费者 ==> Subscribe Topics 成功", zap.Strings("Topics", nc.topics))
+
+	//redis初始化
+	go nc.RedisInit()
+
+	//Go程，启动定时任务
+	go nc.RunCron()
 
 	for _, topic := range nc.topics {
 
@@ -389,6 +473,10 @@ func inArray(in string, exceptDeviceIDs []string) string {
 		}
 	}
 	return ""
+}
+
+func (nc *NsqClient) PrintRedisErr(err error) {
+	nc.logger.Error("Redis Error", zap.Error(err))
 }
 
 var ProviderSet = wire.NewSet(NewNsqOptions, NewNsqClient)

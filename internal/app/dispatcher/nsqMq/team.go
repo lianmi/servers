@@ -156,7 +156,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			pTeam.MuteType = 1   //None(1) - 所有人可发言
 			pTeam.InviteMode = 1 //邀请模式,初始为1
 
-			if err = nc.SaveTeam(pTeam); err != nil {
+			if err = nc.service.SaveTeam(pTeam); err != nil {
 				nc.logger.Error("Save CreateTeam Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到数据库"
@@ -1004,7 +1004,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 							continue
 						} else {
 							//删除此用户在群里的数据
-							if err := nc.DeleteTeamUser(teamID, removedUsername); err != nil {
+							if err := nc.service.DeleteTeamUser(teamID, removedUsername); err != nil {
 								nc.logger.Error("移除群成员失败", zap.Error(err))
 
 								//增加到无法移除列表
@@ -1299,7 +1299,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamUser.Street = userData.Street                             //街道
 			teamUser.Address = userData.Address                           //地址
 
-			if err := nc.SaveTeamUser(teamUser); err != nil {
+			if err := nc.service.SaveTeamUser(teamUser); err != nil {
 				nc.logger.Error("更新teamUser失败", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("更新teamUser失败[Username=%s]", username)
@@ -1779,7 +1779,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.Street = userData.Street                             //街道
 				teamUser.Address = userData.Address                           //地址
 
-				nc.SaveTeamUser(teamUser)
+				nc.service.SaveTeamUser(teamUser)
 
 				/*
 					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -2086,7 +2086,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.Street = userData.Street                             //街道
 			teamUser.Address = userData.Address                           //地址
 
-			nc.SaveTeamUser(teamUser)
+			nc.service.SaveTeamUser(teamUser)
 
 			handledMsg := fmt.Sprintf("管理员: %s 同意 %s 入群申请", opUser.Nick, userData.Nick)
 
@@ -2549,7 +2549,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			}
 
 			//保存到MySQL
-			nc.SaveTeam(teamInfo)
+			nc.service.SaveTeam(teamInfo)
 
 			//更新redis
 			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
@@ -2755,7 +2755,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 					} else {
 
 						//删除此用户在群里的数据
-						if err := nc.DeleteTeamUser(teamID, username); err != nil {
+						if err := nc.service.DeleteTeamUser(teamID, username); err != nil {
 							nc.logger.Error("移除群成员失败", zap.Error(err))
 							errorCode = http.StatusBadRequest //错误码，400
 							errorMsg = fmt.Sprintf("移除群成员失败")
@@ -3000,7 +3000,7 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 							//将用户设置为管理员
 							managerUser.TeamMemberType = 2 //管理员
 
-							if err := nc.SaveTeamUser(managerUser); err != nil {
+							if err := nc.service.SaveTeamUser(managerUser); err != nil {
 								nc.logger.Error("SaveTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
@@ -3244,7 +3244,7 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							//撤销管理员
 							managerUser.TeamMemberType = 3 //普通成员
 
-							if err := nc.SaveTeamUser(managerUser); err != nil {
+							if err := nc.service.SaveTeamUser(managerUser); err != nil {
 								nc.logger.Error("SaveTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
@@ -3477,7 +3477,7 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			}
 
 			//写入MySQL
-			if err = nc.SaveTeam(teamInfo); err != nil {
+			if err = nc.service.SaveTeam(teamInfo); err != nil {
 				nc.logger.Error("Save Team Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到Team"
@@ -3698,7 +3698,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				curTeamUser.Mutedays = int(req.GetMutedays())
 
 				//写入MySQL
-				if err = nc.SaveTeamUser(curTeamUser); err != nil {
+				if err = nc.service.SaveTeamUser(curTeamUser); err != nil {
 					nc.logger.Error("Save curTeamUser Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "无法保存到TeamUser"
@@ -3909,7 +3909,7 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 
 			teamUser.NotifyType = int(req.GetNotifyType())
 			//写入MySQL
-			if err = nc.SaveTeamUser(teamUser); err != nil {
+			if err = nc.service.SaveTeamUser(teamUser); err != nil {
 				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
@@ -4057,7 +4057,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			}
 
 			//写入MySQL
-			if err = nc.SaveTeamUser(teamUser); err != nil {
+			if err = nc.service.SaveTeamUser(teamUser); err != nil {
 				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
@@ -4257,7 +4257,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				}
 
 				//写入MySQL
-				if err = nc.SaveTeamUser(teamUser); err != nil {
+				if err = nc.service.SaveTeamUser(teamUser); err != nil {
 					nc.logger.Error("Save teamUser Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "无法保存到teamUser"
@@ -5015,7 +5015,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		}
 
 		var total uint64
-		teamUsers := nc.GetTeamUsers(teamID, int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		teamUsers := nc.service.GetTeamUsers(teamID, int(req.GetPage()), int(req.GetPageSize()), &total, maps)
 		nc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {

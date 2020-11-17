@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"time"
 
@@ -9,14 +9,8 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	// Wallet "github.com/lianmi/servers/api/proto/wallet"
-	// User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
-	// "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
-	// "github.com/pkg/errors"
 	"go.uber.org/zap"
-	// "github.com/lianmi/servers/util/dateutil"
 )
 
 type LianmiRepository interface {
@@ -32,6 +26,10 @@ type LianmiRepository interface {
 	GetUserRoles(where interface{}) []*models.Role
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 	GetUserAvatar(where interface{}, sel string) string
+
+	SaveUser(user *models.User) error
+
+	SaveTag(tag *models.Tag) error
 
 	//获取用户ID
 	GetUserID(where interface{}) uint64
@@ -115,22 +113,39 @@ type LianmiRepository interface {
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
+
+	SaveTeamUser(pTeamUser *models.TeamUser) error
+
+	GetTeams() []string
+
+	SaveTeam(pTeam *models.Team) error
+
+	DeleteTeamUser(teamID, username string) error
+
+	SetTeamManager(teamID, username string) error
+
+	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error
+
+	GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser
+
+	SaveFriend(pFriend *models.Friend) error
+
+	DeleteFriend(userID, friendUserID uint64) error
 }
 
 type MysqlLianmiRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	nsqClient *nsqMq.NsqClient
-	base      *BaseRepository
+	// nsqClient *nsqMq.NsqClient
+	base *BaseRepository
 }
 
-func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, nc *nsqMq.NsqClient) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
 	return &MysqlLianmiRepository{
 		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,
 		redisPool: redisPool,
-		nsqClient: nc,
 		base:      NewBaseRepository(logger, db),
 	}
 }
@@ -162,7 +177,7 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.SetBusinessType(uint32(2))
 		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatccher", time.Now().UnixNano()/1e6)
 
 		//构造负载数据
 		clients := make([]*Auth.DeviceInfo, 0)
@@ -190,13 +205,17 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
-			s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-		}
+
+		//TODO
+		/*
+			topic := "Auth.Frontend"
+			rawData, _ := json.Marshal(targetMsg)
+			if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
+				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			} else {
+				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+			}
+		*/
 	}
 
 	return nil

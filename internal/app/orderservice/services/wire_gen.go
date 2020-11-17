@@ -61,15 +61,11 @@ func CreateApisService(cf string, sto repositories.OrderRepository) (OrderServic
 	if err != nil {
 		return nil, err
 	}
-	lianmiAuthClient, err := grpcclients.NewApisClient(client)
-	if err != nil {
-		return nil, err
-	}
 	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
 	if err != nil {
 		return nil, err
 	}
-	orderService := NewApisService(logger, sto, pool, lianmiAuthClient, lianmiWalletClient)
+	orderService := NewApisService(logger, sto, pool, lianmiWalletClient)
 	return orderService, nil
 }
 

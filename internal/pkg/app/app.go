@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/google/wire"
-	authNsq "github.com/lianmi/servers/internal/app/authservice/nsqMq"
 	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	dispatcherNsq "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
@@ -25,7 +24,6 @@ type Application struct {
 	httpServer          *http.Server
 	grpcServer          *grpc.Server
 	dispatcherNsqClient *dispatcherNsq.NsqClient
-	authNsqClient       *authNsq.NsqClient
 	chatNsqClient       *chatNsq.NsqClient
 	orderNsqClient      *orderNsq.NsqClient
 	walletNsqClient     *walletNsq.NsqClient
@@ -55,14 +53,6 @@ func NsqOption(nc *dispatcherNsq.NsqClient) Option {
 	return func(app *Application) error {
 		nc.Application(app.name)
 		app.dispatcherNsqClient = nc
-		return nil
-	}
-}
-
-func AuthNsqOption(kbc *authNsq.NsqClient) Option {
-	return func(app *Application) error {
-		kbc.Application(app.name)
-		app.authNsqClient = kbc
 		return nil
 	}
 }
@@ -128,12 +118,6 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.authNsqClient != nil {
-		if err := a.authNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "authservice nsq backend client start error")
-		}
-	}
-
 	if a.chatNsqClient != nil {
 		if err := a.chatNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "chatservice nsq backend client start error")
@@ -183,12 +167,6 @@ func (a *Application) AwaitSignal() {
 		if a.grpcServer != nil {
 			if err := a.grpcServer.Stop(); err != nil {
 				a.logger.Warn("stop grpc server error", zap.Error(err))
-			}
-		}
-
-		if a.authNsqClient != nil {
-			if err := a.authNsqClient.Stop(); err != nil {
-				a.logger.Warn("stop authservice  nsq client error", zap.Error(err))
 			}
 		}
 

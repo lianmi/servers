@@ -5,7 +5,6 @@ package main
 import (
 	"github.com/google/wire"
 
-	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
 	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
@@ -13,6 +12,7 @@ import (
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/app"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
 	"github.com/lianmi/servers/internal/pkg/database"

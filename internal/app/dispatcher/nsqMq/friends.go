@@ -25,7 +25,7 @@ import (
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
-	
+
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/common"
@@ -266,7 +266,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.UserID = userID_A
 						pFriendA.FriendUserID = userID_B
 						pFriendA.FriendUsername = userB
-						if err := nc.SaveFriend(pFriendA); err != nil {
+						if err := nc.service.SaveFriend(pFriendA); err != nil {
 							nc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
@@ -277,7 +277,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.UserID = userID_B
 						pFriendB.FriendUserID = userID_A
 						pFriendB.FriendUsername = userA
-						if err := nc.SaveFriend(pFriendB); err != nil {
+						if err := nc.service.SaveFriend(pFriendB); err != nil {
 							nc.logger.Error("Save Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
@@ -538,7 +538,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.UserID = userIDA
 					pFriendA.FriendUserID = userIDB
 					pFriendA.FriendUsername = userB
-					if err := nc.SaveFriend(pFriendA); err != nil {
+					if err := nc.service.SaveFriend(pFriendA); err != nil {
 						nc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
@@ -549,7 +549,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.UserID = userIDB
 					pFriendB.FriendUserID = userIDA
 					pFriendB.FriendUsername = userA
-					if err := nc.SaveFriend(pFriendB); err != nil {
+					if err := nc.service.SaveFriend(pFriendB); err != nil {
 						nc.logger.Error("Save Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
@@ -837,8 +837,8 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		userID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "ID"))
 		targetUserID, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "ID"))
 
-		nc.DeleteFriend(userID, targetUserID)
-		nc.DeleteFriend(targetUserID, userID)
+		nc.service.DeleteFriend(userID, targetUserID)
+		nc.service.DeleteFriend(targetUserID, userID)
 
 		//更新redis的sync:{用户账号} friendsAt 时间戳
 		redisConn.Do("HSET",
@@ -1029,7 +1029,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 
 		}
 
-		if err := nc.SaveFriend(pFriend); err != nil {
+		if err := nc.service.SaveFriend(pFriend); err != nil {
 			nc.logger.Error("更新好友 失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("更新好友 失败[username=%s]", targetUsername)
@@ -1442,16 +1442,4 @@ COMPLETE:
 	_ = err
 	return nil
 
-}
-
-//判断in是否在设备列表里，如果在，则返回in，如果不在，则返回 空
-func inArray(in string, exceptDeviceIDs []string) string {
-	if len(exceptDeviceIDs) > 0 {
-		for _, exceptDeviceID := range exceptDeviceIDs {
-			if in == exceptDeviceID {
-				return in
-			}
-		}
-	}
-	return ""
 }

@@ -2,4 +2,4 @@ package grpcclients
 
 import "github.com/google/wire"
 
-var ProviderSet = wire.NewSet(NewAuthClient, NewWalletClient, NewOrderClient)
+var ProviderSet = wire.NewSet(NewWalletClient, NewOrderClient)

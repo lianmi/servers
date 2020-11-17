@@ -7,8 +7,6 @@ package repositories
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/pkg/channel"
-	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -46,16 +44,10 @@ func CreateLianmirRepository(f string) (LianmiRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	nsqOptions, err := nsqMq.NewNsqOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	nsqMqttChannel := channel.NewChannnel()
-	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger)
-	lianmiRepository := NewMysqlLianmiRepository(logger, db, pool, nsqClient)
+	lianmiRepository := NewMysqlLianmiRepository(logger, db, pool)
 	return lianmiRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, nsqMq.ProviderSet, channel.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)

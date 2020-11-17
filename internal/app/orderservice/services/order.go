@@ -2,17 +2,11 @@ package services
 
 import (
 	"context"
-	// "fmt"
-	// "time"
-
-	Auth "github.com/lianmi/servers/api/proto/auth"
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
-	"github.com/lianmi/servers/internal/app/orderservice/repositories"
-	// LMCommon "github.com/lianmi/servers/internal/common"
-	"github.com/lianmi/servers/internal/pkg/models"
-	// "github.com/pkg/errors"
 
 	"github.com/gomodule/redigo/redis"
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/app/orderservice/repositories"
+	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
 
@@ -28,16 +22,14 @@ type DefaultApisService struct {
 	logger     *zap.Logger
 	Repository repositories.OrderRepository
 	redisPool  *redis.Pool
-	authSvc    Auth.LianmiAuthClient
 	walletSvc  Wallet.LianmiWalletClient
 }
 
-func NewApisService(logger *zap.Logger, repository repositories.OrderRepository, redisPool *redis.Pool, authSvc Auth.LianmiAuthClient, walletSvc Wallet.LianmiWalletClient) OrderService {
+func NewApisService(logger *zap.Logger, repository repositories.OrderRepository, redisPool *redis.Pool, walletSvc Wallet.LianmiWalletClient) OrderService {
 	return &DefaultApisService{
 		logger:     logger.With(zap.String("type", "OrderService")),
 		Repository: repository,
 		redisPool:  redisPool,
-		authSvc:    authSvc,
 		walletSvc:  walletSvc,
 	}
 }

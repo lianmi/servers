@@ -241,7 +241,7 @@ func (nc *NsqClient) ProcessRecvPayload() {
 				zap.Uint16("businessType:", businessType),         // 业务类型
 				zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
 				zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
-				zap.String("Target:", msg.GetTarget()),            // 接收者, 这里是自己，authService
+				zap.String("Target:", msg.GetTarget()),            // 接收者
 			)
 
 			//根据businessType以及businessSubType进行处理, func

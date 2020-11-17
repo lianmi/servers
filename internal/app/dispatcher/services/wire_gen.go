@@ -53,10 +53,6 @@ func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (Lian
 	if err != nil {
 		return nil, err
 	}
-	lianmiAuthClient, err := grpcclients.NewAuthClient(client)
-	if err != nil {
-		return nil, err
-	}
 	lianmiOrderClient, err := grpcclients.NewOrderClient(client)
 	if err != nil {
 		return nil, err
@@ -65,7 +61,7 @@ func CreateLianmiApisService(cf string, sto repositories.LianmiRepository) (Lian
 	if err != nil {
 		return nil, err
 	}
-	lianmiApisService := NewLianmiApisService(logger, sto, lianmiAuthClient, lianmiOrderClient, lianmiWalletClient)
+	lianmiApisService := NewLianmiApisService(logger, sto, lianmiOrderClient, lianmiWalletClient)
 	return lianmiApisService, nil
 }
 

@@ -1,4 +1,4 @@
-apps = 'authservice' 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
+apps = 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
  
 .PHONY: run
 
