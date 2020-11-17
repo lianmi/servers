@@ -430,6 +430,7 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 
 //启动一个go程，读取multichannel, 并发送到nsq通道
 func (nc *NsqClient) Multichannel() {
+	nc.logger.Info("Multichannel start...")
 	run := true
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
@@ -444,10 +445,10 @@ func (nc *NsqClient) Multichannel() {
 			topic := "Auth.Frontend"
 			rawData, _ := json.Marshal(msg)
 			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				nc.logger.Info("Message succeed send to Nsq", zap.String("topic", topic))
 				return
 			} else {
-				nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+				nc.logger.Error("Failed to send message to Nsq", zap.Error(err))
 			}
 
 		}
