@@ -23,6 +23,7 @@ type LianmiApisService interface {
 	Register(user *models.User) (string, error)
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
+	GetUser(id uint64) (*Auth.UserRsp, error)
 
 	//检测用户登录
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
@@ -40,8 +41,6 @@ type LianmiApisService interface {
 
 	//根据手机号返回注册账号
 	GetUsernameByMobile(mobile string) (string, error)
-
-	// GetUser(ID uint64) (*models.User, error)
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
@@ -96,8 +95,6 @@ type LianmiApisService interface {
 	SaveUser(user *models.User) error
 
 	SaveTag(tag *models.Tag) error
-
-	GetUser(id uint64) (*Auth.UserRsp, error)
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
