@@ -21,8 +21,8 @@ import (
 )
 
 type ValidCodeReq struct {
-	Mobile string `form:"mobile" json:"mobile" binding:"required"`
-	Code   string `form:"code" json:"code" binding:"required"`
+	Mobile  string `form:"mobile" json:"mobile" binding:"required"`
+	SmsCode string `form:"smscode" json:"smscode" binding:"required"`
 }
 
 type RespSuccess struct {
@@ -186,7 +186,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 
 		pc.logger.Debug("ResetPassword 传参  ",
 			zap.String("Mobile", req.Mobile),
-			zap.String("Code", req.SmsCode),
+			zap.String("SmsCode", req.SmsCode),
 			zap.String("Password", req.Password),
 		)
 
@@ -388,14 +388,14 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 			pc.logger.Error("Mobile is empty")
 			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Mobile")
 		}
-		if req.Code == "" {
-			pc.logger.Error("Code is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Code")
+		if req.SmsCode == "" {
+			pc.logger.Error("SmsCode is empty")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段SmsCode")
 		}
 
 		pc.logger.Debug("ValidateCode",
 			zap.String("Mobile", req.Mobile),
-			zap.String("Code", req.Code))
+			zap.String("SmsCode", req.SmsCode))
 
 		//检测手机是数字
 		if !conv.IsDigit(req.Mobile) {
@@ -415,8 +415,8 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 		}
 
 		//检测校验码是否正确
-		if pc.service.CheckSmsCode(req.Mobile, req.Code) {
-			pc.logger.Debug("ValidateCode, Code is valid")
+		if pc.service.CheckSmsCode(req.Mobile, req.SmsCode) {
+			pc.logger.Debug("ValidateCode, SmsCode is valid")
 			code = codes.SUCCESS
 			RespData(c, http.StatusOK, code, &RespSuccess{
 				Success: true,
@@ -424,11 +424,11 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 			})
 
 		} else {
-			pc.logger.Error("ValidateCode, Code is invalid")
+			pc.logger.Error("ValidateCode, SmsCode is invalid")
 			code = codes.SUCCESS
 			RespData(c, http.StatusOK, code, &RespSuccess{
 				Success: false,
-				Message: "Code is wrong",
+				Message: "SmsCode is invalid",
 			})
 		}
 
