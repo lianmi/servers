@@ -286,16 +286,13 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	sel := "id"
-	where := models.User{Mobile: mobile}
-	err = s.base.First(&where, &user, sel)
+	if err = s.db.Model(user).Where(&models.User{
+		Mobile: mobile,
+	}).First(user).Error; err != nil {
+		return errors.Wrapf(err, "Query user error[mobile=%s]", mobile)
+	}
 	//记录不存在错误(RecordNotFound)，返回false
 	if gorm.IsRecordNotFoundError(err) {
-		return err
-	}
-	//其他类型的错误，写下日志，返回false
-	if err != nil {
-		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
 		return err
 	}
 

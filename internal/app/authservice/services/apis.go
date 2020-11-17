@@ -20,7 +20,7 @@ type AuthService interface {
 	GetUserRoles(username string) []*models.Role
 
 	//检测用户登录
-	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+	// CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
@@ -36,10 +36,10 @@ type AuthService interface {
 	// GetUser(ID uint64) (*models.User, error)
 
 	//检测校验码是否正确
-	CheckSmsCode(mobile, smscode string) bool
+	// CheckSmsCode(mobile, smscode string) bool
 
 	//修改密码
-	ChanPassword(username string, req *Auth.ChanPasswordReq) error
+	// ChanPassword(username string, req *Auth.ChanPasswordReq) error
 
 	//授权新创建的群组
 	ApproveTeam(teamID string) error
@@ -146,9 +146,9 @@ func (s *DefaultLianmiAuthService) GenerateSmsCode(mobile string) bool {
 }
 
 //检测校验码是否正确
-func (s *DefaultLianmiAuthService) CheckSmsCode(mobile, smscode string) bool {
-	return s.Repository.CheckSmsCode(mobile, smscode)
-}
+// func (s *DefaultLianmiAuthService) CheckSmsCode(mobile, smscode string) bool {
+// 	return s.Repository.CheckSmsCode(mobile, smscode)
+// }
 
 func (s *DefaultLianmiAuthService) Register(user *models.User) (string, error) {
 	// var username string
@@ -178,10 +178,10 @@ func (s *DefaultLianmiAuthService) Register(user *models.User) (string, error) {
 }
 
 //修改密码
-func (s *DefaultLianmiAuthService) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
+// func (s *DefaultLianmiAuthService) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
 
-	return s.Repository.ChanPassword(username, req)
-}
+// 	return s.Repository.ChanPassword(username, req)
+// }
 
 func (s *DefaultLianmiAuthService) GetUserRoles(username string) []*models.Role {
 	where := models.Role{UserName: username}
@@ -189,10 +189,10 @@ func (s *DefaultLianmiAuthService) GetUserRoles(username string) []*models.Role 
 }
 
 //CheckUser 身份验证
-func (s *DefaultLianmiAuthService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+// func (s *DefaultLianmiAuthService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
 
-	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
-}
+// 	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
+// }
 
 func (s *DefaultLianmiAuthService) ExistUserByName(username string) bool {
 

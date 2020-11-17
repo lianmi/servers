@@ -21,14 +21,15 @@ import (
 
 type LianmiRepository interface {
 	GetUser(id uint64) (p *models.User, err error)
+
 	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
-	ChanPassword(username string, req *Auth.ChanPasswordReq) error
+	// ChanPassword(username string, req *Auth.ChanPasswordReq) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
 	GetUserRoles(where interface{}) []*models.Role
-	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+	// CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 	GetUserAvatar(where interface{}, sel string) string
 
 	//获取用户ID
@@ -63,9 +64,6 @@ type LianmiRepository interface {
 
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
-
-	//检测校验码是否正确
-	CheckSmsCode(mobile, smscode string) bool
 
 	//授权新创建的群组
 	ApproveTeam(teamID string) error
@@ -341,50 +339,6 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 
 }
 
-//修改密码
-func (s *MysqlLianmiRepository) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
-	var user models.User
-	sel := "id"
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	where := models.User{Username: username}
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		return err
-	}
-	//其他类型的错误，写下日志，返回false
-	if err != nil {
-		s.logger.Error("获取用户信息失败", zap.Error(err))
-		return err
-	}
-
-	userKey := fmt.Sprintf("userData:%s", username)
-	mobile, _ := redis.String(redisConn.Do("HGET", userKey, "Mobile"))
-	if !s.CheckSmsCode(mobile, req.SmsCode) {
-		s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", req.SmsCode))
-		return err
-	}
-
-	//判断旧密码
-	if req.Oldpasswd == user.Password {
-		user.Password = req.Password
-	}
-
-	tx := s.base.GetTransaction()
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("修改密码失败", zap.Error(err))
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	return nil
-
-}
-
 // 获取用户角色
 func (s *MysqlLianmiRepository) GetUserRoles(where interface{}) []*models.Role {
 	var roles []*models.Role
@@ -426,6 +380,7 @@ ZRANGEBYSCORE devices:lsj001 4 4
 HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS" protocolversion "2.0" sdkversion "3.0"
 
 */
+/*
 func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
 	var err error
 	redisConn := s.redisPool.Get()
@@ -596,6 +551,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 
 	return true
 }
+*/
 
 //向其它端发送此从设备MultiLoginEvent事件
 func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool, username, deviceID, curOs string, curClientType int, curLogonAt uint64) (err error) {
@@ -1013,36 +969,6 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 	_ = err
 
 	return true
-}
-
-//检测校验码是否正确
-func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
-	var err error
-	var isExists bool
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-	key := fmt.Sprintf("smscode:%s", mobile)
-
-	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
-		s.logger.Error("redisConn GET smscode Error", zap.Error(err))
-		return false
-	} else {
-		if !isExists {
-			s.logger.Warn("isExists=false, smscode is expire", zap.String("key", key))
-			return false
-		} else {
-			if smscodeInRedis, err := redis.String(redisConn.Do("GET", key)); err != nil {
-				s.logger.Error("redisConn GET smscode Error", zap.Error(err))
-				return false
-			} else {
-				s.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
-				return smscodeInRedis == smscode
-			}
-		}
-	}
-	return false
-
 }
 
 //获取空闲的在线客服id数组

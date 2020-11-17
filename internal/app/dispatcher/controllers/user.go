@@ -198,6 +198,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 			return
 		}
 
+		user.Mobile = req.Mobile
 		if err := pc.service.ResetPassword(req.Mobile, req.Password, &user); err == nil {
 			pc.logger.Debug("Reset Password success", zap.String("userName", user.Username))
 			code = codes.SUCCESS
