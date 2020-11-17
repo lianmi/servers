@@ -1,21 +1,5 @@
 version: "3.4"
 services:
-  lianmi-authservice:
-    image: lianmi/authservice:0.1
-    build: ./authservice
-    container_name: lianmi-authservice
-    restart: unless-stopped
-    volumes:
-      # - ${LOG_DIR}/authservice.log:/tmp/authservice.log
-      - /root/developments/lianmi/work/logs/authservice.log:/tmp/authservice.log
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.authservice
-
   lianmi-chatservice:
     image: lianmi/chatservice:0.1
     build: ./chatservice
