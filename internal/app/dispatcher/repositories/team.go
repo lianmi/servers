@@ -6,12 +6,12 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
-	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
@@ -143,10 +143,72 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		Time:         uint64(time.Now().UnixNano() / 1e6),
 	}
 
-	//TODO
-	// s.nsqClient.BroadcastSystemMsgToAllDevices(eRsp, p.Owner, "")
-	_ = eRsp
+	data, _ := proto.Marshal(eRsp)
+	//删除7天前的缓存系统消息
+	nTime := time.Now()
+	yesTime := nTime.AddDate(0, 0, -7).Unix()
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", p.Owner)
 
+	_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+
+	//Redis里缓存此系统消息,目的是6-1同步接口里的 systemmsgAt, 然后同步给用户
+	systemMsgAt := time.Now().UnixNano() / 1e6
+	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, eRsp.GetServerMsgId()); err != nil {
+		s.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	//系统消息具体内容
+	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", p.Owner, eRsp.GetServerMsgId())
+
+	_, err = redisConn.Do("HMSET",
+		systemMsgKey,
+		"Username", p.Owner,
+		"SystemMsgAt", systemMsgAt,
+		"Seq", eRsp.Seq,
+		"Data", data,
+	)
+
+	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+
+	//向toUser所有端发送
+	deviceListKey := fmt.Sprintf("devices:%s", p.Owner)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(p.Owner)
+		targetMsg.SetDeviceID(eDeviceID)
+		targetMsg.SetBusinessTypeName("Msg")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+
+		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		s.multiChan.NsqChan <- targetMsg
+
+		s.logger.Info("Broadcast Msg To AllDevices Succeed",
+			zap.String("Username:", p.Owner),
+			zap.String("DeviceID:", curDeviceKey),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+		_ = err
+
+	}
 	return nil
 
 }

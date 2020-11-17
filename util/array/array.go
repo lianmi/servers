@@ -137,7 +137,7 @@ func IsPhone(phoneStr string) bool {
 
 //取两个数字之间的随机数
 func RandInt(min, max int) int {
-	mrand.Seed(time.Now().UnixNano()/1e6)
+	mrand.Seed(time.Now().UnixNano() / 1e6)
 	randNum := mrand.Intn(max - min)
 	randNum = randNum + min
 	// fmt.Printf("rand is %v\n", randNum)
@@ -225,4 +225,16 @@ func ParseHourMinute(ts int64) (int64, error) {
 		return 0, err
 	}
 	return theTime.Unix(), nil
+}
+
+//判断in是否在设备列表里，如果在，则返回in，如果不在，则返回 空
+func InArray(in string, exceptDeviceIDs []string) string {
+	if len(exceptDeviceIDs) > 0 {
+		for _, exceptDeviceID := range exceptDeviceIDs {
+			if in == exceptDeviceID {
+				return in
+			}
+		}
+	}
+	return ""
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/array"
 	"github.com/lianmi/servers/util/randtool"
 
 	"github.com/nsqio/go-nsq"
@@ -442,7 +443,7 @@ func (nc *NsqClient) Multichannel() {
 			_ = sig
 			run = false
 		case msg := <-nc.multiChan.NsqChan: //从multiChan通道里读取数据
-			topic := "Auth.Frontend"
+			topic := msg.GetTarget()
 			rawData, _ := json.Marshal(msg)
 			if err := nc.Producer.Public(topic, rawData); err == nil {
 				nc.logger.Info("Message succeed send to Nsq", zap.String("topic", topic))
@@ -499,7 +500,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	//查询出当前在线所有主从设备
 	for _, eDeviceID := range deviceIDSliceNew {
-		if inArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
+		if array.InArray(eDeviceID, exceptDeviceIDs) == eDeviceID {
 			continue
 		}
 		targetMsg := &models.Message{}
@@ -552,18 +553,6 @@ func (nc *NsqClient) Stop() error {
 		consumer.Stop()
 	}
 	return nil
-}
-
-//判断in是否在设备列表里，如果在，则返回in，如果不在，则返回 空
-func inArray(in string, exceptDeviceIDs []string) string {
-	if len(exceptDeviceIDs) > 0 {
-		for _, exceptDeviceID := range exceptDeviceIDs {
-			if in == exceptDeviceID {
-				return in
-			}
-		}
-	}
-	return ""
 }
 
 func (nc *NsqClient) PrintRedisErr(err error) {

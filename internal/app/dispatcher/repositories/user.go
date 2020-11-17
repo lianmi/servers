@@ -840,7 +840,6 @@ func (s *MysqlLianmiRepository) SendKickedMsgToDevice(jwtToken, username, eDevic
 	kickMsg.SetJwtToken(jwtToken)
 	kickMsg.SetUserName(username)
 	kickMsg.SetDeviceID(string(eDeviceID))
-	// kickMsg.SetTaskID(uint32(taskId))
 	kickMsg.SetBusinessTypeName("Auth")
 	kickMsg.SetBusinessType(uint32(businessType))
 	kickMsg.SetBusinessSubType(uint32(businessSubType))

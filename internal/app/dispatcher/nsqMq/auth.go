@@ -37,9 +37,8 @@ import (
 */
 func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 	var err error
-	// var errorMsg string
 
-	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
+	//将此设备从在线列表里删除，然后更新对应用户的在线列表。
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -244,7 +243,7 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 	var errorMsg string
 	var data []byte
 
-	//TODO 将此设备从在线列表里删除，然后更新对应用户的在线列表。
+	//将此设备从在线列表里删除，然后更新对应用户的在线列表。
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 

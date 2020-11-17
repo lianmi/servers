@@ -29,7 +29,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	//TODO  修改用户状态 state
+	//修改用户状态 state
 	userKey := fmt.Sprintf("userData:%s", username)
 	state, _ := redis.Int(redisConn.Do("HGET", userKey, "State"))
 
