@@ -363,7 +363,6 @@ func (pc *LianmiApisController) SignOut(c *gin.Context) {
 //校验短信验证码
 func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 
-	var mobile string
 	code := codes.InvalidParams
 
 	var req ValidCodeReq
@@ -384,8 +383,25 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 			zap.String("Mobile", req.Mobile),
 			zap.String("Code", req.Code))
 
+		//检测手机是数字
+		if !conv.IsDigit(req.Mobile) {
+			pc.logger.Error("ValidateCode error, Mobile is not digital")
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			return
+		}
+
+		//不是手机
+		if len(req.Mobile) != 11 {
+			pc.logger.Warn("ValidateCode error", zap.Int("len", len(req.Mobile)))
+
+			code = codes.ERROR
+			RespOk(c, http.StatusOK, code)
+			return
+		}
+
 		//检测校验码是否正确
-		if pc.service.CheckSmsCode(mobile, req.Code) {
+		if pc.service.CheckSmsCode(req.Mobile, req.Code) {
 			pc.logger.Debug("ValidateCode, Code is valid")
 			code = codes.SUCCESS
 			RespData(c, http.StatusOK, code, &RespSuccess{
