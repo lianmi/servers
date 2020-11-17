@@ -19,12 +19,15 @@ import (
 	// "github.com/lianmi/servers/util/dateutil"
 )
 
-func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) GetUser(id uint64) (p *models.User, err error) {
 	p = new(models.User)
-	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.User{
+		ID: id,
+	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		// fmt.Println("GetUser first error:", err.Error())
-		return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
+		return nil, errors.Wrapf(err, "Get user error[id=%d]", id)
 	}
 	s.logger.Debug("GetUser run...")
 	return
@@ -32,7 +35,10 @@ func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
 
 func (s *MysqlLianmiRepository) GetUserByUsername(username string) (p *models.User, err error) {
 	p = new(models.User)
-	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.User{
+		Username: username,
+	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "GetUserByUsername error[username=%s]", username)
 	}
@@ -51,7 +57,9 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 	defer redisConn.Close()
 
 	p := new(models.User)
-	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+	if err = s.db.Model(p).Where(&models.User{
+		Username: username,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get user error[username=%s]", username)
 	}
 
@@ -104,7 +112,9 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 */
 func (s *MysqlLianmiRepository) DisBlockUser(username string) (p *models.User, err error) {
 	p = new(models.User)
-	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+	if err = s.db.Model(p).Where(&models.User{
+		Username: username,
+	}).First(p).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
 	}
 
@@ -916,7 +926,10 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, error) {
 	var err error
 	p := new(models.User)
-	if err = s.db.Model(p).Where("mobile=?", mobile).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.User{
+		Mobile: mobile,
+	}).First(p).Error; err != nil {
 		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
 		return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
 	} else {

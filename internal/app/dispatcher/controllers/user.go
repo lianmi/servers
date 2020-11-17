@@ -20,6 +20,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type ValidCodeReq struct {
+	Mobile string `form:"mobile" json:"mobile" binding:"required"`
+	Code   string `form:"code" json:"code" binding:"required"`
+}
+
+type RespSuccess struct {
+	Success bool   `form:"success" json:"success"`
+	Message string `form:"message" json:"message" `
+}
+
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("GetUser start ...")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
@@ -45,7 +55,7 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 
 }
 
-// 用户注册
+// 用户注册- 支持普通用户及商户注册
 func (pc *LianmiApisController) Register(c *gin.Context) {
 	var user models.User
 	code := codes.InvalidParams
@@ -56,13 +66,13 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册",
-			zap.String("user.Nick", user.Nick),
-			zap.String("user.Mobile", user.Mobile),
-			zap.String("user.SmsCode", user.SmsCode),
-			zap.String("user.ContactPerson", user.ContactPerson),
-			zap.Int("user.UserType", user.UserType),
-			zap.Int("user.Gender", user.Gender),
-			zap.String("user.ReferrerUsername", user.ReferrerUsername),
+			zap.String("user.Nick", user.Nick),                         //呢称
+			zap.String("user.Mobile", user.Mobile),                     //手机号
+			zap.String("user.SmsCode", user.SmsCode),                   //短信校验码
+			zap.String("user.ContactPerson", user.ContactPerson),       //联系人
+			zap.Int("user.UserType", user.UserType),                    //用户类型 1-普通 2-商户
+			zap.Int("user.Gender", user.Gender),                        //性别
+			zap.String("user.ReferrerUsername", user.ReferrerUsername), //推荐人用户id
 		)
 
 		//初始化一些默认值及当期时间
@@ -103,12 +113,12 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 				return
 			}
 			pc.logger.Debug("商户注册",
-				zap.String("Province", user.Province),
-				zap.String("County", user.County),
-				zap.String("City", user.City),
-				zap.String("Street", user.Street),
-				zap.String("LegalPerson", user.LegalPerson),
-				zap.String("LegalIdentityCard", user.LegalIdentityCard),
+				zap.String("Province", user.Province),                   // 省份
+				zap.String("City", user.City),                           // 城市
+				zap.String("County", user.County),                       // 区
+				zap.String("Street", user.Street),                       // 街道
+				zap.String("LegalPerson", user.LegalPerson),             // 法人
+				zap.String("LegalIdentityCard", user.LegalIdentityCard), // 身份证
 			)
 		}
 
@@ -190,6 +200,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 	}
 }
 
+//生成短信校验码
 func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 
 	code := codes.InvalidParams
@@ -347,4 +358,47 @@ func (pc *LianmiApisController) SignOut(c *gin.Context) {
 	}
 
 	RespOk(c, http.StatusOK, 200)
+}
+
+//校验短信验证码
+func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
+
+	var mobile string
+	code := codes.InvalidParams
+
+	var req ValidCodeReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if req.Mobile == "" {
+			pc.logger.Error("Mobile is empty")
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Mobile")
+		}
+		if req.Code == "" {
+			pc.logger.Error("SmsCode is empty")
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Code")
+		}
+
+		//检测校验码是否正确
+		if pc.service.CheckSmsCode(mobile, req.Code) {
+			pc.logger.Error("ValidateCode, Code is valid")
+			code = codes.SUCCESS
+			RespData(c, http.StatusOK, code, &RespSuccess{
+				Success: true,
+				Message: "",
+			})
+
+		} else {
+			pc.logger.Error("ValidateCode, Code is invalid")
+			code = codes.ErrWrongSmsCode
+			RespData(c, http.StatusOK, code, &RespSuccess{
+				Success: false,
+				Message: "Code is wrong",
+			})
+		}
+
+	}
+
+	return
 }

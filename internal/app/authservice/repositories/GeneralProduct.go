@@ -33,7 +33,10 @@ func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.General
 //查询通用商品(id) - Read
 func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error) {
 	p = new(models.GeneralProduct)
-	if err = s.db.Model(p).Where("product_id = ?", productID).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.GeneralProduct{
+		ProductID: productID,
+	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		// fmt.Println("GetUser first error:", err.Error())
 		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%d]", productID)

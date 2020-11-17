@@ -24,7 +24,10 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	defer redisConn.Close()
 
 	p := new(models.Team)
-	if err = s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.Team{
+		TeamID: teamID,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
 
@@ -148,7 +151,9 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 //封禁群组
 func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 	p := new(models.Team)
-	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+	if err := s.db.Model(p).Where(&models.Team{
+		TeamID: teamID,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
 
@@ -171,7 +176,9 @@ func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 //解封群组
 func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 	p := new(models.Team)
-	if err := s.db.Model(p).Where("team_id = ?", teamID).First(p).Error; err != nil {
+	if err := s.db.Model(p).Where(&models.Team{
+		TeamID: teamID,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
 

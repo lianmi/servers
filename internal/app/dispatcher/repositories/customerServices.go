@@ -178,7 +178,10 @@ func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerSe
 	}
 
 	c := new(models.CustomerServiceInfo)
-	if err = s.db.Model(c).Where("username = ?", username).First(c).Error; err != nil {
+
+	if err = s.db.Model(c).Where(&models.CustomerServiceInfo{
+		Username: username,
+	}).First(c).Error; err != nil {
 		return errors.Wrapf(err, "Get customerServiceInfo error[username=%s]", username)
 	}
 
@@ -290,7 +293,10 @@ func (s *MysqlLianmiRepository) SubmitGrade(req *Auth.SubmitGradeReq) error {
 	var err error
 
 	c := new(models.Grade)
-	if err = s.db.Model(c).Where("title = ?", req.Title).First(c).Error; err != nil {
+
+	if err = s.db.Model(c).Where(&models.Grade{
+		Title: req.Title,
+	}).First(c).Error; err != nil {
 		return errors.Wrapf(err, "SubmitGrade error[title=%s]", req.Title)
 	}
 

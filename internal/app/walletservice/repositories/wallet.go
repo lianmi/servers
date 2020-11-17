@@ -136,7 +136,11 @@ func (m *MysqlWalletRepository) SaveLnmcTransferHistory(lmnccTransferHistory *mo
 //确认转账后，更新转账历史记录
 func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
 	p := new(models.LnmcTransferHistory)
-	if err := m.db.Model(p).Where("username = ? and to_username=?", lmncTransferHistory.Username, lmncTransferHistory.ToUsername).First(p).Error; err != nil {
+
+	if err := m.db.Model(p).Where(&models.LnmcTransferHistory{
+		Username:   lmncTransferHistory.Username,
+		ToUsername: lmncTransferHistory.ToUsername,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get LnmcTransferHistory error")
 	}
 	p.State = lmncTransferHistory.State
@@ -183,7 +187,10 @@ func (m *MysqlWalletRepository) SaveLnmcWithdrawHistory(lnmcWithdrawHistory *mod
 //确认提现后，更新提现历史记录
 func (m *MysqlWalletRepository) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error) {
 	p := new(models.LnmcWithdrawHistory)
-	if err := m.db.Model(p).Where("withdraw_uuid = ?", lnmcWithdrawHistory.WithdrawUUID).First(p).Error; err != nil {
+
+	if err := m.db.Model(p).Where(&models.LnmcWithdrawHistory{
+		WithdrawUUID: lnmcWithdrawHistory.WithdrawUUID,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get lnmcWithdrawHistory error[WithdrawUUID=%s]", lnmcWithdrawHistory.WithdrawUUID)
 	}
 	p.State = lnmcWithdrawHistory.State
@@ -290,7 +297,10 @@ func (m *MysqlWalletRepository) GetTransferHistorys(username string, PageNum int
 func (m *MysqlWalletRepository) GetDepositInfo(txHash string) (*models.LnmcDepositHistory, error) {
 
 	dep := new(models.LnmcDepositHistory)
-	if err := m.db.Model(dep).Where("tx_hash = ?", txHash).First(dep).Error; err != nil {
+
+	if err := m.db.Model(dep).Where(&models.LnmcDepositHistory{
+		TxHash: txHash,
+	}).First(dep).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get LnmcDepositHistory info error[txHash=%s]", txHash)
 	}
 	return dep, nil
@@ -300,7 +310,9 @@ func (m *MysqlWalletRepository) GetDepositInfo(txHash string) (*models.LnmcDepos
 func (m *MysqlWalletRepository) GetWithdrawInfo(txHash string) (*models.LnmcWithdrawHistory, error) {
 
 	wd := new(models.LnmcWithdrawHistory)
-	if err := m.db.Model(wd).Where("tx_hash = ?", txHash).First(wd).Error; err != nil {
+	if err := m.db.Model(wd).Where(&models.LnmcWithdrawHistory{
+		TxHash: txHash,
+	}).First(wd).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get LnmcWithdrawHistory info error[txHash=%s]", txHash)
 	}
 	return wd, nil
@@ -310,7 +322,9 @@ func (m *MysqlWalletRepository) GetWithdrawInfo(txHash string) (*models.LnmcWith
 func (m *MysqlWalletRepository) GetTransferInfo(txHash string) (*models.LnmcTransferHistory, error) {
 
 	tr := new(models.LnmcTransferHistory)
-	if err := m.db.Model(tr).Where("tx_hash = ?", txHash).First(tr).Error; err != nil {
+	if err := m.db.Model(tr).Where(&models.LnmcTransferHistory{
+		TxHash: txHash,
+	}).First(tr).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get LnmcTransferHistory info error[txHash=%s]", txHash)
 	}
 	return tr, nil

@@ -26,7 +26,7 @@ const (
 type Login struct {
 	Username        string `form:"username" json:"username" binding:"required"`
 	Password        string `form:"password" json:"password" binding:"required"`
-	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`
+	SmsCode         string `form:"smscode" json:"smscode" binding:"required"` //短信校验码，必填
 	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
 	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
 	Os              string `form:"os" json:"os" binding:"required"`
@@ -50,8 +50,9 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
 		r.POST("/register", pc.Register)                              //注册用户
-		r.POST("/resetpassword", pc.ResetPassword)                    //重置密码， 可以不登录
+		r.POST("/resetpassword", pc.ResetPassword)                    //重置密码， 可以不登录， 但必须用短信校验码
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode)                 //根据手机生成短信注册码
+		r.POST("/validatecode", pc.ValidateCode)                      //验证码验证接口
 		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
 
 		//TODO 增加JWT中间件

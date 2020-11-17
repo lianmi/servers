@@ -99,7 +99,9 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 			} else {
 				nc.logger.Debug("尝试从 MySQL里读取")
 
-				if err = nc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
+				if err = nc.db.Model(userData).Where(&models.User{
+					Username: username,
+				}).First(userData).Error; err != nil {
 					nc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
 					// errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					// errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
@@ -211,7 +213,9 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	} else {
 		//查询出需要修改的用户
 		pUser := new(models.User)
-		if err = nc.db.Model(pUser).Where("username = ?", username).First(pUser).Error; err != nil {
+		if err = nc.db.Model(pUser).Where(&models.User{
+			Username: username,
+		}).First(pUser).Error; err != nil {
 			nc.logger.Error("Query user Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user Error: %s", err.Error())
@@ -299,7 +303,9 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		userKey := fmt.Sprintf("userData:%s", username)
 		userData := new(models.User)
 
-		if err = nc.db.Model(userData).Where("username = ?", username).First(userData).Error; err != nil {
+		if err = nc.db.Model(userData).Where(&models.User{
+			Username: username,
+		}).First(userData).Error; err != nil {
 			nc.logger.Error("MySQL里读取错误", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", username)

@@ -42,7 +42,9 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 	//从Distribution层级表查出所有需要分配佣金的用户账号
 	d := new(models.Distribution)
-	if err = s.db.Model(d).Where("username = ?", username).First(d).Error; err != nil {
+	if err = s.db.Model(d).Where(&models.Distribution{
+		Username: username,
+	}).First(d).Error; err != nil {
 		//记录找不到也会触发错误
 		return errors.Wrapf(err, "SaveToCommission error or username not found")
 	}
@@ -55,7 +57,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			BusinessUsername:   d.BusinessUsername,
 		}
 		e := &models.BusinessCommission{}
-		if err = s.db.Model(b).First(e).Error; err == nil {
+		if err = s.db.Model(e).Where(b).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("username", username), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert BusinessCommission, because this username had exists")
@@ -83,13 +85,12 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 		//提交
 		tx.Commit()
 
-		buss := &models.BusinessUserCommissionStatistics{
+		ee := &models.BusinessUserCommissionStatistics{}
+		if err = s.db.Model(ee).Where(&models.BusinessUserCommissionStatistics{
 			BusinessUsername: d.BusinessUsername,
 			YearMonth:        currYearMonth,
 			IsRebate:         true,
-		}
-		ee := &models.BusinessUserCommissionStatistics{}
-		if err = s.db.Model(buss).First(ee).Error; err == nil {
+		}).First(ee).Error; err == nil {
 			s.logger.Error("BusinessUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert BusinessUserCommissionStatistics, because IsRebate is true")
@@ -140,7 +141,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			BusinessUsername: d.BusinessUsername,
 		}
 		e := &models.Commission{}
-		if err = s.db.Model(b).First(e).Error; err == nil {
+		if err = s.db.Model(e).Where(b).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelOne), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelOne had exists")
@@ -173,7 +174,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			IsRebate:  true,
 		}
 		ncs := &models.NormalUserCommissionStatistics{}
-		if err = s.db.Model(nucs).First(ncs).Error; err == nil {
+		if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", d.UsernameLevelOne))
 		} else {
 
@@ -216,7 +217,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			BusinessUsername: d.BusinessUsername,
 		}
 		e := &models.Commission{}
-		if err = s.db.Model(b).First(e).Error; err == nil {
+		if err = s.db.Model(b).Where(b).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelTwo), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelTwo had exists")
@@ -249,7 +250,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			IsRebate:  true,
 		}
 		ncs := &models.NormalUserCommissionStatistics{}
-		if err = s.db.Model(nucs).First(ncs).Error; err == nil {
+		if err = s.db.Model(nucs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", d.UsernameLevelTwo))
 		} else {
 			//统计d.UsernameLevelTwo对应的用户在当月的所有佣金总额
@@ -291,7 +292,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			BusinessUsername: d.BusinessUsername,
 		}
 		e := &models.Commission{}
-		if err = s.db.Model(b).First(e).Error; err == nil {
+		if err = s.db.Model(b).Where(b).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelThree), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelThree had exists")
@@ -323,7 +324,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			IsRebate:  true,
 		}
 		ncs := &models.NormalUserCommissionStatistics{}
-		if err = s.db.Model(nucs).First(ncs).Error; err == nil {
+		if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", d.UsernameLevelThree))
 		} else {
 			//统计d.UsernameLevelThree对应的用户在当月的所有佣金总额
@@ -451,7 +452,7 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 	//获取 yearMonth对应的 withdrawCommission
 	if userType == 1 { //用户类型 1-普通，
 		nucs := new(models.NormalUserCommissionStatistics)
-		if err = s.db.Model(&models.NormalUserCommissionStatistics{
+		if err = s.db.Model(nucs).Where(&models.NormalUserCommissionStatistics{
 			Username:  username,
 			YearMonth: yearMonth,
 		}).First(nucs).Error; err != nil {
@@ -462,7 +463,7 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 
 	} else if userType == 2 { //用户类型 2-商户
 		bucs := new(models.BusinessUserCommissionStatistics)
-		if err = s.db.Model(&models.BusinessUserCommissionStatistics{
+		if err = s.db.Model(bucs).Where(&models.BusinessUserCommissionStatistics{
 			BusinessUsername: username,
 			YearMonth:        yearMonth,
 		}).First(bucs).Error; err != nil {

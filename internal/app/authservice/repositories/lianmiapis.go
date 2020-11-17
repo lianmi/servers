@@ -20,7 +20,7 @@ import (
 )
 
 type LianmiRepository interface {
-	GetUser(ID uint64) (p *models.User, err error)
+	GetUser(id uint64) (p *models.User, err error)
 	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
@@ -122,13 +122,16 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 	}
 }
 
-func (s *MysqlLianmiRepository) GetUser(ID uint64) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) GetUser(id uint64) (p *models.User, err error) {
 	s.logger.Debug("GetUser run, Query data from db")
 	p = new(models.User)
-	if err = s.db.Model(p).Where("id = ?", ID).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.User{
+		ID: id,
+	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		// fmt.Println("GetUser first error:", err.Error())
-		return nil, errors.Wrapf(err, "Get user error[id=%d]", ID)
+		return nil, errors.Wrapf(err, "Get user error[id=%d]", id)
 	}
 
 	return
@@ -145,7 +148,9 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 	defer redisConn.Close()
 
 	p := new(models.User)
-	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+	if err = s.db.Model(p).Where(&models.User{
+		Username: username,
+	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get user error[username=%s]", username)
 	}
 
@@ -198,7 +203,10 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 */
 func (s *MysqlLianmiRepository) DisBlockUser(username string) (p *models.User, err error) {
 	p = new(models.User)
-	if err = s.db.Model(p).Where("username = ?", username).First(p).Error; err != nil {
+
+	if err = s.db.Model(p).Where(&models.User{
+		Username: username,
+	}).First(p).Error; err != nil {
 		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
 	}
 
@@ -1230,7 +1238,9 @@ func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerSe
 	}
 
 	c := new(models.CustomerServiceInfo)
-	if err = s.db.Model(c).Where("username = ?", username).First(c).Error; err != nil {
+	if err = s.db.Model(c).Where(&models.User{
+		Username: username,
+	}).First(c).Error; err != nil {
 		return errors.Wrapf(err, "Get customerServiceInfo error[username=%s]", username)
 	}
 
@@ -1342,7 +1352,10 @@ func (s *MysqlLianmiRepository) SubmitGrade(req *Auth.SubmitGradeReq) error {
 	var err error
 
 	c := new(models.Grade)
-	if err = s.db.Model(c).Where("title = ?", req.Title).First(c).Error; err != nil {
+
+	if err = s.db.Model(c).Where(&models.Grade{
+		Title: req.Title,
+	}).First(c).Error; err != nil {
 		return errors.Wrapf(err, "SubmitGrade error[title=%s]", req.Title)
 	}
 
