@@ -1,7 +1,8 @@
 package common
 
 const (
-	SERVER_URL = "http://127.0.0.1:28080"
+	// SERVER_URL = "http://127.0.0.1:28080"
+	SERVER_URL = "https://127.0.0.1:28080"
 
 	//http证书路径，按自己实际修改, 注意：最后没有/
 	CaCertPath = "/Users/mac/developments/lianmi/lm-cloud/servers/lmSdkClient/ca"

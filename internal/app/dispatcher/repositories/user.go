@@ -908,8 +908,18 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 		s.logger.Error("EXPIRE key 失败", zap.Error(err))
 		return false
 	}
+	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
+		s.logger.Error("redisConn GET smscode Error", zap.Error(err))
+		return false
+	}
 
-	s.logger.Debug("GenerateSmsCode, 写入redis成功")
+	if isExists {
+
+		s.logger.Debug("GenerateSmsCode, 生成注册校验码, 写入redis成功", zap.String("key", key))
+
+	} else {
+		s.logger.Warn("GenerateSmsCode, 生成注册校验码失败", zap.String("key", key))
+	}
 
 	_ = err
 
