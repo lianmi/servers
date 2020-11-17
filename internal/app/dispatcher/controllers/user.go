@@ -369,20 +369,24 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	var req ValidCodeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.Mobile == "" {
 			pc.logger.Error("Mobile is empty")
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Mobile")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Mobile")
 		}
 		if req.Code == "" {
-			pc.logger.Error("SmsCode is empty")
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Code")
+			pc.logger.Error("Code is empty")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Code")
 		}
+
+		pc.logger.Debug("ValidateCode",
+			zap.String("Mobile", req.Mobile),
+			zap.String("Code", req.Code))
 
 		//检测校验码是否正确
 		if pc.service.CheckSmsCode(mobile, req.Code) {
-			pc.logger.Error("ValidateCode, Code is valid")
+			pc.logger.Debug("ValidateCode, Code is valid")
 			code = codes.SUCCESS
 			RespData(c, http.StatusOK, code, &RespSuccess{
 				Success: true,
@@ -391,7 +395,7 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 
 		} else {
 			pc.logger.Error("ValidateCode, Code is invalid")
-			code = codes.ErrWrongSmsCode
+			code = codes.SUCCESS
 			RespData(c, http.StatusOK, code, &RespSuccess{
 				Success: false,
 				Message: "Code is wrong",
