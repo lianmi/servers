@@ -24,7 +24,6 @@ type LianmiRepository interface {
 	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
 	Register(user *models.User) (err error)
-	ResetPassword(mobile, password string, user *models.User) error
 	ChanPassword(username string, req *Auth.ChanPasswordReq) error
 	AddRole(role *models.Role) (err error)
 	DeleteUser(id uint64) bool
@@ -340,41 +339,6 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 	return nil
 
-}
-
-//重置密码
-func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *models.User) error {
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	// var user models.User
-	sel := "id"
-	where := models.User{Mobile: mobile}
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		return err
-	}
-	//其他类型的错误，写下日志，返回false
-	if err != nil {
-		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
-		return err
-	}
-
-	//替换旧密码
-	user.Password = password
-
-	tx := s.base.GetTransaction()
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("更新用户密码失败", zap.Error(err))
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	return nil
 }
 
 //修改密码

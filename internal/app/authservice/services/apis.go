@@ -17,7 +17,6 @@ type AuthService interface {
 	BlockUser(username string) error
 	DisBlockUser(username string) (*models.User, error)
 	Register(user *models.User) (string, error)
-	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
 
 	//检测用户登录
@@ -178,14 +177,6 @@ func (s *DefaultLianmiAuthService) Register(user *models.User) (string, error) {
 	return user.Username, nil
 }
 
-func (s *DefaultLianmiAuthService) ResetPassword(mobile, password string, user *models.User) error {
-	if err := s.Repository.ResetPassword(mobile, password, user); err != nil {
-		return errors.Wrap(err, "ResetPassword error")
-	}
-
-	return nil
-}
-
 //修改密码
 func (s *DefaultLianmiAuthService) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
 
@@ -306,4 +297,3 @@ func (s *DefaultLianmiAuthService) AddGrade(req *Auth.AddGradeReq) (string, erro
 func (s *DefaultLianmiAuthService) SubmitGrade(req *Auth.SubmitGradeReq) error {
 	return s.Repository.SubmitGrade(req)
 }
-

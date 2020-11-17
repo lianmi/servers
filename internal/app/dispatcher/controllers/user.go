@@ -162,15 +162,23 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 
 		//检测手机是数字
 		if !conv.IsDigit(rp.Mobile) {
-			pc.logger.Error("ResetPassword error, Mobile is not digital")
+			pc.logger.Error("Reset Password error, Mobile is not digital")
 			code = codes.InvalidParams
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			return
+		}
+		//不是手机
+		if len(rp.Mobile) != 11 {
+			pc.logger.Warn("Reset Password error", zap.Int("len", len(rp.Mobile)))
+
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
 			return
 		}
 
 		//检测手机是否已经注册， 如果未注册，则返回失败
 		if !pc.service.ExistUserByMobile(rp.Mobile) {
-			pc.logger.Error("ResetPassword error, Mobile is not registered")
+			pc.logger.Error("Reset Password error, Mobile is not registered")
 			code = codes.ErrNotRegisterMobile
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not registered")
 			return
@@ -178,17 +186,17 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 
 		//检测校验码是否正确
 		if !pc.service.CheckSmsCode(rp.Mobile, rp.SmsCode) {
-			pc.logger.Error("ResetPassword error, SmsCode is wrong")
+			pc.logger.Error("Reset Password error, SmsCode is wrong")
 			code = codes.InvalidParams
 			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
 			return
 		}
 
 		if err := pc.service.ResetPassword(rp.Mobile, rp.Password, &user); err == nil {
-			pc.logger.Debug("ResetPassword success", zap.String("userName", user.Username))
+			pc.logger.Debug("Reset Password success", zap.String("userName", user.Username))
 			code = codes.SUCCESS
 		} else {
-			pc.logger.Error("ResetPassword error", zap.Error(err))
+			pc.logger.Error("Reset Password error", zap.Error(err))
 			code = codes.ERROR
 			RespFail(c, http.StatusBadRequest, code, "Reset password error")
 			return
@@ -212,8 +220,8 @@ func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 	if len(mobile) != 11 {
 		pc.logger.Warn("GenerateSmsCode error", zap.Int("len", len(mobile)))
 
-		code = codes.ERROR
-		RespOk(c, http.StatusOK, code)
+		code = codes.InvalidParams
+		RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
 		return
 	}
 
@@ -245,8 +253,8 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 	if len(mobile) != 11 {
 		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
 
-		code = codes.ERROR
-		RespOk(c, http.StatusOK, code)
+		code = codes.InvalidParams
+		RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
 		return
 	}
 
@@ -395,8 +403,8 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 		if len(req.Mobile) != 11 {
 			pc.logger.Warn("ValidateCode error", zap.Int("len", len(req.Mobile)))
 
-			code = codes.ERROR
-			RespOk(c, http.StatusOK, code)
+			code = codes.InvalidParams
+			RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
 			return
 		}
 

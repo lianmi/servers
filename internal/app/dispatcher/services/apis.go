@@ -185,9 +185,9 @@ func (s *DefaultLianmiApisService) Register(user *models.User) (string, error) {
 }
 
 func (s *DefaultLianmiApisService) ResetPassword(mobile, password string, user *models.User) error {
-	// if err := s.Repository.ResetPassword(mobile, password, user); err != nil {
-	// 	return errors.Wrap(err, "ResetPassword error")
-	// }
+	if err := s.Repository.ResetPassword(mobile, password, user); err != nil {
+		return errors.Wrap(err, "ResetPassword error")
+	}
 
 	return nil
 }
