@@ -151,24 +151,24 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 // 重置密码
 func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 	var user models.User
-	var rp Auth.ResetPasswordReq
+	var req Auth.ResetPasswordReq
 	code := codes.InvalidParams
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到ResetPassword变量中，必填字段一定要填
-	if c.BindJSON(&rp) != nil {
+	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		//检测手机是数字
-		if !conv.IsDigit(rp.Mobile) {
+		if !conv.IsDigit(req.Mobile) {
 			pc.logger.Error("Reset Password error, Mobile is not digital")
 			code = codes.InvalidParams
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
 			return
 		}
 		//不是手机
-		if len(rp.Mobile) != 11 {
+		if len(req.Mobile) != 11 {
 			pc.logger.Warn("Reset Password error", zap.Int("len", len(rp.Mobile)))
 
 			code = codes.InvalidParams
@@ -177,22 +177,28 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		}
 
 		//检测手机是否已经注册， 如果未注册，则返回失败
-		if !pc.service.ExistUserByMobile(rp.Mobile) {
+		if !pc.service.ExistUserByMobile(req.Mobile) {
 			pc.logger.Error("Reset Password error, Mobile is not registered")
 			code = codes.ErrNotRegisterMobile
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not registered")
 			return
 		}
 
+		pc.logger.Debug("ResetPassword 传参  ",
+			zap.String("Mobile", req.Mobile),
+			zap.String("Code", req.SmsCode),
+			zap.String("Password", req.Password),
+		)
+
 		//检测校验码是否正确
-		if !pc.service.CheckSmsCode(rp.Mobile, rp.SmsCode) {
+		if !pc.service.CheckSmsCode(req.Mobile, req.SmsCode) {
 			pc.logger.Error("Reset Password error, SmsCode is wrong")
 			code = codes.InvalidParams
 			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
 			return
 		}
 
-		if err := pc.service.ResetPassword(rp.Mobile, rp.Password, &user); err == nil {
+		if err := pc.service.ResetPassword(req.Mobile, req.Password, &user); err == nil {
 			pc.logger.Debug("Reset Password success", zap.String("userName", user.Username))
 			code = codes.SUCCESS
 		} else {
