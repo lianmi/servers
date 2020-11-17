@@ -4,6 +4,7 @@ import (
 	"context"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
+	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
 
@@ -96,8 +97,7 @@ type LianmiApisService interface {
 
 	SaveTag(tag *models.Tag) error
 
-	//Grpc 获取用户信息
-	GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error)
+	GetUser(id uint64) (*Auth.UserRsp, error)
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
@@ -133,20 +133,47 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 	}
 }
 
-func (s *DefaultLianmiApisService) GetUser(ctx context.Context, in *Auth.UserReq) (*Auth.UserRsp, error) {
-	s.logger.Debug("GetUser", zap.Uint64("ID", in.Id))
+func (s *DefaultLianmiApisService) GetUser(id uint64) (*Auth.UserRsp, error) {
+	s.logger.Debug("GetUser", zap.Uint64("id", id))
 
-	//TODO
-	return nil, nil
+	fUserData, err := s.Repository.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+	return &Auth.UserRsp{
+		User: &User.User{
+			Username:          fUserData.Username,
+			Gender:            User.Gender(fUserData.Gender),
+			Nick:              fUserData.Nick,
+			Avatar:            fUserData.Avatar,
+			Label:             fUserData.Label,
+			Mobile:            fUserData.Mobile,
+			Email:             fUserData.Email,
+			UserType:          User.UserType(fUserData.UserType),
+			State:             User.UserState(fUserData.State),
+			Extend:            fUserData.Extend,
+			ContactPerson:     fUserData.ContactPerson,
+			Introductory:      fUserData.Introductory,
+			Province:          fUserData.Province,
+			City:              fUserData.City,
+			County:            fUserData.County,
+			Street:            fUserData.Street,
+			Address:           fUserData.Address,
+			Branchesname:      fUserData.Branchesname,
+			LegalPerson:       fUserData.LegalPerson,
+			LegalIdentityCard: fUserData.LegalIdentityCard,
+		},
+	}, nil
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
 	s.logger.Debug("BlockUser", zap.String("username", username))
-	// if err = s.Repository.BlockUser(username); err != nil {
-	// 	return errors.Wrap(err, "Block user error")
-	// }
+	if err = s.Repository.BlockUser(username); err != nil {
+		return errors.Wrap(err, "Block user error")
+	} else {
+		return nil
+	}
 
-	return nil
 }
 func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User, err error) {
 	s.logger.Debug("DisBlockUser", zap.String("username", username))
@@ -208,8 +235,7 @@ func (s *DefaultLianmiApisService) ResetPassword(mobile, password string, user *
 //修改密码
 func (s *DefaultLianmiApisService) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
 
-	// return s.Repository.ChanPassword(username, req)
-	return nil
+	return s.Repository.ChanPassword(username, req)
 }
 
 func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role {
@@ -246,125 +272,88 @@ func (s *DefaultLianmiApisService) ExistsTokenInRedis(deviceID, token string) bo
 }
 
 func (s *DefaultLianmiApisService) ApproveTeam(teamID string) error {
-	// return s.Repository.ApproveTeam(teamID)
-
-	//TODO
-	return nil
+	return s.Repository.ApproveTeam(teamID)
 }
 
 //封禁群组
 func (s *DefaultLianmiApisService) BlockTeam(teamID string) error {
-	// return s.Repository.BlockTeam(teamID)
+	return s.Repository.BlockTeam(teamID)
 
-	//TODO
-	return nil
 }
 
 //解封群组
 func (s *DefaultLianmiApisService) DisBlockTeam(teamID string) error {
-	// return s.Repository.DisBlockTeam(teamID)
-	//TODO
-	return nil
+	return s.Repository.DisBlockTeam(teamID)
+
 }
 
 //======后台相关======/
 func (s *DefaultLianmiApisService) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
-	// return s.Repository.AddGeneralProduct(generalProduct)
+	return s.Repository.AddGeneralProduct(generalProduct)
 
-	//TODO
-	return nil
 }
 
 //查询通用商品(id) - Read
 func (s *DefaultLianmiApisService) GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error) {
 
-	// return s.Repository.GetGeneralProductByID(productID)
-	//TODO
-	return nil, nil
+	return s.Repository.GetGeneralProductByID(productID)
+
 }
 
 //查询通用商品分页 - Page
 func (s *DefaultLianmiApisService) GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error) {
 
-	// return s.Repository.GetGeneralProductPage(pageIndex, pageSize, total, where)
+	return s.Repository.GetGeneralProductPage(pageIndex, pageSize, total, where)
 
-	//TODO
-	return nil, nil
 }
 
 // 修改通用商品 - Update
 func (s *DefaultLianmiApisService) UpdateGeneralProduct(generalProduct *models.GeneralProduct) error {
 
-	// return s.Repository.UpdateGeneralProduct(generalProduct)
-	//TODO
-	return nil
+	return s.Repository.UpdateGeneralProduct(generalProduct)
 
 }
 
 // 删除通用商品 - Delete
 func (s *DefaultLianmiApisService) DeleteGeneralProduct(productID string) bool {
 
-	// return s.Repository.DeleteGeneralProduct(productID)
-	//TODO
-	return false
+	return s.Repository.DeleteGeneralProduct(productID)
 
 }
 
 //获取在线客服id数组
 func (s *DefaultLianmiApisService) QueryCustomerServices(req *Auth.QueryCustomerServiceReq) ([]*models.CustomerServiceInfo, error) {
-
-	// return s.Repository.QueryCustomerServices(req)
-	//TODO
-	return nil, nil
-
+	return s.Repository.QueryCustomerServices(req)
 }
 
 //增加在线客服id
 func (s *DefaultLianmiApisService) AddCustomerService(req *Auth.AddCustomerServiceReq) error {
-
-	// return s.Repository.AddCustomerService(req)
-	//TODO
-	return nil
-
+	return s.Repository.AddCustomerService(req)
 }
 
 func (s *DefaultLianmiApisService) DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool {
-	// return s.Repository.DeleteCustomerService(req)
-	//TODO
-	return false
-
+	return s.Repository.DeleteCustomerService(req)
 }
 
 func (s *DefaultLianmiApisService) UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error {
-
-	// return s.Repository.UpdateCustomerService(req)
-	//TODO
-	return nil
-
+	return s.Repository.UpdateCustomerService(req)
 }
 
 func (s *DefaultLianmiApisService) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
-	// return s.Repository.QueryGrades(req, pageIndex, pageSize, total, where)
-	//TODO
-	return nil, nil
+	return s.Repository.QueryGrades(req, pageIndex, pageSize, total, where)
 }
 
 func (s *DefaultLianmiApisService) AddGrade(req *Auth.AddGradeReq) (string, error) {
-	// return s.Repository.AddGrade(req)
-	//TODO
-	return "", nil
+	return s.Repository.AddGrade(req)
 }
 
 func (s *DefaultLianmiApisService) SubmitGrade(req *Auth.SubmitGradeReq) error {
-	// return s.Repository.SubmitGrade(req)
-	//TODO
-	return nil
+	return s.Repository.SubmitGrade(req)
 }
 
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error) {
 	return s.Repository.GetBusinessMembership(businessUsername)
-
 }
 
 //普通用户佣金返佣统计

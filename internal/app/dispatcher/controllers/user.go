@@ -42,9 +42,7 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 		return
 	}
 
-	p, err := pc.service.GetUser(c, &Auth.UserReq{
-		Id: id,
-	})
+	p, err := pc.service.GetUser(id)
 	if err != nil {
 		pc.logger.Error("get User by id error", zap.Error(err))
 		RespFail(c, http.StatusBadRequest, 500, "Get User by id error")

@@ -14,7 +14,7 @@ import (
 )
 
 type LianmiRepository interface {
-	GetUser(ID uint64) (p *models.User, err error)
+	GetUser(id uint64) (p *models.User, err error)
 	GetUserByUsername(username string) (p *models.User, err error)
 	BlockUser(username string) (err error)
 	DisBlockUser(username string) (p *models.User, err error)
