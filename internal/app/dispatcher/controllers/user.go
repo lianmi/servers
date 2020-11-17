@@ -169,7 +169,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		}
 		//不是手机
 		if len(req.Mobile) != 11 {
-			pc.logger.Warn("Reset Password error", zap.Int("len", len(rp.Mobile)))
+			pc.logger.Warn("Reset Password error", zap.Int("len", len(req.Mobile)))
 
 			code = codes.InvalidParams
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
