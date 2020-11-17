@@ -202,10 +202,6 @@ func (mc *MQTTClient) Start() error {
 			if businessType == 2 && businessSubType == 7 {
 				mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
-				//生成临时的身份标识
-				// mc.CreateSlaveTemporaryIdentity(deviceId, businessType, businessSubType, taskId)
-				// return
-
 			} else {
 				//是否需要有效授权才能传递到后端
 				if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
@@ -253,20 +249,27 @@ func (mc *MQTTClient) Start() error {
 			backendMsg.BuildHeader(backendService, now)
 			backendMsg.FillBody(m.Payload) //承载真正的业务数据
 
-			// bodyReqHex := strings.ToUpper(hex.EncodeToString(m.Payload))
-			// mc.logger.Info("GetContent ok", zap.String("bodyReqHex", bodyReqHex))
-
-			//分发到后端的各自的服务器
+			//分发
 			switch Global.BusinessType(businessType) {
 			case Global.BusinessType_User,
 				Global.BusinessType_Auth,
 				Global.BusinessType_Friends,
 				Global.BusinessType_Team,
-				Global.BusinessType_Msg,
 				Global.BusinessType_Sync,
+				Global.BusinessType_Msg,
 				Global.BusinessType_Product,
 				Global.BusinessType_Order,
 				Global.BusinessType_Wallet:
+
+				//发送到Nsq
+				mc.nsqMqttChannel.NsqChan <- backendMsg
+				mc.logger.Info("Message发送到Nsq通道",
+					zap.String("nsqTopic", nsqTopic),
+					zap.String("backendService", backendService),
+					zap.Int("businessType", businessType),
+					zap.Int("businessSubType", businessSubType),
+					zap.String("msgID", backendMsg.GetID()),
+				)
 
 			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 
@@ -274,14 +277,7 @@ func (mc *MQTTClient) Start() error {
 				mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
 				return
 			}
-			mc.nsqMqttChannel.NsqChan <- backendMsg //发送到Nsq
-			mc.logger.Info("Message发送到Nsq通道",
-				zap.String("nsqTopic", nsqTopic),
-				zap.String("backendService", backendService),
-				zap.Int("businessType", businessType),
-				zap.Int("businessSubType", businessSubType),
-				zap.String("msgID", backendMsg.GetID()),
-			)
+
 		}),
 		Conn: conn,
 	})
@@ -336,7 +332,7 @@ func (mc *MQTTClient) Close() {
 	// mc.client.Disconnect(250)
 }
 
-//主循环，从Nsq读取消息，并发送到imsdk的某个设备
+//主循环，从MTChan读取消息，并发送到imsdk的某个设备
 func (mc *MQTTClient) Run() {
 	var run bool
 	sigchan := make(chan os.Signal, 1)
@@ -353,7 +349,7 @@ func (mc *MQTTClient) Run() {
 			if err != nil {
 				mc.logger.Error("failed to send Disconnect", zap.Error(err))
 			}
-		case msg := <-mc.nsqMqttChannel.MTChan: //从Nsq读取数据
+		case msg := <-mc.nsqMqttChannel.MTChan: //从MTChan读取数据
 			if msg != nil {
 				//向MQTT Broker发送，加入SDK订阅了此topic，则会收到
 				jwtToken := msg.GetJwtToken()
@@ -391,9 +387,9 @@ func (mc *MQTTClient) Run() {
 
 				if _, err := mc.client.Publish(context.Background(), pb); err != nil {
 					// log.Println(err)
-					mc.logger.Error("Failed to Publish ", zap.Error(err))
+					mc.logger.Error("Failed to Publish to broker ", zap.Error(err))
 				} else {
-					mc.logger.Info("Succeed Publish to sdk", zap.String("topic", topic))
+					mc.logger.Info("Succeed Publish to broker", zap.String("topic", topic))
 				}
 			} else {
 				mc.logger.Warn("msg is nil")

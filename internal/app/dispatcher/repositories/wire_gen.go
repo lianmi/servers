@@ -7,6 +7,7 @@ package repositories
 
 import (
 	"github.com/google/wire"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -44,10 +45,11 @@ func CreateLianmirRepository(f string) (LianmiRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiRepository := NewMysqlLianmiRepository(logger, db, pool)
+	nsqChannel := multichannel.NewChannnel()
+	lianmiRepository := NewMysqlLianmiRepository(logger, db, pool, nsqChannel)
 	return lianmiRepository, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, multichannel.ProviderSet, ProviderSet)

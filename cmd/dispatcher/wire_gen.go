@@ -10,6 +10,7 @@ import (
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
 	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
@@ -66,7 +67,8 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	nsqMqttChannel := channel.NewChannnel()
-	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool)
+	nsqChannel := multichannel.NewChannnel()
+	lianmiRepository := repositories.NewMysqlLianmiRepository(logger, db, pool, nsqChannel)
 	consulOptions, err := consul.NewOptions(viper)
 	if err != nil {
 		return nil, err
@@ -96,7 +98,7 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiOrderClient, lianmiWalletClient)
-	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService, nsqChannel)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
 		return nil, err
@@ -117,7 +119,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient, server)
+	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient, server, nsqChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -126,4 +128,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, http.ProviderSet, redis.ProviderSet, jaeger.ProviderSet, channel.ProviderSet, nsqMq.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet, controllers.ProviderSet, grpc.ProviderSet, grpcclients.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, http.ProviderSet, redis.ProviderSet, jaeger.ProviderSet, channel.ProviderSet, multichannel.ProviderSet, nsqMq.ProviderSet, mqtt.ProviderSet, dispatcher.ProviderSet, controllers.ProviderSet, grpc.ProviderSet, grpcclients.ProviderSet)

@@ -1,4 +1,4 @@
-package channel
+package multichannel
 
 import (
 	"github.com/google/wire"
@@ -6,9 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-type NsqMqttChannel struct {
+type NsqChannel struct {
 	NsqChan chan *models.Message
-	MTChan  chan *models.Message
 }
 
 type Options struct {
@@ -22,11 +21,10 @@ func NewOptions(v *viper.Viper) (*Options, error) {
 	return o, nil
 }
 
-//初始化 nsq 以及 mqtt通道, 用于发送到后端的业务处理服务器
-func NewChannnel() *NsqMqttChannel {
-	return &NsqMqttChannel{
+//初始化 nsq 通道, 用于发送设备多端登录的下发
+func NewChannnel() *NsqChannel {
+	return &NsqChannel{
 		NsqChan: make(chan *models.Message, 10),
-		MTChan:  make(chan *models.Message, 10),
 	}
 }
 

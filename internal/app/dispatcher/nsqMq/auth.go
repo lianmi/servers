@@ -171,7 +171,7 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 			targetMsg.SetBusinessType(uint32(2))
 			targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-			targetMsg.BuildHeader("AuthService", now)
+			targetMsg.BuildHeader("Dispatcher", now)
 
 			//构造负载数据
 			clients := make([]*Auth.DeviceInfo, 0)
@@ -318,7 +318,7 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 					beKickedMsg.SetBusinessType(uint32(2))
 					beKickedMsg.SetBusinessSubType(uint32(5)) // KickedEvent = 5
 
-					beKickedMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
+					beKickedMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6) //毫秒
 
 					//构造负载数据
 					kickedEventRsp := &Auth.KickedEventRsp{
@@ -364,7 +364,7 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 					targetMsg.SetBusinessType(uint32(2))
 					targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-					targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
+					targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6) //毫秒
 
 					//构造负载数据
 					clients := make([]*Auth.DeviceInfo, 0)
@@ -620,7 +620,7 @@ func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 			targetMsg.SetBusinessType(uint32(2))
 			targetMsg.SetBusinessSubType(uint32(9)) //SlaveDeviceAuthEvent = 9
 
-			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6) //毫秒
+			targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6) //毫秒
 
 			//构造负载数据
 			resp := &Auth.SlaveDeviceAuthEventRsp{

@@ -392,7 +392,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_User))
 			targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncUpdateProfileEvent)) //SyncUpdateProfileEvent = 4
 
-			targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+			targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 			targetMsg.FillBody(edata) //网络包的body，承载真正的业务数据
 
@@ -757,7 +757,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(Global.BusinessType_User))               //用户模块
 				targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncMarkTagEvent)) //同步其它端标签更改事件
 
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 				//构造负载数据 1-6 同步其它端标签更改事件
 				resp := &User.SyncMarkTagEventRsp{

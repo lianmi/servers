@@ -26,7 +26,6 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 		return
 	}
 
-	//TODO
 	c.JSON(http.StatusOK, p)
 }
 

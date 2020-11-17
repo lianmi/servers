@@ -3,6 +3,7 @@ package dispatcher
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/app"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
@@ -30,7 +31,7 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	return o, err
 }
 
-func NewApp(o *Options, logger *zap.Logger, kc *nsqMq.NsqClient, mc *mqtt.MQTTClient, hs *http.Server) (*app.Application, error) {
+func NewApp(o *Options, logger *zap.Logger, kc *nsqMq.NsqClient, mc *mqtt.MQTTClient, hs *http.Server, multichan *multichannel.NsqChannel) (*app.Application, error) {
 
 	a, err := app.New(o.Name, logger, app.NsqOption(kc), app.MQTTOption(mc), app.HttpServerOption(hs))
 

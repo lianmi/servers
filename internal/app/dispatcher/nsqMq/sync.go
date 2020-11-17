@@ -115,7 +115,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(Global.BusinessType_User))                   // 1
 				targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncUserProfileEvent)) // 3
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 				targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 				targetMsg.SetCode(200)   //成功的状态码
 
@@ -260,7 +260,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetBusinessTypeName("Friends")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))              //3
 		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncFriendsEvent)) //3
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -382,7 +382,7 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		targetMsg.SetBusinessTypeName("Friends")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))                  // 3
 		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncFriendUsersEvent)) // 4
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 		targetMsg.SetCode(200)   //成功的状态码
 
@@ -517,7 +517,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Team))               // 4
 		targetMsg.SetBusinessSubType(uint32(Global.TeamSubType_SyncMyTeamsEvent)) // 17
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -698,7 +698,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_User))            // 1
 		targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncTagsEvent)) // 7
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -957,7 +957,7 @@ func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Friends))            // 3
 		targetMsg.SetBusinessSubType(uint32(Global.FriendSubType_SyncWatchEvent)) // 11
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -1098,7 +1098,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))               // 7
 		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncProductEvent)) // 8
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -1220,7 +1220,7 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))                       // 7
 		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncGeneralProductsEvent)) // 9
 
-		targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -1453,7 +1453,7 @@ func (nc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) err
 	targetMsg.SetBusinessTypeName("Sync")
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Sync))            //sync模块
 	targetMsg.SetBusinessSubType(uint32(Global.SyncSubType_SyncDoneEvent)) // 同步完成事件
-	targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 	targetMsg.SetCode(200)   //成功的状态码
 

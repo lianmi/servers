@@ -8,6 +8,7 @@ import (
 	"github.com/lianmi/servers/internal/app/dispatcher"
 	"github.com/lianmi/servers/internal/app/dispatcher/controllers"
 	"github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
@@ -35,6 +36,7 @@ var providerSet = wire.NewSet(
 	redis.ProviderSet,
 	jaeger.ProviderSet,
 	channel.ProviderSet,
+	multichannel.ProviderSet,
 	nsqMq.ProviderSet,
 	mqtt.ProviderSet,
 	dispatcher.ProviderSet,

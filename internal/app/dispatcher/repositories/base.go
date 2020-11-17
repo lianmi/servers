@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	// "encoding/json"
 	"fmt"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
@@ -137,15 +137,16 @@ type MysqlLianmiRepository struct {
 	logger    *zap.Logger
 	db        *gorm.DB
 	redisPool *redis.Pool
-	// nsqClient *nsqMq.NsqClient
-	base *BaseRepository
+	multiChan *multichannel.NsqChannel
+	base      *BaseRepository
 }
 
-func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, multiChan *multichannel.NsqChannel) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
 	return &MysqlLianmiRepository{
 		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,
 		redisPool: redisPool,
+		multiChan: multiChan,
 		base:      NewBaseRepository(logger, db),
 	}
 }
@@ -172,7 +173,6 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(username)
 		targetMsg.SetDeviceID(eDeviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Auth")
 		targetMsg.SetBusinessType(uint32(2))
 		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
@@ -205,17 +205,8 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.SetCode(200) //成功的状态码
 
 		//构建数据完成，向dispatcher发送
+		s.multiChan.NsqChan <- targetMsg
 
-		//TODO
-		/*
-			topic := "Auth.Frontend"
-			rawData, _ := json.Marshal(targetMsg)
-			if err := s.nsqClient.Producer.Public(topic, rawData); err == nil {
-				s.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				s.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
-		*/
 	}
 
 	return nil

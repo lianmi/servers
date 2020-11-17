@@ -1,3 +1,6 @@
+/*
+nsq模块，消费后端的服务器发来的消息， 然后转发到mqtt
+*/
 package nsqMq
 
 import (
@@ -17,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -53,6 +57,7 @@ type NsqClient struct {
 	app            string
 	topics         []string
 	nsqMqttChannel *channel.NsqMqttChannel
+	multiChan      *multichannel.NsqChannel
 
 	Producer  *nsqProducer    // 生产者
 	consumers []*nsq.Consumer // 消费者
@@ -82,34 +87,7 @@ func NewNsqOptions(v *viper.Viper) (*NsqOptions, error) {
 	return o, err
 }
 
-//初始化消费者
-func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttChannel, logger *zap.Logger) (*nsq.Consumer, error) {
-	cfg := nsq.NewConfig()
-
-	//设置轮询时间间隔，最小10ms， 最大 5m， 默认60s
-	cfg.LookupdPollInterval = 3 * time.Second
-
-	c, err := nsq.NewConsumer(topic, channelName, cfg)
-	if err != nil {
-		return nil, err
-	}
-	c.SetLoggerLevel(nsq.LogLevelWarning) // 设置警告级别
-
-	handler := &nsqHandler{
-		nsqConsumer:    c,
-		nsqMqttChannel: nqChannel,
-		logger:         logger,
-	}
-	c.AddHandler(handler)
-
-	err = c.ConnectToNSQLookupd(addr)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-//处理后端服务发来的消息,JSON格式
+//处理后端服务发来的nsq消息, JSON格式
 func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 	nh.messagesReceived++
 	nh.logger.Debug(fmt.Sprintf("receive ID: %s, addr: %s", msg.ID, msg.NSQDAddress))
@@ -142,6 +120,33 @@ func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 	return nil
 }
 
+//初始化消费者
+func initConsumer(topic, channelName, addr string, nqChannel *channel.NsqMqttChannel, logger *zap.Logger) (*nsq.Consumer, error) {
+	cfg := nsq.NewConfig()
+
+	//设置轮询时间间隔，最小10ms， 最大 5m， 默认60s
+	cfg.LookupdPollInterval = 3 * time.Second
+
+	c, err := nsq.NewConsumer(topic, channelName, cfg)
+	if err != nil {
+		return nil, err
+	}
+	c.SetLoggerLevel(nsq.LogLevelWarning) // 设置警告级别
+
+	handler := &nsqHandler{
+		nsqConsumer:    c,
+		nsqMqttChannel: nqChannel,
+		logger:         logger,
+	}
+	c.AddHandler(handler)
+
+	err = c.ConnectToNSQLookupd(addr)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 //初始化生产者
 func initProducer(addr string) (*nsqProducer, error) {
 	// fmt.Println("init producer address:", addr)
@@ -152,7 +157,7 @@ func initProducer(addr string) (*nsqProducer, error) {
 	return &nsqProducer{producer}, nil
 }
 
-func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger, ps services.LianmiApisService) *NsqClient {
+func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger, ps services.LianmiApisService, multichan *multichannel.NsqChannel) *NsqClient {
 
 	p, err := initProducer(o.ProducerAddr)
 	if err != nil {
@@ -165,6 +170,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 	nsqClient := &NsqClient{
 		o:              o,
 		nsqMqttChannel: channel,
+		multiChan:      multichan,
 		Producer:       p,
 		consumers:      make([]*nsq.Consumer, 0),
 		logger:         logger.With(zap.String("type", "dispatcher.nsq")),
@@ -252,6 +258,7 @@ func (nc *NsqClient) RedisInit() {
 
 //启动Nsq实例
 func (nc *NsqClient) Start() error {
+	nc.logger.Info("Dispatcher NsqClient Start()")
 	nc.logger.Info("Topics", zap.String("Topics", nc.o.Topics))
 	nc.topics = strings.Split(nc.o.Topics, ",")
 	for _, topic := range nc.topics {
@@ -273,6 +280,9 @@ func (nc *NsqClient) Start() error {
 	//Go程，启动定时任务
 	go nc.RunCron()
 
+	//Go程，启动multichannel
+	go nc.Multichannel()
+
 	for _, topic := range nc.topics {
 
 		//目的是创建topic
@@ -284,15 +294,7 @@ func (nc *NsqClient) Start() error {
 
 	}
 
-	//尝试读取redis
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	if bar, err := redis.String(redisConn.Do("GET", "bar")); err == nil {
-		nc.logger.Info("redisConn GET", zap.String("bar", bar))
-	}
-
-	//Go程
+	//Go程 处理生产者数据，这些数据来源于mqtt的订阅消费，向后端场景服务程序发布
 	go nc.ProcessProduceChan()
 
 	go func() {
@@ -317,7 +319,7 @@ func (nc *NsqClient) Start() error {
 	return nil
 }
 
-// 处理生产者数据，这些数据来源于mqtt的订阅消费，向后端场景服务程序发布
+// 处理 ProduceChan 通道数据，这些数据来源于mqtt的订阅消费，向后端场景服务程序发布
 func (nc *NsqClient) ProcessProduceChan() {
 	run := true
 	sigchan := make(chan os.Signal, 1)
@@ -346,11 +348,73 @@ func (nc *NsqClient) ProcessProduceChan() {
 				continue
 			}
 
-			err = nc.Producer.Public(topic, rawData)
-			if err != nil {
-				nc.logger.Error("nc.Producer.Public error", zap.Error(err))
-				continue
+			//分发
+			switch Global.BusinessType(msg.GetBusinessType()) {
+			case Global.BusinessType_User,
+				Global.BusinessType_Auth,
+				Global.BusinessType_Friends,
+				Global.BusinessType_Team,
+				Global.BusinessType_Sync:
+
+				//本地处理
+				taskID := msg.GetTaskID()
+				businessType := uint16(msg.GetBusinessType())
+				businessSubType := uint16(msg.GetBusinessSubType())
+				businessTypeName := msg.GetBusinessTypeName()
+
+				//根据目标target,  组装数据包， 写入processChan
+				nc.logger.Info("msgFromDispatcherChan",
+					// zap.String("Topic:", payload.Topic),
+					zap.Uint32("taskId:", taskID),                     // SDK的任务ID
+					zap.String("BusinessTypeName:", businessTypeName), // 业务名称
+					zap.Uint16("businessType:", businessType),         // 业务类型
+					zap.Uint16("businessSubType:", businessSubType),   // 业务子类型
+					zap.String("Source:", msg.GetSource()),            // 业务数据发送者, 这里是businessTypeName
+					zap.String("Target:", msg.GetTarget()),            // 接收者, 这里是自己，authService
+				)
+
+				//根据businessType以及businessSubType进行处理
+				if handleFunc, ok := nc.handleFuncMap[randtool.UnionUint16ToUint32(businessType, businessSubType)]; !ok {
+					nc.logger.Warn("Can not process this businessType", zap.Uint16("businessType:", businessType), zap.Uint16("businessSubType:", businessSubType))
+					//向SDK回包，业务号及业务子号无法匹配 404
+					msg.SetCode(int32(404))                                                          //状态码
+					msg.SetErrorMsg([]byte("Can not process this businessType and businessSubType")) //错误提示
+					msg.FillBody(nil)
+
+					rawData, _ := json.Marshal(msg)
+
+					topic := msg.GetSource() + ".Frontend"
+
+					//向nsq发送
+					err := nc.Producer.Public(topic, rawData)
+					if err != nil {
+						nc.logger.Error("nc.Producer.Public error", zap.Error(err))
+					}
+					continue
+				} else {
+					//启动Go程
+					go handleFunc(msg)
+				}
+
+			case
+				Global.BusinessType_Msg,
+				Global.BusinessType_Product,
+				Global.BusinessType_Order,
+				Global.BusinessType_Wallet:
+
+				err = nc.Producer.Public(topic, rawData)
+				if err != nil {
+					nc.logger.Error("nc.Producer.Public error", zap.Error(err))
+					continue
+				}
+
+			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+
+			default: //default case
+				nc.logger.Warn("Incorrect business type", zap.Uint32("businessType", msg.GetBusinessType()))
+				return
 			}
+
 		}
 	}
 }
@@ -362,6 +426,32 @@ func (np *nsqProducer) Public(topic string, data []byte) error {
 		return err
 	}
 	return nil
+}
+
+//启动一个go程，读取multichannel, 并发送到nsq通道
+func (nc *NsqClient) Multichannel() {
+	run := true
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			nc.logger.Info("Caught signal terminating")
+			_ = sig
+			run = false
+		case msg := <-nc.multiChan.NsqChan: //从multiChan通道里读取数据
+			topic := "Auth.Frontend"
+			rawData, _ := json.Marshal(msg)
+			if err := nc.Producer.Public(topic, rawData); err == nil {
+				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+				return
+			} else {
+				nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+			}
+
+		}
+	}
 }
 
 /*

@@ -336,7 +336,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 							HandledAccount: userB,
 							HandledMsg:     "对方同意加你为好友",
-							Status:         1,            //TODO, 消息状态  存储
+							Status:         1,            // 消息状态  存储
 							Data:           psSourceData, // 用来存储附言及来源
 							To:             userB,
 						}
@@ -1075,7 +1075,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 				targetMsg.SetBusinessType(uint32(3))
 				targetMsg.SetBusinessSubType(uint32(7)) //SyncUpdateFriendEvent = 7
 
-				targetMsg.BuildHeader("AuthService", time.Now().UnixNano()/1e6)
+				targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 				sData, _ := proto.Marshal(sameRsp)
 				targetMsg.FillBody(sData) //网络包的body，承载真正的业务数据

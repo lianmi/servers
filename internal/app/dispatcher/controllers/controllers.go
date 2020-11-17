@@ -55,7 +55,6 @@ func CreateInitControllersFn(
 		r.POST("/validatecode", pc.ValidateCode)                      //验证码验证接口
 		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
 
-		//TODO 增加JWT中间件
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "test zone",
 			Key:         []byte(common.SecretKey),
