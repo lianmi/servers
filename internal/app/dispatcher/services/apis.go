@@ -23,7 +23,7 @@ type LianmiApisService interface {
 	Register(user *models.User) (string, error)
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
-	GetUser(id uint64) (*Auth.UserRsp, error)
+	GetUserByUsername(username string) (*Auth.UserRsp, error)
 
 	//检测用户登录
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
@@ -44,9 +44,6 @@ type LianmiApisService interface {
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
-
-	//修改密码
-	ChanPassword(username string, req *Auth.ChanPasswordReq) error
 
 	//授权新创建的群组
 	ApproveTeam(teamID string) error
@@ -112,6 +109,11 @@ type LianmiApisService interface {
 	SaveFriend(pFriend *models.Friend) error
 
 	DeleteFriend(userID, friendUserID uint64) error
+
+	//保存商户营业执照
+	SaveBusinessUserUploadLicense(username, url string) error
+
+	GetBusinessUserLicense(username string) (string, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -130,10 +132,10 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 	}
 }
 
-func (s *DefaultLianmiApisService) GetUser(id uint64) (*Auth.UserRsp, error) {
-	s.logger.Debug("GetUser", zap.Uint64("id", id))
+func (s *DefaultLianmiApisService) GetUserByUsername(username string) (*Auth.UserRsp, error) {
+	s.logger.Debug("GetUser", zap.String("username", username))
 
-	fUserData, err := s.Repository.GetUser(id)
+	fUserData, err := s.Repository.GetUserByUsername(username)
 	if err != nil {
 		return nil, err
 	}
@@ -227,12 +229,6 @@ func (s *DefaultLianmiApisService) ResetPassword(mobile, password string, user *
 	}
 
 	return nil
-}
-
-//修改密码
-func (s *DefaultLianmiApisService) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
-
-	return s.Repository.ChanPassword(username, req)
 }
 
 func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role {
@@ -507,4 +503,13 @@ func (s *DefaultLianmiApisService) SaveUser(user *models.User) error {
 
 func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
 	return s.Repository.SaveTag(tag)
+}
+
+//保存商户营业执照
+func (s *DefaultLianmiApisService) SaveBusinessUserUploadLicense(username, url string) error {
+	return s.Repository.SaveBusinessUserUploadLicense(username, url)
+}
+
+func (s *DefaultLianmiApisService) GetBusinessUserLicense(username string) (string, error) {
+	return s.Repository.GetBusinessUserLicense(username)
 }

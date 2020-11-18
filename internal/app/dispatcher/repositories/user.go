@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	// "encoding/json"
 	"fmt"
 	"time"
 
@@ -10,13 +9,11 @@ import (
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	User "github.com/lianmi/servers/api/proto/user"
-	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
-	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	// "github.com/lianmi/servers/util/dateutil"
 )
 
 func (s *MysqlLianmiRepository) GetUser(id uint64) (p *models.User, err error) {
@@ -35,7 +32,6 @@ func (s *MysqlLianmiRepository) GetUser(id uint64) (p *models.User, err error) {
 
 func (s *MysqlLianmiRepository) GetUserByUsername(username string) (p *models.User, err error) {
 	p = new(models.User)
-
 	if err = s.db.Model(p).Where(&models.User{
 		Username: username,
 	}).First(p).Error; err != nil {
@@ -310,50 +306,6 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 	tx.Commit()
 
 	return nil
-}
-
-//修改密码
-func (s *MysqlLianmiRepository) ChanPassword(username string, req *Auth.ChanPasswordReq) error {
-	var user models.User
-	sel := "id"
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	where := models.User{Username: username}
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		return err
-	}
-	//其他类型的错误，写下日志，返回false
-	if err != nil {
-		s.logger.Error("获取用户信息失败", zap.Error(err))
-		return err
-	}
-
-	userKey := fmt.Sprintf("userData:%s", username)
-	mobile, _ := redis.String(redisConn.Do("HGET", userKey, "Mobile"))
-	if !s.CheckSmsCode(mobile, req.SmsCode) {
-		s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", req.SmsCode))
-		return err
-	}
-
-	//判断旧密码
-	if req.Oldpasswd == user.Password {
-		user.Password = req.Password
-	}
-
-	tx := s.base.GetTransaction()
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("修改密码失败", zap.Error(err))
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	return nil
-
 }
 
 // 获取用户角色
@@ -877,13 +829,15 @@ func (s *MysqlLianmiRepository) ExistsTokenInRedis(deviceID, token string) bool 
 
 }
 
-//生成注册校验码
+//生成注册校验码, 一个手机号只能一天获取5次
 func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 	var err error
 	var isExists bool
+	var count uint64
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 	key := fmt.Sprintf("smscode:%s", mobile)
+	keyCount := fmt.Sprintf("smscode_count:%s", mobile)
 
 	if isExists, err = redis.Bool(redisConn.Do("EXISTS", key)); err != nil {
 		s.logger.Error("redisConn GET smscode Error", zap.Error(err))
@@ -899,6 +853,27 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 	_, err = redisConn.Do("SET", key, "123456") //增加key
 	if err != nil {
 		s.logger.Error("SET key失败", zap.Error(err))
+		return false
+	}
+
+	_, err = redisConn.Do("INCR", keyCount) //增加次数
+	if err != nil {
+		s.logger.Error("INCR keyCount 失败", zap.Error(err))
+		return false
+	}
+
+	if count, err = redis.Uint64(redisConn.Do("INCR", keyCount)); err != nil {
+		s.logger.Error("INCR keyCount 失败", zap.Error(err))
+		return false
+	}
+
+	if count > LMCommon.SMSCOUNT {
+		_, err = redisConn.Do("EXPIRE", keyCount, 12*3600) //设置失效时间为12小时
+		if err != nil {
+			s.logger.Error("EXPIRE keyCount 失败", zap.Error(err))
+			return false
+		}
+		s.logger.Warn("此手机已经超过了上限")
 		return false
 	}
 
@@ -1004,4 +979,53 @@ func (s *MysqlLianmiRepository) SaveTag(tag *models.Tag) error {
 	tx.Commit()
 
 	return nil
+}
+
+//保存商户营业执照
+func (s *MysqlLianmiRepository) SaveBusinessUserUploadLicense(username, url string) error {
+	var err error
+	p := new(models.BusinessUserLicense)
+
+	//查询出当前state
+	if err = s.db.Model(p).Where(&models.BusinessUserLicense{
+		BusinessUsername: username,
+	}).First(p).Error; err != nil {
+		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
+		return errors.Wrapf(err, "Query error[BusinessUsername=%s]", username)
+	}
+	if p.State == 1 {
+		return errors.Wrapf(err, "不能修改已经审核通过的营业执照")
+	}
+
+	p.BusinessUsername = username
+	p.LicenseUrl = url
+	p.State = 0
+
+	//使用事务同时更新Tag数据
+	tx := s.base.GetTransaction()
+
+	if err := tx.Save(p).Error; err != nil {
+		s.logger.Error("更新BusinessUserLicense表失败", zap.Error(err))
+		tx.Rollback()
+
+	}
+	//提交
+	tx.Commit()
+
+	return nil
+}
+
+func (s *MysqlLianmiRepository) GetBusinessUserLicense(username string) (string, error) {
+	var err error
+	p := new(models.BusinessUserLicense)
+
+	//查询出当前state
+	if err = s.db.Model(p).Where(&models.BusinessUserLicense{
+		BusinessUsername: username,
+	}).First(p).Error; err != nil {
+		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
+		return "", errors.Wrapf(err, "Query error[BusinessUsername=%s]", username)
+	}
+	return p.LicenseUrl, nil
+
 }

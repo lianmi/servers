@@ -10,7 +10,6 @@ nsq:
   broker: nsqlookupd:4161
   producerAddr: nsqd:4150
   topics: Auth.Frontend,User.Frontend,Friends.Frontend,Team.Frontend,Msg.Frontend,Sync.Frontend,Product.Frontend,Order.Frontend,Wallet.Frontend
-  # Auth.Backend,User.Backend,Friends.Backend,Team.Backend,Sync.Backend
   chnanel: im
 mqtt:
   addr: mosquitto:1883

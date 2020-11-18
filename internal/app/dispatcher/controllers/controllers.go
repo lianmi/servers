@@ -248,12 +248,13 @@ func CreateInitControllersFn(
 
 		}
 
-		//=======用户模块==========/
+		//=======用户(商户)模块==========/
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser)   //根据id获取用户信息
-			auth.POST("/chanpassword", pc.ChanPassword) //修改(重置)用户密码
+			userGroup.GET("/getuser/:id", pc.GetUser)                                  //根据注册id获取用户信息
+			userGroup.POST("/businessuseruploadlicense", pc.BusinessUserUploadLicense) //商户上传营业执照
+			userGroup.GET("/businessuserlicense/:id", pc.GetBusinessUserLicense)       //商户获取营业执照url
 		}
 
 		//=======好友模块==========/

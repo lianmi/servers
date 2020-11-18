@@ -5,7 +5,6 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
@@ -25,24 +24,27 @@ type ValidCodeReq struct {
 	SmsCode string `form:"smscode" json:"smscode" binding:"required"`
 }
 
+type BusinessUserUploadLicenseReq struct {
+	Username           string `form:"username" json:"username" binding:"required"`
+	BusinessLicenseUrl string `form:"business_license_url" json:"business_license_url" binding:"required"`
+}
+
 type RespSuccess struct {
 	Success bool   `form:"success" json:"success"`
 	Message string `form:"message" json:"message" `
 }
 
+//根据用户注册id获取用户资料
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("GetUser start ...")
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		RespFail(c, http.StatusBadRequest, 500, "id is wrong number")
-		return
-	}
-	if id <= 0 {
-		RespFail(c, http.StatusBadRequest, 500, "id is wrong number")
+	username := c.Param("id")
+
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
 		return
 	}
 
-	p, err := pc.service.GetUser(id)
+	p, err := pc.service.GetUserByUsername(username)
 	if err != nil {
 		pc.logger.Error("get User by id error", zap.Error(err))
 		RespFail(c, http.StatusBadRequest, 500, "Get User by id error")
@@ -286,60 +288,6 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 	})
 }
 
-func (pc *LianmiApisController) ChanPassword(c *gin.Context) {
-	var mobile string
-	code := codes.InvalidParams
-
-	claims := jwt_v2.ExtractClaims(c)
-	userName := claims[common.IdentityKey].(string)
-	deviceID := claims["deviceID"].(string)
-	token := jwt_v2.GetToken(c)
-
-	pc.logger.Debug("ChanPassword",
-		zap.String("userName", userName),
-		zap.String("deviceID", deviceID),
-		zap.String("token", token))
-
-	var req Auth.ChanPasswordReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
-	} else {
-		if req.Oldpasswd == "" {
-			pc.logger.Error("Oldpasswd is empty")
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Oldpasswd")
-		}
-		if req.Password == "" {
-			pc.logger.Error("Password is empty")
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段Password")
-		}
-		if req.SmsCode == "" {
-			pc.logger.Error("SmsCode is empty")
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段SmsCode")
-		}
-
-		//检测校验码是否正确
-		if !pc.service.CheckSmsCode(mobile, req.SmsCode) {
-			pc.logger.Error("ChanPassword error, SmsCode is wrong")
-			code = codes.ErrWrongSmsCode
-			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
-			return
-		}
-
-		//修改密码
-		if err := pc.service.ChanPassword(userName, &req); err == nil {
-			pc.logger.Debug("ChanPassword  run ok")
-			RespOk(c, http.StatusOK, 200)
-		} else {
-			pc.logger.Debug("ChanPassword  run FAILD")
-			RespFail(c, http.StatusBadRequest, 400, "修改密码失败")
-		}
-
-	}
-
-	return
-}
-
 func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 
 	return pc.service.GetUserRoles(username)
@@ -438,4 +386,49 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	}
 
 	return
+}
+
+// 商户上传营业执照
+func (pc *LianmiApisController) BusinessUserUploadLicense(c *gin.Context) {
+
+	code := codes.InvalidParams
+	var req BusinessUserUploadLicenseReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+		username := req.Username
+		url := req.BusinessLicenseUrl
+		//将营业执照url保存
+		if err := pc.service.SaveBusinessUserUploadLicense(username, url); err != nil {
+			RespFail(c, http.StatusBadRequest, code, "保存营业执照失败")
+		} else {
+			code = codes.SUCCESS
+			RespOk(c, http.StatusOK, code)
+		}
+
+	}
+
+}
+
+//商户获取营业执照url
+func (pc *LianmiApisController) GetBusinessUserLicense(c *gin.Context) {
+
+	code := codes.InvalidParams
+	username := c.Param("id")
+
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		return
+	}
+
+	url, err := pc.service.GetBusinessUserLicense(username)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, url)
+
 }

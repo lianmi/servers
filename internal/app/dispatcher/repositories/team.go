@@ -198,7 +198,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 		targetMsg.SetCode(200) //成功的状态码
 
-		//构建数据完成，向dispatcher发送
+		//构建数据完成，向NsqChan发送
 		s.multiChan.NsqChan <- targetMsg
 
 		s.logger.Info("Broadcast Msg To AllDevices Succeed",

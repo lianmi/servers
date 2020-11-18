@@ -44,7 +44,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
+
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleGetUsers start...",
@@ -102,9 +102,6 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 					Username: username,
 				}).First(userData).Error; err != nil {
 					nc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
-					// errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					// errorMsg = fmt.Sprintf("Get user error[username=%s]", username)
-					// goto COMPLETE
 					continue
 				}
 
@@ -119,6 +116,9 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				Gender:            userData.GetGender(),
 				Avatar:            userData.Avatar,
 				Label:             userData.Label,
+				UserType:          User.UserType(userData.UserType),
+				State:             User.UserState(userData.State),
+				ContactPerson:     userData.ContactPerson,
 				Introductory:      userData.Introductory,
 				Province:          userData.Province,
 				City:              userData.City,
@@ -165,7 +165,6 @@ COMPLETE:
 /*
 1-2 更新用户资料
 将触发 1-4 同步其它端修改的用户资料
-
 */
 func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
@@ -176,7 +175,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
+
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleUpdateUserProfile start...",
@@ -298,7 +297,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		}
 
 		//修改redis里的userData:{username}哈希表，以便GetUsers的时候可以获取最新的数据
-
 		userKey := fmt.Sprintf("userData:%s", username)
 		userData := new(models.User)
 
@@ -387,7 +385,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			targetMsg.SetJwtToken(curJwtToken)
 			targetMsg.SetUserName(username)
 			targetMsg.SetDeviceID(eDeviceID)
-			// kickMsg.SetTaskID(uint32(taskId))
 			targetMsg.SetBusinessTypeName("User")
 			targetMsg.SetBusinessType(uint32(Global.BusinessType_User))
 			targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncUpdateProfileEvent)) //SyncUpdateProfileEvent = 4
@@ -450,7 +447,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //当前用户账号
-	// token := msg.GetJwtToken()
+
 	deviceID := msg.GetDeviceID() //当前设备id
 
 	nc.logger.Info("HandleMarkTag start...",
@@ -491,7 +488,6 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 		)
 
 		//修改的用户
-		// pUser := new(models.User)
 		account := req.GetUsername()
 		accountData := new(models.User)
 		userKey := fmt.Sprintf("userData:%s", account)
@@ -752,7 +748,6 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				targetMsg.SetJwtToken(curJwtToken)
 				targetMsg.SetUserName(username)
 				targetMsg.SetDeviceID(eDeviceID)
-				// kickMsg.SetTaskID(uint32(taskId))
 				targetMsg.SetBusinessTypeName("User")
 				targetMsg.SetBusinessType(uint32(Global.BusinessType_User))               //用户模块
 				targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncMarkTagEvent)) //同步其它端标签更改事件

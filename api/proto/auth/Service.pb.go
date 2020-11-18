@@ -13,8 +13,6 @@ import (
 	user "github.com/lianmi/servers/api/proto/user"
 	wallet "github.com/lianmi/servers/api/proto/wallet"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -3570,16 +3568,11 @@ var file_api_proto_auth_Service_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x12,
 	0x28, 0x0a, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75,
 	0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x01, 0x52, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73,
-	0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x32, 0x55, 0x0a, 0x0a, 0x4c, 0x69, 0x61,
-	0x6e, 0x6d, 0x69, 0x41, 0x75, 0x74, 0x68, 0x12, 0x47, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x55, 0x73,
-	0x65, 0x72, 0x12, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d,
-	0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65,
-	0x71, 0x1a, 0x1d, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69,
-	0x2e, 0x69, 0x6d, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x73, 0x70,
-	0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c,
-	0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70,
-	0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x62, 0x06, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x33,
+	0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x32, 0x0c, 0x0a, 0x0a, 0x4c, 0x69, 0x61,
+	0x6e, 0x6d, 0x69, 0x41, 0x75, 0x74, 0x68, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72,
+	0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61,
+	0x75, 0x74, 0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3667,10 +3660,8 @@ var file_api_proto_auth_Service_proto_depIdxs = []int32{
 	38, // 13: cloud.lianmi.im.auth.GetBusinessMembershipResp.details:type_name -> cloud.lianmi.im.auth.BusinessUserMonthDetail
 	41, // 14: cloud.lianmi.im.auth.GetMembershipResp.commssionDetails:type_name -> cloud.lianmi.im.auth.UserMonthCommssionDetail
 	44, // 15: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
-	0,  // 16: cloud.lianmi.im.auth.LianmiAuth.GetUser:input_type -> cloud.lianmi.im.auth.UserReq
-	1,  // 17: cloud.lianmi.im.auth.LianmiAuth.GetUser:output_type -> cloud.lianmi.im.auth.UserRsp
-	17, // [17:18] is the sub-list for method output_type
-	16, // [16:17] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -4315,8 +4306,6 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type LianmiAuthClient interface {
-	//获取用户信息
-	GetUser(ctx context.Context, in *UserReq, opts ...grpc.CallOption) (*UserRsp, error)
 }
 
 type lianmiAuthClient struct {
@@ -4327,60 +4316,22 @@ func NewLianmiAuthClient(cc grpc.ClientConnInterface) LianmiAuthClient {
 	return &lianmiAuthClient{cc}
 }
 
-func (c *lianmiAuthClient) GetUser(ctx context.Context, in *UserReq, opts ...grpc.CallOption) (*UserRsp, error) {
-	out := new(UserRsp)
-	err := c.cc.Invoke(ctx, "/cloud.lianmi.im.auth.LianmiAuth/GetUser", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // LianmiAuthServer is the server API for LianmiAuth service.
 type LianmiAuthServer interface {
-	//获取用户信息
-	GetUser(context.Context, *UserReq) (*UserRsp, error)
 }
 
 // UnimplementedLianmiAuthServer can be embedded to have forward compatible implementations.
 type UnimplementedLianmiAuthServer struct {
 }
 
-func (*UnimplementedLianmiAuthServer) GetUser(context.Context, *UserReq) (*UserRsp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
-}
-
 func RegisterLianmiAuthServer(s *grpc.Server, srv LianmiAuthServer) {
 	s.RegisterService(&_LianmiAuth_serviceDesc, srv)
-}
-
-func _LianmiAuth_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LianmiAuthServer).GetUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cloud.lianmi.im.auth.LianmiAuth/GetUser",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LianmiAuthServer).GetUser(ctx, req.(*UserReq))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 var _LianmiAuth_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cloud.lianmi.im.auth.LianmiAuth",
 	HandlerType: (*LianmiAuthServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "GetUser",
-			Handler:    _LianmiAuth_GetUser_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/auth/Service.proto",
+	Methods:     []grpc.MethodDesc{},
+	Streams:     []grpc.StreamDesc{},
+	Metadata:    "api/proto/auth/Service.proto",
 }

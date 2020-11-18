@@ -14,17 +14,24 @@ import (
 )
 
 type LianmiRepository interface {
-	GetUser(id uint64) (p *models.User, err error)
+
+	//根据注册用户idd获取用户的资料
 	GetUserByUsername(username string) (p *models.User, err error)
-	BlockUser(username string) (err error)
-	DisBlockUser(username string) (p *models.User, err error)
+
+	//注册(用户及商户)
 	Register(user *models.User) (err error)
+
+	//重置密码
 	ResetPassword(mobile, password string, user *models.User) error
-	ChanPassword(username string, req *Auth.ChanPasswordReq) error
+
 	AddRole(role *models.Role) (err error)
+
 	DeleteUser(id uint64) bool
+
 	GetUserRoles(where interface{}) []*models.Role
+
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+
 	GetUserAvatar(where interface{}, sel string) string
 
 	SaveUser(user *models.User) error
@@ -79,6 +86,10 @@ type LianmiRepository interface {
 	DisBlockTeam(teamID string) error
 
 	//======后台相关======/
+	BlockUser(username string) (err error)
+
+	DisBlockUser(username string) (p *models.User, err error)
+
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
@@ -131,6 +142,10 @@ type LianmiRepository interface {
 	SaveFriend(pFriend *models.Friend) error
 
 	DeleteFriend(userID, friendUserID uint64) error
+
+	SaveBusinessUserUploadLicense(username, url string) error
+
+	GetBusinessUserLicense(username string) (string, error)
 }
 
 type MysqlLianmiRepository struct {
@@ -177,7 +192,7 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 		targetMsg.SetBusinessType(uint32(2))
 		targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
 
-		targetMsg.BuildHeader("Dispatccher", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		//构造负载数据
 		clients := make([]*Auth.DeviceInfo, 0)
@@ -204,7 +219,7 @@ func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool,
 
 		targetMsg.SetCode(200) //成功的状态码
 
-		//构建数据完成，向dispatcher发送
+		//构建数据完成，向NsqChan发送
 		s.multiChan.NsqChan <- targetMsg
 
 	}

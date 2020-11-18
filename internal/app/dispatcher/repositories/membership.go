@@ -52,12 +52,11 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 	if d.BusinessUsername == "" {
 		return errors.Wrapf(err, "businessUsername is empty error")
 	} else {
-		b := &models.BusinessCommission{
+		e := &models.BusinessCommission{}
+		if err = s.db.Model(e).Where(&models.BusinessCommission{
 			MembershipUsername: username,
 			BusinessUsername:   d.BusinessUsername,
-		}
-		e := &models.BusinessCommission{}
-		if err = s.db.Model(e).Where(b).First(e).Error; err == nil {
+		}).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("username", username), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert BusinessCommission, because this username had exists")
@@ -136,12 +135,11 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 	if d.UsernameLevelOne != "" {
 		//支付成功后，需要插入佣金表Commission -  第一级
-		b := &models.Commission{
+		e := &models.Commission{}
+		if err = s.db.Model(e).Where(&models.Commission{
 			UsernameLevel:    d.UsernameLevelOne,
 			BusinessUsername: d.BusinessUsername,
-		}
-		e := &models.Commission{}
-		if err = s.db.Model(e).Where(b).First(e).Error; err == nil {
+		}).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelOne), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelOne had exists")
@@ -212,12 +210,11 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 	if d.UsernameLevelTwo != "" {
 		//支付成功后，需要插入佣金表Commission -  第二级
-		b := &models.Commission{
+		e := &models.Commission{}
+		if err = s.db.Model(e).Where(&models.Commission{
 			UsernameLevel:    d.UsernameLevelTwo,
 			BusinessUsername: d.BusinessUsername,
-		}
-		e := &models.Commission{}
-		if err = s.db.Model(b).Where(b).First(e).Error; err == nil {
+		}).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelTwo), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelTwo had exists")
@@ -287,12 +284,11 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 	if d.UsernameLevelThree != "" {
 		//支付成功后，需要插入佣金表Commission -  第三级
-		b := &models.Commission{
+		e := &models.Commission{}
+		if err = s.db.Model(e).Where(&models.Commission{
 			UsernameLevel:    d.UsernameLevelThree,
 			BusinessUsername: d.BusinessUsername,
-		}
-		e := &models.Commission{}
-		if err = s.db.Model(b).Where(b).First(e).Error; err == nil {
+		}).First(e).Error; err == nil {
 			s.logger.Error("已经存在此用户，不能新增佣金记录", zap.String("UsernameLevel", d.UsernameLevelThree), zap.String("BusinessUsername", d.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because this UsernameLevelThree had exists")

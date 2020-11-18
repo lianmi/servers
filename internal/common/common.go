@@ -5,6 +5,11 @@ package common
 
 import "time"
 
+//短信校验码一天总量
+const (
+	SMSCOUNT = uint64(10)
+)
+
 //redis
 const (
 	REDISTRUE  = 1
@@ -118,11 +123,11 @@ const (
 
 //会员相关
 const (
-	MEMBERSHIPPRICE = 99.00
-	CommissionOne = 35.0
-	CommissionTwo = 10.0
-	CommissionThree = 5.0
-	CommissionBusiness= 11.0
+	MEMBERSHIPPRICE    = 99.00
+	CommissionOne      = 35.0
+	CommissionTwo      = 10.0
+	CommissionThree    = 5.0
+	CommissionBusiness = 11.0
 )
 
 //订单相关
