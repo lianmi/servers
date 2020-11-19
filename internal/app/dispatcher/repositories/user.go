@@ -48,7 +48,6 @@ func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err er
 func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
 	var err error
 	var total int64
-	total = 1
 
 	var list []*User.User
 	where := []interface{}{
@@ -62,6 +61,9 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.Use
 	}
 
 	db.Find(&list)
+
+	total = int64(len(list))
+
 	return list, total, nil
 }
 
