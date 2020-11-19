@@ -86,8 +86,8 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("QueryProducts  payload",
-			zap.String("UserName", req.GetUserName()),
-			zap.Uint64("TimeAt", req.GetTimeAt()),
+			zap.String("UserName", req.UserName),
+			zap.Uint64("TimeAt", req.TimeAt),
 		)
 		//从redis里获取当前用户信息
 		userData := new(models.User)
@@ -103,25 +103,9 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			}
 		}
 
-		//判断此商户是不是用户关注的，如果不是则返回
-		/*
-			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Watching:%s", username), req.GetUserName()); err == nil {
-				if reply == nil {
-					//商户不是用户关注
-					nc.logger.Debug("此商户不是用户关注",
-						zap.String("UserName", req.GetUserName()),
-					)
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is not watching[Watching Username=%s]", req.GetUserName())
-					goto COMPLETE
-				}
-
-			}
-		*/
-
 		//获取商户的商品有序集合
-		//从redis的有序集合查询出商户的商品信息在时间戳req.GetTimeAt()之后的更新
-		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", req.GetUserName()), req.GetTimeAt(), "+inf"))
+		//从redis的有序集合查询出商户的商品信息在时间戳req.TimeAt之后的更新
+		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", req.UserName), req.TimeAt, "+inf"))
 		for _, productID := range productIDs {
 			product := new(models.Product)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
@@ -164,7 +148,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		}
 
 		//获取商户的下架soldoutProducts
-		soldoutProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("SoldoutProducts:%s", req.GetUserName()), req.GetTimeAt(), "+inf"))
+		soldoutProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("SoldoutProducts:%s", req.UserName), req.TimeAt, "+inf"))
 		for _, soldoutProductID := range soldoutProductIDs {
 			rsp.SoldoutProducts = append(rsp.SoldoutProducts, soldoutProductID)
 		}
@@ -238,22 +222,22 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("AddProduct  payload",
-			zap.String("ProductId", req.GetProduct().ProductId),
-			zap.Int("OrderType", int(req.GetOrderType())),
-			zap.String("OpkBusinessUser", req.GetOpkBusinessUser()),
-			zap.Uint64("Expire", req.GetExpire()),
+			zap.String("ProductId", req.Product.ProductId),
+			zap.Int("OrderType", int(req.OrderType)),
+			zap.String("OpkBusinessUser", req.OpkBusinessUser),
+			zap.Uint64("Expire", req.Expire),
 		)
 
-		if req.GetProduct().ProductId != "" {
+		if req.Product.ProductId != "" {
 			nc.logger.Warn("新的上架商品id必须是空的 ")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ProductId is not empty[Username=%s]", username)
 			goto COMPLETE
 		}
 
-		if req.GetOrderType() == Global.OrderType_ORT_Normal ||
-			req.GetOrderType() == Global.OrderType_ORT_Grabbing ||
-			req.GetOrderType() == Global.OrderType_ORT_Walking {
+		if req.OrderType == Global.OrderType_ORT_Normal ||
+			req.OrderType == Global.OrderType_ORT_Grabbing ||
+			req.OrderType == Global.OrderType_ORT_Walking {
 			//符合要求 pass
 		} else {
 			nc.logger.Warn("新的上架商品所属类型不正确")
@@ -263,12 +247,12 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//校验过期时间
-		if req.GetExpire() > 0 {
+		if req.Expire > 0 {
 			//是否小于当前时间戳
-			if int64(req.GetExpire()) < time.Now().UnixNano()/1e6 {
+			if int64(req.Expire) < time.Now().UnixNano()/1e6 {
 				nc.logger.Warn("Expire小于当前时间戳")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Expire is less than current microsecond[Expire=%d]", req.GetExpire())
+				errorMsg = fmt.Sprintf("Expire is less than current microsecond[Expire=%d]", req.Expire)
 				goto COMPLETE
 			}
 
@@ -435,12 +419,12 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("UpdateProduct  payload",
-			zap.String("ProductId", req.GetProduct().ProductId),
-			zap.Int("OrderType", int(req.GetOrderType())),
-			// zap.Uint64("Expire", req.GetExpire()),
+			zap.String("ProductId", req.Product.ProductId),
+			zap.Int("OrderType", int(req.OrderType)),
+			// zap.Uint64("Expire", req.Expire),
 		)
 
-		if req.GetProduct().ProductId == "" {
+		if req.Product.ProductId == "" {
 			nc.logger.Warn("上架商品id必须非空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("ProductId is empty[Username=%s]", username)
@@ -750,10 +734,10 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("RegisterPreKeys  payload",
-			zap.Strings("PreKeys", req.GetPreKeys()),
+			zap.Strings("PreKeys", req.PreKeys),
 		)
 
-		if len(req.GetPreKeys()) == 0 {
+		if len(req.PreKeys) == 0 {
 			nc.logger.Warn("一次性公钥的数组长度必须大于0")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("PreKeys is empty[Username=%s]", username)
@@ -783,7 +767,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 
 		//opk入库
 		prekeys := make([]*models.Prekey, 0)
-		for _, opk := range req.GetPreKeys() {
+		for _, opk := range req.PreKeys {
 			prekeys = append(prekeys, &models.Prekey{
 				Type:         0,
 				Username:     username,
@@ -872,21 +856,21 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("GetPreKeyOrderID  payload",
-			zap.String("UserName", req.GetUserName()),     //商户
-			zap.Int("OrderType", int(req.GetOrderType())), //订单类型
-			zap.String("ProducctID", req.GetProductID()),  //商品id
+			zap.String("UserName", req.UserName),     //商户
+			zap.Int("OrderType", int(req.OrderType)), //订单类型
+			zap.String("ProducctID", req.ProductID),  //商品id
 		)
 
-		if req.GetUserName() == "" {
+		if req.UserName == "" {
 			nc.logger.Warn("商户用户账号不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", req.GetUserName())
+			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", req.UserName)
 			goto COMPLETE
 		}
-		if req.GetProductID() == "" {
+		if req.ProductID == "" {
 			nc.logger.Warn("商品id不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.GetProductID())
+			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.ProductID)
 			goto COMPLETE
 		}
 
@@ -906,13 +890,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		//从redis里获取目标商户的信息
 		businessUserData := new(models.User)
-		userKey = fmt.Sprintf("userData:%s", req.GetUserName())
+		userKey = fmt.Sprintf("userData:%s", req.UserName)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
 
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetUserName())
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.UserName)
 				goto COMPLETE
 
 			}
@@ -920,22 +904,22 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		//判断商户是否被封号
 		if businessUserData.State == 2 {
-			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.GetUserName()))
+			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.UserName))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUserName())
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.UserName)
 			goto COMPLETE
 		}
 
 		if businessUserData.UserType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("目标用户不是商户类型")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.GetUserName())
+			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.UserName)
 			goto COMPLETE
 		}
 
 		// 获取ProductID对应的商品信息
 		product := new(models.Product)
-		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.GetProductID()))); err == nil {
+		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
 			if err := redis.ScanStruct(result, product); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -958,30 +942,30 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		opk := ""
 
 		//从商户的prekeys有序集合取出一个opk
-		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.GetUserName()), 0, 0))
+		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.UserName), 0, 0))
 		if len(prekeySlice) > 0 {
 			opk = prekeySlice[0]
 
 			//取出后就删除此OPK
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.GetUserName()), opk); err != nil {
+			if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.UserName), opk); err != nil {
 				nc.logger.Error("ZREM Error", zap.Error(err))
 			}
 
 		} else {
 			nc.logger.Warn("商户的prekeys有序集合无法取出")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Business opks is empty[Username=%s]", req.GetUserName())
+			errorMsg = fmt.Sprintf("Business opks is empty[Username=%s]", req.UserName)
 			goto COMPLETE
 		}
 
-		rsp.UserName = req.GetUserName()
-		rsp.OrderType = req.GetOrderType()
-		rsp.ProductID = req.GetProductID()
+		rsp.UserName = req.UserName
+		rsp.OrderType = req.OrderType
+		rsp.ProductID = req.ProductID
 		rsp.OrderID = orderID
 		rsp.PubKey = opk
 
 		//将订单ID保存到商户的订单有序集合orders:{username}，订单详情是 orderInfo:{订单ID}
-		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", req.GetUserName()), time.Now().UnixNano()/1e6, orderID); err != nil {
+		if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", req.UserName), time.Now().UnixNano()/1e6, orderID); err != nil {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
@@ -989,10 +973,10 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		_, err = redisConn.Do("HMSET",
 			fmt.Sprintf("Order:%s", orderID),
 			"BuyUser", username, //发起订单的用户id
-			"BusinessUser", req.GetUserName(), //商户的用户id
+			"BusinessUser", req.UserName, //商户的用户id
 			"OrderID", orderID, //订单id
-			"ProductID", req.GetProductID(), //商品id，默认是空
-			"Type", req.GetOrderType(), //订单类型
+			"ProductID", req.ProductID, //商品id，默认是空
+			"Type", req.OrderType, //订单类型
 			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
 			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 			"IsUrge", LMCommon.REDISFALSE, //催单
@@ -1000,7 +984,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		)
 
 		//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
-		if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.GetUserName()), "-inf", "+inf")); err != nil {
+		if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.UserName), "-inf", "+inf")); err != nil {
 			nc.logger.Error("ZCOUNT Error", zap.Error(err))
 		} else {
 
@@ -1008,7 +992,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 				nc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
 
 				//查询出商户主设备
-				deviceListKey := fmt.Sprintf("devices:%s", req.GetUserName())
+				deviceListKey := fmt.Sprintf("devices:%s", req.UserName)
 				deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 				for index, eDeviceID := range deviceIDSlice {
 					if index == 0 {
@@ -1025,7 +1009,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 						//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
 						opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
 						opkAlertMsg.SetJwtToken(jwtToken)
-						opkAlertMsg.SetUserName(req.GetUserName())
+						opkAlertMsg.SetUserName(req.UserName)
 						opkAlertMsg.SetDeviceID(string(eDeviceID))
 						// opkAlertMsg.SetTaskID(uint32(taskId))
 						opkAlertMsg.SetBusinessTypeName("Order")
@@ -1338,23 +1322,23 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("OrderMsg payload",
-			zap.Int32("Scene", int32(req.GetScene())),
-			zap.Int32("Type", int32(req.GetType())),
-			zap.String("To", req.GetTo()), //商户账户id
-			zap.String("Uuid", req.GetUuid()),
-			zap.Uint64("SendAt", req.GetSendAt()),
+			zap.Int32("Scene", int32(req.Scene)),
+			zap.Int32("Type", int32(req.Type)),
+			zap.String("To", req.To), //商户账户id
+			zap.String("Uuid", req.Uuid),
+			zap.Uint64("SendAt", req.SendAt),
 		)
 
-		if req.GetTo() == "" {
+		if req.To == "" {
 			nc.logger.Warn("商户用户账号不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("To is empty[Username=%s]", req.GetTo())
+			errorMsg = fmt.Sprintf("To is empty[Username=%s]", req.To)
 			goto COMPLETE
 		}
-		if req.GetType() != Msg.MessageType_MsgType_Order {
+		if req.Type != Msg.MessageType_MsgType_Order {
 			nc.logger.Warn("警告，不能处理非订单类型的消息")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Type is not right[Type=%d]", int32(req.GetType()))
+			errorMsg = fmt.Sprintf("Type is not right[Type=%d]", int32(req.Type))
 			goto COMPLETE
 		}
 
@@ -1374,13 +1358,13 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 		//从redis里获取目标商户的信息
 		businessUserData := new(models.User)
-		userKey = fmt.Sprintf("userData:%s", req.GetTo())
+		userKey = fmt.Sprintf("userData:%s", req.To)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
 
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetTo())
+				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.To)
 				goto COMPLETE
 
 			}
@@ -1388,16 +1372,16 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 		//判断商户是否被封号
 		if businessUserData.State == 2 {
-			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.GetTo()))
+			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.To))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetTo())
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.To)
 			goto COMPLETE
 		}
 
 		//解包出 OrderProductBody
 
 		var orderProductBody = new(Order.OrderProductBody)
-		if err := proto.Unmarshal(req.GetBody(), orderProductBody); err != nil {
+		if err := proto.Unmarshal(req.Body, orderProductBody); err != nil {
 			nc.logger.Error("Protobuf Unmarshal OrderProductBody Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Protobuf Unmarshal OrderProductBody Error: %s", err.Error())
@@ -1408,21 +1392,21 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			attachHash := crypt.Sha1(orderProductBody.GetAttach())
 
 			nc.logger.Debug("OrderProductBody payload",
-				zap.String("OrderID", orderProductBody.GetOrderID()),
-				zap.String("ProductID", orderProductBody.GetProductID()),
-				zap.String("BuyUser", orderProductBody.GetBuyUser()),
-				zap.String("OpkBuyUser", orderProductBody.GetOpkBuyUser()),
-				zap.String("BusinessUser", orderProductBody.GetBusinessUser()),
-				zap.String("OpkBusinessUser", orderProductBody.GetOpkBusinessUser()),
-				zap.Float64("OrderTotalAmount", orderProductBody.GetOrderTotalAmount()),
-				zap.String("Attach", orderProductBody.GetAttach()),         //加密的密文
-				zap.String("AttachHash", attachHash),                       //订单内容的哈希
-				zap.ByteString("Userdata", orderProductBody.GetUserdata()), //透传信息 , 不加密 ，直接传过去 不处理
-				zap.Int("State", int(orderProductBody.GetState())),         //订单状态
+				zap.String("OrderID", orderProductBody.OrderID),
+				zap.String("ProductID", orderProductBody.ProductID),
+				zap.String("BuyUser", orderProductBody.BuyUser),
+				zap.String("OpkBuyUser", orderProductBody.OpkBuyUser),
+				zap.String("BusinessUser", orderProductBody.BusinessUser),
+				zap.String("OpkBusinessUser", orderProductBody.OpkBusinessUser),
+				zap.Float64("OrderTotalAmount", orderProductBody.OrderTotalAmount),
+				zap.String("Attach", orderProductBody.Attach),         //加密的密文
+				zap.String("AttachHash", attachHash),                  //订单内容的哈希
+				zap.ByteString("Userdata", orderProductBody.Userdata), //透传信息 , 不加密 ，直接传过去 不处理
+				zap.Int("State", int(orderProductBody.State)),         //订单状态
 			)
 
 			//判断订单id不能为空
-			if orderProductBody.GetOrderID() == "" {
+			if orderProductBody.OrderID == "" {
 				nc.logger.Error("OrderID is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("OrderID is empty")
@@ -1430,12 +1414,12 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			}
 
 			//判断订单状态是不是 OS_Prepare, 如果是，则改为OS_SendOK
-			switch Global.OrderState(orderProductBody.GetState()) {
+			switch Global.OrderState(orderProductBody.State) {
 			case Global.OrderState_OS_Prepare:
 				//TODO
 
 				//总金额不能小于或等于0
-				if orderProductBody.GetOrderTotalAmount() <= 0 {
+				if orderProductBody.OrderTotalAmount <= 0 {
 					nc.logger.Error("OrderTotalAmount is less than  0")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
@@ -1443,7 +1427,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				// 判断商品id不能为空
-				if orderProductBody.GetProductID() == "" {
+				if orderProductBody.ProductID == "" {
 					nc.logger.Error("ProductID is empty")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("ProductID is empty")
@@ -1451,7 +1435,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				//判断买家账号id不能为空
-				if orderProductBody.GetBuyUser() == "" {
+				if orderProductBody.BuyUser == "" {
 					nc.logger.Error("BuyUser is empty")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("BuyUser is empty")
@@ -1459,7 +1443,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				// 判断买家的OPK不能为空
-				if orderProductBody.GetOpkBuyUser() == "" {
+				if orderProductBody.OpkBuyUser == "" {
 					nc.logger.Error("OpkBuyUser is empty")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("OpkBuyUser is empty")
@@ -1467,7 +1451,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				//判断商户的账号id不能为空
-				if orderProductBody.GetBusinessUser() == "" {
+				if orderProductBody.BusinessUser == "" {
 					nc.logger.Error("BusinessUse is empty")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("BusinessUse is empty")
@@ -1476,7 +1460,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				// 获取ProductID对应的商品信息
 				product := new(models.Product)
-				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.GetProductID()))); err == nil {
+				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.ProductID))); err == nil {
 					if err := redis.ScanStruct(result, product); err != nil {
 						nc.logger.Error("错误: ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1494,7 +1478,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				//将订单转发到商户
-				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.GetBusinessUser()))); err != nil {
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "INCR Error"
@@ -1509,7 +1493,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					Body:         orderProductBodyData,               //订单载体 OrderProductBody
 					From:         username,                           //谁发的
 					FromDeviceId: deviceID,                           //哪个设备发的
-					Recv:         req.GetTo(),                        //商户账户id
+					Recv:         req.To,                             //商户账户id
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -1517,36 +1501,36 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				//对attach进行哈希计算，以便获知订单内容是否发生改变
-				attachHash := crypt.Sha1(orderProductBody.GetAttach())
+				attachHash := crypt.Sha1(orderProductBody.Attach)
 
 				// 将订单信息缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
 				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
 				_, err = redisConn.Do("HMSET",
 					orderProductBodyKey,
 					"Username", username,
-					"OrderID", orderProductBody.GetOrderID(),
-					"ProductID", orderProductBody.GetProductID(),
-					"BuyUser", orderProductBody.GetBuyUser(),
-					"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
-					"BusinessUser", orderProductBody.GetBusinessUser(),
-					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
-					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
+					"OrderID", orderProductBody.OrderID,
+					"ProductID", orderProductBody.ProductID,
+					"BuyUser", orderProductBody.BuyUser,
+					"OpkBuyUser", orderProductBody.OpkBuyUser,
+					"BusinessUser", orderProductBody.BusinessUser,
+					"OpkBusinessUser", orderProductBody.OpkBusinessUser,
+					"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
+					"Attach", orderProductBody.Attach, //订单内容，UI负责构造
 					"AttachHash", attachHash, //订单内容的哈希值
-					"UserData", orderProductBody.GetUserdata(), //透传数据
-					"State", orderProductBody.GetState(), //订单状态
+					"UserData", orderProductBody.Userdata, //透传数据
+					"State", orderProductBody.State, //订单状态
 				)
 
 				// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
 
-				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.GetOrderID())
+				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
 				_, err = redisConn.Do("HMSET",
 					orderIDKey,
-					// "OrderID", orderProductBody.GetOrderID(), //不能写入，在创建的时候已经有值
-					"ProductID", orderProductBody.GetProductID(), //商品id
-					"BuyUser", orderProductBody.GetBuyUser(), //买家
-					"OpkBuyUser", orderProductBody.GetOpkBuyUser(),
-					"BusinessUser", orderProductBody.GetBusinessUser(), //商户
+					// "OrderID", orderProductBody.OrderID, //不能写入，在创建的时候已经有值
+					"ProductID", orderProductBody.ProductID, //商品id
+					"BuyUser", orderProductBody.BuyUser, //买家
+					"OpkBuyUser", orderProductBody.OpkBuyUser,
+					"BusinessUser", orderProductBody.BusinessUser, //商户
 					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
 					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
 					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
@@ -1556,7 +1540,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				)
 
 				//向商户发送订单消息
-				go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.GetBusinessUser())
+				go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 
 			default:
 
@@ -1582,7 +1566,7 @@ COMPLETE:
 			msg.FillBody(nil)
 		} else {
 			rsp = &Msg.SendMsgRsp{
-				Uuid:        req.GetUuid(),
+				Uuid:        req.Uuid,
 				ServerMsgId: msg.GetID(),
 				Seq:         curSeq,
 				Time:        uint64(time.Now().UnixNano() / 1e6), //毫秒
@@ -1666,13 +1650,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	} else {
 
-		if req.OrderBody.GetOrderID() == "" {
+		if req.OrderBody.OrderID == "" {
 			nc.logger.Error("OrderID is empty")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("OrderID is empty")
 			goto COMPLETE
 		}
-		orderID = req.OrderBody.GetOrderID()
+		orderID = req.OrderBody.OrderID
 
 		//根据订单id获取buyUser及businessUser是谁
 		orderIDKey = fmt.Sprintf("Order:%s", orderID)
@@ -1739,7 +1723,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		nc.logger.Debug("ChangeOrderState",
-			zap.Int("State", int(req.GetState())), //需要更新的状态
+			zap.Int("State", int(req.State)), //需要更新的状态
 			zap.Uint64("TimeAt", req.TimeAt),
 			zap.String("OrderID", orderID),
 			zap.String("ProductID", productID),
@@ -1815,7 +1799,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		curState, err := redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
 
 		//如果当前状态与即将更改的状态一样，则直接返回
-		if Global.OrderState(curState) == req.GetState() {
+		if Global.OrderState(curState) == req.State {
 			nc.logger.Warn("警告: 当前状态与即将更改的状态一样")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Order state is the same as current state")
@@ -1827,7 +1811,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		case Global.OrderState_OS_Undefined: //未定义
 			//将redis里的订单信息哈希表状态字段设置为最新状态
-			_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.GetState()))
+			_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.State))
 
 		case Global.OrderState_OS_Done: //当前处于: 完成订单
 			if businessUser == username {
@@ -1836,7 +1820,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("Order state is done, you cannot change state")
 				goto COMPLETE
 			} else {
-				if req.GetState() != Global.OrderState_OS_Confirm {
+				if req.State != Global.OrderState_OS_Confirm {
 					nc.logger.Warn("警告: 当前状态处于完成订单状态, 只能选择确认")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Order state is done, you only change to confirm")
@@ -1847,8 +1831,8 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		case Global.OrderState_OS_ApplyCancel: //当前处于: 买家申请撤单
 
 			// if businessUser == username { //只有商户才能有权更改订单状态为完成、撤单、更改订单内容（金额）
-			// 	if req.GetState() == Global.OrderState_OS_Done ||
-			// 		req.GetState() == Global.OrderState_OS_Cancel {
+			// 	if req.State== Global.OrderState_OS_Done ||
+			// 		req.State== Global.OrderState_OS_Cancel {
 			// 		//pass
 			// 	} else {
 			// 		nc.logger.Warn("警告: 只有商户才能有权更改订单状态为撤单或完成")
@@ -1894,7 +1878,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			goto COMPLETE
 
 		case Global.OrderState_OS_Urge: // 买家催单, 商户可以回复7， 只能催一次
-			if req.GetState() == Global.OrderState_OS_Urge {
+			if req.State == Global.OrderState_OS_Urge {
 				nc.logger.Warn("警告: 此订单当前状态为买家催单, 只能催一次")
 
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1906,7 +1890,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//根据最新状态要处理的逻辑
-		switch req.GetState() {
+		switch req.State {
 		case Global.OrderState_OS_Taked: //已接单, 向买家推送通知
 			if toUsername == buyUser {
 				nc.logger.Warn("警告: 买家不能接单，SDK逻辑错误")
@@ -1935,14 +1919,14 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			}
 
 			//判断订单id不能为空
-			if req.GetOrderBody().GetOrderID() == "" {
+			if req.OrderBody.OrderID == "" {
 				nc.logger.Error("OrderID is empty")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("OrderID is empty")
 				goto COMPLETE
 			}
 
-			if req.GetOrderBody().GetOrderTotalAmount() <= 0 {
+			if req.OrderBody.GetOrderTotalAmount() <= 0 {
 				nc.logger.Error("OrderTotalAmount is less than  0")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
@@ -1950,26 +1934,26 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			}
 
 			//订单金额改变或者哈希发生改变
-			cur_attachHash := crypt.Sha1(req.GetOrderBody().GetAttach())
-			if orderTotalAmount != req.GetOrderBody().GetOrderTotalAmount() || attachHash != cur_attachHash {
+			cur_attachHash := crypt.Sha1(req.OrderBody.GetAttach())
+			if orderTotalAmount != req.OrderBody.GetOrderTotalAmount() || attachHash != cur_attachHash {
 				nc.logger.Debug("OrderBody change，订单内容或金额发生改变",
-					zap.String("OrderID", req.GetOrderBody().GetOrderID()),
-					zap.String("ProductID", req.GetOrderBody().GetProductID()),
-					zap.String("BuyUser", req.GetOrderBody().GetBuyUser()),
-					zap.String("OpkBuyUser", req.GetOrderBody().GetOpkBuyUser()),
-					zap.String("BusinessUser", req.GetOrderBody().GetBusinessUser()),
-					zap.String("OpkBusinessUser", req.GetOrderBody().GetOpkBusinessUser()),
-					zap.Float64("OrderTotalAmount", req.GetOrderBody().GetOrderTotalAmount()),
-					zap.String("Attach", req.GetOrderBody().GetAttach()), //加密的密文
-					zap.String("AttachHash", cur_attachHash),             //订单内容哈希
-					zap.Int("State", int(req.GetOrderBody().GetState())), //订单状态
+					zap.String("OrderID", req.OrderBody.OrderID),
+					zap.String("ProductID", req.OrderBody.GetProductID()),
+					zap.String("BuyUser", req.OrderBody.GetBuyUser()),
+					zap.String("OpkBuyUser", req.OrderBody.GetOpkBuyUser()),
+					zap.String("BusinessUser", req.OrderBody.BusinessUser),
+					zap.String("OpkBusinessUser", req.OrderBody.GetOpkBusinessUser()),
+					zap.Float64("OrderTotalAmount", req.OrderBody.GetOrderTotalAmount()),
+					zap.String("Attach", req.OrderBody.GetAttach()), //加密的密文
+					zap.String("AttachHash", cur_attachHash),        //订单内容哈希
+					zap.Int("State", int(req.OrderBody.GetState())), //订单状态
 				)
 
 				//将OrderTotalAmount, Attach， AttachHash， UserData 更新到redis里
-				_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.GetOrderBody().GetOrderTotalAmount())
-				_, err = redisConn.Do("HSET", orderIDKey, "Attach", req.GetOrderBody().GetAttach())
+				_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.OrderBody.GetOrderTotalAmount())
+				_, err = redisConn.Do("HSET", orderIDKey, "Attach", req.OrderBody.GetAttach())
 				_, err = redisConn.Do("HSET", orderIDKey, "AttachHash", cur_attachHash)
-				_, err = redisConn.Do("HSET", orderIDKey, "UserData", req.GetOrderBody().GetUserdata())
+				_, err = redisConn.Do("HSET", orderIDKey, "UserData", req.OrderBody.GetUserdata())
 			}
 
 			//通知对方
@@ -2161,11 +2145,11 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			})
 
 		default:
-			nc.logger.Debug("Do nothing ...'", zap.Int("State", int(req.GetState())))
+			nc.logger.Debug("Do nothing ...'", zap.Int("State", int(req.State)))
 		}
 
 		//将redis里的订单信息哈希表状态字段设置为最新状态
-		_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.GetState()))
+		_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.State))
 
 		if len(orderBodyData) > 0 {
 			//将最新订单状态转发到目标用户

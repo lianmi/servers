@@ -22,7 +22,7 @@ import (
 
 //根据用户注册id获取用户资料
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
-	pc.logger.Debug("GetUser start ...")
+	pc.logger.Debug("Get User start ...")
 	username := c.Param("id")
 
 	if username == "" {
@@ -30,45 +30,67 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 		return
 	}
 
-	p, err := pc.service.GetUserByUsername(username)
+	user, err := pc.service.GetUser(username)
 	if err != nil {
-		pc.logger.Error("get User by id error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 500, "Get User by id error")
+		pc.logger.Error("Get User by id error", zap.Error(err))
+		RespFail(c, http.StatusBadRequest, 500, "Get  User by id error")
 		return
 	}
 
-	RespData(c, http.StatusBadRequest, http.StatusOK, p)
+	RespData(c, http.StatusBadRequest, http.StatusOK, user)
+
+}
+
+//多条件不定参数批量分页获取用户列表
+func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
+	code := codes.InvalidParams
+	pc.logger.Debug("Query Users start ...")
+	var req User.QueryUsersReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("Query Users, binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if resp, err := pc.service.QueryUsers(&req); err != nil {
+			code = codes.ERROR
+			RespFail(c, http.StatusBadRequest, code, "Query users error")
+			return
+		} else {
+
+			RespData(c, http.StatusBadRequest, http.StatusOK, resp)
+		}
+
+	}
 
 }
 
 // 用户注册- 支持普通用户及商户注册
 func (pc *LianmiApisController) Register(c *gin.Context) {
-	var user models.User
+	var userReq User.User
 	code := codes.InvalidParams
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到user变量中，必填字段一定要填
-	if c.BindJSON(&user) != nil {
+	if c.BindJSON(&userReq) != nil {
 		pc.logger.Error("Register, binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册",
-			zap.String("user.Nick", user.Nick),                         //呢称
-			zap.String("user.Mobile", user.Mobile),                     //手机号
-			zap.String("user.SmsCode", user.SmsCode),                   //短信校验码
-			zap.String("user.ContactPerson", user.ContactPerson),       //联系人
-			zap.Int("user.UserType", user.UserType),                    //用户类型 1-普通 2-商户
-			zap.Int("user.Gender", user.Gender),                        //性别
-			zap.String("user.ReferrerUsername", user.ReferrerUsername), //推荐人用户id
+			zap.String("Nick", userReq.Nick),                         //呢称
+			zap.String("Mobile", userReq.Mobile),                     //手机号
+			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
+			zap.String("ContactPerson", userReq.ContactPerson),       //联系人
+			zap.Int("UserType", int(userReq.UserType)),               //用户类型 1-普通 2-商户
+			zap.Int("Gender", int(userReq.Gender)),                   //性别
+			zap.String("ReferrerUsername", userReq.ReferrerUsername), //推荐人用户id
 		)
 
 		//初始化一些默认值及当期时间
-		user.CreatedAt = time.Now().UnixNano() / 1e6 //注意，必须要unix时间戳，毫秒
-		user.State = 0                               //预审核
-		user.Avatar = common.PubAvatar               //公共头像
-		user.AllowType = 3                           //用户加好友枚举，默认是3
+		// userReq.CreatedAt = uint64(time.Now().UnixNano() / 1e6) //注意，必须要unix时间戳，毫秒
+		// user.State = 0                                       //预审核
+		// user.Avatar = common.PubAvatar                       //公共头像
+		// user.AllowType = 3                                   //用户加好友枚举，默认是3
 
 		//检测手机是数字
-		if !conv.IsDigit(user.Mobile) {
+		if !conv.IsDigit(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is not digital")
 			code = codes.ErrNotDigital
 			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
@@ -76,7 +98,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		}
 
 		//检测手机是否已经注册过了
-		if pc.service.ExistUserByMobile(user.Mobile) {
+		if pc.service.ExistUserByMobile(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is already registered")
 			code = codes.ErrExistMobile
 			RespFail(c, http.StatusBadRequest, code, "Mobile is already registered")
@@ -84,7 +106,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		}
 
 		//检测校验码是否正确
-		if !pc.service.CheckSmsCode(user.Mobile, user.SmsCode) {
+		if !pc.service.CheckSmsCode(userReq.Mobile, userReq.Smscode) {
 			pc.logger.Error("Register user error, SmsCode is wrong")
 			code = codes.ErrWrongSmsCode
 			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
@@ -92,14 +114,29 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		}
 
 		//检测推荐人，UI负责将id拼接邀请码，也就是用户账号(id+邀请码)
-		if user.ReferrerUsername != "" {
-			if !pc.service.ExistUserByName(user.ReferrerUsername) {
+		if userReq.ReferrerUsername != "" {
+			if !pc.service.ExistUserByName(userReq.ReferrerUsername) {
 				pc.logger.Error("Register user error, ReferrerUsername is not registered")
 				code = codes.ErrNotFoundInviter
 				RespFail(c, http.StatusBadRequest, code, "ReferrerUsername is not registered")
 				return
 			}
 
+		}
+		user := models.User{
+			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
+			Password:         userReq.Passwd,           //用户密码，md5加密
+			Nick:             userReq.Nick,             //用户呢称，必填
+			Gender:           int(userReq.Gender),      //性别
+			Avatar:           userReq.Avatar,           //头像url
+			Label:            userReq.Label,            //签名标签
+			Mobile:           userReq.Mobile,           //注册手机
+			Email:            userReq.Email,            //密保邮件，需要发送校验邮件确认
+			AllowType:        3,                        //用户加好友枚举，默认是3
+			UserType:         int(userReq.UserType),    //用户类型 1-普通，2-商户
+			State:            0,                        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+			ContactPerson:    userReq.ContactPerson,    //联系人
+			ReferrerUsername: userReq.ReferrerUsername, //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 		}
 
 		if userName, err := pc.service.Register(&user); err == nil {
@@ -357,51 +394,6 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	return
 }
 
-// 商户上传营业执照
-func (pc *LianmiApisController) BusinessUserUploadLicense(c *gin.Context) {
-
-	code := codes.InvalidParams
-	var req User.BusinessUserUploadLicenseReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
-	} else {
-		businessUsername := req.Businessusername
-		url := req.BusinessLicenseUrl
-		//将营业执照url保存
-		if err := pc.service.SaveBusinessUserUploadLicense(businessUsername, url); err != nil {
-			RespFail(c, http.StatusBadRequest, code, "保存营业执照失败")
-		} else {
-			code = codes.SUCCESS
-			RespOk(c, http.StatusOK, code)
-		}
-
-	}
-
-}
-
-//商户获取营业执照url
-func (pc *LianmiApisController) GetBusinessUserLicense(c *gin.Context) {
-
-	code := codes.InvalidParams
-	businessUsername := c.Param("id")
-
-	if businessUsername == "" {
-		RespFail(c, http.StatusBadRequest, 500, "id is empty")
-		return
-	}
-
-	url, err := pc.service.GetBusinessUserLicense(businessUsername)
-	if err != nil {
-		RespFail(c, http.StatusBadRequest, 500, err.Error())
-		return
-	}
-
-	code = codes.SUCCESS
-	RespData(c, http.StatusOK, code, url)
-
-}
-
 //根据商户注册id获取店铺资料
 func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	code := codes.InvalidParams
@@ -413,26 +405,6 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	}
 
 	store, err := pc.service.GetStore(businessUsername)
-	if err != nil {
-		RespFail(c, http.StatusBadRequest, 500, err.Error())
-		return
-	}
-
-	code = codes.SUCCESS
-	RespData(c, http.StatusOK, code, store)
-}
-
-//根据店铺uuid获取店铺资料
-func (pc *LianmiApisController) GetStoreByUUID(c *gin.Context) {
-	code := codes.InvalidParams
-	uuid := c.Param("storeuuid")
-
-	if uuid == "" {
-		RespFail(c, http.StatusBadRequest, 500, "uuid is empty")
-		return
-	}
-
-	store, err := pc.service.GetStoreByUUID(uuid)
 	if err != nil {
 		RespFail(c, http.StatusBadRequest, 500, err.Error())
 		return
@@ -455,7 +427,7 @@ func (pc *LianmiApisController) SaveStore(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "商户地址信息必填")
 			return
 		}
-		if req.Businessusername == "" {
+		if req.BusinessUsername == "" {
 			RespFail(c, http.StatusBadRequest, code, "商户注册账号id必填")
 			return
 		}
@@ -497,6 +469,7 @@ func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
 
 	code := codes.InvalidParams
 	var req User.QueryStoresNearbyReq
+
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
@@ -513,7 +486,7 @@ func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
 		}
 
 		//TODO
-		_ =  stores
+		_ = stores
 		resp.Stores = append(resp.Stores, &User.Store{})
 
 		RespData(c, http.StatusOK, 200, resp)

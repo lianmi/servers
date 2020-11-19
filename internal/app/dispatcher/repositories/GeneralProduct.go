@@ -27,7 +27,6 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 		ProductID: productID,
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
-		// fmt.Println("GetUser first error:", err.Error())
 		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%d]", productID)
 	}
 	s.logger.Debug("GetUser run...")

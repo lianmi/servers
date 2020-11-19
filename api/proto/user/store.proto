@@ -8,7 +8,7 @@ option go_package = "github.com/lianmi/servers/api/proto/user";
 // 店铺信息
 message Store {
     string storeUUID           = 1;  //店铺的uuid
-    string businessusername    = 2;  //店铺的商户注册号
+    string businessUsername    = 2;  //店铺的商户注册号
     string avatar              = 3;  //店铺的头像，与商户头像一致 
     global.StoreType storeType = 4;  //店铺类型,对应Global.proto里的StoreType枚举
     string introductory        = 5;  //商店简介 Text文本类型

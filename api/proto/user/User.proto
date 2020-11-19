@@ -9,6 +9,7 @@ enum Gender {
     Sex_Male = 1;
     Sex_Female = 2;
 }
+
 //账号类型
 enum UserType {
     Ut_Undefined = 0;
@@ -23,7 +24,6 @@ enum UserState {
     Ss_Unknow = 0;
     Ss_Normal = 1;
     Ss_Blocked = 2;
-
 }
 
 //获取用户加好友的选项,3是默认
@@ -32,8 +32,8 @@ enum AllowType {
     UAT_AllowAny = 1;
     UAT_DenyAny = 2;
     UAT_NeedConfirm = 3; 
-
 }
+
 //根据用户ID批量获取用户信息,登录后拉取其他用户资料,添加好友查询好友资料
 message GetUsersReq {
     repeated string usernames = 1;
@@ -46,18 +46,38 @@ message GetUsersResp {
 // 用户信息
 message User {
     uint64 id        = 1;                         //ID
-    string username  = 2;
-    string passwd    = 3;                         //密码 是否必填-是
-    Gender gender    = 4;
-    string nick      = 5;
-    string avatar    = 6;
-    string label     = 7;
-    string mobile    = 8;
-    string email     = 9;
-    UserType userType    = 10;
-    UserState state      = 11;
-    string extend        = 12;
-    string contactPerson = 13;
-    fixed64 createdAt = 23;     //用户注册时间,Unix时间戳
-    fixed64 updatedAt = 24;     //用户资料最后更新时间,Unix时间戳
+    string smscode   = 2;
+    string username  = 3;
+    string passwd    = 4;                         //密码 是否必填-是
+    Gender gender    = 5;
+    string nick      = 6;
+    string avatar    = 7;
+    string label     = 8;
+    string mobile    = 9;
+    string email     = 10;
+    UserType userType    = 11;
+    UserState state      = 12;
+    string extend        = 13;
+    string referrerUsername = 14;
+    string contactPerson = 15;
+    fixed64 createdAt = 16;     //用户注册时间,Unix时间戳
+    fixed64 updatedAt = 17;     //用户资料最后更新时间,Unix时间戳
+}
+
+//多条件不定参数批量分页获取用户列表
+message QueryUsersReq {
+    string mobile           = 1;   //手机号
+    UserType userType       = 2;   //用户类型
+    UserState state         = 3;   //状态
+    string referrerUsername = 4;   //推荐人
+    string contactPerson    = 5;   //联系人
+    fixed64 startAt         = 6;   //注册开始时间, 按时间段查询
+    fixed64 endAt           = 7;   //注册结束时间
+    int32 page              = 8;   //页数,第几页
+    int32 pageSize          = 9;   //每页记录数量
+}
+
+message QueryUsersResp {
+    repeated User users = 1;  //用户列表
+    fixed64 total=2;  //按请求参数的pageSize计算出来的总页数
 }

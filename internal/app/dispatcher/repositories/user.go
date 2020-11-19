@@ -32,30 +32,37 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *MysqlLianmiRepository) GetUser(id uint64) (p *models.User, err error) {
+func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err error) {
 	p = new(models.User)
 
 	if err = s.db.Model(p).Where(&models.User{
-		ID: id,
+		Username: username,
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
-		// fmt.Println("GetUser first error:", err.Error())
-		return nil, errors.Wrapf(err, "Get user error[id=%d]", id)
+		return nil, errors.Wrapf(err, "Get user error[Username=%s]", username)
 	}
 	s.logger.Debug("GetUser run...")
 	return
 }
 
-func (s *MysqlLianmiRepository) GetUserByUsername(username string) (p *models.User, err error) {
-	p = new(models.User)
-	if err = s.db.Model(p).Where(&models.User{
-		Username: username,
-	}).First(p).Error; err != nil {
-		//记录找不到也会触发错误
-		return nil, errors.Wrapf(err, "GetUserByUsername error[username=%s]", username)
+func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
+	var err error
+	var total int64
+	total = 1
+
+	var list []*User.User
+	where := []interface{}{
+		[]interface{}{"user_type", "=", int(req.UserType)},
 	}
-	s.logger.Debug("GetUserByUsername run...")
-	return
+
+	db := s.db
+	db, err = s.base.BuildWhere(db, where)
+	if err != nil {
+		s.logger.Error("BuildWhere错误", zap.Error(err))
+	}
+
+	db.Find(&list)
+	return list, total, nil
 }
 
 /*
@@ -991,56 +998,6 @@ func (s *MysqlLianmiRepository) SaveTag(tag *models.Tag) error {
 	return nil
 }
 
-//保存商户营业执照
-func (s *MysqlLianmiRepository) SaveBusinessUserUploadLicense(username, url string) error {
-	var err error
-	p := new(models.Store)
-
-	//查询出当前state
-	if err = s.db.Model(p).Where(&models.Store{
-		BusinessUsername: username,
-	}).First(p).Error; err != nil {
-		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
-		return errors.Wrapf(err, "Query error[BusinessUsername=%s]", username)
-	}
-	if p.State == 1 {
-		return errors.Wrapf(err, "不能修改已经审核通过的营业执照")
-	}
-
-	p.BusinessUsername = username
-	p.LicenseURL = url
-	p.State = 0
-
-	//使用事务同时更新Tag数据
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("更新BusinessUserLicense表失败", zap.Error(err))
-		tx.Rollback()
-
-	}
-	//提交
-	tx.Commit()
-
-	return nil
-}
-
-//查询店铺营业执照url
-func (s *MysqlLianmiRepository) GetBusinessUserLicense(username string) (string, error) {
-	var err error
-	p := new(models.Store)
-
-	//查询出当前state
-	if err = s.db.Model(p).Where(&models.Store{
-		BusinessUsername: username,
-	}).First(p).Error; err != nil {
-		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
-		return "", errors.Wrapf(err, "Query error[BusinessUsername=%s]", username)
-	}
-	return p.LicenseURL, nil
-
-}
-
 //修改或增加店铺资料
 func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	var err error
@@ -1055,30 +1012,30 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	//判断商户的注册id的合法性以及是否封禁等
 	userData := new(models.User)
 
-	userKey := fmt.Sprintf("userData:%s", req.Businessusername)
+	userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
 	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 		if err := redis.ScanStruct(result, userData); err != nil {
 
 			s.logger.Error("错误：ScanStruct", zap.Error(err))
-			return errors.Wrapf(err, "查询redis出错[Businessusername=%s]", req.Businessusername)
+			return errors.Wrapf(err, "查询redis出错[Businessusername=%s]", req.BusinessUsername)
 
 		}
 	}
 	// 判断是否是商户类型
 	if userData.UserType != 2 {
 		s.logger.Error("错误：此注册账号id不是商户类型")
-		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.Businessusername)
+		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
 	}
 
 	//判断是否被封禁
 	if userData.State == LMCommon.UserBlocked {
-		s.logger.Debug("User is blocked", zap.String("Businessusername", req.Businessusername))
-		return errors.Wrapf(err, "User is blocked[Businessusername=%s]", req.Businessusername)
+		s.logger.Debug("User is blocked", zap.String("Businessusername", req.BusinessUsername))
+		return errors.Wrapf(err, "User is blocked[Businessusername=%s]", req.BusinessUsername)
 	}
 
 	//先查询对应的记录是否存在
 	err = s.base.First(&models.Store{
-		BusinessUsername: req.Businessusername,
+		BusinessUsername: req.BusinessUsername,
 	}, &p, sel)
 
 	//记录不存在错误(RecordNotFound)，返回false
@@ -1087,19 +1044,19 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 		state = 0
 	} else {
 		s.db.Model(p).Where(&models.Store{
-			BusinessUsername: req.Businessusername,
+			BusinessUsername: req.BusinessUsername,
 		}).First(p)
 		storeUUID = p.StoreUUID
 		state = p.State
 	}
 	if state == 1 {
-		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.Businessusername)
+		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
 	}
 
 	store := &models.Store{
 		StoreUUID:         storeUUID,              //店铺的uuid
 		StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
-		BusinessUsername:  req.Businessusername,   //商户注册号
+		BusinessUsername:  req.BusinessUsername,   //商户注册号
 		Introductory:      req.Introductory,       //商店简介 Text文本类型
 		Province:          req.Province,           //省份, 如广东省
 		City:              req.City,               //城市，如广州市
@@ -1154,7 +1111,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 	return &User.Store{
 		StoreUUID:          p.StoreUUID,                   //店铺的uuid
 		StoreType:          Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-		Businessusername:   p.BusinessUsername,            //商户注册号
+		BusinessUsername:   p.BusinessUsername,            //商户注册号
 		Avatar:             avatar,                        //头像
 		Introductory:       p.Introductory,                //商店简介 Text文本类型
 		Province:           p.Province,                    //省份, 如广东省
@@ -1170,53 +1127,13 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		Wechat:             p.WeChat,                      //商户联系人微信号
 		Keys:               p.Keys,                        //商户经营范围搜索关键字
 		BusinessLicenseUrl: p.LicenseURL,                  //商户营业执照阿里云url
+		CreatedAt:          uint64(p.CreatedAt),
+		UpdatedAt:          uint64(p.UpdatedAt),
 	}, nil
 
 }
 
-func (s *MysqlLianmiRepository) GetStoreByUUID(uuid string) (*User.Store, error) {
-	var err error
-	p := new(models.Store)
-	if err = s.db.Model(p).Where(&models.Store{
-		StoreUUID: uuid,
-	}).First(p).Error; err != nil {
-		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
-		return nil, errors.Wrapf(err, "Query error[uuid=%s]", uuid)
-	}
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	//判断商户的注册id的合法性以及是否封禁等
-	avatar, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", p.BusinessUsername), "Avatar"))
-	if err != nil {
-		s.logger.Error("HGET Avatar error", zap.Error(err))
-		return nil, errors.Wrapf(err, "Query error[BusinessUsername=%s]", p.BusinessUsername)
-	}
-
-	return &User.Store{
-		StoreUUID:          p.StoreUUID,                   //店铺的uuid
-		StoreType:          Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-		Businessusername:   p.BusinessUsername,            //商户注册号
-		Avatar:             avatar,                        //头像
-		Introductory:       p.Introductory,                //商店简介 Text文本类型
-		Province:           p.Province,                    //省份, 如广东省
-		City:               p.City,                        //城市，如广州市
-		County:             p.County,                      //区，如天河区
-		Street:             p.Street,                      //街道
-		Address:            p.Address,                     //地址
-		Branchesname:       p.Branchesname,                //网点名称
-		LegalPerson:        p.LegalPerson,                 //法人姓名
-		LegalIdentityCard:  p.LegalIdentityCard,           //法人身份证
-		Longitude:          p.Longitude,                   //商户地址的经度
-		Latitude:           p.Latitude,                    //商户地址的纬度
-		Wechat:             p.WeChat,                      //商户联系人微信号
-		Keys:               p.Keys,                        //商户经营范围搜索关键字
-		BusinessLicenseUrl: p.LicenseURL,                  //商户营业执照阿里云url
-	}, nil
-
-}
-
+//根据gps位置获取一定范围内的店铺列表
 func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error) {
 
 	var err error

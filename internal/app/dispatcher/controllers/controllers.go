@@ -240,23 +240,22 @@ func CreateInitControllersFn(
 
 		}
 
-		//=======用户(商户)模块==========/
+		//=======用户模块==========/
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser)                                  //根据注册id获取用户信息
-			userGroup.POST("/businessuseruploadlicense", pc.BusinessUserUploadLicense) //商户上传营业执照
-			userGroup.GET("/businessuserlicense/:id", pc.GetBusinessUserLicense)       //商户获取营业执照url
+			userGroup.GET("/getuser/:id", pc.GetUser)          //根据id获取用户信息
+			userGroup.POST("/resetpassword", pc.ResetPassword) //重置用户密码
+			userGroup.GET("/list", pc.QueryUsers)              //多条件不定参数批量分页获取用户列表
 		}
 
 		//=======店铺模块==========/
 		storeGroup := r.Group("/v1/store") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			storeGroup.GET("/getstore/:id", pc.GetStore)                    //根据商户注册id获取店铺资料
-			storeGroup.GET("/getstorebyuuid/:storeuuid", pc.GetStoreByUUID) //根据店铺uuid获取店铺资料
-			storeGroup.POST("/store", pc.SaveStore)                         //修改店铺资料
-			storeGroup.GET("/stores", pc.QueryStoresNearby)                 //根据gps位置获取一定范围内的店铺列表
+			storeGroup.GET("/storeinfo/:id", pc.GetStore) //根据商户注册id获取店铺资料
+			storeGroup.POST("/savestore", pc.SaveStore)   //修改店铺资料
+			storeGroup.GET("/list", pc.QueryStoresNearby) //根据gps位置获取一定范围内的店铺列表
 		}
 
 		//=======好友模块==========/
@@ -283,8 +282,6 @@ func CreateInitControllersFn(
 			// 4-27 分页获取群成员信息
 			// teamGroup.POST("/getteammemberspage", pc.GetTeamMembersPage)
 
-			//5-1发送吸顶式群消息
-			// teamGroup.POST("/sendteamroofmsg", pc.SendTeamRoofMsg)
 		}
 
 		//=======商品模块==========/

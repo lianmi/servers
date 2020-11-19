@@ -17,7 +17,9 @@ import (
 type LianmiRepository interface {
 
 	//根据注册用户idd获取用户的资料
-	GetUserByUsername(username string) (p *models.User, err error)
+	GetUser(username string) (p *models.User, err error)
+
+	QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error)
 
 	//注册(用户及商户)
 	Register(user *models.User) (err error)
@@ -144,17 +146,13 @@ type LianmiRepository interface {
 
 	DeleteFriend(userID, friendUserID uint64) error
 
-	SaveBusinessUserUploadLicense(username, url string) error
-
-	GetBusinessUserLicense(username string) (string, error)
-
 	//修改或增加店铺资料
 	SaveStore(req *User.Store) error
 
+	//根据商户账号id获取店铺资料
 	GetStore(businessUsername string) (*User.Store, error)
 
-	GetStoreByUUID(uuid string) (*User.Store, error)
-
+	//根据gps位置获取一定范围内的店铺列表
 	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
 }
 

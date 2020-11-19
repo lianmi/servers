@@ -21,9 +21,11 @@ type LianmiApisService interface {
 	BlockUser(username string) error
 	DisBlockUser(username string) (*models.User, error)
 	Register(user *models.User) (string, error)
+
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
-	GetUserByUsername(username string) (*Auth.UserRsp, error)
+	GetUser(username string) (*Auth.UserRsp, error)
+	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
 	//检测用户登录
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
@@ -110,16 +112,9 @@ type LianmiApisService interface {
 
 	DeleteFriend(userID, friendUserID uint64) error
 
-	//保存商户营业执照
-	SaveBusinessUserUploadLicense(businessUsername, url string) error
-
-	GetBusinessUserLicense(businessUsername string) (string, error)
-
 	SaveStore(req *User.Store) error
 
 	GetStore(businessUsername string) (*User.Store, error)
-
-	GetStoreByUUID(uuid string) (*User.Store, error)
 
 	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
 }
@@ -140,28 +135,57 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 	}
 }
 
-func (s *DefaultLianmiApisService) GetUserByUsername(username string) (*Auth.UserRsp, error) {
+func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, error) {
 	s.logger.Debug("GetUser", zap.String("username", username))
 
-	fUserData, err := s.Repository.GetUserByUsername(username)
+	fUserData, err := s.Repository.GetUser(username)
 	if err != nil {
 		return nil, err
 	}
 	return &Auth.UserRsp{
 		User: &User.User{
-			Username:      fUserData.Username,
-			Gender:        User.Gender(fUserData.Gender),
-			Nick:          fUserData.Nick,
-			Avatar:        fUserData.Avatar,
-			Label:         fUserData.Label,
-			Mobile:        fUserData.Mobile,
-			Email:         fUserData.Email,
-			UserType:      User.UserType(fUserData.UserType),
-			State:         User.UserState(fUserData.State),
-			Extend:        fUserData.Extend,
-			ContactPerson: fUserData.ContactPerson,
+			Username:         fUserData.Username,
+			Gender:           User.Gender(fUserData.Gender),
+			Nick:             fUserData.Nick,
+			Avatar:           fUserData.Avatar,
+			Label:            fUserData.Label,
+			Mobile:           fUserData.Mobile,
+			Email:            fUserData.Email,
+			UserType:         User.UserType(fUserData.UserType),
+			State:            User.UserState(fUserData.State),
+			Extend:           fUserData.Extend,
+			ContactPerson:    fUserData.ContactPerson,
+			ReferrerUsername: fUserData.ReferrerUsername,
 		},
 	}, nil
+}
+
+func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
+	if users, total, err := s.Repository.QueryUsers(req); err != nil {
+		return nil, err
+	} else {
+		resp := &User.QueryUsersResp{
+			Total: uint64(total),
+		}
+
+		for _, userData := range users {
+			resp.Users = append(resp.Users, &User.User{
+				Username:      userData.Username,
+				Gender:        User.Gender(userData.Gender),
+				Nick:          userData.Nick,
+				Avatar:        userData.Avatar,
+				Label:         userData.Label,
+				Mobile:        userData.Mobile,
+				Email:         userData.Email,
+				UserType:      User.UserType(userData.UserType),
+				Extend:        userData.Extend,
+				ContactPerson: userData.ContactPerson,
+			})
+
+		}
+
+		return resp, nil
+	}
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
@@ -358,9 +382,9 @@ func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.G
 func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error) {
 
 	//查询当前用户是否已经付费
-	userInfo, err := s.Repository.GetUserByUsername(username)
+	userInfo, err := s.Repository.GetUser(username)
 	if err != nil {
-		s.logger.Error("s.Repository.GetUserByUsername 错误", zap.Error(err))
+		s.logger.Error("s.Repository.GetUser 错误", zap.Error(err))
 		return nil, err
 	}
 	//用户不是付费会员
@@ -369,9 +393,9 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 	}
 
 	//查询payForUsername是否已经付费
-	payForUsernameInfo, err := s.Repository.GetUserByUsername(payForUsername)
+	payForUsernameInfo, err := s.Repository.GetUser(payForUsername)
 	if err != nil {
-		s.logger.Error("s.Repository.GetUserByUsername 错误", zap.Error(err))
+		s.logger.Error("s.Repository.GetUser 错误", zap.Error(err))
 		return nil, err
 	}
 
@@ -504,15 +528,6 @@ func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
 	return s.Repository.SaveTag(tag)
 }
 
-//只修改保存商户营业执照
-func (s *DefaultLianmiApisService) SaveBusinessUserUploadLicense(businessUsername, url string) error {
-	return s.Repository.SaveBusinessUserUploadLicense(businessUsername, url)
-}
-
-func (s *DefaultLianmiApisService) GetBusinessUserLicense(businessUsername string) (string, error) {
-	return s.Repository.GetBusinessUserLicense(businessUsername)
-}
-
 //修改或增加店铺资料
 func (s *DefaultLianmiApisService) SaveStore(req *User.Store) error {
 	return s.Repository.SaveStore(req)
@@ -520,10 +535,6 @@ func (s *DefaultLianmiApisService) SaveStore(req *User.Store) error {
 
 func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Store, error) {
 	return s.Repository.GetStore(businessUsername)
-}
-
-func (s *DefaultLianmiApisService) GetStoreByUUID(uuid string) (*User.Store, error) {
-	return s.Repository.GetStoreByUUID(uuid)
 }
 
 func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error) {
