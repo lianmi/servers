@@ -53,7 +53,6 @@ message GeneralProductsRsp {
     RespHeader status  = 1;
     
     //列表 
-
     repeated GeneralProduct generalProducts =2;
     
     //总页数，按pageSize计算而来

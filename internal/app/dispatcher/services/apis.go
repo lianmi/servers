@@ -111,9 +111,17 @@ type LianmiApisService interface {
 	DeleteFriend(userID, friendUserID uint64) error
 
 	//保存商户营业执照
-	SaveBusinessUserUploadLicense(username, url string) error
+	SaveBusinessUserUploadLicense(businessUsername, url string) error
 
-	GetBusinessUserLicense(username string) (string, error)
+	GetBusinessUserLicense(businessUsername string) (string, error)
+
+	SaveStore(req *User.Store) error
+
+	GetStore(businessUsername string) (*User.Store, error)
+
+	GetStoreByUUID(uuid string) (*User.Store, error)
+
+	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -141,26 +149,17 @@ func (s *DefaultLianmiApisService) GetUserByUsername(username string) (*Auth.Use
 	}
 	return &Auth.UserRsp{
 		User: &User.User{
-			Username:          fUserData.Username,
-			Gender:            User.Gender(fUserData.Gender),
-			Nick:              fUserData.Nick,
-			Avatar:            fUserData.Avatar,
-			Label:             fUserData.Label,
-			Mobile:            fUserData.Mobile,
-			Email:             fUserData.Email,
-			UserType:          User.UserType(fUserData.UserType),
-			State:             User.UserState(fUserData.State),
-			Extend:            fUserData.Extend,
-			ContactPerson:     fUserData.ContactPerson,
-			Introductory:      fUserData.Introductory,
-			Province:          fUserData.Province,
-			City:              fUserData.City,
-			County:            fUserData.County,
-			Street:            fUserData.Street,
-			Address:           fUserData.Address,
-			Branchesname:      fUserData.Branchesname,
-			LegalPerson:       fUserData.LegalPerson,
-			LegalIdentityCard: fUserData.LegalIdentityCard,
+			Username:      fUserData.Username,
+			Gender:        User.Gender(fUserData.Gender),
+			Nick:          fUserData.Nick,
+			Avatar:        fUserData.Avatar,
+			Label:         fUserData.Label,
+			Mobile:        fUserData.Mobile,
+			Email:         fUserData.Email,
+			UserType:      User.UserType(fUserData.UserType),
+			State:         User.UserState(fUserData.State),
+			Extend:        fUserData.Extend,
+			ContactPerson: fUserData.ContactPerson,
 		},
 	}, nil
 }
@@ -505,11 +504,28 @@ func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
 	return s.Repository.SaveTag(tag)
 }
 
-//保存商户营业执照
-func (s *DefaultLianmiApisService) SaveBusinessUserUploadLicense(username, url string) error {
-	return s.Repository.SaveBusinessUserUploadLicense(username, url)
+//只修改保存商户营业执照
+func (s *DefaultLianmiApisService) SaveBusinessUserUploadLicense(businessUsername, url string) error {
+	return s.Repository.SaveBusinessUserUploadLicense(businessUsername, url)
 }
 
-func (s *DefaultLianmiApisService) GetBusinessUserLicense(username string) (string, error) {
-	return s.Repository.GetBusinessUserLicense(username)
+func (s *DefaultLianmiApisService) GetBusinessUserLicense(businessUsername string) (string, error) {
+	return s.Repository.GetBusinessUserLicense(businessUsername)
+}
+
+//修改或增加店铺资料
+func (s *DefaultLianmiApisService) SaveStore(req *User.Store) error {
+	return s.Repository.SaveStore(req)
+}
+
+func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Store, error) {
+	return s.Repository.GetStore(businessUsername)
+}
+
+func (s *DefaultLianmiApisService) GetStoreByUUID(uuid string) (*User.Store, error) {
+	return s.Repository.GetStoreByUUID(uuid)
+}
+
+func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error) {
+	return s.Repository.GetStores(req)
 }

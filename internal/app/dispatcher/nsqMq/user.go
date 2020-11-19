@@ -111,23 +111,14 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				}
 			}
 			user := &User.User{
-				Username:          userData.Username,
-				Nick:              userData.Nick,
-				Gender:            userData.GetGender(),
-				Avatar:            userData.Avatar,
-				Label:             userData.Label,
-				UserType:          User.UserType(userData.UserType),
-				State:             User.UserState(userData.State),
-				ContactPerson:     userData.ContactPerson,
-				Introductory:      userData.Introductory,
-				Province:          userData.Province,
-				City:              userData.City,
-				County:            userData.County,
-				Street:            userData.Street,
-				Address:           userData.Address,
-				Branchesname:      userData.Branchesname,
-				LegalPerson:       userData.LegalPerson,
-				LegalIdentityCard: userData.LegalIdentityCard,
+				Username:      userData.Username,
+				Nick:          userData.Nick,
+				Gender:        userData.GetGender(),
+				Avatar:        userData.Avatar,
+				Label:         userData.Label,
+				UserType:      User.UserType(userData.UserType),
+				State:         User.UserState(userData.State),
+				ContactPerson: userData.ContactPerson,
 			}
 
 			rsp.Users = append(rsp.Users, user)
@@ -255,37 +246,37 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			pUser.AllowType, _ = strconv.Atoi(allowType)
 		}
 
-		if province, ok := req.Fields[8]; ok {
-			pUser.Province = province
-		}
+		// if province, ok := req.Fields[8]; ok {
+		// 	pUser.Province = province
+		// }
 
-		if city, ok := req.Fields[9]; ok {
-			pUser.City = city
-		}
+		// if city, ok := req.Fields[9]; ok {
+		// 	pUser.City = city
+		// }
 
-		if county, ok := req.Fields[10]; ok {
-			pUser.County = county
-		}
+		// if county, ok := req.Fields[10]; ok {
+		// 	pUser.County = county
+		// }
 
-		if street, ok := req.Fields[10]; ok {
-			pUser.Street = street
-		}
+		// if street, ok := req.Fields[10]; ok {
+		// 	pUser.Street = street
+		// }
 
-		if address, ok := req.Fields[10]; ok {
-			pUser.Address = address
-		}
+		// if address, ok := req.Fields[10]; ok {
+		// 	pUser.Address = address
+		// }
 
-		if branches_name, ok := req.Fields[11]; ok {
-			pUser.Branchesname = branches_name
-		}
+		// if branches_name, ok := req.Fields[11]; ok {
+		// 	pUser.Branchesname = branches_name
+		// }
 
-		if legal_person, ok := req.Fields[11]; ok {
-			pUser.LegalPerson = legal_person
-		}
+		// if legal_person, ok := req.Fields[11]; ok {
+		// 	pUser.LegalPerson = legal_person
+		// }
 
-		if legal_identity_card, ok := req.Fields[11]; ok {
-			pUser.LegalPerson = legal_identity_card
-		}
+		// if legal_identity_card, ok := req.Fields[11]; ok {
+		// 	pUser.LegalPerson = legal_identity_card
+		// }
 
 		pUser.UpdatedAt = time.Now().UnixNano() / 1e6
 
@@ -351,14 +342,14 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		syncUpdateProfileEventRsp.Fields[5] = userData.Email
 		syncUpdateProfileEventRsp.Fields[6] = userData.Extend
 		syncUpdateProfileEventRsp.Fields[7] = User.AllowType_name[int32(userData.GetAllowType())]
-		syncUpdateProfileEventRsp.Fields[8] = userData.Province
-		syncUpdateProfileEventRsp.Fields[9] = userData.City
-		syncUpdateProfileEventRsp.Fields[10] = userData.County
-		syncUpdateProfileEventRsp.Fields[11] = userData.Street
-		syncUpdateProfileEventRsp.Fields[12] = userData.Address
-		syncUpdateProfileEventRsp.Fields[13] = userData.Branchesname
-		syncUpdateProfileEventRsp.Fields[14] = userData.LegalPerson
-		syncUpdateProfileEventRsp.Fields[15] = userData.LegalIdentityCard
+		// syncUpdateProfileEventRsp.Fields[8] = userData.Province
+		// syncUpdateProfileEventRsp.Fields[9] = userData.City
+		// syncUpdateProfileEventRsp.Fields[10] = userData.County
+		// syncUpdateProfileEventRsp.Fields[11] = userData.Street
+		// syncUpdateProfileEventRsp.Fields[12] = userData.Address
+		// syncUpdateProfileEventRsp.Fields[13] = userData.Branchesname
+		// syncUpdateProfileEventRsp.Fields[14] = userData.LegalPerson
+		// syncUpdateProfileEventRsp.Fields[15] = userData.LegalIdentityCard
 
 		edata, _ := proto.Marshal(syncUpdateProfileEventRsp)
 

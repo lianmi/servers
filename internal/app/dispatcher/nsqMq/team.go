@@ -1293,11 +1293,6 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型 3-普通
 			teamUser.IsMute = false                                       //是否被禁言
 			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
-			teamUser.Province = userData.Province                         //省份, 如广东省
-			teamUser.City = userData.City                                 //城市，如广州市
-			teamUser.County = userData.County                             //区，如天河区
-			teamUser.Street = userData.Street                             //街道
-			teamUser.Address = userData.Address                           //地址
 
 			if err := nc.service.SaveTeamUser(teamUser); err != nil {
 				nc.logger.Error("更新teamUser失败", zap.Error(err))
@@ -1773,11 +1768,6 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
 				teamUser.IsMute = false                                       //是否被禁言
 				teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
-				teamUser.Province = userData.Province                         //省份, 如广东省
-				teamUser.City = userData.City                                 //城市，如广州市
-				teamUser.County = userData.County                             //区，如天河区
-				teamUser.Street = userData.Street                             //街道
-				teamUser.Address = userData.Address                           //地址
 
 				nc.service.SaveTeamUser(teamUser)
 
@@ -2080,12 +2070,6 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
 			teamUser.IsMute = false                                       //是否被禁言
 			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
-			teamUser.Province = userData.Province                         //省份, 如广东省
-			teamUser.City = userData.City                                 //城市，如广州市
-			teamUser.County = userData.County                             //区，如天河区
-			teamUser.Street = userData.Street                             //街道
-			teamUser.Address = userData.Address                           //地址
-
 			nc.service.SaveTeamUser(teamUser)
 
 			handledMsg := fmt.Sprintf("管理员: %s 同意 %s 入群申请", opUser.Nick, userData.Nick)

@@ -64,7 +64,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.BusinessCommission{})               // 商户下属的会员表
 	db.AutoMigrate(&models.NormalUserCommissionStatistics{})   // 普通用户佣金月统计表
 	db.AutoMigrate(&models.BusinessUserCommissionStatistics{}) // 商户佣金月统计表
-	db.AutoMigrate(&models.BusinessUserLicense{})              // 商户营业执照表
+	db.AutoMigrate(&models.Store{})                            // 商户店铺表
 	return db, nil
 }
 

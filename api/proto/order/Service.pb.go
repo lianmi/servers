@@ -170,7 +170,8 @@ type GeneralProductsRsp struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Status          *RespHeader       `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status *RespHeader `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	//列表
 	GeneralProducts []*GeneralProduct `protobuf:"bytes,2,rep,name=generalProducts,proto3" json:"generalProducts,omitempty"`
 	//总页数，按pageSize计算而来
 	Total int32 `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`

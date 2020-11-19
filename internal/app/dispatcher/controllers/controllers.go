@@ -230,14 +230,6 @@ func CreateInitControllersFn(
 			c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
 		})
 
-		//=======无须登录也能访问的uri==========/
-		authNone := r.Group("/shops")
-		{
-			//根据用户gps位置获取一定范围内的商户列表
-			authNone.GET("/nearby", pc.QueryShopsNearby)
-
-		}
-
 		//=======鉴权授权模块==========/
 		auth := r.Group("/v1") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		// Refresh time can be longer than token timeout
@@ -255,6 +247,16 @@ func CreateInitControllersFn(
 			userGroup.GET("/getuser/:id", pc.GetUser)                                  //根据注册id获取用户信息
 			userGroup.POST("/businessuseruploadlicense", pc.BusinessUserUploadLicense) //商户上传营业执照
 			userGroup.GET("/businessuserlicense/:id", pc.GetBusinessUserLicense)       //商户获取营业执照url
+		}
+
+		//=======店铺模块==========/
+		storeGroup := r.Group("/v1/store") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
+		storeGroup.Use(authMiddleware.MiddlewareFunc())
+		{
+			storeGroup.GET("/getstore/:id", pc.GetStore)                    //根据商户注册id获取店铺资料
+			storeGroup.GET("/getstorebyuuid/:storeuuid", pc.GetStoreByUUID) //根据店铺uuid获取店铺资料
+			storeGroup.POST("/store", pc.SaveStore)                         //修改店铺资料
+			storeGroup.GET("/stores", pc.QueryStoresNearby)                 //根据gps位置获取一定范围内的店铺列表
 		}
 
 		//=======好友模块==========/

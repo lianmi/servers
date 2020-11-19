@@ -1,0 +1,85 @@
+syntax = "proto3";
+import "api/proto/global/Global.proto";
+
+
+package cloud.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+// 店铺信息
+message Store {
+    string storeUUID           = 1;  //店铺的uuid
+    string businessusername    = 2;  //店铺的商户注册号
+    string avatar              = 3;  //店铺的头像，与商户头像一致 
+    global.StoreType storeType = 4;  //店铺类型,对应Global.proto里的StoreType枚举
+    string introductory        = 5;  //商店简介 Text文本类型
+    string province            = 6;  //省份, 如广东省
+    string city                = 7;  //城市，如广州市
+    string county              = 8;  //区，如天河区
+    string street              = 9;  //街道
+    string address             = 10; //地址
+    string branchesname        = 11; //店铺名称
+    string keys                = 12; //店铺经营范围搜索关键字
+    string legalPerson         = 13; //法人姓名
+    string legalIdentityCard   = 14; //法人身份证
+    string businessLicenseUrl  = 15; //营业执照阿里云url
+    string wechat              = 16; //商户地址的纬度
+    double longitude           = 17; //商户地址的经度
+    double latitude            = 18; //商户地址的纬度
+    fixed64 createdAt          = 19; //用户注册时间,Unix时间戳
+    fixed64 updatedAt          = 20; //用户资料最后更新时间,Unix时间戳
+}
+
+message BusinessUserUploadLicenseReq {
+    string businessusername    = 1;  //店铺的商户注册号
+    string businessLicenseUrl  = 2; //营业执照阿里云url
+}
+
+//======查询经纬度范围内的商户列表=====//
+message QueryStoresNearbyReq {
+    //店铺类型,对应Global.proto里的StoreType枚举
+    global.StoreType storeType = 1;
+
+    //商户经营范围搜索关键字, 用半角的逗号隔开
+    string keys = 2;
+
+    //用户当前位置的经度
+    double longitude=3; 
+
+    //用户当前位置的经度
+    double latitude=4;
+
+    //半径范围, 默认10km
+    double radius=5;
+
+    //省份, 可选
+    string province            = 6; 
+
+    //城市, 可选
+    string city                = 7; 
+
+    //区, 可选
+    string county              = 8; 
+
+    //街道, 可选
+    string street              = 9; 
+ 
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 10; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 11; // [default=20];
+}
+
+
+
+message QueryStoresNearbyResp {
+    //总页数
+    fixed64 totalPage =1;
+
+    //搜索结果列表
+    repeated Store stores =2;
+}

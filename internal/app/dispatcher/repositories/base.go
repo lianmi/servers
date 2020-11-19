@@ -8,6 +8,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
@@ -146,6 +147,15 @@ type LianmiRepository interface {
 	SaveBusinessUserUploadLicense(username, url string) error
 
 	GetBusinessUserLicense(username string) (string, error)
+
+	//修改或增加店铺资料
+	SaveStore(req *User.Store) error
+
+	GetStore(businessUsername string) (*User.Store, error)
+
+	GetStoreByUUID(uuid string) (*User.Store, error)
+
+	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
 }
 
 type MysqlLianmiRepository struct {

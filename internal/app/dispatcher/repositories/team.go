@@ -48,11 +48,6 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	memberAvatar, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Avatar"))
 	memberLabel, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Label"))
 	memberExtend, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Extend"))
-	memberProvince, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Province"))
-	memberCity, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "City"))
-	memberCounty, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "County"))
-	memberStreet, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Street"))
-	memberAddress, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Address"))
 
 	teamUser := new(models.TeamUser)
 	teamUser.JoinAt = time.Now().UnixNano() / 1e6
@@ -66,12 +61,6 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
 	teamUser.IsMute = false                                      //是否被禁言
 	teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
-	teamUser.Province = memberProvince                           //省份, 如广东省
-	teamUser.City = memberCity                                   //城市，如广州市
-	teamUser.County = memberCounty                               //区，如天河区
-	teamUser.Street = memberStreet                               //街道
-	teamUser.Address = memberAddress                             //地址
-
 	tx := s.base.GetTransaction()
 
 	//将Status变为2 正常状态

@@ -29,12 +29,6 @@ type TeamUser struct {
 	IsMute          bool   `form:"is_mute" json:"is_mute,omitempty" `                    //是否被禁言
 	Mutedays        int    `form:"mute_days" json:"mute_days,omitempty" `                //禁言时长，0表示永久， 以天为单位
 	NotifyType      int    `form:"notify_type" json:"notify_type,omitempty" `            //群消息通知类型 1-群全部消息提醒 2-管理员消息提醒 3-联系人提醒 4-所有消息均不提醒
-	Province        string `form:"province" json:"province,omitempty" `                  //省份, 如广东省
-	City            string `form:"city" json:"city,omitempty" `                          //城市，如广州市
-	County          string `form:"county" json:"county,omitempty" `                      //区，如天河区
-	Street          string `form:"street" json:"street,omitempty" `                      //街道
-	Address         string `form:"address" json:"address,omitempty" `                    //
-
 }
 
 //BeforeUpdate UpdatedAt赋值

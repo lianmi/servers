@@ -1,0 +1,17 @@
+syntax = "proto3"; 
+
+package cloud.lianmi.im.auth;
+option go_package = "github.com/lianmi/servers/api/proto/auth";
+
+//校验短信验证码
+message ValidCodeReq {
+    string mobile=1;
+    string smscode=2;
+}
+
+message ValidCodeRsp {
+    bool success=1;
+    string message=2;
+}
+
+

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/util/conv"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -18,21 +19,6 @@ import (
 	// uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
-
-type ValidCodeReq struct {
-	Mobile  string `form:"mobile" json:"mobile" binding:"required"`
-	SmsCode string `form:"smscode" json:"smscode" binding:"required"`
-}
-
-type BusinessUserUploadLicenseReq struct {
-	Username           string `form:"username" json:"username" binding:"required"`
-	BusinessLicenseUrl string `form:"business_license_url" json:"business_license_url" binding:"required"`
-}
-
-type RespSuccess struct {
-	Success bool   `form:"success" json:"success"`
-	Message string `form:"message" json:"message" `
-}
 
 //根据用户注册id获取用户资料
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
@@ -103,23 +89,6 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			code = codes.ErrWrongSmsCode
 			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
 			return
-		}
-
-		//是否是商户， 如果是，则商户信息是必填
-		if user.UserType == 2 {
-			if user.Province == "" || user.County == "" || user.City == "" || user.Street == "" || user.LegalPerson == "" || user.LegalIdentityCard == "" {
-				code = codes.InvalidParams
-				RespFail(c, http.StatusBadRequest, code, "商户信息必填")
-				return
-			}
-			pc.logger.Debug("商户注册",
-				zap.String("Province", user.Province),                   // 省份
-				zap.String("City", user.City),                           // 城市
-				zap.String("County", user.County),                       // 区
-				zap.String("Street", user.Street),                       // 街道
-				zap.String("LegalPerson", user.LegalPerson),             // 法人
-				zap.String("LegalIdentityCard", user.LegalIdentityCard), // 身份证
-			)
 		}
 
 		//检测推荐人，UI负责将id拼接邀请码，也就是用户账号(id+邀请码)
@@ -330,7 +299,7 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 
 	code := codes.InvalidParams
 
-	var req ValidCodeReq
+	var req Auth.ValidCodeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
@@ -339,14 +308,14 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 			pc.logger.Error("Mobile is empty")
 			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Mobile")
 		}
-		if req.SmsCode == "" {
-			pc.logger.Error("SmsCode is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段SmsCode")
+		if req.Smscode == "" {
+			pc.logger.Error("Smscode is empty")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Smscode")
 		}
 
 		pc.logger.Debug("ValidateCode",
 			zap.String("Mobile", req.Mobile),
-			zap.String("SmsCode", req.SmsCode))
+			zap.String("Smscode", req.Smscode))
 
 		//检测手机是数字
 		if !conv.IsDigit(req.Mobile) {
@@ -366,20 +335,20 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 		}
 
 		//检测校验码是否正确
-		if pc.service.CheckSmsCode(req.Mobile, req.SmsCode) {
-			pc.logger.Debug("ValidateCode, SmsCode is valid")
+		if pc.service.CheckSmsCode(req.Mobile, req.Smscode) {
+			pc.logger.Debug("ValidateCode, v is valid")
 			code = codes.SUCCESS
-			RespData(c, http.StatusOK, code, &RespSuccess{
+			RespData(c, http.StatusOK, code, &Auth.ValidCodeRsp{
 				Success: true,
 				Message: "",
 			})
 
 		} else {
-			pc.logger.Error("ValidateCode, SmsCode is invalid")
+			pc.logger.Error("ValidateCode, Smscode is invalid")
 			code = codes.SUCCESS
-			RespData(c, http.StatusOK, code, &RespSuccess{
+			RespData(c, http.StatusOK, code, &Auth.ValidCodeRsp{
 				Success: false,
-				Message: "SmsCode is invalid",
+				Message: "Smscode is invalid",
 			})
 		}
 
@@ -392,15 +361,15 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 func (pc *LianmiApisController) BusinessUserUploadLicense(c *gin.Context) {
 
 	code := codes.InvalidParams
-	var req BusinessUserUploadLicenseReq
+	var req User.BusinessUserUploadLicenseReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
 	} else {
-		username := req.Username
+		businessUsername := req.Businessusername
 		url := req.BusinessLicenseUrl
 		//将营业执照url保存
-		if err := pc.service.SaveBusinessUserUploadLicense(username, url); err != nil {
+		if err := pc.service.SaveBusinessUserUploadLicense(businessUsername, url); err != nil {
 			RespFail(c, http.StatusBadRequest, code, "保存营业执照失败")
 		} else {
 			code = codes.SUCCESS
@@ -415,14 +384,14 @@ func (pc *LianmiApisController) BusinessUserUploadLicense(c *gin.Context) {
 func (pc *LianmiApisController) GetBusinessUserLicense(c *gin.Context) {
 
 	code := codes.InvalidParams
-	username := c.Param("id")
+	businessUsername := c.Param("id")
 
-	if username == "" {
+	if businessUsername == "" {
 		RespFail(c, http.StatusBadRequest, 500, "id is empty")
 		return
 	}
 
-	url, err := pc.service.GetBusinessUserLicense(username)
+	url, err := pc.service.GetBusinessUserLicense(businessUsername)
 	if err != nil {
 		RespFail(c, http.StatusBadRequest, 500, err.Error())
 		return
@@ -430,5 +399,124 @@ func (pc *LianmiApisController) GetBusinessUserLicense(c *gin.Context) {
 
 	code = codes.SUCCESS
 	RespData(c, http.StatusOK, code, url)
+
+}
+
+//根据商户注册id获取店铺资料
+func (pc *LianmiApisController) GetStore(c *gin.Context) {
+	code := codes.InvalidParams
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		return
+	}
+
+	store, err := pc.service.GetStore(businessUsername)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, store)
+}
+
+//根据店铺uuid获取店铺资料
+func (pc *LianmiApisController) GetStoreByUUID(c *gin.Context) {
+	code := codes.InvalidParams
+	uuid := c.Param("storeuuid")
+
+	if uuid == "" {
+		RespFail(c, http.StatusBadRequest, 500, "uuid is empty")
+		return
+	}
+
+	store, err := pc.service.GetStoreByUUID(uuid)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, store)
+}
+
+//修改店铺资料
+func (pc *LianmiApisController) SaveStore(c *gin.Context) {
+
+	code := codes.InvalidParams
+	var req User.Store
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+		if req.Province == "" || req.County == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
+			RespFail(c, http.StatusBadRequest, code, "商户地址信息必填")
+			return
+		}
+		if req.Businessusername == "" {
+			RespFail(c, http.StatusBadRequest, code, "商户注册账号id必填")
+			return
+		}
+		if req.Branchesname == "" {
+			RespFail(c, http.StatusBadRequest, code, "商户店铺名称必填")
+			return
+		}
+		if req.BusinessLicenseUrl == "" {
+			RespFail(c, http.StatusBadRequest, code, "营业执照url必填")
+			return
+		}
+		if req.Wechat == "" {
+			RespFail(c, http.StatusBadRequest, code, "微信必填")
+			return
+		}
+		if req.Longitude == 0.00 {
+			RespFail(c, http.StatusBadRequest, code, "商户地址的经度必填")
+			return
+		}
+		if req.Latitude == 0.00 {
+			RespFail(c, http.StatusBadRequest, code, "商户地址的纬度必填")
+			return
+		}
+
+		//保存或增加
+		if err := pc.service.SaveStore(&req); err != nil {
+			RespFail(c, http.StatusBadRequest, code, "保存店铺资料失败")
+		} else {
+			code = codes.SUCCESS
+			RespOk(c, http.StatusOK, code)
+		}
+
+	}
+
+}
+
+//修根据gps位置获取一定范围内的店铺列表
+func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
+
+	code := codes.InvalidParams
+	var req User.QueryStoresNearbyReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+
+		stores, err := pc.service.GetStores(&req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "获取店铺列表错误")
+			return
+		}
+
+		resp := &User.QueryStoresNearbyResp{
+			TotalPage: 1,
+		}
+
+		//TODO
+		_ =  stores
+		resp.Stores = append(resp.Stores, &User.Store{})
+
+		RespData(c, http.StatusOK, 200, resp)
+	}
 
 }

@@ -58,15 +58,6 @@ message User {
     UserState state      = 11;
     string extend        = 12;
     string contactPerson = 13;
-    string introductory  = 14;
-    string province      = 15;
-    string city          = 16;
-    string county        = 17;
-    string street        = 18;
-    string address       = 19;
-    string branchesname  = 20;
-    string legalPerson   = 21;
-    string legalIdentityCard = 22;
     fixed64 createdAt = 23;     //用户注册时间,Unix时间戳
     fixed64 updatedAt = 24;     //用户资料最后更新时间,Unix时间戳
 }
