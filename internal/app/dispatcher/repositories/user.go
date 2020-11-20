@@ -1148,12 +1148,12 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) ([]*Us
 
 	//
 	// var store models.Store
-	maps := make(map[string]interface{})
+	// maps := make(map[string]interface{})
 
-	if req.StoreType > 0 {
-		maps["store_type"] = int(req.StoreType)
+	// if req.StoreType > 0 {
+	// 	maps["store_type"] = int(req.StoreType)
 
-	}
+	// }
 	// maps["state in"] = []int{1, 2}
 
 	// conditionString, values, _ := s.base.BuildCondition(maps)
@@ -1164,13 +1164,18 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) ([]*Us
 	// }
 
 	var list []*User.Store
+	where := make([]interface{}, 0)
+	if req.StoreType > 0 {
+		where = append(where, []interface{}{"store_type", "=", int(req.StoreType)})
+
+	}
 	// where := []interface{}{
-	// 	[]interface{}{"state", "in", []int{1, 2}},
-	// 	// []interface{}{"store_type", "=", int(req.StoreType)},
+	// 	// []interface{}{"state", "in", []int{1, 2}},
+	// 	[]interface{}{"store_type", "=", int(req.StoreType)},
 	// }
 
 	db := s.db
-	db, err = s.base.BuildWhere(db, maps)
+	db, err = s.base.BuildWhere(db, where)
 	if err != nil {
 		s.logger.Error("BuildWhere错误", zap.Error(err))
 	}
