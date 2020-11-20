@@ -66,15 +66,17 @@ message QueryStoresNearbyReq {
     //页数,第几页
     //默认1
     //是否必填-否
-    int32    = 10; // [default=1];
+    int32 page = 10; // [default=1];
 
     //每页成员数量
     //默认20,最大只允许100
     //是否必填-否
     int32 limit = 11; // [default=20];
+
+    //审核状态，0-预审核，1-审核通过, 2-占位
+    int32 state = 12;
+
 }
-
-
 
 message QueryStoresNearbyResp {
     //总页数

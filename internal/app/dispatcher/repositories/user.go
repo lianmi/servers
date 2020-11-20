@@ -1178,8 +1178,11 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	wheres := make([]interface{}, 0)
 	if req.StoreType > 0 {
 		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)})
-
 	}
+	if req.State > 0 {
+		wheres = append(wheres, []interface{}{"state", "=", int(req.State)})
+	}
+
 	// where := []interface{}{
 	// 	// []interface{}{"state", "in", []int{1, 2}},
 	// 	[]interface{}{"store_type", "=", int(req.StoreType)},
@@ -1194,6 +1197,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 
 		db.Find(&list)
 	*/
+
 	db := s.db
 	db, err = s.base.BuildQueryList(db, wheres, columns, orderBy, pageIndex, pageSize)
 	if err != nil {
