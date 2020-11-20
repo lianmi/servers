@@ -25,8 +25,9 @@ message Store {
     string wechat              = 16; //商户地址的纬度
     double longitude           = 17; //商户地址的经度
     double latitude            = 18; //商户地址的纬度
-    fixed64 createdAt          = 19; //用户注册时间,Unix时间戳
-    fixed64 updatedAt          = 20; //用户资料最后更新时间,Unix时间戳
+    int32  auditState          = 19; //商户审核状态， 0-预审核，1-已审核，2-占位
+    fixed64 createdAt          = 20; //用户注册时间,Unix时间戳
+    fixed64 updatedAt          = 21; //用户资料最后更新时间,Unix时间戳
 }
 
 message BusinessUserUploadLicenseReq {

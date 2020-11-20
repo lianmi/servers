@@ -1004,7 +1004,7 @@ func (s *MysqlLianmiRepository) SaveTag(tag *models.Tag) error {
 func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	var err error
 	var storeUUID string
-	var state int
+	var auditState int
 	sel := "id"
 	p := new(models.Store)
 
@@ -1043,15 +1043,15 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	//记录不存在错误(RecordNotFound)，返回false
 	if gorm.IsRecordNotFoundError(err) {
 		storeUUID = uuid.NewV4().String()
-		state = 0
+		auditState = 0 //审核状态，0-预审核，1-审核通过, 2-占位
 	} else {
 		s.db.Model(p).Where(&models.Store{
 			BusinessUsername: req.BusinessUsername,
 		}).First(p)
 		storeUUID = p.StoreUUID
-		state = p.State
+		auditState = p.AuditState
 	}
-	if state == 1 {
+	if auditState == 1 {
 		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
 	}
 
@@ -1073,6 +1073,7 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 		WeChat:            req.Wechat,             //商户联系人微信号
 		Keys:              req.Keys,               //商户经营范围搜索关键字
 		LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+		AuditState:        0,                      //初始值
 	}
 
 	//使用事务同时更新Tag数据
@@ -1129,6 +1130,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		Wechat:             p.WeChat,                      //商户联系人微信号
 		Keys:               p.Keys,                        //商户经营范围搜索关键字
 		BusinessLicenseUrl: p.LicenseURL,                  //商户营业执照阿里云url
+		AuditState:         int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
 		CreatedAt:          uint64(p.CreatedAt),
 		UpdatedAt:          uint64(p.UpdatedAt),
 	}, nil
@@ -1177,7 +1179,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	var mod User.Store
 	wheres := make([]interface{}, 0)
 	if req.StoreType > 0 {
-		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)})
+		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)}, "and")
 	}
 	if req.State > 0 {
 		wheres = append(wheres, []interface{}{"state", "=", int(req.State)})
@@ -1246,6 +1248,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 			Wechat:             store.Wechat,                      //商户联系人微信号
 			Keys:               store.Keys,                        //商户经营范围搜索关键字
 			BusinessLicenseUrl: store.BusinessLicenseUrl,          //商户营业执照阿里云url
+			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
 		})

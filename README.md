@@ -469,3 +469,75 @@ $ geth attach ipc:/store/blockchain/lianmichain/node1/geth.ipc
  ## TODO
 
  我觉得 交易完成后 这个订单 的 attach 服务端进行一个hash 计算 保存好最后的 一次确定交易 hash , 到时候查证的时候 , 可以通过这个hash 知道 内容有没有篡改
+
+
+##  腾讯云服务器重启运行顺序
+
+### 一. 底层服务
+工作目录 : /root/developments/lianmi/work
+
+1. docker-host服务 
+
+```
+cd /root/developments/lianmi/work/docker-host
+docker-compose down
+docker-compose up -d
+
+```
+
+2. jaeger服务 
+
+```
+cd /root/developments/lianmi/work/jaeger
+docker-compose down
+docker-compose up -d
+
+```
+
+3. nsq服务 
+
+```
+cd /root/developments/lianmi/work/nsq
+docker-compose down
+docker-compose up -d
+
+```
+
+### 二. 基础服务 mysql redis mosquitto
+
+```
+cd /root/developments/lianmi/work/basic
+docker-compose down
+docker-compose up -d
+
+```
+
+### 三. 以太坊双节点
+
+```
+cd /store/blockchain/lianmichain
+./bootnode.sh
+./runnode1.sh
+./runnode2.sh
+```
+
+### 四. 连米服务端
+
+```
+cd /root/developments/lianmi/lm-cloud/servers
+git pull
+make linux
+make stop
+make docker-compose
+```
+
+### 五. 日志
+
+```
+cd /root/developments/lianmi/work/logs
+tail -f dispatcher.log
+tail -f orderservice.log
+tail -f chatservice.log
+tail -f walletservice.log
+```
+
