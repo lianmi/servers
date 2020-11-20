@@ -1179,7 +1179,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	var mod User.Store
 	wheres := make([]interface{}, 0)
 	if req.StoreType > 0 {
-		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)}, "and")
+		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)})
 	}
 	if req.State > 0 {
 		wheres = append(wheres, []interface{}{"state", "=", int(req.State)})
