@@ -19,6 +19,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/log"
 	"github.com/lianmi/servers/internal/pkg/redis"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
+	"log"
 )
 
 var providerSet = wire.NewSet(
