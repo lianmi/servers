@@ -41,6 +41,7 @@ services:
     volumes:
       # - ${LOG_DIR}/walletservice.log:/tmp/walletservice.log
       - /root/developments/lianmi/work/logs/walletservice.log:/tmp/walletservice.log
+      - /store/blockchain/lianmichain/node1:/etc/node
     logging:
       driver: fluentd
       options:

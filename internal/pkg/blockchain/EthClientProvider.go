@@ -69,11 +69,16 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 	if opts.WsURI == "" {
 		return nil, errors.New("ethereum websocket uri is required")
 	}
-	client, err := ethclient.Dial(opts.WsURI)
+	client, err := ethclient.Dial("ipc:/etc/node/geth.ipc")
 	if err != nil {
-		logger.Error("ethclient.Dial Failed", zap.String("WsUri", opts.WsURI), zap.Error(err))
+		logger.Error("ethclient.Dial ipc Failed", zap.String("IpcUri", "ipc:/etc/node/geth.ipc"), zap.Error(err))
 		return nil, err
 	}
+	// client, err := ethclient.Dial(opts.WsURI)
+	// if err != nil {
+	// 	logger.Error("ethclient.Dial Failed", zap.String("WsUri", opts.WsURI), zap.Error(err))
+	// 	return nil, err
+	// }
 	return &Service{
 		o:        opts,
 		WsClient: client,
