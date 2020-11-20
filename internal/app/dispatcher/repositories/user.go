@@ -1139,11 +1139,17 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
 
 	var err error
+	total := 0 //总页数
+	pageIndex := int(req.Page)
+	pageSize := int(req.Limit)
+
+	// list, _ := bll.List(where, []string{"*"}, "id desc", 2, 1, &total)
+	columns := []string{"*"}
+	orderBy := "id desc"
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	// var pageIndex, pageSize int
 	// total := new(uint64)
 	// var maps string
 	// if req.Province != "" {
@@ -1168,9 +1174,10 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	// }
 
 	var list []*User.Store
-	where := make([]interface{}, 0)
+	var mod User.Store
+	wheres := make([]interface{}, 0)
 	if req.StoreType > 0 {
-		where = append(where, []interface{}{"store_type", "=", int(req.StoreType)})
+		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)})
 
 	}
 	// where := []interface{}{
@@ -1178,16 +1185,38 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	// 	[]interface{}{"store_type", "=", int(req.StoreType)},
 	// }
 
+	/*
+		db := s.db
+		db, err = s.base.BuildWhere(db, where)
+		if err != nil {
+			s.logger.Error("BuildWhere错误", zap.Error(err))
+		}
+
+		db.Find(&list)
+	*/
 	db := s.db
-	db, err = s.base.BuildWhere(db, where)
+	db, err = s.base.BuildQueryList(db, wheres, columns, orderBy, pageIndex, pageSize)
 	if err != nil {
-		s.logger.Error("BuildWhere错误", zap.Error(err))
+		return nil, err
+	}
+	err = db.Find(&list).Error
+
+	if err != nil {
+		s.logger.Error("Find错误", zap.Error(err))
+		return nil, err
 	}
 
-	db.Find(&list)
+	db, err = s.base.BuildWhere(db, wheres)
+	if err != nil {
+		s.logger.Error("BuildWhere错误", zap.Error(err))
+		return nil, err
+	}
+
+	db = s.db
+	db.Model(&mod).Count(total)
 
 	resp := &User.QueryStoresNearbyResp{
-		TotalPage: uint64(len(list)),
+		TotalPage: uint64(total),
 	}
 
 	for _, store := range list {
