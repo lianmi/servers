@@ -73,6 +73,8 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 	if err != nil {
 		logger.Error("ethclient.Dial ipc Failed", zap.String("IpcUri", "ipc:/etc/node/geth.ipc"), zap.Error(err))
 		return nil, err
+	} else {
+		logger.Info("ethclient.Dial ipc succeed")
 	}
 	// client, err := ethclient.Dial(opts.WsURI)
 	// if err != nil {
