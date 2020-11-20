@@ -54,7 +54,7 @@ type Options struct {
 func NewEthClientProviderOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 	var err error
 	o := new(Options)
-	//读取dispatcher.yaml配置文件里的redis设置
+	//读取dispatcher.yml配置文件里的eth设置
 	if err = v.UnmarshalKey("ethereum", o); err != nil {
 		return nil, errors.Wrap(err, "unmarshal ethereum option error")
 	}
