@@ -153,7 +153,7 @@ type LianmiRepository interface {
 	GetStore(businessUsername string) (*User.Store, error)
 
 	//根据gps位置获取一定范围内的店铺列表
-	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
+	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
 }
 
 type MysqlLianmiRepository struct {

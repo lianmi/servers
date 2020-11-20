@@ -116,7 +116,7 @@ type LianmiApisService interface {
 
 	GetStore(businessUsername string) (*User.Store, error)
 
-	GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error)
+	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -537,6 +537,6 @@ func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Stor
 	return s.Repository.GetStore(businessUsername)
 }
 
-func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error) {
+func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
 	return s.Repository.GetStores(req)
 }

@@ -475,19 +475,11 @@ func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
 	} else {
 
-		stores, err := pc.service.GetStores(&req)
+		resp, err := pc.service.GetStores(&req)
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, code, "获取店铺列表错误")
 			return
 		}
-
-		resp := &User.QueryStoresNearbyResp{
-			TotalPage: 1,
-		}
-
-		//TODO
-		_ = stores
-		resp.Stores = append(resp.Stores, &User.Store{})
 
 		RespData(c, http.StatusOK, 200, resp)
 	}

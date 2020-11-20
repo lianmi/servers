@@ -1103,7 +1103,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	//判断商户的注册id的合法性以及是否封禁等
+	//获取店铺头像
 	avatar, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "Avatar"))
 	if err != nil {
 		s.logger.Error("HGET Avatar error", zap.Error(err))
@@ -1136,9 +1136,13 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 }
 
 //根据gps位置获取一定范围内的店铺列表
-func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) ([]*User.Store, error) {
+func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
 
 	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
 	// var pageIndex, pageSize int
 	// total := new(uint64)
 	// var maps string
@@ -1181,5 +1185,37 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) ([]*Us
 	}
 
 	db.Find(&list)
-	return list, nil
+
+	resp := &User.QueryStoresNearbyResp{
+		TotalPage: uint64(len(list)),
+	}
+
+	for _, store := range list {
+		//获取店铺头像
+		avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", store.BusinessUsername), "Avatar"))
+
+		resp.Stores = append(resp.Stores, &User.Store{
+			StoreUUID:          store.StoreUUID,                   //店铺的uuid
+			StoreType:          Global.StoreType(store.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
+			BusinessUsername:   store.BusinessUsername,            //商户注册号
+			Avatar:             avatar,                            //头像
+			Introductory:       store.Introductory,                //商店简介 Text文本类型
+			Province:           store.Province,                    //省份, 如广东省
+			City:               store.City,                        //城市，如广州市
+			County:             store.County,                      //区，如天河区
+			Street:             store.Street,                      //街道
+			Address:            store.Address,                     //地址
+			Branchesname:       store.Branchesname,                //网点名称
+			LegalPerson:        store.LegalPerson,                 //法人姓名
+			LegalIdentityCard:  store.LegalIdentityCard,           //法人身份证
+			Longitude:          store.Longitude,                   //商户地址的经度
+			Latitude:           store.Latitude,                    //商户地址的纬度
+			Wechat:             store.Wechat,                      //商户联系人微信号
+			Keys:               store.Keys,                        //商户经营范围搜索关键字
+			BusinessLicenseUrl: store.BusinessLicenseUrl,          //商户营业执照阿里云url
+			CreatedAt:          uint64(store.CreatedAt),
+			UpdatedAt:          uint64(store.UpdatedAt),
+		})
+	}
+	return resp, nil
 }
