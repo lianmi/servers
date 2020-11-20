@@ -18,9 +18,9 @@ redis:
   password: 
   db: 0
 ethereum:
-  # wsURI: ws://docker-host:8546
+  wsURI: ws://docker-host:8546
   # wsURI: ws://br-lianmi:8546
-  wsURI: ws://172.16.0.14:8546
+  # wsURI: ws://172.16.0.14:8546
   erc20DeployContractAddress: "0x1d2bdda8954b401feb52008c63878e698b6b8444"
 log:
   filename: /tmp/walletservice.log
