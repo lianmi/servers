@@ -14,17 +14,22 @@ type WalletRepository interface {
 
 	AddUserWallet(username, walletAddress, amountETHString string) (err error)
 
+	//增加用户充值历史记录
 	AddDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error)
 
+	//增加预审核转账历史记录
 	AddLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error)
 
+	//修改转账历史记录
 	UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error)
 
+	//增加预审核提现历史记录
 	AddLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error)
 
+	//修改提现历史记录
 	UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error)
 
-	UpdateCollectionHistory(lnmcCollectionHistory *models.LnmcCollectionHistory) (err error)
+	AddeCollectionHistory(lnmcCollectionHistory *models.LnmcCollectionHistory) (err error)
 
 	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error
 
@@ -66,7 +71,7 @@ func (m *MysqlWalletRepository) AddLnmcOrderTransferHistory(lnmcOrderTransferHis
 		return errors.New("lnmcOrderTransferHistory is nil")
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lnmcOrderTransferHistory).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcOrderTransferHistory).Error; err != nil {
 		m.logger.Error("增加LnmcOrderTransferHistory表失败", zap.Error(err))
 		return err
 	} else {
@@ -86,7 +91,7 @@ func (m *MysqlWalletRepository) AddUserWallet(username, walletAddress, amountETH
 	}
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(userWallet).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(userWallet).Error; err != nil {
 		m.logger.Error("增加UserWallet表失败", zap.Error(err))
 		return err
 	} else {
@@ -100,7 +105,7 @@ func (m *MysqlWalletRepository) AddUserWallet(username, walletAddress, amountETH
 func (m *MysqlWalletRepository) AddDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error) {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lnmcDepositHistory).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcDepositHistory).Error; err != nil {
 		m.logger.Error("增加充值历史记录LnmcDepositHistory表失败", zap.Error(err))
 		return err
 	} else {
@@ -114,7 +119,7 @@ func (m *MysqlWalletRepository) AddDepositHistory(lnmcDepositHistory *models.Lnm
 func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lmnccTransferHistory).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lmnccTransferHistory).Error; err != nil {
 		m.logger.Error("增加用户转账预审核LnmcTransferHistory表失败", zap.Error(err))
 		return err
 	} else {
@@ -128,25 +133,11 @@ func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *mod
 //9-11，为某个订单支付，查询出对应的记录，然后更新 orderID, 将State修改为1
 //确认转账后，更新转账历史记录
 func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
-	p := new(models.LnmcTransferHistory)
 	where := models.LnmcTransferHistory{
-		Username:   lmncTransferHistory.Username,
-		ToUsername: lmncTransferHistory.ToUsername,
+		UUID: lmncTransferHistory.UUID,
 	}
-	if err := m.db.Model(p).Where(&where).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get LnmcTransferHistory error")
-	}
-	p.State = lmncTransferHistory.State
-	p.BlockNumber = lmncTransferHistory.BlockNumber
-	p.TxHash = lmncTransferHistory.TxHash
-	if lmncTransferHistory.OrderID != "" {
-		p.OrderID = lmncTransferHistory.OrderID
-	}
-	p.BalanceLNMCBefore = lmncTransferHistory.BalanceLNMCBefore
-	p.AmountLNMC = lmncTransferHistory.AmountLNMC
-	p.BalanceLNMCAfter = lmncTransferHistory.BalanceLNMCAfter
 
-	result := m.db.Model(&models.LnmcTransferHistory{}).Where(&where).Updates(p)
+	result := m.db.Model(&models.LnmcTransferHistory{}).Where(&where).Updates(lmncTransferHistory)
 
 	//updated records count
 	m.logger.Debug("UpdateLnmcTransferHistory result: ",
@@ -167,7 +158,7 @@ func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *m
 func (m *MysqlWalletRepository) AddLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error) {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lnmcWithdrawHistory).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcWithdrawHistory).Error; err != nil {
 		m.logger.Error("增加LnmcWithdrawHistory表失败", zap.Error(err))
 		return err
 	} else {
@@ -210,26 +201,15 @@ func (m *MysqlWalletRepository) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *m
 	return nil
 }
 
-//收款历史表
-func (m *MysqlWalletRepository) UpdateCollectionHistory(lnmcCollectionHistory *models.LnmcCollectionHistory) (err error) {
+//增加接收者的收款历史表
+func (m *MysqlWalletRepository) AddeCollectionHistory(lnmcCollectionHistory *models.LnmcCollectionHistory) (err error) {
 
-	where := models.LnmcCollectionHistory{
-		FromUsername:      lnmcCollectionHistory.FromUsername,      //发送者
-		FromWalletAddress: lnmcCollectionHistory.FromWalletAddress, //发送者钱包地址
-		ToUsername:        lnmcCollectionHistory.ToUsername,        //接收者
-	}
-	result := m.db.Model(&models.LnmcCollectionHistory{}).Where(&where).Updates(lnmcCollectionHistory)
-
-	//updated records count
-	m.logger.Debug("UpdateCollectionHistory result: ",
-		zap.Int64("RowsAffected", result.RowsAffected),
-		zap.Error(result.Error))
-
-	if result.Error != nil {
-		m.logger.Error("修改收款历史表失败", zap.Error(result.Error))
-		return result.Error
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcCollectionHistory).Error; err != nil {
+		m.logger.Error("增加收款历史表失败", zap.Error(err))
+		return err
 	} else {
-		m.logger.Debug("修改收款历史表成功")
+		m.logger.Debug("增加收款历史表成功")
 	}
 
 	return nil

@@ -66,13 +66,6 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	// foo, err := redis.String(redisConn.Do("GET", "bar"))
-	// if err != nil {
-	// 	s.logger.Error("GET error", zap.Error(err))
-	// } else {
-	// 	s.logger.Debug("bar", zap.String("Foo", foo))
-	// }
-
 	//查找出订单id是否存在，取出订单详情
 	orderID := req.OrderID
 	if orderID == "" {
@@ -233,10 +226,10 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			BlockNumber:       blockNumber,
 			TxHash:            txHash,
 		}
-		if err := s.Repository.UpdateCollectionHistory(lnmcCollectionHistory); err != nil {
-			s.logger.Error("商户到账记录 UpdateCollectionHistory  error", zap.Error(err))
+		if err := s.Repository.AddeCollectionHistory(lnmcCollectionHistory); err != nil {
+			s.logger.Error("商户到账记录 AddeCollectionHistory  error", zap.Error(err))
 		} else {
-			s.logger.Debug("商户到账记录 UpdateCollectionHistory succeed")
+			s.logger.Debug("商户到账记录 AddeCollectionHistory succeed")
 		}
 
 	} else if req.PayType == LMCommon.OrderTransferForCancel {

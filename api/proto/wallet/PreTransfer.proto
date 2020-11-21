@@ -40,11 +40,13 @@ message PreTransferReq{
 
 
 message PreTransferRsp{
-
+    //用于标记此次转账
+    string uuid =1;
+    
     //向收款方转账的裸交易结构体
-    RawDesc rawDescToTarget=1;
+    RawDesc rawDescToTarget=2;
 
     //时间
-    fixed64 time=2;
+    fixed64 time=3;
 }
 

@@ -3,19 +3,16 @@ package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 message ConfirmTransferReq{
-    //订单ID（ 非空的时候，targetUserName 必须是空
-    string orderID=1;
-
-    //收款方的用户账号(非空的时候，orderID必须是空 ）
-    string targetUserName=2;
+    // 预转账返回的uuid
+    string uuid=1;
 
     //签名后的转给目标接收者的Tx(A签) hex格式 
-    string signedTxToTarget=3;
+    string signedTxToTarget=2;
 }
 
 
 message ConfirmTransferRsp{
-      // 区块高度 
+    // 区块高度 
     fixed64 blockNumber=1;
 
     // 交易哈希hex

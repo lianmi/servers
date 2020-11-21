@@ -39,7 +39,7 @@ func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 		return errors.New("product is nil")
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(product).Error; err != nil {
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(product).Error; err != nil {
 		m.logger.Error("增加Product失败", zap.Error(err))
 		return err
 	} else {
@@ -90,7 +90,7 @@ func (m *MysqlOrderRepository) AddPreKeys(prekeys []*models.Prekey) error {
 
 	for _, prekey := range prekeys {
 		//如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(prekey).Error; err != nil {
+		if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(prekey).Error; err != nil {
 			m.logger.Error("增加prekey失败", zap.Error(err))
 			continue
 		} else {

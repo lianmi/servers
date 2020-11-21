@@ -14,7 +14,7 @@ func (s *MysqlLianmiRepository) AddFriend(pFriend *models.Friend) error {
 		return errors.New("pFriend is nil")
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pFriend).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pFriend).Error; err != nil {
 		s.logger.Error("AddFriend, failed to upsert friends", zap.Error(err))
 		return err
 	} else {

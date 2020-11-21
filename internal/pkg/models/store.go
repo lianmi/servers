@@ -12,10 +12,9 @@ import (
 //当此店铺的商户提交审核后，后台需要删除此记录
 
 type Store struct {
-	ID                uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`                             //自动递增id
+	StoreUUID         string  `gorm:"primary_key" form:"store_uuid" json:"store_uuid" `                      //店铺的uuid
 	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`                                //创建时刻,毫秒
 	UpdatedAt         int64   `form:"updated_at" json:"updated_at,omitempty"`                                //更新时刻,毫秒
-	StoreUUID         string  `form:"store_uuid" json:"store_uuid" `                                         //店铺的uuid
 	StoreType         int     `form:"store_type" json:"store_type"`                                          //店铺类型,对应Global.proto里的StoreType枚举
 	BusinessUsername  string  `form:"business_username" json:"business_username" `                           //商户注册号
 	Introductory      string  `gorm:"type:longtext;null" form:"introductory" json:"introductory,omitempty" ` //商店简介 Text文本类型

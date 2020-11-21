@@ -68,7 +68,7 @@ func (s *MysqlLianmiRepository) AddCommission(username, orderID, content string,
 		}
 
 		//如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&bc).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&bc).Error; err != nil {
 			s.logger.Error("增加BusinessCommission失败, failed to upsert BusinessCommission", zap.Error(err))
 			return err
 		} else {
@@ -149,7 +149,7 @@ func (s *MysqlLianmiRepository) AddCommission(username, orderID, content string,
 		}
 
 		//如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionOne).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&commissionOne).Error; err != nil {
 			s.logger.Error("增加commissionOne失败, failed to upsert Commission", zap.Error(err))
 			return err
 		} else {
@@ -224,7 +224,7 @@ func (s *MysqlLianmiRepository) AddCommission(username, orderID, content string,
 		}
 
 		//如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionTwo).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&commissionTwo).Error; err != nil {
 			s.logger.Error("增加commissionTwo失败, failed to upsert Commission", zap.Error(err))
 			return err
 		} else {
@@ -297,7 +297,7 @@ func (s *MysqlLianmiRepository) AddCommission(username, orderID, content string,
 		}
 
 		//如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionThree).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&commissionThree).Error; err != nil {
 			s.logger.Error("增加commissionThree失败, failed to upsert Commission", zap.Error(err))
 			return err
 		} else {
@@ -469,7 +469,7 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 		WithdrawCommission: withdrawCommission,
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionWithdraw).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&commissionWithdraw).Error; err != nil {
 		s.logger.Error("增加commissionWithdraw失败, failed to upsert CommissionWithdraw", zap.Error(err))
 		return nil, err
 	} else {

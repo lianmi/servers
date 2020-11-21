@@ -72,7 +72,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	s.logger.Debug("ApproveTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&teamUser).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&teamUser).Error; err != nil {
 		s.logger.Error("ApproveTeam, failed to upsert teamUser", zap.Error(err))
 	} else {
 		s.logger.Debug("ApproveTeam, upsert teamUser succeed")
@@ -262,7 +262,7 @@ func (s *MysqlLianmiRepository) AddTeamUser(pTeamUser *models.TeamUser) error {
 	}
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeamUser).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeamUser).Error; err != nil {
 		s.logger.Error("增加TeamUser失败", zap.Error(err))
 		return err
 	} else {
@@ -374,7 +374,7 @@ func (s *MysqlLianmiRepository) GetTeams() []string {
 //创建群,  增加一条群信息数据
 func (s *MysqlLianmiRepository) CreateTeam(pTeam *models.Team) error {
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeam).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
 		s.logger.Error("CreateTeam, failed to upsert team", zap.Error(err))
 		return err
 	} else {

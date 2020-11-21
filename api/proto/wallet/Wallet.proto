@@ -6,8 +6,8 @@ option go_package = "github.com/lianmi/servers/api/proto/wallet";
 
 //收款
 message Collection{
-    //ID
-    fixed64 id=1;
+    //UUID
+    string uuid=1;
 
     //创建时间  
     fixed64  createdAt=2;
@@ -41,8 +41,8 @@ message Collection{
 
 //充值
 message Deposit{
-    //ID
-    fixed64 id=1;
+    //UUID
+    string uuid=1;
 
     //创建时间  
     fixed64  createdAt=2;
@@ -66,8 +66,8 @@ message Deposit{
 
 //提现
 message Withdraw{
-    //ID
-    fixed64 id=1;
+    //UUID
+    string uuid=1;
 
     //创建时间  
     fixed64  createdAt=2;
@@ -100,8 +100,8 @@ message Withdraw{
 
 //转账
 message Transfer{
-    //ID
-    fixed64 id=1;
+    //UUID
+    string uuid=1;
 
     //创建时间  
     fixed64  createdAt=2;

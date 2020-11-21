@@ -208,7 +208,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 			)
 
 			//如果没有记录，则增加，如果有记录，则更新全部字段
-			if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(distribution).Error; err != nil {
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(distribution).Error; err != nil {
 				s.logger.Error("增加Distribution表失败", zap.Error(err))
 				return err
 			} else {
@@ -245,7 +245,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		pTeam.InviteMode = 1 //邀请模式,初始为1
 
 		//创建群数据 如果没有记录，则增加，如果有记录，则更新全部字段
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeam).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
 			s.logger.Error("Register, failed to upsert team", zap.Error(err))
 			return err
 		} else {
@@ -908,7 +908,7 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&tag).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag).Error; err != nil {
 		s.logger.Error("AddTag, failed to upsert tag", zap.Error(err))
 		return err
 	} else {
@@ -981,7 +981,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		}
 
 		//如果没有记录，则增加
-		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&store).Error; err != nil {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
 			s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
 			return err
 		} else {

@@ -15,7 +15,7 @@ func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.General
 		return errors.New("generalProduct is nil")
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&generalProduct).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&generalProduct).Error; err != nil {
 		s.logger.Error("AddGeneralProduct, failed to upsert generalProduct", zap.Error(err))
 		return err
 	} else {

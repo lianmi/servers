@@ -2001,8 +2001,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//TODO 如果是完成或撤单，需要向钱包发送结算
-
 			//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
@@ -2045,7 +2043,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("BuyUser confirm, but not payed error.")
 				goto COMPLETE
 			}
-			//TODO 如果是完成或撤单，需要向钱包发送结算
 
 			//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)

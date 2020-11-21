@@ -93,7 +93,7 @@ func (s *MysqlLianmiRepository) AddCustomerService(req *Auth.AddCustomerServiceR
 	}
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&c).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&c).Error; err != nil {
 		s.logger.Error("增加CustomerServiceInfo失败, failed to upsert CustomerServiceInfo", zap.Error(err))
 		return err
 	} else {
@@ -246,8 +246,6 @@ func (s *MysqlLianmiRepository) AddGrade(req *Auth.AddGradeReq) (string, error) 
 	jobNumber, err := redis.String(redisConn.Do("HGET", key, "JobNumber"))   //工号
 	evaluation, err := redis.String(redisConn.Do("HGET", key, "Evaluation")) //职称
 	nickName, err := redis.String(redisConn.Do("HGET", key, "NickName"))     //呢称
-	// catalog, err := redis.String(redisConn.Do("HGET", key, "Catalog"))       //分类
-	// desc, err := redis.String(redisConn.Do("HGET", key, "Desc"))             //详情
 	if err != nil {
 		s.logger.Error("HGET失败", zap.Error(err))
 		return "", err
@@ -269,7 +267,7 @@ func (s *MysqlLianmiRepository) AddGrade(req *Auth.AddGradeReq) (string, error) 
 	}
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&c).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&c).Error; err != nil {
 		s.logger.Error("增加Grade失败, failed to upsert Grade", zap.Error(err))
 		return "", err
 	} else {

@@ -462,11 +462,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 			}
 
 			if req.GetIsAdd() { //增加
-				pTag := new(models.Tag)
-				pTag.UserID = accountData.ID
-				pTag.Username = account
-				pTag.UpdatedAt = time.Now().UnixNano() / 1e6
-				pTag.TagType = int(req.GetType())
+				pTag := &models.Tag{
+					Username: account,
+					TagType:  int(req.GetType()),
+				}
 
 				//保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
@@ -504,13 +503,13 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				nc.logger.Debug("增加黑名单成功")
 
 			} else { //删除
-				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
+				where := models.Tag{Username: account, TagType: int(req.GetType())}
 				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
+					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
 				count := db.RowsAffected
@@ -553,12 +552,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 			}
 
 			if req.GetIsAdd() { //增加
-				pTag := new(models.Tag)
-				pTag.UserID = accountData.ID
-				pTag.Username = account
-				pTag.UpdatedAt = time.Now().UnixNano() / 1e6
-				pTag.TagType = int(req.GetType())
-
+				pTag := &models.Tag{
+					Username: account,
+					TagType:  int(req.GetType()),
+				}
 				//保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
@@ -580,13 +577,13 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				nc.logger.Debug("增加免打扰成功")
 
 			} else { //删除
-				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
+				where := models.Tag{Username: account, TagType: int(req.GetType())}
 				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
+					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
 				count := db.RowsAffected
@@ -610,11 +607,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 			}
 		case User.MarkTagType_Mtt_Sticky: //置顶
 			if req.GetIsAdd() { //增加
-				pTag := new(models.Tag)
-				pTag.UserID = accountData.ID
-				pTag.Username = account
-				pTag.UpdatedAt = time.Now().UnixNano() / 1e6
-				pTag.TagType = int(req.GetType())
+				pTag := &models.Tag{
+					Username: account,
+					TagType:  int(req.GetType()),
+				}
 
 				//保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
@@ -637,13 +633,13 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				nc.logger.Debug("增加置顶成功")
 
 			} else { //删除
-				where := models.Tag{UserID: accountData.ID, TagType: int(req.GetType())}
+				where := models.Tag{Username: account, TagType: int(req.GetType())}
 				db := nc.db.Where(&where).Delete(models.Tag{})
 				err = db.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[userID=%d]", accountData.ID)
+					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
 				count := db.RowsAffected

@@ -13,14 +13,13 @@ import (
 Three->Two-One->User
 */
 type Distribution struct {
-	ID                 uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
-	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`    //修改时间
-	Username           string `json:"username"  validate:"required"`             //用户注册账号id
-	BusinessUsername   string `json:"business_username"  validate:"required"`    //归属的商户注册账号id
-	UsernameLevelOne   string `json:"username_level_one" `                       //向后的一级
-	UsernameLevelTwo   string `json:"username_level_two" `                       //向后的二级
-	UsernameLevelThree string `json:"username_level_three" `                     //向后的三级
+	Username           string `gorm:"primary_key" json:"username"  validate:"required"` //用户注册账号id
+	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
+	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
+	BusinessUsername   string `json:"business_username"  validate:"required"`           //归属的商户注册账号id
+	UsernameLevelOne   string `json:"username_level_one" `                              //向后的一级
+	UsernameLevelTwo   string `json:"username_level_two" `                              //向后的二级
+	UsernameLevelThree string `json:"username_level_three" `                            //向后的三级
 }
 
 //BeforeCreate CreatedAt赋值
@@ -41,7 +40,6 @@ func (d *Distribution) BeforeUpdate(tx *gorm.DB) error {
 Commission:  One:35, Two:10, Three: 5
 */
 type Commission struct {
-	ID               uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`                   //自动递增id
 	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
 	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`                      //修改时间
 	YearMonth        string  `json:"year_month" validate:"required"`                              //统计月份
@@ -68,17 +66,16 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 }
 
 /*
-普通用户的佣金月统计, IsClose=true不再统计
+普通用户的佣金月统计, 每月生成一条记录
 */
 type NormalUserCommissionStatistics struct {
-	ID              uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
-	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`    //修改时间
-	Username        string  `json:"username" validate:"required"`              //用户户注册账号id
-	YearMonth       string  `json:"year_month" validate:"required"`            //统计月份
-	TotalCommission float64 `json:"total_commission" validate:"required"`      //本月佣金合计
-	IsRebate        bool    `json:"is_rebate" `                                //是否支付了佣金
-	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"`  //平台操作返佣时间
+	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
+	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`   //修改时间
+	Username        string  `json:"username" validate:"required"`             //用户户注册账号id
+	YearMonth       string  `json:"year_month" validate:"required"`           //统计月份
+	TotalCommission float64 `json:"total_commission" validate:"required"`     //本月佣金合计
+	IsRebate        bool    `json:"is_rebate" `                               //是否支付了佣金
+	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"` //平台操作返佣时间
 }
 
 //BeforeCreate CreatedAt赋值
@@ -98,7 +95,6 @@ func (n *NormalUserCommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
 一旦归属于某个商户的用户付费，就增加一条记录
 */
 type BusinessCommission struct {
-	ID                 uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`                   //自动递增id
 	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
 	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`                      //修改时间
 	YearMonth          string  `json:"year_month" validate:"required"`                              //统计月份
@@ -128,15 +124,14 @@ func (bc *BusinessCommission) BeforeUpdate(tx *gorm.DB) error {
 商户的所属月统计(统计BusinessCommission表)
 */
 type BusinessUserCommissionStatistics struct {
-	ID               uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`    //创建时刻,毫秒
-	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`    //修改时间
-	BusinessUsername string  `json:"business_username" validate:"required"`     //商户注册账号id
-	YearMonth        string  `json:"year_month" validate:"required"`            //统计月份
-	Total            int64   `json:"total" validate:"required"`                 //下属用户总数
-	TotalCommission  float64 `json:"total_commission" validate:"required"`      //本月佣金合计
-	IsRebate         bool    `json:"is_rebate" `                                //是否支付了佣金
-	RebateTime       int64   `form:"rebate_time" json:"rebate_time,omitempty"`  //平台操作返佣时间
+	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
+	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`   //修改时间
+	BusinessUsername string  `json:"business_username" validate:"required"`    //商户注册账号id
+	YearMonth        string  `json:"year_month" validate:"required"`           //统计月份
+	Total            int64   `json:"total" validate:"required"`                //下属用户总数
+	TotalCommission  float64 `json:"total_commission" validate:"required"`     //本月佣金合计
+	IsRebate         bool    `json:"is_rebate" `                               //是否支付了佣金
+	RebateTime       int64   `form:"rebate_time" json:"rebate_time,omitempty"` //平台操作返佣时间
 }
 
 //BeforeCreate CreatedAt赋值
@@ -156,10 +151,9 @@ func (b *BusinessUserCommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
 佣金由经过申请，由平台转账到用户或商户钱包
 */
 type CommissionWithdraw struct {
-	ID                 uint64  `gorm:"primary_key" form:"id" json:"id,omitempty"`     //自动递增id
+	Username           string  `json:"username" validate:"required"`                  //用户或商户注册账号id
 	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
 	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`        //修改时间
-	Username           string  `json:"username" validate:"required"`                  //用户或商户注册账号id
 	UserType           int     `form:"user_type" json:"user_type" binding:"required"` //用户类型 1-普通，2-商户
 	YearMonth          string  `json:"year_month" validate:"required"`                //统计月份
 	WithdrawCommission float64 `json:"withdraw_commission,omitempty"`                 //佣金提现金额
