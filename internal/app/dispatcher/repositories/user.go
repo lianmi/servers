@@ -365,9 +365,18 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 
 	where := models.User{Username: username}
 	var user models.User
-	if err = s.base.First(&where, &user); err != nil {
-		s.logger.Error("用户账号不存在")
-		return false
+
+	err = s.db.Model(&models.User{}).Where(&where).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Error("错误：用户账号不存在")
+			return false
+		} else {
+
+			s.logger.Error("db err", zap.Error(err))
+			return false
+
+		}
 	}
 
 	if user.State == 3 {
@@ -562,23 +571,21 @@ func (s *MysqlLianmiRepository) DeleteUser(id uint64) bool {
 //判断用户名是否已存在
 func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	var user models.User
-	sel := "id"
-	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
-	//     "username":       username,
-	//     // "itemName like": "%22220",
-	//     // "id in":         []int{20, 19, 30},
-	//     // "num !=" : 20,
-	// })
+	// sel := "id"
+
 	where := models.User{Username: username}
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false
-	}
-	//其他类型的错误，写下日志，返回false
+
+	err := s.db.Model(&models.User{}).Where(&where).First(&user).Error
 	if err != nil {
-		s.logger.Error("根据用户名获取用户信息失败", zap.Error(err))
-		return false
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Error("错误：用户账号不存在")
+			return false
+		} else {
+
+			s.logger.Error("根据用户名获取用户信息失败 db err", zap.Error(err))
+			return false
+
+		}
 	}
 	return true
 }
@@ -586,17 +593,19 @@ func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 // 判断手机号码是否已存在
 func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 	var user models.User
-	sel := "id"
 	where := models.User{Mobile: mobile}
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false
-	}
-	//其他类型的错误，写下日志，返回false
+
+	err := s.db.Model(&models.User{}).Where(&where).First(&user).Error
 	if err != nil {
-		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
-		return false
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Error("错误：记录不存在")
+			return false
+		} else {
+
+			s.logger.Error("根据手机号码获取用户信息失败 db err", zap.Error(err))
+			return false
+
+		}
 	}
 	return true
 }
@@ -921,8 +930,7 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 //修改或增加店铺资料
 func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	var err error
-	sel := "id"
-	p := new(models.Store)
+	store := new(models.Store)
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -952,87 +960,91 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	}
 
 	//先查询对应的记录是否存在
-	err = s.base.First(&models.Store{
+
+	where := models.Store{
 		BusinessUsername: req.BusinessUsername,
-	}, &p, sel)
+	}
 
-	//记录不存在错误(RecordNotFound)，返回false
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		s.logger.Debug("记录不存在")
-		store := models.Store{
-			StoreUUID:         uuid.NewV4().String(),  //店铺的uuid
-			StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
-			BusinessUsername:  req.BusinessUsername,   //商户注册号
-			Introductory:      req.Introductory,       //商店简介 Text文本类型
-			Province:          req.Province,           //省份, 如广东省
-			City:              req.City,               //城市，如广州市
-			County:            req.County,             //区，如天河区
-			Street:            req.Street,             //街道
-			Address:           req.Address,            //地址
-			Branchesname:      req.Branchesname,       //网点名称
-			LegalPerson:       req.LegalPerson,        //法人姓名
-			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
-			Longitude:         req.Longitude,          //商户地址的经度
-			Latitude:          req.Latitude,           //商户地址的纬度
-			WeChat:            req.Wechat,             //商户联系人微信号
-			Keys:              req.Keys,               //商户经营范围搜索关键字
-			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
-			AuditState:        0,                      //初始值
-		}
+	err = s.db.Model(&models.Store{}).Where(&where).First(&store).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("记录不存在")
+			store := models.Store{
+				StoreUUID:         uuid.NewV4().String(),  //店铺的uuid
+				StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
+				BusinessUsername:  req.BusinessUsername,   //商户注册号
+				Introductory:      req.Introductory,       //商店简介 Text文本类型
+				Province:          req.Province,           //省份, 如广东省
+				City:              req.City,               //城市，如广州市
+				County:            req.County,             //区，如天河区
+				Street:            req.Street,             //街道
+				Address:           req.Address,            //地址
+				Branchesname:      req.Branchesname,       //网点名称
+				LegalPerson:       req.LegalPerson,        //法人姓名
+				LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+				Longitude:         req.Longitude,          //商户地址的经度
+				Latitude:          req.Latitude,           //商户地址的纬度
+				WeChat:            req.Wechat,             //商户联系人微信号
+				Keys:              req.Keys,               //商户经营范围搜索关键字
+				LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+				AuditState:        0,                      //初始值
+			}
 
-		//如果没有记录，则增加
-		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
-			s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
+			//如果没有记录，则增加
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
+				s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
+				return err
+			} else {
+				s.logger.Debug("AddStore, upsert stores succeed")
+			}
+
+		} else {
+
+			s.logger.Error("修改或增加店铺资料失败 db err", zap.Error(err))
 			return err
-		} else {
-			s.logger.Debug("AddStore, upsert stores succeed")
-		}
 
+		}
+	}
+
+	s.logger.Debug("记录存在")
+
+	if store.AuditState == 1 {
+		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
+	}
+
+	where2 := models.Store{
+		StoreUUID: store.StoreUUID,
+	}
+	// 同时更新多个字段
+	result := s.db.Model(&models.Store{}).Where(&where2).Updates(models.Store{
+		StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
+		BusinessUsername:  req.BusinessUsername,   //商户注册号
+		Introductory:      req.Introductory,       //商店简介 Text文本类型
+		Province:          req.Province,           //省份, 如广东省
+		City:              req.City,               //城市，如广州市
+		County:            req.County,             //区，如天河区
+		Street:            req.Street,             //街道
+		Address:           req.Address,            //地址
+		Branchesname:      req.Branchesname,       //网点名称
+		LegalPerson:       req.LegalPerson,        //法人姓名
+		LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+		Longitude:         req.Longitude,          //商户地址的经度
+		Latitude:          req.Latitude,           //商户地址的纬度
+		WeChat:            req.Wechat,             //商户联系人微信号
+		Keys:              req.Keys,               //商户经营范围搜索关键字
+		LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+	})
+
+	//updated records count
+	s.logger.Debug("修改店铺记录  result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("Update Store失败", zap.Error(result.Error))
+		return result.Error
 	} else {
-		s.logger.Debug("记录存在")
-		s.db.Model(p).Where(&models.Store{
-			BusinessUsername: req.BusinessUsername,
-		}).First(p)
-		if p.AuditState == 1 {
-			return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
-		}
-		store := models.Store{
-			StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
-			BusinessUsername:  req.BusinessUsername,   //商户注册号
-			Introductory:      req.Introductory,       //商店简介 Text文本类型
-			Province:          req.Province,           //省份, 如广东省
-			City:              req.City,               //城市，如广州市
-			County:            req.County,             //区，如天河区
-			Street:            req.Street,             //街道
-			Address:           req.Address,            //地址
-			Branchesname:      req.Branchesname,       //网点名称
-			LegalPerson:       req.LegalPerson,        //法人姓名
-			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
-			Longitude:         req.Longitude,          //商户地址的经度
-			Latitude:          req.Latitude,           //商户地址的纬度
-			WeChat:            req.Wechat,             //商户联系人微信号
-			Keys:              req.Keys,               //商户经营范围搜索关键字
-			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
-		}
-
-		where := models.Store{
-			StoreUUID: p.StoreUUID,
-		}
-		// 同时更新多个字段
-		result := s.db.Model(&models.Store{}).Where(&where).Updates(store)
-
-		//updated records count
-		s.logger.Debug("修改店铺记录  result: ",
-			zap.Int64("RowsAffected", result.RowsAffected),
-			zap.Error(result.Error))
-
-		if result.Error != nil {
-			s.logger.Error("Update Store失败", zap.Error(result.Error))
-			return result.Error
-		} else {
-			s.logger.Debug("Update Store成功")
-		}
-
+		s.logger.Debug("Update Store成功")
 	}
 
 	return nil
@@ -1099,29 +1111,6 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
-
-	// total := new(uint64)
-	// var maps string
-	// if req.Province != "" {
-	// 	maps = fmt.Sprintf("Province= %s and created_at <= %d", req.Province)
-	// }
-
-	//
-	// var store models.Store
-	// maps := make(map[string]interface{})
-
-	// if req.StoreType > 0 {
-	// 	maps["store_type"] = int(req.StoreType)
-
-	// }
-	// maps["state in"] = []int{1, 2}
-
-	// conditionString, values, _ := s.base.BuildCondition(maps)
-	// // err = s.base.First(conditionString, values, &store, sel)
-	// var stores []*models.Store
-	// if err := s.base.GetPages(&models.Store{}, &stores, pageIndex, pageSize, total, conditionString); err != nil {
-	// 	s.logger.Error("获取店铺列表失败", zap.Error(err))
-	// }
 
 	var list []*User.Store
 	var mod User.Store
@@ -1192,7 +1181,6 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 //后台管理员将店铺审核通过, 将stores表里的对应的记录state设置为1
 func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	var err error
-	sel := "id"
 	p := new(models.Store)
 
 	redisConn := s.redisPool.Get()
@@ -1223,14 +1211,21 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	}
 
 	//先查询对应的记录是否存在
-	err = s.base.First(&models.Store{
+	where := &models.Store{
 		BusinessUsername: req.BusinessUsername,
-	}, &p, sel)
+	}
 
-	//记录不存在错误(RecordNotFound)，返回false
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		s.logger.Error("错误：此商户没有提交资料")
-		return errors.Wrapf(err, "此商户没有提交资料[Businessusername=%s]", req.BusinessUsername)
+	err = s.db.Model(&models.Store{}).Where(&where).First(p).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Error("错误：此商户没有提交资料")
+			return errors.Wrapf(err, "此商户没有提交资料[Businessusername=%s]", req.BusinessUsername)
+		} else {
+
+			s.logger.Error("db err", zap.Error(err))
+			return err
+
+		}
 	}
 
 	//修改 audit_state 字段的值
