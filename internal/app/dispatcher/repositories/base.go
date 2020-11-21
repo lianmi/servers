@@ -6,12 +6,12 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type LianmiRepository interface {
@@ -19,6 +19,7 @@ type LianmiRepository interface {
 	//根据注册用户idd获取用户的资料
 	GetUser(username string) (p *models.User, err error)
 
+	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error)
 
 	//注册(用户及商户)
@@ -27,40 +28,32 @@ type LianmiRepository interface {
 	//重置密码
 	ResetPassword(mobile, password string, user *models.User) error
 
+	//同时增加用户类型角色
 	AddRole(role *models.Role) (err error)
 
+	//删除用户
 	DeleteUser(id uint64) bool
 
+	// 根据UserName获取用户角色
 	GetUserRoles(where interface{}) []*models.Role
 
+	// 检测用户是否可以登陆
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 
-	GetUserAvatar(where interface{}, sel string) string
+	//更新用户
+	UpdateUser(username string, user *models.User) error
 
-	SaveUser(user *models.User) error
-
+	//保存标签MarkTag
 	SaveTag(tag *models.Tag) error
-
-	//获取用户ID
-	GetUserID(where interface{}) uint64
-
-	//根据用户id获取token
-	GetTokenByUserId(where interface{}) string
 
 	//保存用户token
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
-
-	//获取所有用户
-	GetAllUsers(pageIndex int, pageSize int, total *uint64, where interface{}) []*models.User
 
 	//判断用户名是否已存在
 	ExistUserByName(username string) bool
 
 	// 判断手机号码是否已存在
 	ExistUserByMobile(mobile string) bool
-
-	//更新用户
-	UpdateUser(user *models.User, role *models.Role) bool
 
 	//获取用户
 	GetUserByID(id int) *models.User
@@ -74,6 +67,7 @@ type LianmiRepository interface {
 	//生成注册校验码
 	GenerateSmsCode(mobile string) bool
 
+	//根据手机号获取注册账号id
 	GetUsernameByMobile(mobile string) (string, error)
 
 	//检测校验码是否正确
@@ -88,16 +82,19 @@ type LianmiRepository interface {
 	//解封群组
 	DisBlockTeam(teamID string) error
 
+	//保存禁言的值，用于设置群禁言或解禁
+	SaveTeamMute(teamID string, muteType int) error
+
 	//======后台相关======/
 	BlockUser(username string) (err error)
 
-	DisBlockUser(username string) (p *models.User, err error)
+	DisBlockUser(username string) (err error)
 
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
-	GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error)
+	GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error)
 
 	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
 
@@ -109,9 +106,10 @@ type LianmiRepository interface {
 
 	DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool
 
+	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
-	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
+	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *int64, where interface{}) ([]*models.Grade, error)
 
 	//客服人员增加求助记录，以便发给用户评分
 	AddGrade(req *Auth.AddGradeReq) (string, error)
@@ -128,21 +126,34 @@ type LianmiRepository interface {
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 
+	//增加群成员
+	AddTeamUser(pTeamUser *models.TeamUser) error
+
+	//修改群成员资料
 	SaveTeamUser(pTeamUser *models.TeamUser) error
+
+	//解除群成员的禁言
+	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
 
 	GetTeams() []string
 
-	SaveTeam(pTeam *models.Team) error
+	//创建群
+	CreateTeam(pTeam *models.Team) error
+
+	//更新群数据
+	UpdateTeam(teamID string, pTeam *models.Team) error
 
 	DeleteTeamUser(teamID, username string) error
 
 	SetTeamManager(teamID, username string) error
 
-	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error
+	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error
 
-	GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser
+	GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser
 
-	SaveFriend(pFriend *models.Friend) error
+	AddFriend(pFriend *models.Friend) error
+
+	UpdateFriend(pFriend *models.Friend) error
 
 	DeleteFriend(userID, friendUserID uint64) error
 
@@ -154,6 +165,9 @@ type LianmiRepository interface {
 
 	//根据gps位置获取一定范围内的店铺列表
 	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
+
+	//后台管理员将店铺审核通过
+	AuditStore(req *Auth.AuditStoreReq) error
 }
 
 type MysqlLianmiRepository struct {

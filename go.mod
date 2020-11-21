@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/memberlist v0.1.4 // indirect
 	github.com/ipfs/go-ipfs-api v0.1.0
-	github.com/jinzhu/gorm v1.9.11
+	// github.com/jinzhu/gorm v1.9.11
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	// github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
@@ -64,6 +64,8 @@ require (
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.3.0
+	gorm.io/driver/mysql v1.0.3
+	gorm.io/gorm v1.20.7
 )
 
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1

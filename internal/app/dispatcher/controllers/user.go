@@ -259,6 +259,7 @@ func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 	RespOk(c, http.StatusOK, code)
 }
 
+//根据手机号获取注册账号id
 func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 
 	code := codes.InvalidParams
@@ -414,7 +415,7 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	RespData(c, http.StatusOK, code, store)
 }
 
-//修改店铺资料
+//增加或修改店铺资料
 func (pc *LianmiApisController) SaveStore(c *gin.Context) {
 
 	code := codes.InvalidParams

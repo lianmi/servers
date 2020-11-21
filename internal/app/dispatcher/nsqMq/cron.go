@@ -3,7 +3,7 @@ package nsqMq
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lianmi/servers/internal/pkg/models"
+	// "github.com/lianmi/servers/internal/pkg/models"
 	"github.com/robfig/cron"
 	"go.uber.org/zap"
 	"os"
@@ -32,25 +32,15 @@ func (nc *NsqClient) RunCron() {
 				nc.logger.Debug(fmt.Sprintf("dissMuteUser:%s", dissMuteUser))
 
 				key := fmt.Sprintf("TeamUser:%s:%s", teamID, dissMuteUser)
-				teamUser := new(models.TeamUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-					if err := redis.ScanStruct(result, teamUser); err != nil {
-						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						continue
-					}
-				}
-
-				//解除禁言
-				teamUser.IsMute = false
 
 				//写入MySQL
-				if err := nc.service.SaveTeamUser(teamUser); err != nil {
-					nc.logger.Error("Save teamUser Error", zap.Error(err))
+				if err := nc.service.SetMuteTeamUser(teamID, dissMuteUser, false, 0); err != nil {
+					nc.logger.Error("SetMuteTeamUser Error", zap.Error(err))
 					continue
 				}
 
 				//刷新redis
-				if _, err := redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamID, dissMuteUser)).AddFlat(teamUser)...); err != nil {
+				if _, err := redisConn.Do("HSET", key, "IsMute", 0); err != nil {
 					nc.logger.Error("错误：HMSET teamUser", zap.Error(err))
 					continue
 				}

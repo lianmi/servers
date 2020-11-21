@@ -6,7 +6,7 @@ import (
 	"strings"
 	"fmt"
 	"go.uber.org/zap"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 //BaseRepository 注入db,Logger
@@ -174,7 +174,7 @@ func (b *BaseRepository) Find(where interface{}, out interface{}, sel string, or
 }
 
 // GetPages 分页返回数据
-func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
 	db := b.db.Model(model).Where(model)
 	db = db.Where(where)
 	if len(orders) > 0 {

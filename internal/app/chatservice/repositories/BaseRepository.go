@@ -1,12 +1,10 @@
 package repositories
 
 import (
-	// "github.com/lianmi/servers/internal/pkg/models"
-	// "github.com/pkg/errors"
-	"strings"
 	"fmt"
 	"go.uber.org/zap"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
+	"strings"
 )
 
 //BaseRepository 注入db,Logger
@@ -14,7 +12,6 @@ type BaseRepository struct {
 	logger *zap.Logger
 	db     *gorm.DB
 }
-
 
 func NewBaseRepository(logger *zap.Logger, db *gorm.DB) *BaseRepository {
 	return &BaseRepository{
@@ -24,82 +21,77 @@ func NewBaseRepository(logger *zap.Logger, db *gorm.DB) *BaseRepository {
 }
 
 //构建查询条件
-func (b *BaseRepository)BuildCondition(where map[string]interface{}) (whereSql string,
-    values []interface{}, err error) {
-    for key, value := range where {
-        conditionKey := strings.Split(key, " ")
-        if len(conditionKey) > 2 {
-            return "", nil, fmt.Errorf("" +
-                "map构建的条件格式不对，类似于'age >'")
-        }
-        if whereSql != "" {
-            whereSql += " AND "
-        }
-        switch len(conditionKey) {
-        case 1:
-            whereSql += fmt.Sprint(conditionKey[0], " = ?")
-            values = append(values, value)
-            break
-        case 2:
-            field := conditionKey[0]
-            switch conditionKey[1] {
-            case "=":
-                whereSql += fmt.Sprint(field, " = ?")
-                values = append(values, value)
-                break
-            case ">":
-                whereSql += fmt.Sprint(field, " > ?")
-                values = append(values, value)
-                break
-            case ">=":
-                whereSql += fmt.Sprint(field, " >= ?")
-                values = append(values, value)
-                break
-            case "<":
-                whereSql += fmt.Sprint(field, " < ?")
-                values = append(values, value)
-                break
-            case "<=":
-                whereSql += fmt.Sprint(field, " <= ?")
-                values = append(values, value)
-                break
-            case "in":
-                whereSql += fmt.Sprint(field, " in (?)")
-                values = append(values, value)
-                break
-            case "like":
-                whereSql += fmt.Sprint(field, " like ?")
-                values = append(values, value)
-                break
-            case "<>":
-                whereSql += fmt.Sprint(field, " != ?")
-                values = append(values, value)
-                break
-            case "!=":
-                whereSql += fmt.Sprint(field, " != ?")
-                values = append(values, value)
-                break
-            }
-            break
-        }
-    }
-    return
+func (b *BaseRepository) BuildCondition(where map[string]interface{}) (whereSql string,
+	values []interface{}, err error) {
+	for key, value := range where {
+		conditionKey := strings.Split(key, " ")
+		if len(conditionKey) > 2 {
+			return "", nil, fmt.Errorf("" +
+				"map构建的条件格式不对，类似于'age >'")
+		}
+		if whereSql != "" {
+			whereSql += " AND "
+		}
+		switch len(conditionKey) {
+		case 1:
+			whereSql += fmt.Sprint(conditionKey[0], " = ?")
+			values = append(values, value)
+			break
+		case 2:
+			field := conditionKey[0]
+			switch conditionKey[1] {
+			case "=":
+				whereSql += fmt.Sprint(field, " = ?")
+				values = append(values, value)
+				break
+			case ">":
+				whereSql += fmt.Sprint(field, " > ?")
+				values = append(values, value)
+				break
+			case ">=":
+				whereSql += fmt.Sprint(field, " >= ?")
+				values = append(values, value)
+				break
+			case "<":
+				whereSql += fmt.Sprint(field, " < ?")
+				values = append(values, value)
+				break
+			case "<=":
+				whereSql += fmt.Sprint(field, " <= ?")
+				values = append(values, value)
+				break
+			case "in":
+				whereSql += fmt.Sprint(field, " in (?)")
+				values = append(values, value)
+				break
+			case "like":
+				whereSql += fmt.Sprint(field, " like ?")
+				values = append(values, value)
+				break
+			case "<>":
+				whereSql += fmt.Sprint(field, " != ?")
+				values = append(values, value)
+				break
+			case "!=":
+				whereSql += fmt.Sprint(field, " != ?")
+				values = append(values, value)
+				break
+			}
+			break
+		}
+	}
+	return
 }
 
-// Create 创建实体
+// Create 创建表
 func (b *BaseRepository) Create(value interface{}) error {
 	return b.db.Create(value).Error
 }
 
-// Save 保存实体
+// Save 保存记录
 func (b *BaseRepository) Save(value interface{}) error {
 	return b.db.Save(value).Error
 }
-
-// // Updates 更新实体
-// func (b *BaseRepository) Updates(model interface{}, value interface{}) error {
-// 	return b.db.Model(model).Updates(value).Error
-// }
 
 // DeleteByWhere 根据条件删除实体
 func (b *BaseRepository) DeleteByWhere(model, where interface{}) (count int64, err error) {
@@ -174,7 +166,7 @@ func (b *BaseRepository) Find(where interface{}, out interface{}, sel string, or
 }
 
 // GetPages 分页返回数据
-func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
 	db := b.db.Model(model).Where(model)
 	db = db.Where(where)
 	if len(orders) > 0 {

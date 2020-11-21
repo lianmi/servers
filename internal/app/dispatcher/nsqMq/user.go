@@ -202,14 +202,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	} else {
 		//查询出需要修改的用户
 		pUser := new(models.User)
-		if err = nc.db.Model(pUser).Where(&models.User{
-			Username: username,
-		}).First(pUser).Error; err != nil {
-			nc.logger.Error("Query user Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user Error: %s", err.Error())
-			goto COMPLETE
-		}
 
 		if nick, ok := req.Fields[1]; ok {
 			//修改呢称
@@ -246,41 +238,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			pUser.AllowType, _ = strconv.Atoi(allowType)
 		}
 
-		// if province, ok := req.Fields[8]; ok {
-		// 	pUser.Province = province
-		// }
-
-		// if city, ok := req.Fields[9]; ok {
-		// 	pUser.City = city
-		// }
-
-		// if county, ok := req.Fields[10]; ok {
-		// 	pUser.County = county
-		// }
-
-		// if street, ok := req.Fields[10]; ok {
-		// 	pUser.Street = street
-		// }
-
-		// if address, ok := req.Fields[10]; ok {
-		// 	pUser.Address = address
-		// }
-
-		// if branches_name, ok := req.Fields[11]; ok {
-		// 	pUser.Branchesname = branches_name
-		// }
-
-		// if legal_person, ok := req.Fields[11]; ok {
-		// 	pUser.LegalPerson = legal_person
-		// }
-
-		// if legal_identity_card, ok := req.Fields[11]; ok {
-		// 	pUser.LegalPerson = legal_identity_card
-		// }
-
-		pUser.UpdatedAt = time.Now().UnixNano() / 1e6
-
-		if err := nc.service.SaveUser(pUser); err != nil {
+		if err := nc.service.UpdateUser(username, pUser); err != nil {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Update user error[username=%d]", username)
@@ -342,14 +300,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		syncUpdateProfileEventRsp.Fields[5] = userData.Email
 		syncUpdateProfileEventRsp.Fields[6] = userData.Extend
 		syncUpdateProfileEventRsp.Fields[7] = User.AllowType_name[int32(userData.GetAllowType())]
-		// syncUpdateProfileEventRsp.Fields[8] = userData.Province
-		// syncUpdateProfileEventRsp.Fields[9] = userData.City
-		// syncUpdateProfileEventRsp.Fields[10] = userData.County
-		// syncUpdateProfileEventRsp.Fields[11] = userData.Street
-		// syncUpdateProfileEventRsp.Fields[12] = userData.Address
-		// syncUpdateProfileEventRsp.Fields[13] = userData.Branchesname
-		// syncUpdateProfileEventRsp.Fields[14] = userData.LegalPerson
-		// syncUpdateProfileEventRsp.Fields[15] = userData.LegalIdentityCard
 
 		edata, _ := proto.Marshal(syncUpdateProfileEventRsp)
 

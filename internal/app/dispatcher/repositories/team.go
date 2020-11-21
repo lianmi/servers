@@ -14,9 +14,10 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 )
 
-//授权新创建的群组
+//授权新创建的群组: 将Status变为 Normal(2) - 正常状态
 func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	var err error
 
@@ -61,24 +62,21 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
 	teamUser.IsMute = false                                      //是否被禁言
 	teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
-	tx := s.base.GetTransaction()
 
-	//将Status变为2 正常状态
-	p.Status = 2
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("授权新创建的群组失败", zap.Error(err))
-		tx.Rollback()
-		return err
+	//将Status变为 Normal(2) - 正常状态
+	result := s.db.Model(&models.Team{}).Where(&models.Team{
+		TeamID: teamID,
+	}).Update("status", 2)
 
+	//updated records count
+	s.logger.Debug("ApproveTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&teamUser).Error; err != nil {
+		s.logger.Error("ApproveTeam, failed to upsert teamUser", zap.Error(err))
+	} else {
+		s.logger.Debug("ApproveTeam, upsert teamUser succeed")
 	}
-	if err := tx.Save(teamUser).Error; err != nil {
-		s.logger.Error("更新teamUser失败", zap.Error(err))
-		tx.Rollback()
-		return err
-
-	}
-	//提交
-	tx.Commit()
 
 	/*
 		1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -202,26 +200,20 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 }
 
-//封禁群组
+//封禁群组 状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
 func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
-	p := new(models.Team)
-	if err := s.db.Model(p).Where(&models.Team{
+
+	result := s.db.Model(&models.Team{}).Where(&models.Team{
 		TeamID: teamID,
-	}).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
+	}).Update("status", 3) //将Status变为 3
+
+	//updated records count
+	s.logger.Debug("BlockTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("封禁群组失败", zap.Error(result.Error))
+		return result.Error
 	}
-
-	p.Status = 3 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
-
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("封禁群组失败", zap.Error(err))
-		tx.Rollback()
-		return err
-	}
-	//提交
-	tx.Commit()
 
 	return nil
 
@@ -229,43 +221,104 @@ func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 
 //解封群组
 func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
-	p := new(models.Team)
-	if err := s.db.Model(p).Where(&models.Team{
+	result := s.db.Model(&models.Team{}).Where(&models.Team{
 		TeamID: teamID,
-	}).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
+	}).Update("status", 2) //将Status变为 2
+
+	//updated records count
+	s.logger.Debug("DisBlockTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("解封群组失败", zap.Error(result.Error))
+		return result.Error
 	}
-
-	p.Status = 2 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
-
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("解封群组失败", zap.Error(err))
-		tx.Rollback()
-		return err
-	}
-	//提交
-	tx.Commit()
 
 	return nil
 }
 
-//更新或增加群成员
-func (s *MysqlLianmiRepository) SaveTeamUser(pTeamUser *models.TeamUser) error {
-	//使用事务同时更新或增加群成员
-	tx := s.base.GetTransaction()
+//保存禁言的值，用于设置群禁言或解禁
+func (s *MysqlLianmiRepository) SaveTeamMute(teamID string, muteType int) error {
+	result := s.db.Model(&models.Team{}).Where(&models.Team{
+		TeamID: teamID,
+	}).Update("mute_type", muteType) //修改MuteType
 
-	if err := tx.Save(pTeamUser).Error; err != nil {
-		s.logger.Error("更新TeamUser表失败", zap.Error(err))
-		tx.Rollback()
-		return err
+	//updated records count
+	s.logger.Debug("SaveTeamMute result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("设置群禁言或解禁失败", zap.Error(result.Error))
+		return result.Error
 	}
 
-	//提交
-	tx.Commit()
+	return nil
+}
+
+//增加群成员资料
+func (s *MysqlLianmiRepository) AddTeamUser(pTeamUser *models.TeamUser) error {
+	if pTeamUser == nil {
+		return errors.New("pTeamUser is nil")
+	}
+
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeamUser).Error; err != nil {
+		s.logger.Error("增加TeamUser失败", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("增加TeamUser成功")
+	}
 
 	return nil
+}
+
+//修改群成员资料
+func (s *MysqlLianmiRepository) SaveTeamUser(pTeamUser *models.TeamUser) error {
+	if pTeamUser == nil {
+		return errors.New("pTeamUser is nil")
+	}
+
+	where := models.TeamUser{TeamID: pTeamUser.TeamID}
+	// 同时更新多个字段
+	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(pTeamUser)
+
+	//updated records count
+	s.logger.Debug("SaveTeamUser result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改通用商品失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("修改通用商品成功")
+	}
+
+	return nil
+}
+
+//解除群成员的禁言
+func (s *MysqlLianmiRepository) SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error {
+
+	where := models.TeamUser{TeamID: teamID, Username: dissMuteUser}
+	result := s.db.Model(&models.TeamUser{}).Where(&where).Updates(models.TeamUser{
+		IsMute:   isMute,
+		Mutedays: mutedays,
+	})
+
+	//updated records count
+	s.logger.Debug("SetMuteTeamUser result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("设置群成员的禁言失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("设置群成员的禁言成功")
+	}
+	return nil
+
 }
 
 //删除群成员
@@ -288,16 +341,16 @@ func (s *MysqlLianmiRepository) SetTeamManager(teamID, username string) error {
 	db := s.db.Where(&where).Save(models.TeamUser{})
 	err := db.Error
 	if err != nil {
-		s.logger.Error("DeleteTeamUser", zap.Error(err))
+		s.logger.Error("SetTeamManager失败", zap.Error(err))
 		return err
 	}
 	count := db.RowsAffected
-	s.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
+	s.logger.Debug("SetTeamManager成功", zap.Int64("count", count))
 	return nil
 }
 
 // GetPages 分页返回数据
-func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
 	db := s.db.Model(model).Where(model)
 	db = db.Where(where)
 	if len(orders) > 0 {
@@ -317,7 +370,7 @@ func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pag
 }
 
 //分页获取群成员
-func (s *MysqlLianmiRepository) GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+func (s *MysqlLianmiRepository) GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
 	if err := s.GetPages(&models.TeamUser{TeamID: teamID}, &teamUsers, PageNum, PageSize, total, where); err != nil {
 		s.logger.Error("获取群成员信息失败", zap.Error(err))
@@ -332,19 +385,37 @@ func (s *MysqlLianmiRepository) GetTeams() []string {
 	return teamIDs
 }
 
-//创建群
-func (s *MysqlLianmiRepository) SaveTeam(pTeam *models.Team) error {
-	//使用事务同时更新创建群数据
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(pTeam).Error; err != nil {
-		s.logger.Error("更新群team表失败", zap.Error(err))
-		tx.Rollback()
+//创建群,  增加一条群信息数据
+func (s *MysqlLianmiRepository) CreateTeam(pTeam *models.Team) error {
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeam).Error; err != nil {
+		s.logger.Error("CreateTeam, failed to upsert team", zap.Error(err))
 		return err
+	} else {
+		s.logger.Debug("CreateTeam, upsert team succeed")
 	}
 
-	//提交
-	tx.Commit()
+	return nil
+}
+
+//更新群数据
+func (s *MysqlLianmiRepository) UpdateTeam(teamID string, pTeam *models.Team) error {
+
+	where := models.Team{
+		TeamID: teamID,
+	}
+	// 同时更新多个字段
+	result := s.db.Model(&models.Team{}).Where(&where).Select("nick", "icon", "announcement", "introductory", "verify_type", "invite_mode").Updates(pTeam)
+
+	//updated records count
+	s.logger.Debug("UpdateTeam result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("更新群数据失败", zap.Error(result.Error))
+		return result.Error
+	}
 
 	return nil
 }

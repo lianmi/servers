@@ -1,13 +1,17 @@
+/*
+GORM 英文文档 https://gorm.io/docs
+     中文文档 https://gorm.io/zh_CN/docs/index.html
+*/
 package database
 
 import (
 	"github.com/google/wire"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // Options is  configuration of database
@@ -31,7 +35,7 @@ func NewOptions(v *viper.Viper, logger *zap.Logger) (*Options, error) {
 // Init 初始化数据库
 func New(o *Options) (*gorm.DB, error) {
 	var err error
-	db, err := gorm.Open("mysql", o.URL) //打开mysql这个系统表
+	db, err := gorm.Open(mysql.Open(o.URL), &gorm.Config{})
 	if err != nil {
 		return nil, errors.Wrap(err, "gorm open database connection error")
 	}

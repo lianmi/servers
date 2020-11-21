@@ -49,7 +49,7 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 	}
 	gpWhere := models.GeneralProduct{ProductType: int(productType)}
 
-	var total uint64
+	var total int64
 	ps, err := pc.service.GetGeneralProductPage(int(pageIndex), int(pageSize), &total, gpWhere)
 	if err != nil {
 		pc.logger.Error("GetGeneralProduct Page by ProductType error", zap.Error(err))

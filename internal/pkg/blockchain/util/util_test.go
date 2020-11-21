@@ -18,7 +18,7 @@ func TestPublicKeyBytesToAddress(t *testing.T) {
 		expected := "0x96216849c49358B10257cb55b28eA603c874b05E"
 
 		if got != expected {
-			t.Errorf("Expected %v, got %v", expected, got)
+			t.Errorf("Expected %v", expected, got)
 		}
 	}
 }
@@ -33,7 +33,7 @@ func TestIsValidAddress(t *testing.T) {
 		expected := true
 
 		if got != expected {
-			t.Errorf("Expected %v, got %v", expected, got)
+			t.Errorf("Expected %v", expected, got)
 		}
 	}
 
@@ -42,7 +42,7 @@ func TestIsValidAddress(t *testing.T) {
 		expected := false
 
 		if got != expected {
-			t.Errorf("Expected %v, got %v", expected, got)
+			t.Errorf("Expected %v", expected, got)
 		}
 	}
 
@@ -51,7 +51,7 @@ func TestIsValidAddress(t *testing.T) {
 		expected := false
 
 		if got != expected {
-			t.Errorf("Expected %v, got %v", expected, got)
+			t.Errorf("Expected %v", expected, got)
 		}
 	}
 }

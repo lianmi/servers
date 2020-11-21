@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	// pb "github.com/lianmi/servers/api/proto/user"
 )
 
@@ -22,14 +22,14 @@ type UserWallet struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *UserWallet) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *UserWallet) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *UserWallet) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *UserWallet) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -50,14 +50,14 @@ type LnmcDepositHistory struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *LnmcDepositHistory) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcDepositHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *LnmcDepositHistory) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcDepositHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -84,14 +84,14 @@ type LnmcTransferHistory struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *LnmcTransferHistory) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcTransferHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *LnmcTransferHistory) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcTransferHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -116,14 +116,14 @@ type LnmcWithdrawHistory struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *LnmcWithdrawHistory) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcWithdrawHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *LnmcWithdrawHistory) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcWithdrawHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -146,14 +146,14 @@ type LnmcCollectionHistory struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *LnmcCollectionHistory) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcCollectionHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *LnmcCollectionHistory) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcCollectionHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -217,13 +217,13 @@ type LnmcOrderTransferHistory struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (w *LnmcOrderTransferHistory) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcOrderTransferHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (w *LnmcOrderTransferHistory) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (w *LnmcOrderTransferHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

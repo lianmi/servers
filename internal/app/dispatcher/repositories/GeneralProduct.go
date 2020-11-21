@@ -4,15 +4,22 @@ import (
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 )
 
 //======通用商品======/
 
 // 增加通用商品- Create
 func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
-	if err := s.base.Create(generalProduct); err != nil {
-		s.logger.Error("db写入错误，增加GeneralProduct表失败")
+	if generalProduct == nil {
+		return errors.New("generalProduct is nil")
+	}
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&generalProduct).Error; err != nil {
+		s.logger.Error("AddGeneralProduct, failed to upsert generalProduct", zap.Error(err))
 		return err
+	} else {
+		s.logger.Debug("AddGeneralProduct, upsert generalProduct succeed")
 	}
 
 	return nil
@@ -34,7 +41,7 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 }
 
 //查询通用商品分页 - Page
-func (s *MysqlLianmiRepository) GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error) {
+func (s *MysqlLianmiRepository) GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error) {
 	var generalProducts []*models.GeneralProduct
 	if err := s.base.GetPages(&models.GeneralProduct{}, &generalProducts, pageIndex, pageSize, total, where); err != nil {
 		s.logger.Error("获取通用商品分页失败", zap.Error(err))
@@ -46,17 +53,26 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(pageIndex, pageSize int, t
 
 // 修改通用商品 - Update
 func (s *MysqlLianmiRepository) UpdateGeneralProduct(generalProduct *models.GeneralProduct) error {
-	//使用事务批量保存
-	tx := s.base.GetTransaction()
 
-	if err := tx.Save(generalProduct).Error; err != nil {
-		s.logger.Error("保存GeneralProduct表失败", zap.Error(err))
-		tx.Rollback()
-		return err
+	if generalProduct == nil {
+		return errors.New("generalProduct is nil")
 	}
 
-	//提交
-	tx.Commit()
+	where := models.GeneralProduct{ProductID: generalProduct.ProductID}
+	// 同时更新多个字段
+	result := s.db.Model(&models.GeneralProduct{}).Where(&where).Updates(generalProduct)
+
+	//updated records count
+	s.logger.Debug("UpdateGeneralProduct result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改通用商品失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("修改通用商品成功")
+	}
 	return nil
 
 }

@@ -1783,7 +1783,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 	var data []byte
 	var maps string
 	var page, pageSize int
-	var total uint64
+	var total int64
 
 	rsp := &Wallet.SyncCollectionHistoryPageRsp{
 		Total:       0,
@@ -1851,7 +1851,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 		}
 
 		collections := nc.Repository.GetCollectionHistorys(username, req.FromUsername, page, pageSize, &total, maps)
-		nc.logger.Debug("GetCollectionHistorys", zap.Uint64("total", total))
+		nc.logger.Debug("GetCollectionHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, collection := range collections {
@@ -1907,7 +1907,7 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 	var data []byte
 	var maps string
 	var page, pageSize int
-	var total uint64
+	var total int64
 
 	rsp := &Wallet.SyncDepositHistoryPageRsp{
 		Total:    0,
@@ -2005,7 +2005,7 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 		}
 
 		deposits := nc.Repository.GetDepositHistorys(username, page, pageSize, &total, maps)
-		nc.logger.Debug("GetDepositHistorys", zap.Uint64("total", total))
+		nc.logger.Debug("GetDepositHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, deposit := range deposits {
@@ -2060,7 +2060,7 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 	var data []byte
 	var maps string
 	var page, pageSize int
-	var total uint64
+	var total int64
 
 	rsp := &Wallet.SyncWithdrawHistoryPageRsp{
 		Total:     0,
@@ -2127,7 +2127,7 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 		}
 
 		withdraws := nc.Repository.GetWithdrawHistorys(username, page, pageSize, &total, maps)
-		nc.logger.Debug("GetWithdrawHistorys", zap.Uint64("total", total))
+		nc.logger.Debug("GetWithdrawHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, withdraw := range withdraws {
@@ -2182,7 +2182,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 	var data []byte
 	var maps string
 	var page, pageSize int
-	var total uint64
+	var total int64
 
 	rsp := &Wallet.SyncTransferHistoryPageRsp{
 		Total:     0,
@@ -2249,7 +2249,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 		}
 
 		transfers := nc.Repository.GetTransferHistorys(username, page, pageSize, &total, maps)
-		nc.logger.Debug("GetTransferHistorys", zap.Uint64("total", total))
+		nc.logger.Debug("GetTransferHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, transfer := range transfers {
@@ -2304,7 +2304,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 	var data, awardData []byte
 	var isExists bool
 	var count int
-	var total uint64
+	var total int64
 	var latestDate string
 	var walletAddress string    //用户钱包地址
 	var awardEth uint64         //奖励的eth
@@ -2387,9 +2387,9 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 
 		_, err = redisConn.Do("HSET", key, "LatestDate", currDate)
 		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
-		total, _ = redis.Uint64(redisConn.Do("HINCRBY", key, "Total", 1))
+		total, _ = redis.Int64(redisConn.Do("HINCRBY", key, "Total", 1))
 		rsp.Count = int32(count)
-		rsp.TotalSignIn = total
+		rsp.TotalSignIn = uint64(total)
 
 		//如果count累计大于或等于2次，则奖励并重置为0
 		if count == 2 {
@@ -2423,7 +2423,7 @@ COMPLETE:
 	if errorCode == 200 {
 		nc.logger.Info("UserSignInRsp回包",
 			zap.Int("Count", count),
-			zap.Uint64("Total", total),
+			zap.Int64("total", total),
 		)
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)

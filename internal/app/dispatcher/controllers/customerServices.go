@@ -54,7 +54,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 	} else {
 		pageIndex := int(req.Page)
 		pageSize := int(req.Limit)
-		total := new(uint64)
+		total := new(int64)
 		if pageIndex == 0 {
 			pageIndex = 1
 		}
@@ -72,7 +72,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, 400, "Query Grades( failed")
 		} else {
 			pages := Auth.GradesPage{
-				TotalPage: *total,
+				TotalPage: uint64(*total),
 				// Grades: pfList,
 			}
 			for _, grade := range pfList {

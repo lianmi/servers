@@ -2898,6 +2898,92 @@ func (x *CommssionWithdrawResp) GetCommssionAmount() float64 {
 	return 0
 }
 
+type AuditStoreReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//商户账号
+	BusinessUsername string `protobuf:"bytes,1,opt,name=businessUsername,proto3" json:"businessUsername,omitempty"`
+}
+
+func (x *AuditStoreReq) Reset() {
+	*x = AuditStoreReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[47]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AuditStoreReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditStoreReq) ProtoMessage() {}
+
+func (x *AuditStoreReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[47]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditStoreReq.ProtoReflect.Descriptor instead.
+func (*AuditStoreReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *AuditStoreReq) GetBusinessUsername() string {
+	if x != nil {
+		return x.BusinessUsername
+	}
+	return ""
+}
+
+type AuditStoreResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *AuditStoreResp) Reset() {
+	*x = AuditStoreResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_auth_Service_proto_msgTypes[48]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AuditStoreResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditStoreResp) ProtoMessage() {}
+
+func (x *AuditStoreResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_Service_proto_msgTypes[48]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditStoreResp.ProtoReflect.Descriptor instead.
+func (*AuditStoreResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_Service_proto_rawDescGZIP(), []int{48}
+}
+
 var File_api_proto_auth_Service_proto protoreflect.FileDescriptor
 
 var file_api_proto_auth_Service_proto_rawDesc = []byte{
@@ -3226,11 +3312,16 @@ var file_api_proto_auth_Service_proto_rawDesc = []byte{
 	0x01, 0x28, 0x09, 0x52, 0x09, 0x79, 0x65, 0x61, 0x72, 0x4d, 0x6f, 0x6e, 0x74, 0x68, 0x12, 0x28,
 	0x0a, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e,
 	0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x01, 0x52, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x73, 0x73, 0x69,
-	0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x32, 0x0c, 0x0a, 0x0a, 0x4c, 0x69, 0x61, 0x6e,
-	0x6d, 0x69, 0x41, 0x75, 0x74, 0x68, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76,
-	0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x75,
-	0x74, 0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6f, 0x6e, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0x3b, 0x0a, 0x0d, 0x41, 0x75, 0x64, 0x69,
+	0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x52, 0x65, 0x71, 0x12, 0x2a, 0x0a, 0x10, 0x62, 0x75, 0x73,
+	0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x10, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65,
+	0x72, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x10, 0x0a, 0x0e, 0x41, 0x75, 0x64, 0x69, 0x74, 0x53, 0x74,
+	0x6f, 0x72, 0x65, 0x52, 0x65, 0x73, 0x70, 0x32, 0x0c, 0x0a, 0x0a, 0x4c, 0x69, 0x61, 0x6e, 0x6d,
+	0x69, 0x41, 0x75, 0x74, 0x68, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65,
+	0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x75, 0x74,
+	0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3245,7 +3336,7 @@ func file_api_proto_auth_Service_proto_rawDescGZIP() []byte {
 	return file_api_proto_auth_Service_proto_rawDescData
 }
 
-var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
+var file_api_proto_auth_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*UserReq)(nil),                      // 0: cloud.lianmi.im.auth.UserReq
 	(*UserRsp)(nil),                      // 1: cloud.lianmi.im.auth.UserRsp
@@ -3294,23 +3385,25 @@ var file_api_proto_auth_Service_proto_goTypes = []interface{}{
 	(*AskedWithdrawResp)(nil),            // 44: cloud.lianmi.im.auth.AskedWithdrawResp
 	(*CommssionWithdrawReq)(nil),         // 45: cloud.lianmi.im.auth.CommssionWithdrawReq
 	(*CommssionWithdrawResp)(nil),        // 46: cloud.lianmi.im.auth.CommssionWithdrawResp
-	(*user.User)(nil),                    // 47: cloud.lianmi.im.user.User
-	(global.CustomerServiceType)(0),      // 48: cloud.lianmi.im.global.CustomerServiceType
-	(*wallet.RawDesc)(nil),               // 49: cloud.lianmi.im.wallet.RawDesc
+	(*AuditStoreReq)(nil),                // 47: cloud.lianmi.im.auth.AuditStoreReq
+	(*AuditStoreResp)(nil),               // 48: cloud.lianmi.im.auth.AuditStoreResp
+	(*user.User)(nil),                    // 49: cloud.lianmi.im.user.User
+	(global.CustomerServiceType)(0),      // 50: cloud.lianmi.im.global.CustomerServiceType
+	(*wallet.RawDesc)(nil),               // 51: cloud.lianmi.im.wallet.RawDesc
 }
 var file_api_proto_auth_Service_proto_depIdxs = []int32{
-	47, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
-	47, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
-	48, // 2: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 3: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	49, // 0: cloud.lianmi.im.auth.UserRsp.user:type_name -> cloud.lianmi.im.user.User
+	49, // 1: cloud.lianmi.im.auth.RegisterReq.user:type_name -> cloud.lianmi.im.user.User
+	50, // 2: cloud.lianmi.im.auth.CustomerServiceInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	50, // 3: cloud.lianmi.im.auth.QueryCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	12, // 4: cloud.lianmi.im.auth.QueryCustomerServiceResp.onlineCustomerServices:type_name -> cloud.lianmi.im.auth.CustomerServiceInfo
-	48, // 5: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 6: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
-	48, // 7: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	50, // 5: cloud.lianmi.im.auth.AddCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	50, // 6: cloud.lianmi.im.auth.UpdateCustomerServiceReq.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
+	50, // 7: cloud.lianmi.im.auth.GradeInfo.type:type_name -> cloud.lianmi.im.global.CustomerServiceType
 	21, // 8: cloud.lianmi.im.auth.GradesPage.grades:type_name -> cloud.lianmi.im.auth.GradeInfo
 	23, // 9: cloud.lianmi.im.auth.GradesResp.pages:type_name -> cloud.lianmi.im.auth.GradesPage
 	26, // 10: cloud.lianmi.im.auth.AddGradesResp.info:type_name -> cloud.lianmi.im.auth.GradeTitleInfo
-	49, // 11: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
+	51, // 11: cloud.lianmi.im.auth.PreOrderForPayMembershipResp.rawDescToTarget:type_name -> cloud.lianmi.im.wallet.RawDesc
 	35, // 12: cloud.lianmi.im.auth.GetBusinessMembershipResp.details:type_name -> cloud.lianmi.im.auth.BusinessUserMonthDetail
 	38, // 13: cloud.lianmi.im.auth.GetMembershipResp.commssionDetails:type_name -> cloud.lianmi.im.auth.UserMonthCommssionDetail
 	41, // 14: cloud.lianmi.im.auth.NormalMembershipResp.summary:type_name -> cloud.lianmi.im.auth.PerLevelSummary
@@ -3891,6 +3984,30 @@ func file_api_proto_auth_Service_proto_init() {
 				return nil
 			}
 		}
+		file_api_proto_auth_Service_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AuditStoreReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_auth_Service_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AuditStoreResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -3898,7 +4015,7 @@ func file_api_proto_auth_Service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_auth_Service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   47,
+			NumMessages:   49,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

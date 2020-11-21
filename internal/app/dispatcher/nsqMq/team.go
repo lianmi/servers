@@ -52,7 +52,6 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //用户自己的账号
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleCreateTeam start...",
@@ -130,7 +129,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 				}
 
 			}
-			//写入MySQL数据库
+
 			var newTeamIndex uint64
 			if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
 				nc.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
@@ -156,8 +155,9 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			pTeam.MuteType = 1   //None(1) - 所有人可发言
 			pTeam.InviteMode = 1 //邀请模式,初始为1
 
-			if err = nc.service.SaveTeam(pTeam); err != nil {
-				nc.logger.Error("Save CreateTeam Error", zap.Error(err))
+			//写入MySQL数据库 创建群
+			if err = nc.service.CreateTeam(pTeam); err != nil {
+				nc.logger.Error("CreateTeam Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到数据库"
 				goto COMPLETE
@@ -1278,12 +1278,12 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				}
 			}
 
-			//存储群成员信息 TeamUser
+			//增加群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.TeamID = teamID              //群id
-			teamUser.Teamname = teamInfo.Teamname //群名称
-			teamUser.Username = userData.Username
+			teamUser.TeamID = teamID                                      //群id
+			teamUser.Teamname = teamInfo.Teamname                         //群名称
+			teamUser.Username = userData.Username                         //群成员用户账号
 			teamUser.InvitedUsername = req.GetFrom()                      //邀请者
 			teamUser.Nick = userData.Nick                                 //群成员呢称
 			teamUser.Avatar = userData.Avatar                             //群成员头像
@@ -1294,10 +1294,10 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			teamUser.IsMute = false                                       //是否被禁言
 			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
 
-			if err := nc.service.SaveTeamUser(teamUser); err != nil {
-				nc.logger.Error("更新teamUser失败", zap.Error(err))
+			if err := nc.service.AddTeamUser(teamUser); err != nil {
+				nc.logger.Error("增加群成员teamUser失败", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("更新teamUser失败[Username=%s]", username)
+				errorMsg = fmt.Sprintf("增加群成员teamUser失败[Username=%s]", username)
 				goto COMPLETE
 
 			}
@@ -1769,7 +1769,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.IsMute = false                                       //是否被禁言
 				teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
 
-				nc.service.SaveTeamUser(teamUser)
+				nc.service.AddTeamUser(teamUser)
 
 				/*
 					1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -2059,9 +2059,9 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.TeamID = teamID              //群id
-			teamUser.Teamname = teamInfo.Teamname //群名称
-			teamUser.Username = userData.Username
+			teamUser.TeamID = teamID                                      //群id
+			teamUser.Teamname = teamInfo.Teamname                         //群名称
+			teamUser.Username = userData.Username                         //群成员用户账号
 			teamUser.Nick = userData.Nick                                 //群成员呢称
 			teamUser.Avatar = userData.Avatar                             //群成员头像
 			teamUser.Label = userData.Label                               //群成员标签
@@ -2070,7 +2070,8 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型
 			teamUser.IsMute = false                                       //是否被禁言
 			teamUser.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
-			nc.service.SaveTeamUser(teamUser)
+
+			nc.service.AddTeamUser(teamUser)
 
 			handledMsg := fmt.Sprintf("管理员: %s 同意 %s 入群申请", opUser.Nick, userData.Nick)
 
@@ -2460,18 +2461,10 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
-			teamInfo := new(models.Team)
-			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
-					goto COMPLETE
-				}
-			}
+			status, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
 			//此群是否是正常的
-			if teamInfo.Status != 2 {
-				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			if status != 2 {
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", status))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -2490,24 +2483,38 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			teamInfo := new(models.Team)
 			if nick, ok := req.Fields[1]; ok {
 				//修改群组呢称
 				teamInfo.Nick = nick
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "Nick", nick); err != nil {
+					nc.logger.Error("HSET Nick error", zap.Error(err))
+				}
 
 			}
 			if icon, ok := req.Fields[2]; ok {
 				//修改群组Icon
 				teamInfo.Icon = icon
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "Icon", icon); err != nil {
+					nc.logger.Error("HSET Icon error", zap.Error(err))
+				}
 
 			}
 			if announcement, ok := req.Fields[3]; ok {
 				//修改群组Announcement
 				teamInfo.Announcement = announcement
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "Announcement", announcement); err != nil {
+					nc.logger.Error("HSET Announcement error", zap.Error(err))
+				}
 
 			}
 			if introduce, ok := req.Fields[4]; ok {
 				//修改群组Introductory
 				teamInfo.Introductory = introduce
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "Introductory", introduce); err != nil {
+					nc.logger.Error("HSET Introductory error", zap.Error(err))
+				}
+
 			}
 
 			if verifyTypeStr, ok := req.Fields[5]; ok {
@@ -2519,6 +2526,9 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				}
 				//修改群组VerifyType
 				teamInfo.VerifyType = verifyType
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "VerifyType", verifyType); err != nil {
+					nc.logger.Error("HSET VerifyType error", zap.Error(err))
+				}
 			}
 
 			if inviteModeStr, ok := req.Fields[6]; ok {
@@ -2530,18 +2540,13 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				}
 				//修改群组InviteMode
 				teamInfo.InviteMode = inviteMode
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID), "InviteMode", inviteMode); err != nil {
+					nc.logger.Error("HSET InviteMode error", zap.Error(err))
+				}
 			}
 
-			//保存到MySQL
-			nc.service.SaveTeam(teamInfo)
-
-			//更新redis
-			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-				nc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
-			} else {
-				nc.logger.Debug("4-11 更新群组信息 更新redis成功")
-
-			}
+			//保存到MySQL 更新群数据
+			nc.service.UpdateTeam(teamID, teamInfo)
 
 			//对所有群成员
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
@@ -3428,18 +3433,11 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			}
 
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
-			teamUser := new(models.TeamUser)
-			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-				if err := redis.ScanStruct(result, teamUser); err != nil {
-					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
-					goto COMPLETE
-				}
-			}
+
+			_teamMemberType, _ := redis.Int(redisConn.Do("HGET", key, "TeamMemberType"))
 
 			//判断操作者是群主还是管理员
-			teamMemberType := Team.TeamMemberType(teamUser.TeamMemberType)
+			teamMemberType := Team.TeamMemberType(_teamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner {
 				//群主可以自由设置
 				teamInfo.MuteType = int(mute)
@@ -3460,17 +3458,17 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//写入MySQL
-			if err = nc.service.SaveTeam(teamInfo); err != nil {
-				nc.logger.Error("Save Team Error", zap.Error(err))
+			//写入MySQL, 保存禁言类型的值
+			if err = nc.service.SaveTeamMute(teamID, int(mute)); err != nil {
+				nc.logger.Error("Save Team Mute Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法保存到Team"
+				errorMsg = "无法将Mute保存到Team"
 				goto COMPLETE
 			}
 
 			//刷新redis
-			if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", teamInfo.TeamID)).AddFlat(teamInfo)...); err != nil {
-				nc.logger.Error("错误：HMSET TeamInfo", zap.Error(err))
+			if _, err = redisConn.Do("HGET", key, "TeamMemberType", int(mute)); err != nil {
+				nc.logger.Error("HGET Error", zap.Error(err))
 			}
 
 			//向所有群成员推送
@@ -3655,22 +3653,15 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				}
 			}
 
-			//判断操作者是群主还是管理员
+			//判断操作者是群主还是管理员， 如果不是，则无权操作
 			teamMemberType := Team.TeamMemberType(opTeamUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 				key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.GetUsername())
-				curTeamUser := new(models.TeamUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-					if err := redis.ScanStruct(result, curTeamUser); err != nil {
-						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", req.GetUsername())
-						goto COMPLETE
-					}
-				}
+				isMute, _ := redis.Bool(redisConn.Do("HGET", key, "IsMute"))
+				nick, _ := redis.String(redisConn.Do("HGET", key, "Nick"))
 
 				//判断是否处于解禁状态
-				if curTeamUser.IsMute == false && req.GetMute() == curTeamUser.IsMute {
+				if isMute == false && req.GetMute() == isMute {
 					nc.logger.Warn("警告: 不能重复解禁")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Team user is already disMute[username=%s]", req.GetUsername())
@@ -3678,17 +3669,10 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 				}
 
-				curTeamUser.IsMute = req.GetMute()
-				curTeamUser.Mutedays = int(req.GetMutedays())
-
 				//写入MySQL
-				if err = nc.service.SaveTeamUser(curTeamUser); err != nil {
-					nc.logger.Error("Save curTeamUser Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "无法保存到TeamUser"
-					goto COMPLETE
+				if err := nc.service.SetMuteTeamUser(teamID, req.GetUsername(), req.GetMute(), int(req.GetMutedays())); err != nil {
+					nc.logger.Error("SetMuteTeamUser Error", zap.Error(err))
 				}
-
 				//刷新redis
 				err = redisConn.Send("HSET", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername()), "IsMute", req.GetMute())
 				err = redisConn.Send("HSET", fmt.Sprintf("TeamUser:%s:%s", teamInfo.TeamID, req.GetUsername()), "Mutedays", int(req.GetMutedays()))
@@ -3725,12 +3709,12 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 					var handledMsg string
 					if req.GetMute() {
 						if req.GetMutedays() > 0 {
-							handledMsg = fmt.Sprintf("群成员:%s被禁言%d天", curTeamUser.Nick, req.GetMutedays())
+							handledMsg = fmt.Sprintf("群成员:%s被禁言%d天", nick, req.GetMutedays())
 						} else {
-							handledMsg = fmt.Sprintf("群成员:%s被永久禁言", curTeamUser.Nick)
+							handledMsg = fmt.Sprintf("群成员:%s被永久禁言", nick)
 						}
 					} else { //解禁
-						handledMsg = fmt.Sprintf("群成员:%s解除禁言", curTeamUser.Nick)
+						handledMsg = fmt.Sprintf("群成员:%s解除禁言", nick)
 					}
 
 					body := Msg.MessageNotificationBody{
@@ -4998,9 +4982,9 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 			maps = "is_mute = true " //禁言成员
 		}
 
-		var total uint64
+		var total int64
 		teamUsers := nc.service.GetTeamUsers(teamID, int(req.GetPage()), int(req.GetPageSize()), &total, maps)
-		nc.logger.Debug("GetTeamUsers", zap.Uint64("total", total))
+		nc.logger.Debug("GetTeamUsers", zap.Int64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUser := range teamUsers {
 			nc.logger.Debug("for...range: teamUser",

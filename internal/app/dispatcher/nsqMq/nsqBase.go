@@ -16,7 +16,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 

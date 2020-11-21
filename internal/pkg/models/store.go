@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 //店铺表
@@ -36,13 +36,13 @@ type Store struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (l *Store) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (l *Store) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (l *Store) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (l *Store) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

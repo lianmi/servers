@@ -472,3 +472,12 @@ message CommssionWithdrawResp {
     //对应月份的返佣
     double commssionAmount =3;
 }
+
+message AuditStoreReq {
+    //商户账号
+    string businessUsername =1;
+}
+
+message AuditStoreResp {
+
+}

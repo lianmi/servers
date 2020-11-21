@@ -5,7 +5,7 @@
 3-3 好友列表同步事件 SyncFriendsEvent
 3-4 好友资料同步事件 SyncFriendUsersEvent
 3-5 移除好友 DeleteFriend
-3-6 刷新好友资料 UpdateFriend
+3-6 修改好友资料 UpdateFriend
 3-7 主从设备好友资料同步事件 SyncUpdateFriendEvent
 3-8 增量同步好友列表 未完成
 
@@ -266,8 +266,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.UserID = userID_A
 						pFriendA.FriendUserID = userID_B
 						pFriendA.FriendUsername = userB
-						if err := nc.service.SaveFriend(pFriendA); err != nil {
-							nc.logger.Error("Save Add Friend Error", zap.Error(err))
+						if err := nc.service.AddFriend(pFriendA); err != nil {
+							nc.logger.Error("Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
@@ -277,8 +277,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.UserID = userID_B
 						pFriendB.FriendUserID = userID_A
 						pFriendB.FriendUsername = userA
-						if err := nc.service.SaveFriend(pFriendB); err != nil {
-							nc.logger.Error("Save Add Friend Error", zap.Error(err))
+						if err := nc.service.AddFriend(pFriendB); err != nil {
+							nc.logger.Error("Add Friend Error", zap.Error(err))
 							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 							errorMsg = "无法保存到数据库"
 							goto COMPLETE
@@ -538,8 +538,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.UserID = userIDA
 					pFriendA.FriendUserID = userIDB
 					pFriendA.FriendUsername = userB
-					if err := nc.service.SaveFriend(pFriendA); err != nil {
-						nc.logger.Error("Save Add Friend Error", zap.Error(err))
+					if err := nc.service.AddFriend(pFriendA); err != nil {
+						nc.logger.Error("Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
@@ -549,8 +549,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.UserID = userIDB
 					pFriendB.FriendUserID = userIDA
 					pFriendB.FriendUsername = userA
-					if err := nc.service.SaveFriend(pFriendB); err != nil {
-						nc.logger.Error("Save Add Friend Error", zap.Error(err))
+					if err := nc.service.AddFriend(pFriendB); err != nil {
+						nc.logger.Error("Add Friend Error", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = "无法保存到数据库"
 						goto COMPLETE
@@ -1029,10 +1029,10 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 
 		}
 
-		if err := nc.service.SaveFriend(pFriend); err != nil {
-			nc.logger.Error("更新好友 失败", zap.Error(err))
+		if err := nc.service.UpdateFriend(pFriend); err != nil {
+			nc.logger.Error("修改好友资料失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("更新好友 失败[username=%s]", targetUsername)
+			errorMsg = fmt.Sprintf("修改好友资料失败[username=%s]", targetUsername)
 			goto COMPLETE
 		}
 

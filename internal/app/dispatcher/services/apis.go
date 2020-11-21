@@ -19,12 +19,14 @@ import (
 
 type LianmiApisService interface {
 	BlockUser(username string) error
-	DisBlockUser(username string) (*models.User, error)
+	DisBlockUser(username string) error
 	Register(user *models.User) (string, error)
 
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
 	GetUser(username string) (*Auth.UserRsp, error)
+
+	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
 	//检测用户登录
@@ -56,12 +58,15 @@ type LianmiApisService interface {
 	//解封群组
 	DisBlockTeam(teamID string) error
 
+	//保存禁言的值，用于设置群禁言或解禁
+	SaveTeamMute(teamID string, muteType int) error
+
 	//======后台相关======/
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
-	GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error)
+	GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error)
 
 	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
 
@@ -73,9 +78,10 @@ type LianmiApisService interface {
 
 	DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool
 
+	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
-	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error)
+	QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *int64, where interface{}) ([]*models.Grade, error)
 
 	AddGrade(req *Auth.AddGradeReq) (string, error)
 
@@ -91,32 +97,50 @@ type LianmiApisService interface {
 
 	ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error)
 
-	SaveUser(user *models.User) error
+	UpdateUser(username string, user *models.User) error
 
 	SaveTag(tag *models.Tag) error
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 
+	// 增加群成员资料
+	AddTeamUser(pTeamUser *models.TeamUser) error
+
+	// 修改群成员资料
 	SaveTeamUser(pTeamUser *models.TeamUser) error
+
+	//解除禁言
+	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
 
 	GetTeams() []string
 
 	DeleteTeamUser(teamID, username string) error
 
-	SaveTeam(pTeam *models.Team) error
+	//创建群
+	CreateTeam(pTeam *models.Team) error
 
-	GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser
+	// 更新群数据
+	UpdateTeam(teamID string, pTeam *models.Team) error
 
-	SaveFriend(pFriend *models.Friend) error
+	GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser
+
+	//添加好友
+	AddFriend(pFriend *models.Friend) error
+
+	//修改好友资料
+	UpdateFriend(pFriend *models.Friend) error
 
 	DeleteFriend(userID, friendUserID uint64) error
 
+	// 增加或修改店铺资料
 	SaveStore(req *User.Store) error
 
 	GetStore(businessUsername string) (*User.Store, error)
 
 	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
+
+	AuditStore(req *Auth.AuditStoreReq) error
 }
 
 type DefaultLianmiApisService struct {
@@ -160,6 +184,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 	}, nil
 }
 
+//多条件不定参数批量分页获取用户列表
 func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
 	if users, total, err := s.Repository.QueryUsers(req); err != nil {
 		return nil, err
@@ -189,21 +214,13 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
-	s.logger.Debug("BlockUser", zap.String("username", username))
-	if err = s.Repository.BlockUser(username); err != nil {
-		return errors.Wrap(err, "Block user error")
-	} else {
-		return nil
-	}
+
+	return s.Repository.BlockUser(username)
 
 }
-func (s *DefaultLianmiApisService) DisBlockUser(username string) (p *models.User, err error) {
-	s.logger.Debug("DisBlockUser", zap.String("username", username))
-	if p, err = s.Repository.DisBlockUser(username); err != nil {
-		return nil, errors.Wrap(err, "DisBlockUser user error")
-	}
+func (s *DefaultLianmiApisService) DisBlockUser(username string) error {
 
-	return
+	return s.Repository.DisBlockUser(username)
 }
 
 //生成短信校验码
@@ -211,6 +228,7 @@ func (s *DefaultLianmiApisService) GenerateSmsCode(mobile string) bool {
 	return s.Repository.GenerateSmsCode(mobile)
 }
 
+//根据手机号获取注册账号id
 func (s *DefaultLianmiApisService) GetUsernameByMobile(mobile string) (string, error) {
 	return s.Repository.GetUsernameByMobile(mobile)
 }
@@ -303,6 +321,12 @@ func (s *DefaultLianmiApisService) DisBlockTeam(teamID string) error {
 
 }
 
+//保存禁言的值，用于设置群禁言或解禁
+func (s *DefaultLianmiApisService) SaveTeamMute(teamID string, muteType int) error {
+	return s.Repository.SaveTeamMute(teamID, muteType)
+
+}
+
 //======后台相关======/
 func (s *DefaultLianmiApisService) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
 	return s.Repository.AddGeneralProduct(generalProduct)
@@ -317,7 +341,7 @@ func (s *DefaultLianmiApisService) GetGeneralProductByID(productID string) (p *m
 }
 
 //查询通用商品分页 - Page
-func (s *DefaultLianmiApisService) GetGeneralProductPage(pageIndex, pageSize int, total *uint64, where interface{}) ([]*models.GeneralProduct, error) {
+func (s *DefaultLianmiApisService) GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error) {
 
 	return s.Repository.GetGeneralProductPage(pageIndex, pageSize, total, where)
 
@@ -351,11 +375,12 @@ func (s *DefaultLianmiApisService) DeleteCustomerService(req *Auth.DeleteCustome
 	return s.Repository.DeleteCustomerService(req)
 }
 
+//修改在线客服资料
 func (s *DefaultLianmiApisService) UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error {
 	return s.Repository.UpdateCustomerService(req)
 }
 
-func (s *DefaultLianmiApisService) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
+func (s *DefaultLianmiApisService) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *int64, where interface{}) ([]*models.Grade, error) {
 	return s.Repository.QueryGrades(req, pageIndex, pageSize, total, where)
 }
 
@@ -492,12 +517,27 @@ func (s *DefaultLianmiApisService) SubmitCommssionWithdraw(username, yearMonth s
 	return s.Repository.SubmitCommssionWithdraw(username, yearMonth)
 }
 
+// 修改群成员资料
 func (s *DefaultLianmiApisService) SaveTeamUser(pTeamUser *models.TeamUser) error {
 	return s.Repository.SaveTeamUser(pTeamUser)
 }
 
-func (s *DefaultLianmiApisService) SaveFriend(pFriend *models.Friend) error {
-	return s.Repository.SaveFriend(pFriend)
+// 增加群成员资料
+func (s *DefaultLianmiApisService) AddTeamUser(pTeamUser *models.TeamUser) error {
+	return s.Repository.AddTeamUser(pTeamUser)
+}
+
+//解除群成员的禁言
+func (s *DefaultLianmiApisService) SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error {
+	return s.Repository.SetMuteTeamUser(teamID, dissMuteUser, isMute, mutedays)
+}
+
+func (s *DefaultLianmiApisService) AddFriend(pFriend *models.Friend) error {
+	return s.Repository.AddFriend(pFriend)
+}
+
+func (s *DefaultLianmiApisService) UpdateFriend(pFriend *models.Friend) error {
+	return s.Repository.UpdateFriend(pFriend)
 }
 
 func (s *DefaultLianmiApisService) DeleteFriend(userID, friendUserID uint64) error {
@@ -508,20 +548,26 @@ func (s *DefaultLianmiApisService) GetTeams() []string {
 	return s.Repository.GetTeams()
 }
 
-func (s *DefaultLianmiApisService) SaveTeam(pTeam *models.Team) error {
-	return s.Repository.SaveTeam(pTeam)
+//创建群
+func (s *DefaultLianmiApisService) CreateTeam(pTeam *models.Team) error {
+	return s.Repository.CreateTeam(pTeam)
+}
+
+// 更新群数据
+func (s *DefaultLianmiApisService) UpdateTeam(teamID string, pTeam *models.Team) error {
+	return s.Repository.UpdateTeam(teamID, pTeam)
 }
 
 func (s *DefaultLianmiApisService) DeleteTeamUser(teamID, username string) error {
 	return s.Repository.DeleteTeamUser(teamID, username)
 }
 
-func (s *DefaultLianmiApisService) GetTeamUsers(teamID string, PageNum int, PageSize int, total *uint64, where interface{}) []*models.TeamUser {
+func (s *DefaultLianmiApisService) GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser {
 	return s.Repository.GetTeamUsers(teamID, PageNum, PageSize, total, where)
 }
 
-func (s *DefaultLianmiApisService) SaveUser(user *models.User) error {
-	return s.Repository.SaveUser(user)
+func (s *DefaultLianmiApisService) UpdateUser(username string, user *models.User) error {
+	return s.Repository.UpdateUser(username, user)
 }
 
 func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
@@ -539,4 +585,8 @@ func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Stor
 
 func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
 	return s.Repository.GetStores(req)
+}
+
+func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
+	return s.Repository.AuditStore(req)
 }

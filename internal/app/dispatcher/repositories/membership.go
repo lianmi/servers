@@ -8,17 +8,15 @@ import (
 
 	// "github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	// "github.com/jinzhu/gorm"
+	// "gorm.io/gorm"
 	// Auth "github.com/lianmi/servers/api/proto/auth"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	// User "github.com/lianmi/servers/api/proto/user"
-	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
-	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/dateutil"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 )
 
 //会员付费成功后，需要新增3条佣金记录及BusinessCommission表记录
@@ -74,15 +72,14 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			TxHash:             txHash,                      //交易成功打包的区块哈希
 			Commission:         LMCommon.CommissionBusiness, //商户的佣金，11元
 		}
-		tx := s.base.GetTransaction()
-		if err := tx.Save(bc).Error; err != nil {
-			s.logger.Error("保存BusinessCommission失败", zap.Error(err))
-			tx.Rollback()
-			return err
-		}
 
-		//提交
-		tx.Commit()
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&bc).Error; err != nil {
+			s.logger.Error("增加BusinessCommission失败, failed to upsert BusinessCommission", zap.Error(err))
+			return err
+		} else {
+			s.logger.Debug("增加BusinessCommission成功, upsert BusinessCommission succeed")
+		}
 
 		ee := &models.BusinessUserCommissionStatistics{}
 		if err = s.db.Model(ee).Where(&models.BusinessUserCommissionStatistics{
@@ -101,7 +98,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			YearMonth:        currYearMonth,
 		}
 		db := s.db.Model(model).Where(model)
-		var totalCount *uint64
+		var totalCount *int64
 		err := db.Count(totalCount).Error
 		if err != nil {
 			s.logger.Error("查询BusinessCommission总数出错",
@@ -123,8 +120,8 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 		tx2 := s.base.GetTransaction()
 
-		if err := tx2.Save(bcs).Error; err != nil {
-			s.logger.Error("保存BusinessUserCommissionStatistics失败", zap.Error(err))
+		if err := tx2.Create(bcs).Error; err != nil {
+			s.logger.Error("增加BusinessUserCommissionStatistics失败", zap.Error(err))
 			tx2.Rollback()
 			return err
 		}
@@ -156,14 +153,14 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			TxHash:           txHash,                   //交易成功打包的区块哈希
 			Commission:       LMCommon.CommissionOne,   //第一级佣金
 		}
-		tx := s.base.GetTransaction()
-		if err := tx.Save(commissionOne).Error; err != nil {
-			s.logger.Error("保存commissionOne失败", zap.Error(err))
-			tx.Rollback()
+
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionOne).Error; err != nil {
+			s.logger.Error("增加commissionOne失败, failed to upsert Commission", zap.Error(err))
 			return err
+		} else {
+			s.logger.Debug("增加commissionOne成功, upsert Commission succeed")
 		}
-		//提交
-		tx.Commit()
 
 		//普通用户的佣金月统计  NormalUserCommissionStatistics
 		nucs := &models.NormalUserCommissionStatistics{
@@ -196,8 +193,8 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 			tx2 := s.base.GetTransaction()
 
-			if err := tx2.Save(newnucs).Error; err != nil {
-				s.logger.Error("保存NormalUserCommissionStatistics失败", zap.Error(err))
+			if err := tx2.Create(newnucs).Error; err != nil {
+				s.logger.Error("增加NormalUserCommissionStatistics失败", zap.Error(err))
 				tx2.Rollback()
 				return err
 			}
@@ -231,14 +228,14 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			TxHash:           txHash,                   //交易成功打包的区块哈希
 			Commission:       LMCommon.CommissionTwo,   //第二级佣金
 		}
-		tx := s.base.GetTransaction()
-		if err := tx.Save(commissionTwo).Error; err != nil {
-			s.logger.Error("保存commissionTwo失败", zap.Error(err))
-			tx.Rollback()
+
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionTwo).Error; err != nil {
+			s.logger.Error("增加commissionTwo失败, failed to upsert Commission", zap.Error(err))
 			return err
+		} else {
+			s.logger.Debug("增加commissionTwo成功, upsert Commission succeed")
 		}
-		//提交
-		tx.Commit()
 
 		//普通用户的佣金月统计  NormalUserCommissionStatistics
 		nucs := &models.NormalUserCommissionStatistics{
@@ -270,8 +267,8 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 			tx2 := s.base.GetTransaction()
 
-			if err := tx2.Save(newnucs).Error; err != nil {
-				s.logger.Error("保存NormalUserCommissionStatistics失败", zap.Error(err))
+			if err := tx2.Create(newnucs).Error; err != nil {
+				s.logger.Error("增加NormalUserCommissionStatistics失败", zap.Error(err))
 				tx2.Rollback()
 				return err
 			}
@@ -304,14 +301,14 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 			TxHash:           txHash,                   //交易成功打包的区块哈希
 			Commission:       LMCommon.CommissionThree, //第三级佣金
 		}
-		tx := s.base.GetTransaction()
-		if err := tx.Save(commissionThree).Error; err != nil {
-			s.logger.Error("保存commissionThree失败", zap.Error(err))
-			tx.Rollback()
+
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionThree).Error; err != nil {
+			s.logger.Error("增加commissionThree失败, failed to upsert Commission", zap.Error(err))
 			return err
+		} else {
+			s.logger.Debug("增加commissionThree成功, upsert Commission succeed")
 		}
-		//提交
-		tx.Commit()
 
 		//普通用户的佣金月统计  NormalUserCommissionStatistics
 		nucs := &models.NormalUserCommissionStatistics{
@@ -343,8 +340,8 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 
 			tx2 := s.base.GetTransaction()
 
-			if err := tx2.Save(newnucs).Error; err != nil {
-				s.logger.Error("保存NormalUserCommissionStatistics失败", zap.Error(err))
+			if err := tx2.Create(newnucs).Error; err != nil {
+				s.logger.Error("增加NormalUserCommissionStatistics失败", zap.Error(err))
 				tx2.Rollback()
 				return err
 			}
@@ -370,7 +367,7 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 		YearMonth:        currYearMonth,
 	}
 	db := s.db.Model(model).Where(model)
-	var totalCount *uint64
+	var totalCount *int64
 	err = db.Count(totalCount).Error
 	if err != nil {
 		s.logger.Error("查询BusinessCommission总数出错",
@@ -380,14 +377,14 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 		return nil, err
 	}
 	rsp := &Auth.GetBusinessMembershipResp{
-		Totalmembers: *totalCount,
+		Totalmembers: uint64(*totalCount),
 	}
 
-	total := new(uint64)
+	total := new(int64)
 	var bucss []*models.BusinessUserCommissionStatistics
-	where := &models.BusinessUserCommissionStatistics{BusinessUsername: businessUsername}
+	where := models.BusinessUserCommissionStatistics{BusinessUsername: businessUsername}
 	orderStr := "year_month desc" //按照年月降序
-	if err := s.base.GetPages(&models.BusinessUserCommissionStatistics{}, &bucss, 1, 100, total, where, orderStr); err != nil {
+	if err := s.base.GetPages(&models.BusinessUserCommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取BusinessUserCommissionStatistics信息失败", zap.Error(err))
 	}
 
@@ -410,12 +407,12 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 //用户按月统计付费会员总数及返佣金额，是否已经返佣
 func (s *MysqlLianmiRepository) GetNormalMembership(username string) (*Auth.GetMembershipResp, error) {
 	var err error
-	total := new(uint64)
+	total := new(int64)
 
 	var bucss []*models.NormalUserCommissionStatistics
-	where := &models.NormalUserCommissionStatistics{Username: username}
+	where := models.NormalUserCommissionStatistics{Username: username}
 	orderStr := "year_month desc" //按照年月降序
-	if err = s.base.GetPages(&models.NormalUserCommissionStatistics{}, &bucss, 1, 100, total, where, orderStr); err != nil {
+	if err = s.base.GetPages(&models.NormalUserCommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取NormalUserCommissionStatistics信息失败", zap.Error(err))
 	}
 	rsp := &Auth.GetMembershipResp{}
@@ -477,16 +474,13 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 		YearMonth:          yearMonth,
 		WithdrawCommission: withdrawCommission,
 	}
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(commissionWithdraw).Error; err != nil {
-		s.logger.Error("保存CommissionWithdraw失败", zap.Error(err))
-		tx.Rollback()
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&commissionWithdraw).Error; err != nil {
+		s.logger.Error("增加commissionWithdraw失败, failed to upsert CommissionWithdraw", zap.Error(err))
 		return nil, err
+	} else {
+		s.logger.Debug("增加commissionWithdraw成功, upsert CommissionWithdraw succeed")
 	}
-
-	//提交
-	tx.Commit()
 
 	rsp := &Auth.CommssionWithdrawResp{
 		Username:        username,

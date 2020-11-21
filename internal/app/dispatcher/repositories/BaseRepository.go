@@ -3,9 +3,9 @@ package repositories
 import (
 	// "github.com/lianmi/servers/internal/pkg/models"
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
@@ -96,11 +96,6 @@ func (b *BaseRepository) Save(value interface{}) error {
 	return b.db.Save(value).Error
 }
 
-// // Updates 更新实体
-// func (b *BaseRepository) Updates(model interface{}, value interface{}) error {
-// 	return b.db.Model(model).Updates(value).Error
-// }
-
 // DeleteByWhere 根据条件删除实体
 func (b *BaseRepository) DeleteByWhere(model, where interface{}) (count int64, err error) {
 	db := b.db.Where(where).Delete(model)
@@ -174,7 +169,7 @@ func (b *BaseRepository) Find(where interface{}, out interface{}, sel string, or
 }
 
 // GetPages 分页返回数据
-func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *uint64, where interface{}, orders ...string) error {
+func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
 	db := b.db.Model(model).Where(model)
 	db = db.Where(where)
 	if len(orders) > 0 {

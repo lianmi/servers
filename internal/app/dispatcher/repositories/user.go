@@ -20,7 +20,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	"github.com/jinzhu/gorm"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Global "github.com/lianmi/servers/api/proto/global"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -30,6 +29,8 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err error) {
@@ -45,6 +46,7 @@ func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err er
 	return
 }
 
+//多条件不定参数批量分页获取用户列表
 func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
 	var err error
 	var total int64
@@ -77,24 +79,17 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	p := new(models.User)
-	if err = s.db.Model(p).Where(&models.User{
+	result := s.db.Model(&models.User{}).Where(&models.User{
 		Username: username,
-	}).First(p).Error; err != nil {
-		return errors.Wrapf(err, "Get user error[username=%s]", username)
+	}).Update("status", 2) //将Status变为 2, 1-正常， 2-封号
+
+	//updated records count
+	s.logger.Debug("BlockUser result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("封号失败", zap.Error(result.Error))
+		return result.Error
 	}
-
-	p.State = 2 //1-正常， 2-封号
-
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("封号失败", zap.Error(err))
-		tx.Rollback()
-
-	}
-	//提交
-	tx.Commit()
 
 	//将此用户所在在线设备全部踢出
 	deviceListKey := fmt.Sprintf("devices:%s", username)
@@ -132,27 +127,20 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 解封
 1. 将users表的用户记录的state设置为1
 */
-func (s *MysqlLianmiRepository) DisBlockUser(username string) (p *models.User, err error) {
-	p = new(models.User)
-	if err = s.db.Model(p).Where(&models.User{
+func (s *MysqlLianmiRepository) DisBlockUser(username string) (err error) {
+
+	result := s.db.Model(&models.User{}).Where(&models.User{
 		Username: username,
-	}).First(p).Error; err != nil {
-		return nil, errors.Wrapf(err, "Get user error[username=%s]", username)
+	}).Update("status", 1) //将Status变为 1, 1-正常， 2-封号
+
+	//updated records count
+	s.logger.Debug("DisBlockUser result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("解封失败", zap.Error(result.Error))
+		return result.Error
 	}
 
-	p.State = 1 //1-正常， 2-封号
-
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(p).Error; err != nil {
-		s.logger.Error("解封失败", zap.Error(err))
-		tx.Rollback()
-
-	}
-	//提交
-	tx.Commit()
-
-	s.logger.Debug("DisBlockUser run.")
 	return
 }
 
@@ -221,7 +209,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 
 			//使用事务同时增加Distribution数据
 			tx := s.base.GetTransaction()
-			if err := tx.Save(distribution).Error; err != nil {
+			if err := tx.Create(distribution).Error; err != nil {
 				s.logger.Error("增加Distribution表失败", zap.Error(err))
 				tx.Rollback()
 				return err
@@ -259,17 +247,14 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		pTeam.MuteType = 1   //None(1) - 所有人可发言
 		pTeam.InviteMode = 1 //邀请模式,初始为1
 
-		//使用事务同时更新创建群数据
-		tx := s.base.GetTransaction()
-
-		if err := tx.Save(pTeam).Error; err != nil {
-			s.logger.Error("更新群team表失败", zap.Error(err))
-			tx.Rollback()
+		//创建群数据 如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pTeam).Error; err != nil {
+			s.logger.Error("Register, failed to upsert team", zap.Error(err))
 			return err
+		} else {
+			s.logger.Debug("CreateTeam, upsert team succeed")
 		}
 
-		//提交
-		tx.Commit()
 	}
 
 	//将用户信息缓存到redis里
@@ -278,7 +263,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		s.logger.Error("错误：HMSET", zap.Error(err))
 	}
 
-	if err := s.base.Create(user); err != nil {
+	if err := s.base.Save(user); err != nil {
 		s.logger.Error("db写入错误，注册用户失败")
 		return err
 	}
@@ -314,21 +299,23 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 		return errors.Wrapf(err, "Query user error[mobile=%s]", mobile)
 	}
 	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 
-	//替换旧密码
-	user.Password = password
+	result := s.db.Model(&models.User{}).Where(&models.User{
+		Mobile: mobile,
+	}).Update("password", password) //替换旧密码
 
-	tx := s.base.GetTransaction()
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("更新用户密码失败", zap.Error(err))
-		tx.Rollback()
-		return err
+	//updated records count
+	s.logger.Debug("ResetPassword result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("重置密码失败", zap.Error(result.Error))
+		return result.Error
 	}
-
-	tx.Commit()
 
 	return nil
 }
@@ -537,7 +524,6 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 			return false
 		}
 
-		// _ = err
 	}
 
 	//当前所有主从设备数量
@@ -547,6 +533,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 	return true
 }
 
+//同时增加用户类型角色
 func (s *MysqlLianmiRepository) AddRole(role *models.Role) (err error) {
 	if err := s.db.Create(role).Error; err != nil {
 		s.logger.Error("新建用户角色失败")
@@ -575,56 +562,6 @@ func (s *MysqlLianmiRepository) DeleteUser(id uint64) bool {
 	return true
 }
 
-func (s *MysqlLianmiRepository) GetUserAvatar(where interface{}, sel string) string {
-	var user models.User
-
-	err := s.base.First(&where, &user, sel)
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		s.logger.Error("获取用户头像失败", zap.Error(err))
-		return "" //TODO 默认
-	}
-	return user.Avatar
-}
-
-func (s *MysqlLianmiRepository) GetUserID(where interface{}) uint64 {
-	var user models.User
-	// conditionString, values, _ := s.base.BuildCondition(map[string]interface{}{
-	//     "username":       username,
-	// })
-	// where := models.User{Username: username}
-	err := s.base.First(&where, &user, "id")
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		s.logger.Error("获取用户id失败", zap.Error(err))
-		return 0 //TODO 默认
-	}
-
-	return user.ID
-}
-
-//根据用户id获取token
-func (s *MysqlLianmiRepository) GetTokenByUserId(where interface{}) string {
-	var tbToken models.Token
-	// where := models.User{Username: username}
-	err := s.base.First(&where, &tbToken, "token")
-	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
-		s.logger.Error("获取Token失败", zap.Error(err))
-		return "" //TODO 默认
-	}
-
-	return tbToken.Token
-}
-
-func (s *MysqlLianmiRepository) GetAllUsers(pageIndex int, pageSize int, total *uint64, where interface{}) []*models.User {
-	var users []*models.User
-	if err := s.base.GetPages(&models.User{}, &users, pageIndex, pageSize, total, where); err != nil {
-		s.logger.Error("获取用户信息失败", zap.Error(err))
-	}
-	return users
-}
-
 //判断用户名是否已存在
 func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	var user models.User
@@ -638,7 +575,7 @@ func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	where := models.User{Username: username}
 	err := s.base.First(&where, &user, sel)
 	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return false
 	}
 	//其他类型的错误，写下日志，返回false
@@ -656,7 +593,7 @@ func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 	where := models.User{Mobile: mobile}
 	err := s.base.First(&where, &user, sel)
 	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return false
 	}
 	//其他类型的错误，写下日志，返回false
@@ -664,24 +601,6 @@ func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 		s.logger.Error("根据手机号码获取用户信息失败", zap.Error(err))
 		return false
 	}
-	return true
-}
-
-//更新用户
-func (s *MysqlLianmiRepository) UpdateUser(user *models.User, role *models.Role) bool {
-	//使用事务同时更新用户数据和角色数据
-	tx := s.base.GetTransaction()
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("更新用户失败", zap.Error(err))
-		tx.Rollback()
-		return false
-	}
-	if err := tx.Save(&role).Error; err != nil {
-		s.logger.Error("更新用户角色失败", zap.Error(err))
-		tx.Rollback()
-		return false
-	}
-	tx.Commit()
 	return true
 }
 
@@ -969,33 +888,35 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 }
 
 //修改用户资料
-func (s *MysqlLianmiRepository) SaveUser(user *models.User) error {
-	//使用事务同时更新用户数据
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(user).Error; err != nil {
-		s.logger.Error("更新用户表失败", zap.Error(err))
-		tx.Rollback()
-
+func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) error {
+	where := models.User{
+		Username: username,
 	}
-	//提交
-	tx.Commit()
+	// 同时更新多个字段
+	result := s.db.Model(&models.User{}).Where(&where).Updates(user)
 
+	//updated records count
+	s.logger.Debug("UpdateUser result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改用户资料数据失败", zap.Error(result.Error))
+		return result.Error
+	}
 	return nil
 }
 
 //修改用户标签
 func (s *MysqlLianmiRepository) SaveTag(tag *models.Tag) error {
-	//使用事务同时更新Tag数据
-	tx := s.base.GetTransaction()
 
-	if err := tx.Save(tag).Error; err != nil {
-		s.logger.Error("更新tag表失败", zap.Error(err))
-		tx.Rollback()
-
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&tag).Error; err != nil {
+		s.logger.Error("SaveTag, failed to upsert tag", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("SaveTag, upsert tag succeed")
 	}
-	//提交
-	tx.Commit()
 
 	return nil
 }
@@ -1041,7 +962,7 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	}, &p, sel)
 
 	//记录不存在错误(RecordNotFound)，返回false
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		storeUUID = uuid.NewV4().String()
 		auditState = 0 //审核状态，0-预审核，1-审核通过, 2-占位
 	} else {
@@ -1055,7 +976,7 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
 	}
 
-	store := &models.Store{
+	store := models.Store{
 		StoreUUID:         storeUUID,              //店铺的uuid
 		StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
 		BusinessUsername:  req.BusinessUsername,   //商户注册号
@@ -1076,16 +997,13 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 		AuditState:        0,                      //初始值
 	}
 
-	//使用事务同时更新Tag数据
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(store).Error; err != nil {
-		s.logger.Error("更新Store表失败", zap.Error(err))
-		tx.Rollback()
-
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&store).Error; err != nil {
+		s.logger.Error("SaveStore, failed to upsert stores", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("SaveStore, upsert stores succeed")
 	}
-	//提交
-	tx.Commit()
 
 	return nil
 
@@ -1141,7 +1059,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
 
 	var err error
-	total := 0 //总页数
+	total := new(int64) //总页数
 	pageIndex := int(req.Page)
 	pageSize := int(req.Limit)
 
@@ -1185,21 +1103,6 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 		wheres = append(wheres, []interface{}{"state", "=", int(req.State)})
 	}
 
-	// where := []interface{}{
-	// 	// []interface{}{"state", "in", []int{1, 2}},
-	// 	[]interface{}{"store_type", "=", int(req.StoreType)},
-	// }
-
-	/*
-		db := s.db
-		db, err = s.base.BuildWhere(db, where)
-		if err != nil {
-			s.logger.Error("BuildWhere错误", zap.Error(err))
-		}
-
-		db.Find(&list)
-	*/
-
 	db := s.db
 	db, err = s.base.BuildQueryList(db, wheres, columns, orderBy, pageIndex, pageSize)
 	if err != nil {
@@ -1222,7 +1125,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 	db.Model(&mod).Count(total)
 
 	resp := &User.QueryStoresNearbyResp{
-		TotalPage: uint64(total),
+		TotalPage: uint64(*total),
 	}
 
 	for _, store := range list {
@@ -1254,4 +1157,62 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 		})
 	}
 	return resp, nil
+}
+
+//后台管理员将店铺审核通过, 将stores表里的对应的记录state设置为1
+func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
+	var err error
+	sel := "id"
+	p := new(models.Store)
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//判断商户的注册id的合法性以及是否封禁等
+	userData := new(models.User)
+
+	userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
+	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+		if err := redis.ScanStruct(result, userData); err != nil {
+
+			s.logger.Error("错误：ScanStruct", zap.Error(err))
+			return errors.Wrapf(err, "查询redis出错[Businessusername=%s]", req.BusinessUsername)
+
+		}
+	}
+	// 判断是否是商户类型
+	if userData.UserType != 2 {
+		s.logger.Error("错误：此注册账号id不是商户类型")
+		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
+	}
+
+	//判断是否被封禁
+	if userData.State == LMCommon.UserBlocked {
+		s.logger.Debug("User is blocked", zap.String("Businessusername", req.BusinessUsername))
+		return errors.Wrapf(err, "User is blocked[Businessusername=%s]", req.BusinessUsername)
+	}
+
+	//先查询对应的记录是否存在
+	err = s.base.First(&models.Store{
+		BusinessUsername: req.BusinessUsername,
+	}, &p, sel)
+
+	//记录不存在错误(RecordNotFound)，返回false
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Error("错误：此商户没有提交资料")
+		return errors.Wrapf(err, "此商户没有提交资料[Businessusername=%s]", req.BusinessUsername)
+	}
+
+	//修改 audit_state 字段的值
+	result := s.db.Model(&models.Store{}).Where(&models.Store{
+		BusinessUsername: req.BusinessUsername,
+	}).Update("audit_state", 1)
+
+	//updated records count
+	s.logger.Debug("AuditStore result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }

@@ -1,22 +1,15 @@
 package repositories
 
 import (
-	// "encoding/json"
 	"fmt"
 	"time"
 
-	// "github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	// "github.com/jinzhu/gorm"
-	// Auth "github.com/lianmi/servers/api/proto/auth"
 	Auth "github.com/lianmi/servers/api/proto/auth"
-	// User "github.com/lianmi/servers/api/proto/user"
-	// "github.com/lianmi/servers/internal/app/dispatcher/grpcclients"
-	// "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
-	// "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 
 	"github.com/lianmi/servers/util/dateutil"
 )
@@ -99,16 +92,13 @@ func (s *MysqlLianmiRepository) AddCustomerService(req *Auth.AddCustomerServiceR
 		NickName:   req.NickName,
 	}
 
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(c).Error; err != nil {
-		s.logger.Error("增加客户技术人员失败", zap.Error(err))
-		tx.Rollback()
-		return errors.Wrapf(err, "Save error")
-
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&c).Error; err != nil {
+		s.logger.Error("增加CustomerServiceInfo失败, failed to upsert CustomerServiceInfo", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("增加CustomerServiceInfo成功, upsert CustomerServiceInfo succeed")
 	}
-	//提交
-	tx.Commit()
 
 	if _, err = redisConn.Do("ZADD", "CustomerServiceList", time.Now().UnixNano()/1e6, username); err != nil {
 		s.logger.Error("ZADD Error", zap.Error(err))
@@ -155,6 +145,7 @@ func (s *MysqlLianmiRepository) DeleteCustomerService(req *Auth.DeleteCustomerSe
 
 }
 
+//修改在线客服资料
 func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error {
 	var err error
 
@@ -179,26 +170,28 @@ func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerSe
 
 	c := new(models.CustomerServiceInfo)
 
-	if err = s.db.Model(c).Where(&models.CustomerServiceInfo{
-		Username: username,
-	}).First(c).Error; err != nil {
-		return errors.Wrapf(err, "Get customerServiceInfo error[username=%s]", username)
-	}
-
 	c.JobNumber = req.JobNumber
 	c.Evaluation = req.Evaluation
 	c.NickName = req.NickName
 	c.Type = int(req.Type)
 
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(c).Error; err != nil {
-		s.logger.Error("修改客户技术失败", zap.Error(err))
-		tx.Rollback()
-		return errors.Wrapf(err, "Save error")
+	where := models.CustomerServiceInfo{
+		Username: username,
 	}
-	//提交
-	tx.Commit()
+	// 同时更新多个字段
+	result := s.db.Model(&models.CustomerServiceInfo{}).Where(&where).Select("job_number", "evaluation", "nick_name", "type").Updates(c)
+
+	//updated records count
+	s.logger.Debug("UpdateCustomerService result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改在线客服资料失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("修改在线客服资料成功")
+	}
 
 	_, err = redisConn.Do("HMSET",
 		fmt.Sprintf("CustomerServiceInfo:%s", username),
@@ -214,7 +207,7 @@ func (s *MysqlLianmiRepository) UpdateCustomerService(req *Auth.UpdateCustomerSe
 
 }
 
-func (s *MysqlLianmiRepository) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *uint64, where interface{}) ([]*models.Grade, error) {
+func (s *MysqlLianmiRepository) QueryGrades(req *Auth.GradeReq, pageIndex int, pageSize int, total *int64, where interface{}) ([]*models.Grade, error) {
 	var grades []*models.Grade
 
 	//构造查询条件
@@ -275,43 +268,42 @@ func (s *MysqlLianmiRepository) AddGrade(req *Auth.AddGradeReq) (string, error) 
 		Desc:                    req.Desc,
 	}
 
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(c).Error; err != nil {
-		s.logger.Error("增加客户评分失败", zap.Error(err))
-		tx.Rollback()
-
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&c).Error; err != nil {
+		s.logger.Error("增加Grade失败, failed to upsert Grade", zap.Error(err))
+		return "", err
+	} else {
+		s.logger.Debug("增加Grade成功, upsert Grade succeed")
 	}
-	//提交
-	tx.Commit()
+
 	return title, nil
 
 }
 
+//用户提交评分，修改对应的字段
 func (s *MysqlLianmiRepository) SubmitGrade(req *Auth.SubmitGradeReq) error {
 
-	var err error
-
 	c := new(models.Grade)
-
-	if err = s.db.Model(c).Where(&models.Grade{
-		Title: req.Title,
-	}).First(c).Error; err != nil {
-		return errors.Wrapf(err, "SubmitGrade error[title=%s]", req.Title)
-	}
-
 	c.AppUsername = req.AppUsername
 	c.GradeNum = int(req.GradeNum)
 
-	tx := s.base.GetTransaction()
-
-	if err := tx.Save(c).Error; err != nil {
-		s.logger.Error("用户提交评分保存失败", zap.Error(err))
-		tx.Rollback()
-		return errors.Wrapf(err, "Submit Grade error[title=%s]", req.Title)
+	where := models.Grade{
+		Title: req.Title,
 	}
-	//提交
-	tx.Commit()
+	// 同时更新多个字段
+	result := s.db.Model(&models.Grade{}).Where(&where).Select("app_username", "grade_num").Updates(c)
+
+	//updated records count
+	s.logger.Debug("SubmitGrade result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("用户提交评分Grade失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("用户提交评分Grade成功")
+	}
 
 	return nil
 

@@ -65,7 +65,7 @@ func CreateInitControllersFn(
 			PayloadFunc: func(data interface{}) gin_jwt_v2.MapClaims {
 				//取出用户身份结构体里的数据
 				if v, ok := data.(*models.UserRole); ok {
-					//get roles from UserName
+					// 根据UserName获取用户角色
 					v.UserRoles = pc.GetUserRoles(v.UserName)
 					pc.logger.Debug("PayloadFunc",
 						zap.String("UserName", v.UserName),
@@ -254,7 +254,7 @@ func CreateInitControllersFn(
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			storeGroup.GET("/storeinfo/:id", pc.GetStore) //根据商户注册id获取店铺资料
-			storeGroup.POST("/savestore", pc.SaveStore)   //修改店铺资料
+			storeGroup.POST("/savestore", pc.SaveStore)   //增加或修改店铺资料
 			storeGroup.GET("/list", pc.QueryStoresNearby) //根据gps位置获取一定范围内的店铺列表
 		}
 
@@ -381,8 +381,11 @@ func CreateInitControllersFn(
 			//删除在线客服id
 			adminGroup.DELETE("/deletecustomerservice/:id", pc.DeleteCustomerService)
 
-			//编辑在线客服id
+			//修改在线客服资料
 			adminGroup.POST("/updatecustomerservice", pc.UpdateCustomerService)
+
+			//将店铺审核通过
+			adminGroup.POST("/auditstore", pc.AuditStore)
 
 		}
 	}

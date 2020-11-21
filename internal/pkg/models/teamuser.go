@@ -3,8 +3,8 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/lianmi/servers/api/proto/team"
+	"gorm.io/gorm"
 )
 
 /*
@@ -13,7 +13,7 @@ CREATE TABLE `tuser` (`teamid` TEXT NOT NULL, `account` TEXT NOT NULL, `avatar` 
 
 //定义群用户的数据结构
 type TeamUser struct {
-	ID              uint64 `form:"id" json:"id,omitempty"`
+	ID              uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`            //自增
 	JoinAt          int64  `form:"join_at" json:"join_at,omitempty"`                     //入群时间，unix时间戳
 	UpdatedAt       int64  `form:"updated_at" json:"updated_at,omitempty"`               //最近更新时间，unix时间戳
 	TeamID          string `form:"team_id" json:"team_id" binding:"required"`            //群组id， 以team开头
@@ -32,8 +32,8 @@ type TeamUser struct {
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (t *TeamUser) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (t *TeamUser) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 

@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 
 	"github.com/lianmi/servers/api/proto/team"
 )
@@ -34,14 +34,14 @@ type Team struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (t *Team) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (t *Team) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (t *Team) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (t *Team) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 

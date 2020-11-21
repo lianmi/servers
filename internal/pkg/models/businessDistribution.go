@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 /*
@@ -24,14 +24,14 @@ type Distribution struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (d *Distribution) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (d *Distribution) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (d *Distribution) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (d *Distribution) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -56,14 +56,14 @@ type Commission struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (c *Commission) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (c *Commission) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (c *Commission) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -82,14 +82,14 @@ type NormalUserCommissionStatistics struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (n *NormalUserCommissionStatistics) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (n *NormalUserCommissionStatistics) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (n *NormalUserCommissionStatistics) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (n *NormalUserCommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -113,14 +113,14 @@ type BusinessCommission struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (bc *BusinessCommission) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (bc *BusinessCommission) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (bc *BusinessCommission) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (bc *BusinessCommission) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -140,14 +140,14 @@ type BusinessUserCommissionStatistics struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (b *BusinessUserCommissionStatistics) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (b *BusinessUserCommissionStatistics) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (b *BusinessUserCommissionStatistics) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (b *BusinessUserCommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
@@ -168,13 +168,13 @@ type CommissionWithdraw struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (bw *CommissionWithdraw) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+func (bw *CommissionWithdraw) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (bw *CommissionWithdraw) BeforeUpdate(scope *gorm.Scope) error {
-	scope.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+func (bw *CommissionWithdraw) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

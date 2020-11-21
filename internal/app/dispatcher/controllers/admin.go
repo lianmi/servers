@@ -78,7 +78,7 @@ func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 		return
 	}
 
-	_, err := pc.service.DisBlockUser(username)
+	err := pc.service.DisBlockUser(username)
 	if err != nil {
 		pc.logger.Error("DisBlockUser User by username error", zap.Error(err))
 		RespFail(c, http.StatusNotFound, 404, "username  not found")
@@ -88,7 +88,7 @@ func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 	RespOk(c, http.StatusOK, 200)
 }
 
-//授权新创建的群组
+//后台: 授权新创建的群组
 func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
 		return
@@ -342,6 +342,7 @@ func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 
 }
 
+//修改在线客服资料
 func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
 		return
@@ -367,6 +368,7 @@ func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 		if req.NickName == "" {
 			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
 		}
+		//修改在线客服资料
 		err := pc.service.UpdateCustomerService(&req)
 
 		if err != nil {
@@ -376,4 +378,29 @@ func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 		}
 	}
 
+}
+
+//将店铺审核通过
+func (pc *LianmiApisController) AuditStore(c *gin.Context) {
+	if !pc.CheckIsAdmin(c) {
+		return
+	}
+	var req Auth.AuditStoreReq
+
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if req.BusinessUsername == "" {
+			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
+		}
+
+		err := pc.service.AuditStore(&req)
+
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, 400, "AuditStore failed")
+		} else {
+			RespOk(c, http.StatusOK, 200)
+		}
+	}
 }

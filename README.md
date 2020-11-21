@@ -85,9 +85,9 @@ internal/pkg/database/database.go :
 db.AutoMigrate(&models.User{}) //用户表
 ```
 
-GORM 中文文档
+GORM v3 中文文档
 ```
-http://gorm.book.jasperxu.com/
+https://gorm.io/zh_CN/docs/index.html
 ```
 
 ## Gin JWT中间件
