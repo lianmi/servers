@@ -921,8 +921,6 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 //修改或增加店铺资料
 func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	var err error
-	var storeUUID string
-	var auditState int
 	sel := "id"
 	p := new(models.Store)
 
@@ -960,11 +958,9 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 
 	//记录不存在错误(RecordNotFound)，返回false
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		storeUUID = uuid.NewV4().String()
-		auditState = 0 //审核状态，0-预审核，1-审核通过, 2-占位
 		s.logger.Debug("记录不存在")
 		store := models.Store{
-			StoreUUID:         storeUUID,              //店铺的uuid
+			StoreUUID:         uuid.NewV4().String(),  //店铺的uuid
 			StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
 			BusinessUsername:  req.BusinessUsername,   //商户注册号
 			Introductory:      req.Introductory,       //商店简介 Text文本类型
