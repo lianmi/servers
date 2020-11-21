@@ -14,7 +14,7 @@ import (
 )
 
 //会员付费成功后，需要新增3条佣金记录及BusinessCommission表记录
-func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content string, blockNumber uint64, txHash string) error {
+func (s *MysqlLianmiRepository) AddCommission(username, orderID, content string, blockNumber uint64, txHash string) error {
 	var err error
 	currYearMonth := dateutil.GetYearMonthString()
 
@@ -29,7 +29,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 	if state == 0 {
 		redisConn.Do("HSET", userKey, "State", 1)
 	} else {
-		return errors.Wrapf(err, "SaveToCommission error: this  user state is not equal 0")
+		return errors.Wrapf(err, "AddCommission error: this  user state is not equal 0")
 	}
 
 	//从Distribution层级表查出所有需要分配佣金的用户账号
@@ -38,7 +38,7 @@ func (s *MysqlLianmiRepository) SaveToCommission(username, orderID, content stri
 		Username: username,
 	}).First(d).Error; err != nil {
 		//记录找不到也会触发错误
-		return errors.Wrapf(err, "SaveToCommission error or username not found")
+		return errors.Wrapf(err, "AddCommission error or username not found")
 	}
 
 	if d.BusinessUsername == "" {

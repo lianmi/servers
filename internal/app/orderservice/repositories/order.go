@@ -13,7 +13,7 @@ type OrderRepository interface {
 	AddProduct(product *models.Product) error
 	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
-	SavePreKeys(prekeys []*models.Prekey) error
+	AddPreKeys(prekeys []*models.Prekey) error
 }
 
 type MysqlOrderRepository struct {
@@ -86,7 +86,7 @@ func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 }
 
 //保存商户的OPK, 批量
-func (m *MysqlOrderRepository) SavePreKeys(prekeys []*models.Prekey) error {
+func (m *MysqlOrderRepository) AddPreKeys(prekeys []*models.Prekey) error {
 
 	for _, prekey := range prekeys {
 		//如果没有记录，则增加，如果有记录，则更新全部字段

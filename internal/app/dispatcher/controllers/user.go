@@ -416,7 +416,7 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 }
 
 //增加或修改店铺资料
-func (pc *LianmiApisController) SaveStore(c *gin.Context) {
+func (pc *LianmiApisController) AddStore(c *gin.Context) {
 
 	code := codes.InvalidParams
 	var req User.Store
@@ -454,7 +454,7 @@ func (pc *LianmiApisController) SaveStore(c *gin.Context) {
 		}
 
 		//保存或增加
-		if err := pc.service.SaveStore(&req); err != nil {
+		if err := pc.service.AddStore(&req); err != nil {
 			RespFail(c, http.StatusBadRequest, code, "保存店铺资料失败")
 		} else {
 			code = codes.SUCCESS

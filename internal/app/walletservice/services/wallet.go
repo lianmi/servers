@@ -393,7 +393,7 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
 		State:             0,                 //执行状态，0-默认未执行，1-A签，2-全部完成
 	}
-	s.Repository.SaveLnmcTransferHistory(lnmcTransferHistory)
+	s.Repository.AddLnmcTransferHistory(lnmcTransferHistory)
 
 	//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
 	tokens := int64(amountLNMC)

@@ -237,13 +237,13 @@ func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 }
 
 //保存禁言的值，用于设置群禁言或解禁
-func (s *MysqlLianmiRepository) SaveTeamMute(teamID string, muteType int) error {
+func (s *MysqlLianmiRepository) UpdateTeamMute(teamID string, muteType int) error {
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
 		TeamID: teamID,
 	}).Update("mute_type", muteType) //修改MuteType
 
 	//updated records count
-	s.logger.Debug("SaveTeamMute result: ",
+	s.logger.Debug("UpdateTeamMute result: ",
 		zap.Int64("RowsAffected", result.RowsAffected),
 		zap.Error(result.Error))
 
@@ -273,7 +273,7 @@ func (s *MysqlLianmiRepository) AddTeamUser(pTeamUser *models.TeamUser) error {
 }
 
 //修改群成员资料
-func (s *MysqlLianmiRepository) SaveTeamUser(pTeamUser *models.TeamUser) error {
+func (s *MysqlLianmiRepository) UpdateTeamUser(pTeamUser *models.TeamUser) error {
 	if pTeamUser == nil {
 		return errors.New("pTeamUser is nil")
 	}
@@ -283,7 +283,7 @@ func (s *MysqlLianmiRepository) SaveTeamUser(pTeamUser *models.TeamUser) error {
 	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(pTeamUser)
 
 	//updated records count
-	s.logger.Debug("SaveTeamUser result: ",
+	s.logger.Debug("UpdateTeamUser result: ",
 		zap.Int64("RowsAffected", result.RowsAffected),
 		zap.Error(result.Error))
 
@@ -334,7 +334,6 @@ func (s *MysqlLianmiRepository) DeleteTeamUser(teamID, username string) error {
 	s.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }
-
 
 // GetPages 分页返回数据
 func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {

@@ -14,9 +14,9 @@ type WalletRepository interface {
 
 	AddUserWallet(username, walletAddress, amountETHString string) (err error)
 
-	SaveDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error)
+	AddDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error)
 
-	SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error)
+	AddLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error)
 
 	UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error)
 
@@ -97,7 +97,7 @@ func (m *MysqlWalletRepository) AddUserWallet(username, walletAddress, amountETH
 }
 
 //用户充值
-func (m *MysqlWalletRepository) SaveDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error) {
+func (m *MysqlWalletRepository) AddDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error) {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lnmcDepositHistory).Error; err != nil {
@@ -111,7 +111,7 @@ func (m *MysqlWalletRepository) SaveDepositHistory(lnmcDepositHistory *models.Ln
 }
 
 //用户转账预审核,  新增记录
-func (m *MysqlWalletRepository) SaveLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
+func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(lmnccTransferHistory).Error; err != nil {

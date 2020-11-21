@@ -2989,8 +2989,8 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 							//将用户设置为管理员
 							managerUser.TeamMemberType = 2 //管理员
 
-							if err := nc.service.SaveTeamUser(managerUser); err != nil {
-								nc.logger.Error("SaveTeamUser error", zap.Error(err))
+							if err := nc.service.UpdateTeamUser(managerUser); err != nil {
+								nc.logger.Error("UpdateTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3233,8 +3233,8 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							//撤销管理员
 							managerUser.TeamMemberType = 3 //普通成员
 
-							if err := nc.service.SaveTeamUser(managerUser); err != nil {
-								nc.logger.Error("SaveTeamUser error", zap.Error(err))
+							if err := nc.service.UpdateTeamUser(managerUser); err != nil {
+								nc.logger.Error("UpdateTeamUser error", zap.Error(err))
 
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3459,7 +3459,7 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			}
 
 			//写入MySQL, 保存禁言类型的值
-			if err = nc.service.SaveTeamMute(teamID, int(mute)); err != nil {
+			if err = nc.service.UpdateTeamMute(teamID, int(mute)); err != nil {
 				nc.logger.Error("Save Team Mute Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法将Mute保存到Team"
@@ -3877,7 +3877,7 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 
 			teamUser.NotifyType = int(req.GetNotifyType())
 			//写入MySQL
-			if err = nc.service.SaveTeamUser(teamUser); err != nil {
+			if err = nc.service.UpdateTeamUser(teamUser); err != nil {
 				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
@@ -4025,7 +4025,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			}
 
 			//写入MySQL
-			if err = nc.service.SaveTeamUser(teamUser); err != nil {
+			if err = nc.service.UpdateTeamUser(teamUser); err != nil {
 				nc.logger.Error("Save teamUser Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "无法保存到teamUser"
@@ -4225,7 +4225,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				}
 
 				//写入MySQL
-				if err = nc.service.SaveTeamUser(teamUser); err != nil {
+				if err = nc.service.UpdateTeamUser(teamUser); err != nil {
 					nc.logger.Error("Save teamUser Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = "无法保存到teamUser"

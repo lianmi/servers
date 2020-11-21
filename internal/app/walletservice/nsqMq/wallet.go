@@ -357,7 +357,7 @@ func (nc *NsqClient) HandleDeposit(msg *models.Message) error {
 			TxHash:           hash,
 		}
 
-		nc.Repository.SaveDepositHistory(lnmcDepositHistory)
+		nc.Repository.AddDepositHistory(lnmcDepositHistory)
 
 		//更新redis里用户钱包的代币余额
 		redisConn.Do("HSET",
@@ -633,7 +633,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			State:             0,                //执行状态，0-默认未执行，1-A签，2-全部完成
 			Content:           req.GetContent(), //附言
 		}
-		nc.Repository.SaveLnmcTransferHistory(lnmcTransferHistory)
+		nc.Repository.AddLnmcTransferHistory(lnmcTransferHistory)
 
 		//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
 		tokens := int64(amountLNMC)

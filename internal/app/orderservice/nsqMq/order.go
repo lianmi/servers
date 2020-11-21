@@ -782,8 +782,8 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 			nc.logger.Debug("ZADD "+fmt.Sprintf("prekeys:%s", username), zap.String("opk", opk))
 		}
 
-		if err = nc.service.SavePreKeys(prekeys); err != nil {
-			nc.logger.Error("SavePreKeys错误", zap.Error(err))
+		if err = nc.service.AddPreKeys(prekeys); err != nil {
+			nc.logger.Error("AddPreKeys错误", zap.Error(err))
 		}
 
 	}

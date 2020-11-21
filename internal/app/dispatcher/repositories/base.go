@@ -44,7 +44,7 @@ type LianmiRepository interface {
 	UpdateUser(username string, user *models.User) error
 
 	//保存标签MarkTag
-	SaveTag(tag *models.Tag) error
+	AddTag(tag *models.Tag) error
 
 	//保存用户token
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
@@ -83,7 +83,7 @@ type LianmiRepository interface {
 	DisBlockTeam(teamID string) error
 
 	//保存禁言的值，用于设置群禁言或解禁
-	SaveTeamMute(teamID string, muteType int) error
+	UpdateTeamMute(teamID string, muteType int) error
 
 	//======后台相关======/
 	BlockUser(username string) (err error)
@@ -121,7 +121,7 @@ type LianmiRepository interface {
 	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
 
 	//会员付费成功后，需要新增4条佣金记录
-	SaveToCommission(username, orderID, content string, blockNumber uint64, txHash string) error
+	AddCommission(username, orderID, content string, blockNumber uint64, txHash string) error
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
@@ -130,7 +130,7 @@ type LianmiRepository interface {
 	AddTeamUser(pTeamUser *models.TeamUser) error
 
 	//修改群成员资料
-	SaveTeamUser(pTeamUser *models.TeamUser) error
+	UpdateTeamUser(pTeamUser *models.TeamUser) error
 
 	//解除群成员的禁言
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
@@ -156,7 +156,7 @@ type LianmiRepository interface {
 	DeleteFriend(userID, friendUserID uint64) error
 
 	//修改或增加店铺资料
-	SaveStore(req *User.Store) error
+	AddStore(req *User.Store) error
 
 	//根据商户账号id获取店铺资料
 	GetStore(businessUsername string) (*User.Store, error)

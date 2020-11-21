@@ -59,7 +59,7 @@ type LianmiApisService interface {
 	DisBlockTeam(teamID string) error
 
 	//保存禁言的值，用于设置群禁言或解禁
-	SaveTeamMute(teamID string, muteType int) error
+	UpdateTeamMute(teamID string, muteType int) error
 
 	//======后台相关======/
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
@@ -99,7 +99,7 @@ type LianmiApisService interface {
 
 	UpdateUser(username string, user *models.User) error
 
-	SaveTag(tag *models.Tag) error
+	AddTag(tag *models.Tag) error
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
@@ -108,7 +108,7 @@ type LianmiApisService interface {
 	AddTeamUser(pTeamUser *models.TeamUser) error
 
 	// 修改群成员资料
-	SaveTeamUser(pTeamUser *models.TeamUser) error
+	UpdateTeamUser(pTeamUser *models.TeamUser) error
 
 	//解除禁言
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
@@ -134,7 +134,7 @@ type LianmiApisService interface {
 	DeleteFriend(userID, friendUserID uint64) error
 
 	// 增加或修改店铺资料
-	SaveStore(req *User.Store) error
+	AddStore(req *User.Store) error
 
 	GetStore(businessUsername string) (*User.Store, error)
 
@@ -322,8 +322,8 @@ func (s *DefaultLianmiApisService) DisBlockTeam(teamID string) error {
 }
 
 //保存禁言的值，用于设置群禁言或解禁
-func (s *DefaultLianmiApisService) SaveTeamMute(teamID string, muteType int) error {
-	return s.Repository.SaveTeamMute(teamID, muteType)
+func (s *DefaultLianmiApisService) UpdateTeamMute(teamID string, muteType int) error {
+	return s.Repository.UpdateTeamMute(teamID, muteType)
 
 }
 
@@ -496,7 +496,7 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 	}
 
 	//确认支付成功后，就需要分配佣金
-	s.Repository.SaveToCommission(username, req.OrderID, req.Content, resp.BlockNumber, resp.Hash)
+	s.Repository.AddCommission(username, req.OrderID, req.Content, resp.BlockNumber, resp.Hash)
 
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费
@@ -518,8 +518,8 @@ func (s *DefaultLianmiApisService) SubmitCommssionWithdraw(username, yearMonth s
 }
 
 // 修改群成员资料
-func (s *DefaultLianmiApisService) SaveTeamUser(pTeamUser *models.TeamUser) error {
-	return s.Repository.SaveTeamUser(pTeamUser)
+func (s *DefaultLianmiApisService) UpdateTeamUser(pTeamUser *models.TeamUser) error {
+	return s.Repository.UpdateTeamUser(pTeamUser)
 }
 
 // 增加群成员资料
@@ -570,13 +570,13 @@ func (s *DefaultLianmiApisService) UpdateUser(username string, user *models.User
 	return s.Repository.UpdateUser(username, user)
 }
 
-func (s *DefaultLianmiApisService) SaveTag(tag *models.Tag) error {
-	return s.Repository.SaveTag(tag)
+func (s *DefaultLianmiApisService) AddTag(tag *models.Tag) error {
+	return s.Repository.AddTag(tag)
 }
 
 //修改或增加店铺资料
-func (s *DefaultLianmiApisService) SaveStore(req *User.Store) error {
-	return s.Repository.SaveStore(req)
+func (s *DefaultLianmiApisService) AddStore(req *User.Store) error {
+	return s.Repository.AddStore(req)
 }
 
 func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Store, error) {

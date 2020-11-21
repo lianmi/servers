@@ -260,7 +260,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		s.logger.Error("错误：HMSET", zap.Error(err))
 	}
 
-	if err := s.base.Save(user); err != nil {
+	if err := s.base.Create(user); err != nil {
 		s.logger.Error("db写入错误，注册用户失败")
 		return err
 	}
@@ -905,21 +905,21 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 }
 
 //修改用户标签
-func (s *MysqlLianmiRepository) SaveTag(tag *models.Tag) error {
+func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&tag).Error; err != nil {
-		s.logger.Error("SaveTag, failed to upsert tag", zap.Error(err))
+		s.logger.Error("AddTag, failed to upsert tag", zap.Error(err))
 		return err
 	} else {
-		s.logger.Debug("SaveTag, upsert tag succeed")
+		s.logger.Debug("AddTag, upsert tag succeed")
 	}
 
 	return nil
 }
 
 //修改或增加店铺资料
-func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
+func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	var err error
 	var storeUUID string
 	var auditState int
@@ -962,45 +962,81 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		storeUUID = uuid.NewV4().String()
 		auditState = 0 //审核状态，0-预审核，1-审核通过, 2-占位
+		s.logger.Debug("记录不存在")
+		store := models.Store{
+			StoreUUID:         storeUUID,              //店铺的uuid
+			StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
+			BusinessUsername:  req.BusinessUsername,   //商户注册号
+			Introductory:      req.Introductory,       //商店简介 Text文本类型
+			Province:          req.Province,           //省份, 如广东省
+			City:              req.City,               //城市，如广州市
+			County:            req.County,             //区，如天河区
+			Street:            req.Street,             //街道
+			Address:           req.Address,            //地址
+			Branchesname:      req.Branchesname,       //网点名称
+			LegalPerson:       req.LegalPerson,        //法人姓名
+			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+			Longitude:         req.Longitude,          //商户地址的经度
+			Latitude:          req.Latitude,           //商户地址的纬度
+			WeChat:            req.Wechat,             //商户联系人微信号
+			Keys:              req.Keys,               //商户经营范围搜索关键字
+			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+			AuditState:        0,                      //初始值
+		}
+
+		//如果没有记录，则增加
+		if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&store).Error; err != nil {
+			s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
+			return err
+		} else {
+			s.logger.Debug("AddStore, upsert stores succeed")
+		}
+
 	} else {
 		s.logger.Debug("记录存在")
 		s.db.Model(p).Where(&models.Store{
 			BusinessUsername: req.BusinessUsername,
 		}).First(p)
-		storeUUID = p.StoreUUID
-		auditState = p.AuditState
-		if auditState == 1 {
+		if p.AuditState == 1 {
 			return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
 		}
-	}
+		store := models.Store{
+			StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
+			BusinessUsername:  req.BusinessUsername,   //商户注册号
+			Introductory:      req.Introductory,       //商店简介 Text文本类型
+			Province:          req.Province,           //省份, 如广东省
+			City:              req.City,               //城市，如广州市
+			County:            req.County,             //区，如天河区
+			Street:            req.Street,             //街道
+			Address:           req.Address,            //地址
+			Branchesname:      req.Branchesname,       //网点名称
+			LegalPerson:       req.LegalPerson,        //法人姓名
+			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+			Longitude:         req.Longitude,          //商户地址的经度
+			Latitude:          req.Latitude,           //商户地址的纬度
+			WeChat:            req.Wechat,             //商户联系人微信号
+			Keys:              req.Keys,               //商户经营范围搜索关键字
+			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+		}
 
-	store := models.Store{
-		StoreUUID:         storeUUID,              //店铺的uuid
-		StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
-		BusinessUsername:  req.BusinessUsername,   //商户注册号
-		Introductory:      req.Introductory,       //商店简介 Text文本类型
-		Province:          req.Province,           //省份, 如广东省
-		City:              req.City,               //城市，如广州市
-		County:            req.County,             //区，如天河区
-		Street:            req.Street,             //街道
-		Address:           req.Address,            //地址
-		Branchesname:      req.Branchesname,       //网点名称
-		LegalPerson:       req.LegalPerson,        //法人姓名
-		LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
-		Longitude:         req.Longitude,          //商户地址的经度
-		Latitude:          req.Latitude,           //商户地址的纬度
-		WeChat:            req.Wechat,             //商户联系人微信号
-		Keys:              req.Keys,               //商户经营范围搜索关键字
-		LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
-		AuditState:        0,                      //初始值
-	}
+		where := models.Store{
+			StoreUUID: p.StoreUUID,
+		}
+		// 同时更新多个字段
+		result := s.db.Model(&models.Store{}).Where(&where).Updates(store)
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&store).Error; err != nil {
-		s.logger.Error("SaveStore, failed to upsert stores", zap.Error(err))
-		return err
-	} else {
-		s.logger.Debug("SaveStore, upsert stores succeed")
+		//updated records count
+		s.logger.Debug("修改店铺记录  result: ",
+			zap.Int64("RowsAffected", result.RowsAffected),
+			zap.Error(result.Error))
+
+		if result.Error != nil {
+			s.logger.Error("Update Store失败", zap.Error(result.Error))
+			return result.Error
+		} else {
+			s.logger.Debug("Update Store成功")
+		}
+
 	}
 
 	return nil
