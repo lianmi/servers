@@ -963,14 +963,15 @@ func (s *MysqlLianmiRepository) SaveStore(req *User.Store) error {
 		storeUUID = uuid.NewV4().String()
 		auditState = 0 //审核状态，0-预审核，1-审核通过, 2-占位
 	} else {
+		s.logger.Debug("记录存在")
 		s.db.Model(p).Where(&models.Store{
 			BusinessUsername: req.BusinessUsername,
 		}).First(p)
 		storeUUID = p.StoreUUID
 		auditState = p.AuditState
-	}
-	if auditState == 1 {
-		return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
+		if auditState == 1 {
+			return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
+		}
 	}
 
 	store := models.Store{
