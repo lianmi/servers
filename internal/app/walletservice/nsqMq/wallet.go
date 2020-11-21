@@ -168,11 +168,11 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//保存到MySQL 表 UserWallet
+		//增加 到MySQL 表 UserWallet
 		ethAmountString := fmt.Sprintf("%d", LMCommon.GASLIMIT)
 
-		if err := nc.Repository.SaveUserWallet(username, req.GetWalletAddress(), ethAmountString); err != nil {
-			nc.logger.Error("SaveUserWallet ", zap.Error(err))
+		if err := nc.Repository.AddUserWallet(username, req.GetWalletAddress(), ethAmountString); err != nil {
+			nc.logger.Error("AddUserWallet ", zap.Error(err))
 		}
 
 		//保存到redis
@@ -1032,7 +1032,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				BlockNumber:       blockNumber,
 				TxHash:            hash,
 			}
-			nc.Repository.SaveCollectionHistory(lnmcCollectionHistory)
+			nc.Repository.UpdateCollectionHistory(lnmcCollectionHistory)
 
 		}
 
@@ -1446,7 +1446,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		// 生成UUID
 		withdrawUUID = uuid.NewV4().String()
 
-		//保存预审核提现记录到 MySQL
+		//增加预审核提现记录到 MySQL
 		lnmcWithdrawHistory := &models.LnmcWithdrawHistory{
 			WithdrawUUID:      withdrawUUID,
 			Username:          username,           //发起提现
@@ -1461,7 +1461,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			TxHash:            rawDesc.TxHash,     //哈希
 		}
 
-		nc.Repository.SaveLnmcWithdrawHistory(lnmcWithdrawHistory)
+		nc.Repository.AddLnmcWithdrawHistory(lnmcWithdrawHistory)
 
 		rsp := &Wallet.PreWithDrawRsp{
 			WithdrawUUID: withdrawUUID,

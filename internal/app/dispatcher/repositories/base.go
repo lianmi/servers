@@ -145,8 +145,6 @@ type LianmiRepository interface {
 
 	DeleteTeamUser(teamID, username string) error
 
-	SetTeamManager(teamID, username string) error
-
 	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error
 
 	GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser

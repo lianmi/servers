@@ -335,19 +335,6 @@ func (s *MysqlLianmiRepository) DeleteTeamUser(teamID, username string) error {
 	return nil
 }
 
-//设置群管理员
-func (s *MysqlLianmiRepository) SetTeamManager(teamID, username string) error {
-	where := models.TeamUser{TeamID: teamID, Username: username}
-	db := s.db.Where(&where).Save(models.TeamUser{})
-	err := db.Error
-	if err != nil {
-		s.logger.Error("SetTeamManager失败", zap.Error(err))
-		return err
-	}
-	count := db.RowsAffected
-	s.logger.Debug("SetTeamManager成功", zap.Int64("count", count))
-	return nil
-}
 
 // GetPages 分页返回数据
 func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {

@@ -3,13 +3,15 @@ package repositories
 import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/models"
-	"gorm.io/gorm"
-
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type OrderRepository interface {
-	SaveProduct(product *models.Product) error
+	AddProduct(product *models.Product) error
+	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
 	SavePreKeys(prekeys []*models.Prekey) error
 }
@@ -31,18 +33,40 @@ func NewMysqlOrderRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.P
 }
 
 //增加商品
-func (m *MysqlOrderRepository) SaveProduct(product *models.Product) error {
-	//使用事务同时更新增加商品
-	tx := m.base.GetTransaction()
+func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 
-	if err := tx.Save(product).Error; err != nil {
-		m.logger.Error("更新Product表失败", zap.Error(err))
-		tx.Rollback()
+	if product == nil {
+		return errors.New("product is nil")
+	}
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(product).Error; err != nil {
+		m.logger.Error("增加Product失败", zap.Error(err))
 		return err
+	} else {
+		m.logger.Debug("增加Product成功")
 	}
 
-	//提交
-	tx.Commit()
+	return nil
+}
+
+//修改商品
+func (m *MysqlOrderRepository) UpdateProduct(product *models.Product) error {
+
+	where := models.Product{
+		ProductID: product.ProductID,
+	}
+	// 同时更新多个字段
+	result := m.db.Model(&models.Product{}).Where(&where).Updates(product)
+
+	//updated records count
+	m.logger.Debug("UpdateProduct result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		m.logger.Error("UpdateProduct失败", zap.Error(result.Error))
+		return result.Error
+	}
 
 	return nil
 }
@@ -63,19 +87,16 @@ func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 
 //保存商户的OPK, 批量
 func (m *MysqlOrderRepository) SavePreKeys(prekeys []*models.Prekey) error {
-	//使用事务批量保存商户的OPK
-	tx := m.base.GetTransaction()
 
 	for _, prekey := range prekeys {
-		if err := tx.Save(prekey).Error; err != nil {
-			m.logger.Error("保存prekey表失败", zap.Error(err))
-			tx.Rollback()
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := m.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(prekey).Error; err != nil {
+			m.logger.Error("增加prekey失败", zap.Error(err))
 			continue
+		} else {
+			m.logger.Debug("增加prekey成功")
 		}
 	}
-
-	//提交
-	tx.Commit()
 
 	return nil
 }

@@ -325,7 +325,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//保存到MySQL
-		if err = nc.service.SaveProduct(product); err != nil {
+		if err = nc.service.AddProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 
@@ -500,7 +500,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//保存到MySQL
-		if err = nc.service.SaveProduct(product); err != nil {
+		if err = nc.service.UpdateProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
 		}
 

@@ -11,7 +11,8 @@ import (
 )
 
 type OrderService interface {
-	SaveProduct(product *models.Product) error
+	AddProduct(product *models.Product) error
+	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
 	SavePreKeys(prekeys []*models.Prekey) error
 	//订单完成或退款
@@ -38,8 +39,12 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	return s.walletSvc.TransferByOrder(ctx, req)
 }
 
-func (s *DefaultApisService) SaveProduct(product *models.Product) error {
-	return s.Repository.SaveProduct(product)
+func (s *DefaultApisService) AddProduct(product *models.Product) error {
+	return s.Repository.AddProduct(product)
+}
+
+func (s *DefaultApisService) UpdateProduct(product *models.Product) error {
+	return s.Repository.UpdateProduct(product)
 }
 
 func (s *DefaultApisService) DeleteProduct(productID, username string) error {

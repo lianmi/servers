@@ -207,16 +207,13 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 				zap.String("UsernameLevelThree", userLevelThree),
 			)
 
-			//使用事务同时增加Distribution数据
-			tx := s.base.GetTransaction()
-			if err := tx.Create(distribution).Error; err != nil {
+			//如果没有记录，则增加，如果有记录，则更新全部字段
+			if err := s.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(distribution).Error; err != nil {
 				s.logger.Error("增加Distribution表失败", zap.Error(err))
-				tx.Rollback()
 				return err
+			} else {
+				s.logger.Debug("增加Distribution表成功")
 			}
-
-			//提交
-			tx.Commit()
 
 		}
 	} else if user.GetUserType() == User.UserType_Ut_Business {

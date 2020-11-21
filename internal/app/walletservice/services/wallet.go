@@ -213,10 +213,10 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 
 		}
 
-		if err := s.Repository.SaveLnmcOrderTransferHistory(lnmcOrderTransferHistory); err != nil {
-			s.logger.Error("到账 SaveLnmcOrderTransferHistory  error", zap.Error(err))
+		if err := s.Repository.AddLnmcOrderTransferHistory(lnmcOrderTransferHistory); err != nil {
+			s.logger.Error("到账 AddLnmcOrderTransferHistory  error", zap.Error(err))
 		} else {
-			s.logger.Debug("到账 SaveLnmcOrderTransferHistory succeed")
+			s.logger.Debug("到账 AddLnmcOrderTransferHistory succeed")
 		}
 
 		//更新接收者的收款历史表
@@ -233,10 +233,10 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			BlockNumber:       blockNumber,
 			TxHash:            txHash,
 		}
-		if err := s.Repository.SaveCollectionHistory(lnmcCollectionHistory); err != nil {
-			s.logger.Error("商户到账记录 SaveCollectionHistory  error", zap.Error(err))
+		if err := s.Repository.UpdateCollectionHistory(lnmcCollectionHistory); err != nil {
+			s.logger.Error("商户到账记录 UpdateCollectionHistory  error", zap.Error(err))
 		} else {
-			s.logger.Debug("商户到账记录 SaveCollectionHistory succeed")
+			s.logger.Debug("商户到账记录 UpdateCollectionHistory succeed")
 		}
 
 	} else if req.PayType == LMCommon.OrderTransferForCancel {
@@ -297,10 +297,10 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 
 		}
 
-		if err := s.Repository.SaveLnmcOrderTransferHistory(lnmcOrderTransferHistory); err != nil {
-			s.logger.Error("退款 SaveLnmcOrderTransferHistory  error", zap.Error(err))
+		if err := s.Repository.AddLnmcOrderTransferHistory(lnmcOrderTransferHistory); err != nil {
+			s.logger.Error("退款 AddLnmcOrderTransferHistory  error", zap.Error(err))
 		} else {
-			s.logger.Debug("退款 SaveLnmcOrderTransferHistory succeed")
+			s.logger.Debug("退款 AddLnmcOrderTransferHistory succeed")
 		}
 
 	}
