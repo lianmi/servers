@@ -1109,7 +1109,7 @@ func (s *MysqlLianmiRepository) GetStores(req *User.QueryStoresNearbyReq) (*User
 
 	// list, _ := bll.List(where, []string{"*"}, "id desc", 2, 1, &total)
 	columns := []string{"*"}
-	orderBy := "id desc"
+	orderBy := "updated_at desc"
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
