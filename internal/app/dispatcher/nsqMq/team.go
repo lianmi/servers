@@ -4721,7 +4721,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Processing,
 					Data:           []byte(""),
-					To:             req.GetInvitee(), //目标用户 id
+					To:             req.GetInvitee(), //目标用户
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4755,7 +4755,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
-						To:             req.GetInvitee(), //目标用户 id
+						To:             req.GetInvitee(), //目标用户
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4791,7 +4791,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Declined,
 					Data:           []byte(""),
-					To:             req.GetInvitee(), //目标用户 id
+					To:             req.GetInvitee(), //目标用户
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4824,7 +4824,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
-						To:             req.GetInvitee(), //目标用户 id
+						To:             req.GetInvitee(), //目标用户
 					}
 					bodyData, _ := proto.Marshal(&body)
 					inviteEventRsp := &Msg.RecvMsgEventRsp{

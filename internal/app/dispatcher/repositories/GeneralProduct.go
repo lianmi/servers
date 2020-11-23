@@ -26,7 +26,7 @@ func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.General
 
 }
 
-//查询通用商品(id) - Read
+//查询通用商品(productID) - Read
 func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error) {
 	p = new(models.GeneralProduct)
 

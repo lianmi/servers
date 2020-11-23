@@ -571,7 +571,6 @@ func (s *MysqlLianmiRepository) DeleteUser(id uint64) bool {
 //判断用户名是否已存在
 func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	var user models.User
-	// sel := "id"
 
 	where := models.User{Username: username}
 

@@ -773,23 +773,23 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	} else {
 		nc.logger.Debug("ConfirmTransferReq payload",
 			zap.String("username", username),
-			zap.String("UUID", req.Uuid),
+			zap.String("UUID", req.Uuid),                         //预支付uuid
 			zap.String("SignedTxToTarget", req.SignedTxToTarget), //签名后的Tx(A签) hex
 		)
 
 		//根据uuid从redis里查询出预转账的订单id及目标用户账号
 
 		if req.Uuid == "" {
-
 			nc.logger.Warn("Uuid不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Uuid id empty")
 			goto COMPLETE
 		}
+
 		PreTransferKey := fmt.Sprintf("PreTransfer:%s", req.Uuid)
-		toUsername, _ = redis.String(redisConn.Do("HGWT", PreTransferKey, "ToUsername"))
-		toWalletAddress, _ = redis.String(redisConn.Do("HGWT", PreTransferKey, "ToWalletAddress"))
-		orderID, _ = redis.String(redisConn.Do("HGWT", PreTransferKey, "OrderID"))
+		toUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername"))
+		toWalletAddress, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToWalletAddress"))
+		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
 
 		if toUsername == "" || toWalletAddress == "" {
 			nc.logger.Error("严重错误, toUsername or  toWalletAddress 为空")
@@ -1835,7 +1835,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 				zap.String("ToUsername", collection.ToUsername),
 			)
 			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
-				Uuid:         collection.UUID,              //ID
+				Uuid:         collection.UUID,              //UUID
 				CreatedAt:    uint64(collection.CreatedAt), //创建时间
 				FromUsername: collection.FromUsername,      //发送方用户账号
 				ToUsername:   collection.ToUsername,        //接收方的用户账号
@@ -2229,7 +2229,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 				zap.String("Username", transfer.Username),
 			)
 			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
-				Uuid:        transfer.UUID,              //ID
+				Uuid:        transfer.UUID,              //UUID
 				CreatedAt:   uint64(transfer.CreatedAt), //创建时间
 				ToUsername:  transfer.ToUsername,        //接收方
 				AmountLNMC:  transfer.AmountLNMC,
