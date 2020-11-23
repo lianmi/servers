@@ -60,6 +60,8 @@ const (
 	BucketName = "lianmi-ipfs"
 	//阿里云OSS临时token的过期时间, 默认是3600秒
 	EXPIRESECONDS = 3600
+
+	OSSUploadPicPrefix = "https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/"
 )
 
 const (

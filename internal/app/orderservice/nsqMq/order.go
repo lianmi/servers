@@ -224,6 +224,9 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		nc.logger.Debug("AddProduct payload",
 			zap.String("ProductId", req.Product.ProductId),
 			zap.Int("OrderType", int(req.OrderType)),
+			zap.String("ProductPic1Large", req.Product.ProductPic1Large),
+			zap.String("ProductPic2Large", req.Product.ProductPic2Large),
+			zap.String("ProductPic3Large", req.Product.ProductPic3Large),
 			zap.String("OpkBusinessUser", req.OpkBusinessUser),
 			zap.Uint64("Expire", req.Expire),
 		)
@@ -289,6 +292,46 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
+		//将3张图片的url组装为真正的url
+		var productPic1Small, productPic1Middle, productPic1Large string
+		if req.Product.ProductPic1Large != "" {
+			//小图
+			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
+		}
+
+		var productPic2Small, productPic2Middle, productPic2Large string
+		if req.Product.ProductPic2Large != "" {
+			//小图
+			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
+		}
+
+		var productPic3Small, productPic3Middle, productPic3Large string
+		if req.Product.ProductPic3Large != "" {
+			//小图
+			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
+		}
+
+		var thumbnail string
+		if req.Product.Thumbnail != "" {
+			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.Thumbnail
+		}
+		var shortVideo string
+		if req.Product.ShortVideo != "" {
+			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
+		}
+
 		product := &models.Product{
 			Username:          username,
 			ProductID:         req.Product.ProductId,
@@ -296,20 +339,20 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			ProductName:       req.Product.ProductName,
 			ProductType:       int(req.Product.ProductType),
 			ProductDesc:       req.Product.ProductDesc,
-			ProductPic1Small:  req.Product.ProductPic1Small,
-			ProductPic1Middle: req.Product.ProductPic1Middle,
-			ProductPic1Large:  req.Product.ProductPic1Large,
+			ProductPic1Small:  productPic1Small,
+			ProductPic1Middle: productPic1Middle,
+			ProductPic1Large:  productPic1Large,
 
-			ProductPic2Small:  req.Product.ProductPic2Small,
-			ProductPic2Middle: req.Product.ProductPic2Middle,
-			ProductPic2Large:  req.Product.ProductPic2Large,
+			ProductPic2Small:  productPic2Small,
+			ProductPic2Middle: productPic2Middle,
+			ProductPic2Large:  productPic2Large,
 
-			ProductPic3Small:  req.Product.ProductPic3Small,
-			ProductPic3Middle: req.Product.ProductPic3Middle,
-			ProductPic3Large:  req.Product.ProductPic3Large,
+			ProductPic3Small:  productPic3Small,
+			ProductPic3Middle: productPic3Middle,
+			ProductPic3Large:  productPic3Large,
 
-			Thumbnail:         req.Product.Thumbnail,
-			ShortVideo:        req.Product.ShortVideo,
+			Thumbnail:         thumbnail,
+			ShortVideo:        shortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
 			Discount:          req.Product.Discount,
@@ -464,27 +507,68 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		}
 
+		//将3张图片的url组装为真正的url
+		var productPic1Small, productPic1Middle, productPic1Large string
+		if req.Product.ProductPic1Large != "" {
+			//小图
+			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
+		}
+
+		var productPic2Small, productPic2Middle, productPic2Large string
+		if req.Product.ProductPic2Large != "" {
+			//小图
+			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
+		}
+
+		var productPic3Small, productPic3Middle, productPic3Large string
+		if req.Product.ProductPic3Large != "" {
+			//小图
+			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
+		}
+
+		var thumbnail string
+		if req.Product.Thumbnail != "" {
+			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.Thumbnail
+		}
+		var shortVideo string
+		if req.Product.ShortVideo != "" {
+			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
+		}
+
 		product := &models.Product{
-			Username:          username,
-			ProductID:         req.Product.ProductId,
-			Expire:            int64(req.Product.Expire),
-			ProductName:       req.Product.ProductName,
-			ProductType:       int(req.Product.ProductType),
-			ProductDesc:       req.Product.ProductDesc,
-			ProductPic1Small:  req.Product.ProductPic1Small,
-			ProductPic1Middle: req.Product.ProductPic1Middle,
-			ProductPic1Large:  req.Product.ProductPic1Large,
+			Username:    username,
+			ProductID:   req.Product.ProductId,
+			Expire:      int64(req.Product.Expire),
+			ProductName: req.Product.ProductName,
+			ProductType: int(req.Product.ProductType),
+			ProductDesc: req.Product.ProductDesc,
 
-			ProductPic2Small:  req.Product.ProductPic2Small,
-			ProductPic2Middle: req.Product.ProductPic2Middle,
-			ProductPic2Large:  req.Product.ProductPic2Large,
+			ProductPic1Small:  productPic1Small,
+			ProductPic1Middle: productPic1Middle,
+			ProductPic1Large:  productPic1Large,
 
-			ProductPic3Small:  req.Product.ProductPic3Small,
-			ProductPic3Middle: req.Product.ProductPic3Middle,
-			ProductPic3Large:  req.Product.ProductPic3Large,
+			ProductPic2Small:  productPic2Small,
+			ProductPic2Middle: productPic2Middle,
+			ProductPic2Large:  productPic2Large,
 
-			Thumbnail:         req.Product.Thumbnail,
-			ShortVideo:        req.Product.ShortVideo,
+			ProductPic3Small:  productPic3Small,
+			ProductPic3Middle: productPic3Middle,
+			ProductPic3Large:  productPic3Large,
+
+			Thumbnail:         thumbnail,
+			ShortVideo:        shortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
 			Discount:          req.Product.Discount,
