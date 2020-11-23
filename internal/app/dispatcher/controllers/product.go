@@ -31,20 +31,26 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
+	var err error
 	var gpWhere models.GeneralProduct
-	pageIndex, err := strconv.ParseInt(c.Param("page"), 10, 32)
+	var pageIndex int64
+	var pageSize int64
+	var productType int64
+	pageIndex, err = strconv.ParseInt(c.Param("page"), 10, 32)
 
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		// _ = c.AbortWithError(http.StatusBadRequest, err)
+		// return
+		pageIndex = 1
 	}
-	pageSize, err := strconv.ParseInt(c.Param("pagesize"), 10, 32)
+	pageSize, err = strconv.ParseInt(c.Param("pagesize"), 10, 32)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		// _ = c.AbortWithError(http.StatusBadRequest, err)
+		// return
+		pageSize = 20
 	}
 
-	productType, err := strconv.ParseInt(c.Param("producttype"), 10, 32)
+	productType, err = strconv.ParseInt(c.Param("producttype"), 10, 32)
 	if err != nil {
 		// _ = c.AbortWithError(http.StatusBadRequest, err)
 		// return
