@@ -1018,6 +1018,133 @@ func (x *ProductsListResp) GetProducts() []*Product {
 	return nil
 }
 
+type GetGeneralProductPageReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//商品类型
+	ProductType global.ProductType `protobuf:"varint,1,opt,name=productType,proto3,enum=cloud.lianmi.im.global.ProductType" json:"productType,omitempty"`
+	//页数,第几页
+	//默认1
+	//是否必填-否
+	Page int32 `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"` // [default=1];
+	//每页成员数量
+	//默认20,最大只允许100
+	//是否必填-否
+	Limit int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"` // [default=20];
+}
+
+func (x *GetGeneralProductPageReq) Reset() {
+	*x = GetGeneralProductPageReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_Product_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetGeneralProductPageReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGeneralProductPageReq) ProtoMessage() {}
+
+func (x *GetGeneralProductPageReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_Product_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGeneralProductPageReq.ProtoReflect.Descriptor instead.
+func (*GetGeneralProductPageReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_Product_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetGeneralProductPageReq) GetProductType() global.ProductType {
+	if x != nil {
+		return x.ProductType
+	}
+	return global.ProductType_OT_Undefined
+}
+
+func (x *GetGeneralProductPageReq) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *GetGeneralProductPageReq) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetGeneralProductPageResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//总页数
+	TotalPage uint64 `protobuf:"fixed64,1,opt,name=totalPage,proto3" json:"totalPage,omitempty"`
+	//搜索结果列表
+	Generalproducts []*GeneralProduct `protobuf:"bytes,2,rep,name=generalproducts,proto3" json:"generalproducts,omitempty"`
+}
+
+func (x *GetGeneralProductPageResp) Reset() {
+	*x = GetGeneralProductPageResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_Product_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetGeneralProductPageResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGeneralProductPageResp) ProtoMessage() {}
+
+func (x *GetGeneralProductPageResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_Product_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGeneralProductPageResp.ProtoReflect.Descriptor instead.
+func (*GetGeneralProductPageResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_Product_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetGeneralProductPageResp) GetTotalPage() uint64 {
+	if x != nil {
+		return x.TotalPage
+	}
+	return 0
+}
+
+func (x *GetGeneralProductPageResp) GetGeneralproducts() []*GeneralProduct {
+	if x != nil {
+		return x.Generalproducts
+	}
+	return nil
+}
+
 var File_api_proto_order_Product_proto protoreflect.FileDescriptor
 
 var file_api_proto_order_Product_proto_rawDesc = []byte{
@@ -1205,10 +1332,28 @@ var file_api_proto_order_Product_proto_rawDesc = []byte{
 	0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1e,
 	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d,
 	0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x2e, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x52, 0x08,
-	0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x73, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65,
-	0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f,
-	0x6f, 0x72, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x73, 0x22, 0x8b, 0x01, 0x0a, 0x18, 0x47, 0x65, 0x74,
+	0x47, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x50, 0x61,
+	0x67, 0x65, 0x52, 0x65, 0x71, 0x12, 0x45, 0x0a, 0x0b, 0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74,
+	0x54, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x23, 0x2e, 0x63, 0x6c, 0x6f,
+	0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x67, 0x6c, 0x6f,
+	0x62, 0x61, 0x6c, 0x2e, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x54, 0x79, 0x70, 0x65, 0x52,
+	0x0b, 0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04,
+	0x70, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x61, 0x67, 0x65,
+	0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52,
+	0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0x8a, 0x01, 0x0a, 0x19, 0x47, 0x65, 0x74, 0x47, 0x65,
+	0x6e, 0x65, 0x72, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x50, 0x61, 0x67, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x12, 0x1c, 0x0a, 0x09, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x50, 0x61, 0x67,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x06, 0x52, 0x09, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x50, 0x61,
+	0x67, 0x65, 0x12, 0x4f, 0x0a, 0x0f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x6c, 0x70, 0x72, 0x6f,
+	0x64, 0x75, 0x63, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x63, 0x6c,
+	0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x6f, 0x72,
+	0x64, 0x65, 0x72, 0x2e, 0x47, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x64, 0x75,
+	0x63, 0x74, 0x52, 0x0f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x6c, 0x70, 0x72, 0x6f, 0x64, 0x75,
+	0x63, 0x74, 0x73, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73,
+	0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6f, 0x72, 0x64, 0x65, 0x72,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1223,33 +1368,37 @@ func file_api_proto_order_Product_proto_rawDescGZIP() []byte {
 	return file_api_proto_order_Product_proto_rawDescData
 }
 
-var file_api_proto_order_Product_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_api_proto_order_Product_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_api_proto_order_Product_proto_goTypes = []interface{}{
-	(*Product)(nil),               // 0: cloud.lianmi.im.order.Product
-	(*OrderProductBody)(nil),      // 1: cloud.lianmi.im.order.OrderProductBody
-	(*GeneralProduct)(nil),        // 2: cloud.lianmi.im.order.GeneralProduct
-	(*QueryStoresNearbyReq)(nil),  // 3: cloud.lianmi.im.order.QueryStoresNearbyReq
-	(*QueryStoresNearbyResp)(nil), // 4: cloud.lianmi.im.order.QueryStoresNearbyResp
-	(*ProductsListReq)(nil),       // 5: cloud.lianmi.im.order.ProductsListReq
-	(*ProductsListResp)(nil),      // 6: cloud.lianmi.im.order.ProductsListResp
-	(global.ProductType)(0),       // 7: cloud.lianmi.im.global.ProductType
-	(global.OrderState)(0),        // 8: cloud.lianmi.im.global.OrderState
-	(global.StoreType)(0),         // 9: cloud.lianmi.im.global.StoreType
-	(*user.Store)(nil),            // 10: cloud.lianmi.im.user.Store
+	(*Product)(nil),                   // 0: cloud.lianmi.im.order.Product
+	(*OrderProductBody)(nil),          // 1: cloud.lianmi.im.order.OrderProductBody
+	(*GeneralProduct)(nil),            // 2: cloud.lianmi.im.order.GeneralProduct
+	(*QueryStoresNearbyReq)(nil),      // 3: cloud.lianmi.im.order.QueryStoresNearbyReq
+	(*QueryStoresNearbyResp)(nil),     // 4: cloud.lianmi.im.order.QueryStoresNearbyResp
+	(*ProductsListReq)(nil),           // 5: cloud.lianmi.im.order.ProductsListReq
+	(*ProductsListResp)(nil),          // 6: cloud.lianmi.im.order.ProductsListResp
+	(*GetGeneralProductPageReq)(nil),  // 7: cloud.lianmi.im.order.GetGeneralProductPageReq
+	(*GetGeneralProductPageResp)(nil), // 8: cloud.lianmi.im.order.GetGeneralProductPageResp
+	(global.ProductType)(0),           // 9: cloud.lianmi.im.global.ProductType
+	(global.OrderState)(0),            // 10: cloud.lianmi.im.global.OrderState
+	(global.StoreType)(0),             // 11: cloud.lianmi.im.global.StoreType
+	(*user.Store)(nil),                // 12: cloud.lianmi.im.user.Store
 }
 var file_api_proto_order_Product_proto_depIdxs = []int32{
-	7,  // 0: cloud.lianmi.im.order.Product.productType:type_name -> cloud.lianmi.im.global.ProductType
-	8,  // 1: cloud.lianmi.im.order.OrderProductBody.state:type_name -> cloud.lianmi.im.global.OrderState
-	7,  // 2: cloud.lianmi.im.order.GeneralProduct.productType:type_name -> cloud.lianmi.im.global.ProductType
-	9,  // 3: cloud.lianmi.im.order.QueryStoresNearbyReq.storeType:type_name -> cloud.lianmi.im.global.StoreType
-	10, // 4: cloud.lianmi.im.order.QueryStoresNearbyResp.stores:type_name -> cloud.lianmi.im.user.Store
-	7,  // 5: cloud.lianmi.im.order.ProductsListReq.productType:type_name -> cloud.lianmi.im.global.ProductType
+	9,  // 0: cloud.lianmi.im.order.Product.productType:type_name -> cloud.lianmi.im.global.ProductType
+	10, // 1: cloud.lianmi.im.order.OrderProductBody.state:type_name -> cloud.lianmi.im.global.OrderState
+	9,  // 2: cloud.lianmi.im.order.GeneralProduct.productType:type_name -> cloud.lianmi.im.global.ProductType
+	11, // 3: cloud.lianmi.im.order.QueryStoresNearbyReq.storeType:type_name -> cloud.lianmi.im.global.StoreType
+	12, // 4: cloud.lianmi.im.order.QueryStoresNearbyResp.stores:type_name -> cloud.lianmi.im.user.Store
+	9,  // 5: cloud.lianmi.im.order.ProductsListReq.productType:type_name -> cloud.lianmi.im.global.ProductType
 	0,  // 6: cloud.lianmi.im.order.ProductsListResp.products:type_name -> cloud.lianmi.im.order.Product
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	9,  // 7: cloud.lianmi.im.order.GetGeneralProductPageReq.productType:type_name -> cloud.lianmi.im.global.ProductType
+	2,  // 8: cloud.lianmi.im.order.GetGeneralProductPageResp.generalproducts:type_name -> cloud.lianmi.im.order.GeneralProduct
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_order_Product_proto_init() }
@@ -1342,6 +1491,30 @@ func file_api_proto_order_Product_proto_init() {
 				return nil
 			}
 		}
+		file_api_proto_order_Product_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetGeneralProductPageReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_order_Product_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetGeneralProductPageResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1349,7 +1522,7 @@ func file_api_proto_order_Product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_order_Product_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -95,7 +95,7 @@ type LianmiRepository interface {
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
-	GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error)
+	GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error)
 
 	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
 

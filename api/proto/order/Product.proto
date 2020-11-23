@@ -297,3 +297,27 @@ message ProductsListResp {
     //搜索结果列表
     repeated Product products =2;
 }
+
+message GetGeneralProductPageReq {
+   //商品类型
+    global.ProductType productType = 1;
+
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 2; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 3; // [default=20];
+}
+
+message GetGeneralProductPageResp {
+    //总页数
+    fixed64 totalPage =1;
+
+    //搜索结果列表
+    repeated GeneralProduct generalproducts =2;
+
+}

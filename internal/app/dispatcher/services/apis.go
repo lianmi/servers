@@ -66,7 +66,7 @@ type LianmiApisService interface {
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
-	GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error)
+	GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error)
 
 	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
 
@@ -344,9 +344,9 @@ func (s *DefaultLianmiApisService) GetGeneralProductByID(productID string) (p *m
 }
 
 //查询通用商品分页 - Page
-func (s *DefaultLianmiApisService) GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error) {
+func (s *DefaultLianmiApisService) GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error) {
 
-	return s.Repository.GetGeneralProductPage(pageIndex, pageSize, total, where)
+	return s.Repository.GetGeneralProductPage(req)
 
 }
 

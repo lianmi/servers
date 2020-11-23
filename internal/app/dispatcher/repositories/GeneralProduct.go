@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	Global "github.com/lianmi/servers/api/proto/global"
+	Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -60,13 +62,54 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 }
 
 //查询通用商品分页 - Page
-func (s *MysqlLianmiRepository) GetGeneralProductPage(pageIndex, pageSize int, total *int64, where interface{}) ([]*models.GeneralProduct, error) {
+func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error) {
 	var generalProducts []*models.GeneralProduct
-	if err := s.base.GetPages(&models.GeneralProduct{}, &generalProducts, pageIndex, pageSize, total, where); err != nil {
+	pageIndex := int(req.Page)
+	if pageIndex == 0 {
+		pageIndex = 1
+	}
+	pageSize := int(req.Limit)
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	total := new(int64)
+	where := Order.GeneralProduct{}
+	if req.ProductType > 0 {
+		where = Order.GeneralProduct{
+			ProductType: Global.ProductType(req.ProductType),
+		}
+	}
+	if err := s.base.GetPages(&models.GeneralProduct{}, &generalProducts, pageIndex, pageSize, total, &where); err != nil {
 		s.logger.Error("获取通用商品分页失败", zap.Error(err))
 		return nil, err
 	}
-	return generalProducts, nil
+	resp := &Order.GetGeneralProductPageResp{
+		TotalPage: uint64(*total),
+	}
+	for _, generalProduct := range generalProducts {
+		resp.Generalproducts = append(resp.Generalproducts, &Order.GeneralProduct{
+			ProductId:         generalProduct.ProductID,                       //通用商品ID
+			ProductName:       generalProduct.ProductName,                     //商品名称
+			ProductType:       Global.ProductType(generalProduct.ProductType), //商品种类类型  枚举
+			ProductDesc:       generalProduct.ProductDesc,                     //商品详细介绍
+			ProductPic1Small:  generalProduct.ProductPic1Small,                //商品图片1-小图
+			ProductPic1Middle: generalProduct.ProductPic1Middle,               //商品图片1-中图
+			ProductPic1Large:  generalProduct.ProductPic1Large,                //商品图片1-大图
+			ProductPic2Small:  generalProduct.ProductPic2Small,                //商品图片2-小图
+			ProductPic2Middle: generalProduct.ProductPic2Middle,               //商品图片2-中图
+			ProductPic2Large:  generalProduct.ProductPic2Large,                //商品图片2-大图
+			ProductPic3Small:  generalProduct.ProductPic3Small,                //商品图片3-小图
+			ProductPic3Middle: generalProduct.ProductPic3Small,                //商品图片3-中图
+			ProductPic3Large:  generalProduct.ProductPic3Large,                //商品图片3-大图
+			Thumbnail:         generalProduct.Thumbnail,                       //商品短视频缩略图
+			ShortVideo:        generalProduct.ShortVideo,                      //商品短视频
+			CreateAt:          uint64(generalProduct.CreateAt),                //创建时间
+			ModifyAt:          uint64(generalProduct.ModifyAt),                //最后修改时间
+			AllowCancel:       generalProduct.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+		})
+	}
+
+	return resp, nil
 
 }
 
