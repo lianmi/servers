@@ -667,7 +667,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					//TODO 调用10-4 确认转账
 
 					go func() {
-						err = ConfirmTransfer(orderID, targetUserName, signedTxToTarget)
+						err = ConfirmTransfer(rsq.Uuid, signedTxToTarget)
 						if err != nil {
 							log.Fatalln(err)
 						}
@@ -730,7 +730,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 }
 
 //10-4 确认转账
-func ConfirmTransfer(orderID, targetUsername string, signedTxToTarget string) error {
+func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -741,8 +741,7 @@ func ConfirmTransfer(orderID, targetUsername string, signedTxToTarget string) er
 	defer redisConn.Close()
 
 	req := &Wallet.ConfirmTransferReq{
-		OrderID:          orderID,
-		TargetUserName:   targetUsername,
+		Uuid:             uuid,
 		SignedTxToTarget: signedTxToTarget,
 	}
 

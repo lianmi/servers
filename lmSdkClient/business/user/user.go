@@ -128,15 +128,6 @@ func SendGetUsers(userNames []string) error {
 					log.Println("Gender: ", user.Gender)
 					log.Println("Avatar: ", user.Avatar)
 					log.Println("Label: ", user.Label)
-					log.Println("Introductory: ", user.Introductory)
-					log.Println("Province: ", user.Province)
-					log.Println("City: ", user.City)
-					log.Println("County: ", user.County)
-					log.Println("Street: ", user.Street)
-					log.Println("Address: ", user.Address)
-					log.Println("Branchesname: ", user.Branchesname)
-					log.Println("LegalPerson: ", user.LegalPerson)
-					log.Println("LegalIdentityCard: ", user.LegalIdentityCard)
 				}
 			}
 

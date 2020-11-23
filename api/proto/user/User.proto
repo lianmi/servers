@@ -48,7 +48,7 @@ message User {
     uint64 id        = 1;                         //ID
     string smscode   = 2;
     string username  = 3;
-    string passwd    = 4;                         //密码 是否必填-是
+    //string passwd    = 4;                         //密码 是否必填-是
     Gender gender    = 5;
     string nick      = 6;
     string avatar    = 7;
