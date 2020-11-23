@@ -670,19 +670,19 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		//保存预审核转账记录到 redis
 		_, err = redisConn.Do("HMSET",
 			fmt.Sprintf("PreTransfer:%s", uuidStr),
-			"Username", username,
-			"OrderID", req.OrderID,
-			"ToUsername", toUsername,
-			"WalletAddress", walletAddress,
-			"ToWalletAddress", toWalletAddress,
-			"AmountLNMC", amountLNMC,
-			"BalanceLNMCBefore", balanceLNMC,
-			"Bip32Index", newBip32Index,
-			"BlockNumber", blockNumber,
-			"Hash", hash,
-			"State", 0,
-			"Content", req.GetContent(),
-			"CreateAt", uint64(time.Now().UnixNano()/1e6),
+			"Username", username, // 发起转账的注册号
+			"OrderID", req.OrderID, //如果是为订单支付的，则非空
+			"ToUsername", toUsername, //转账目标
+			"WalletAddress", walletAddress, //发起者的钱包地址
+			"ToWalletAddress", toWalletAddress, //转账目标的钱包地址
+			"AmountLNMC", amountLNMC, //转账的连米币数量
+			"BalanceLNMCBefore", balanceLNMC, //发起者转账之前的余额
+			"Bip32Index", newBip32Index, //对应的HD叶子序号
+			"BlockNumber", blockNumber, //0
+			"Hash", hash, //空
+			"State", 0, //预审核状态
+			"Content", req.GetContent(), //附言
+			"CreateAt", uint64(time.Now().UnixNano()/1e6), //创建时间
 		)
 
 	}
@@ -723,8 +723,9 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 	var walletAddress string   //用户钱包地址
 	var toWalletAddress string // 接收者钱包地址
-	var toUsername string      // 接收者用户账号
 	var orderID string         // 预转账的订单id
+	var preUsername string     // 预转账的用户账号
+	var toUsername string      // 接收者用户账号
 
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
@@ -777,8 +778,15 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			zap.String("SignedTxToTarget", req.SignedTxToTarget), //签名后的Tx(A签) hex
 		)
 
-		//根据uuid从redis里查询出预转账的订单id及目标用户账号
+		if len(req.SignedTxToTarget) == 0 {
 
+			nc.logger.Warn("SignedTxToTarget不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("SignedTxToTarget is empty")
+			goto COMPLETE
+		}
+
+		//根据uuid从redis里查询出预转账的订单id及目标用户账号
 		if req.Uuid == "" {
 			nc.logger.Warn("Uuid不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -787,23 +795,24 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		}
 
 		PreTransferKey := fmt.Sprintf("PreTransfer:%s", req.Uuid)
+		preUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername"))
 		toUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername"))
 		toWalletAddress, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToWalletAddress"))
 		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
 
-		if toUsername == "" || toWalletAddress == "" {
-			nc.logger.Error("严重错误, toUsername or  toWalletAddress 为空")
+		if preUsername != username {
+			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Error:  toUsername or  toWalletAddress is empty")
+			errorMsg = fmt.Sprintf("Error:  preUsername is not equal to current username")
 			goto COMPLETE
 		}
 
-		if len(req.SignedTxToTarget) == 0 {
+		if orderID != "" && toUsername == "" {
+			nc.logger.Debug("本次转账是订单", zap.String("orderID", orderID))
+		}
 
-			nc.logger.Warn("SignedTxToTarget不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("SignedTxToTarget is empty")
-			goto COMPLETE
+		if orderID == "" && toUsername != "" {
+			nc.logger.Debug("本次转账是转账给用户", zap.String("toUsername", toUsername), zap.String("toWalletAddress", toWalletAddress))
 		}
 
 		//检测钱包是否注册, 如果没注册， 则不能转账
@@ -876,6 +885,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//调用eth接口，获取目标钱包地址的余额
 		toBalanceLNMC, err = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 
 		//附言
@@ -922,18 +932,11 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		//更新转账记录到 MySQL
 		lnmcTransferHistory := &models.LnmcTransferHistory{
-			UUID: req.Uuid,
-			// Username:          username,         //发起支付
-			// ToUsername:        toUsername,       //如果是普通转账，toUsername非空
-			// OrderID:           req.OrderID, //如果是订单支付 ，非空
-			// WalletAddress:     walletAddress,    // 发起方钱包账户
-			// BalanceLNMCBefore: balanceLNMC,      //发送方用户在转账时刻的连米币数量
-			// AmountLNMC:        amountLNMC,       //本次转账的用户连米币数量
+			UUID:             req.Uuid,     //uuid
 			BalanceLNMCAfter: balanceAfter, //发送方用户在转账之后的连米币数量
-			// Bip32Index:        newBip32Index,    //平台HD钱包Bip32派生索引号
-			State:       1, //执行状态，0-默认未执行，1-A签，2-全部完成
-			BlockNumber: blockNumber,
-			TxHash:      hash,
+			State:            1,            //执行状态，0-默认未执行，1-A签，2-全部完成
+			BlockNumber:      blockNumber,  //区块高度
+			TxHash:           hash,         //哈希
 		}
 		nc.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
@@ -956,6 +959,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			"Hash", hash,
 		)
 
+		//对用户转账
 		if toUsername != "" {
 			//更新接收者的收款历史记录
 			//刷新接收者redis里的代币数量
@@ -1021,7 +1025,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		})
 		go nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
 
-		//9-12，通知双方
+		//订单支付  9-12，通知双方
 		if orderID != "" {
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
