@@ -138,9 +138,12 @@ type LianmiApisService interface {
 
 	GetStore(businessUsername string) (*User.Store, error)
 
-	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
+	GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error)
 
 	AuditStore(req *Auth.AuditStoreReq) error
+
+	//获取某个商户的所有商品列表
+	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -583,10 +586,15 @@ func (s *DefaultLianmiApisService) GetStore(businessUsername string) (*User.Stor
 	return s.Repository.GetStore(businessUsername)
 }
 
-func (s *DefaultLianmiApisService) GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error) {
+func (s *DefaultLianmiApisService) GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error) {
 	return s.Repository.GetStores(req)
 }
 
 func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
 	return s.Repository.AuditStore(req)
+}
+
+//获取某个商户的所有商品列表
+func (s *DefaultLianmiApisService) GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error) {
+	return s.Repository.GetProductsList(req)
 }

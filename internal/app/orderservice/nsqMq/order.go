@@ -221,7 +221,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("AddProduct  payload",
+		nc.logger.Debug("AddProduct payload",
 			zap.String("ProductId", req.Product.ProductId),
 			zap.Int("OrderType", int(req.OrderType)),
 			zap.String("OpkBusinessUser", req.OpkBusinessUser),

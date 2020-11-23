@@ -4,6 +4,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -11,9 +12,26 @@ import (
 
 // 增加通用商品- Create
 func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
+	var err error
 	if generalProduct == nil {
 		return errors.New("generalProduct is nil")
 	}
+	//判断ProductName是否存在， 如果存在，则无法增加
+	where := models.GeneralProduct{
+		ProductName: generalProduct.ProductName,
+	}
+
+	p := new(models.GeneralProduct)
+
+	if err = s.db.Model(p).Where(&where).First(p).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//记录找不到也会触发错误 记录不存在
+		} else {
+			return errors.Wrapf(err, "Get GeneralProduct info error[ProductName=%s]", generalProduct.ProductName)
+		}
+
+	}
+
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&generalProduct).Error; err != nil {
 		s.logger.Error("AddGeneralProduct, failed to upsert generalProduct", zap.Error(err))
@@ -34,8 +52,9 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 		ProductID: productID,
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
-		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%d]", productID)
+		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%s]", productID)
 	}
+
 	s.logger.Debug("GetUser run...")
 	return
 }

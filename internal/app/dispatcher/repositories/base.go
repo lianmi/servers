@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -162,10 +163,13 @@ type LianmiRepository interface {
 	GetStore(businessUsername string) (*User.Store, error)
 
 	//根据gps位置获取一定范围内的店铺列表
-	GetStores(req *User.QueryStoresNearbyReq) (*User.QueryStoresNearbyResp, error)
+	GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error)
 
 	//后台管理员将店铺审核通过
 	AuditStore(req *Auth.AuditStoreReq) error
+
+	//获取某个商户的所有商品列表
+	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
 }
 
 type MysqlLianmiRepository struct {

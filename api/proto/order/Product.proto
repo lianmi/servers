@@ -1,5 +1,8 @@
 syntax = "proto3"; 
 import "api/proto/global/Global.proto";
+import "api/proto/user/Store.proto";
+
+
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
@@ -207,4 +210,90 @@ message GeneralProduct {
 
     //是否允许撤单， 默认是可以，彩票类的不可以
     bool AllowCancel = 18;
+}
+
+
+
+//======查询经纬度范围内的商户列表=====//
+message QueryStoresNearbyReq {
+    //店铺类型,对应Global.proto里的StoreType枚举
+    global.StoreType storeType = 1;
+
+    //商户经营范围搜索关键字, 用半角的逗号隔开
+    string keys = 2;
+
+    //用户当前位置的经度
+    double longitude=3; 
+
+    //用户当前位置的经度
+    double latitude=4;
+
+    //半径范围, 默认10km
+    double radius=5;
+
+    //省份, 可选
+    string province            = 6; 
+
+    //城市, 可选
+    string city                = 7; 
+
+    //区, 可选
+    string county              = 8; 
+
+    //街道, 可选
+    string street              = 9; 
+ 
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 10; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 11; // [default=20];
+
+    //审核状态，0-预审核，1-审核通过, 2-占位
+    int32 state = 12;
+
+}
+
+message QueryStoresNearbyResp {
+    //总页数
+    fixed64 totalPage =1;
+
+    //搜索结果列表
+    repeated user.Store stores =2;
+}
+
+//获取某个商户的所有商品列表
+message ProductsListReq {
+    //商户注册账号
+    string businessUsername = 1;
+
+    //商品类型
+    global.ProductType productType = 2;
+
+    //关键字, 以半角逗号隔开
+    string keys = 3;
+
+
+    //页数,第几页
+    //默认1
+    //是否必填-否
+    int32 page = 4; // [default=1];
+
+    //每页成员数量
+    //默认20,最大只允许100
+    //是否必填-否
+    int32 limit = 5; // [default=20];
+
+}
+
+message ProductsListResp {
+    //总页数
+    fixed64 totalPage =1;
+
+    //搜索结果列表
+    repeated Product products =2;
 }
