@@ -74,7 +74,8 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册",
-			zap.String("Nick", userReq.Nick),                         //呢称
+			zap.String("Nick", userReq.Nick), //呢称
+			zap.String("Avatar", userReq.Avatar),
 			zap.String("Mobile", userReq.Mobile),                     //手机号
 			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
 			zap.String("ContactPerson", userReq.ContactPerson),       //联系人
@@ -123,13 +124,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			}
 
 		}
-		pc.logger.Debug("User字段",
-			zap.String("Avatar", userReq.Avatar),
-			zap.String("Password", userReq.Passwd),
-			zap.String("ContactPerson", userReq.ContactPerson),
-			zap.String("ReferrerUsername", userReq.ReferrerUsername),
-			zap.Int("UserType", int(userReq.UserType)),
-		)
+
 		user := models.User{
 			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
 			Password:         userReq.Passwd,           //用户密码，md5加密
