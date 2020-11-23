@@ -1,5 +1,11 @@
 package models
 
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
 /*
 定义好友表的数据结构
 状态:
@@ -20,4 +26,10 @@ type Friend struct {
 	PassAt         int64  `form:"pass_at" json:"pass_at,omitempty"`                 //对方通过好友的时刻
 	RejectAt       int64  `form:"reject_at" json:"reject_at,omitempty"`             //对方拒绝加好友的时刻
 	DeleteAt       int64  `form:"delete_at" json:"delete_at,omitempty"`             //删除好友的时刻
+}
+
+//BeforeCreate CreatedAt赋值
+func (d *Friend) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
 }

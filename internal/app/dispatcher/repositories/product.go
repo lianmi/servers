@@ -16,7 +16,7 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 	pageSize := int(req.Limit)
 
 	columns := []string{"*"}
-	orderBy := "updated_at desc"
+	orderBy := "modify_at desc"
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()

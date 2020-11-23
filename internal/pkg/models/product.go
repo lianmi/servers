@@ -1,5 +1,11 @@
 package models
 
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
 /*
 服务端的商品表
 缓存商户的上架商品
@@ -31,4 +37,16 @@ type Product struct {
 	CreateAt          int64   `form:"create_at" json:"create_at,omitempty"`                       //创建时刻， 也就是上架时刻
 	ModifyAt          int64   `form:"modify_at" json:"modify_at,omitempty"`                       //最后修改时间
 	AllowCancel       bool    `form:"allow_cancel" json:"allow_cancel" binding:"required"`        //是否允许撤单， 默认是可以，彩票类的不可以
+}
+
+//BeforeCreate CreatedAt赋值
+func (d *Product) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate ModifyAt赋值
+func (d *Product) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("ModifyAt", time.Now().UnixNano()/1e6)
+	return nil
 }
