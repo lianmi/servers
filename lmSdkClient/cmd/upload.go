@@ -36,8 +36,20 @@ var uploadCmd = &cobra.Command{
 			log.Println("localFileName is empty")
 			return
 		}
+		// bucketName := "lianmi-images" //公共读
 
-		//TODO
+		bucketName, _ := cmd.PersistentFlags().GetString("bucket")
+		if bucketName == "" {
+			log.Println("bucket name is empty")
+			return
+		}
+
+		dir, _ := cmd.PersistentFlags().GetString("dir")
+		if bucketName == "" {
+			log.Println("dir name is empty")
+			return
+		}
+
 		redisConn, err := redis.Dial("tcp", "127.0.0.1:6379")
 		if err != nil {
 			log.Fatalln(err)
@@ -47,7 +59,6 @@ var uploadCmd = &cobra.Command{
 		defer redisConn.Close()
 
 		endpoint := "https://oss-cn-hangzhou.aliyuncs.com"
-		bucketName := "lianmi-images" //公共读
 
 		accessKeyID, _ := redis.String(redisConn.Do("GET", "OSSAccessKeyId"))
 		accessSecretKey, _ := redis.String(redisConn.Do("GET", "OSSAccessKeySecret"))
@@ -98,7 +109,7 @@ var uploadCmd = &cobra.Command{
 		//上传的文件名： md5 +  原来的后缀名
 		fileExt := path.Ext(localFileName)
 		// objectName := "generalproduct/" + time.Now().Format("2006/01/02/") + userName + "/" + md5Str + fileExt
-		objectName := "generalproduct/" + md5Str + fileExt
+		objectName := dir + "/" + md5Str + fileExt
 		log.Printf("objectName: %s\n", objectName)
 
 		// 获取存储空间。
@@ -111,7 +122,7 @@ var uploadCmd = &cobra.Command{
 		if err != nil {
 			handleError(err)
 		} else {
-			url := "https://lianmi-images.oss-cn-hangzhou.aliyuncs.com/" + objectName
+			url := "https://" + bucketName + ".oss-cn-hangzhou.aliyuncs.com/" + objectName
 			log.Println("上传完成, url: ", url)
 		}
 
@@ -124,4 +135,6 @@ func init() {
 
 	//本地文件
 	uploadCmd.PersistentFlags().StringP("file", "f", "", "本地文件")
+	uploadCmd.PersistentFlags().StringP("bucket", "b", "lianmi-images", "bucket name")
+	uploadCmd.PersistentFlags().StringP("dir", "d", "", "dir")
 }

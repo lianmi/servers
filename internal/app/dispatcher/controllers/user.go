@@ -123,6 +123,13 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			}
 
 		}
+		pc.logger.Debug("User字段",
+			zap.String("Avatar", userReq.Avatar),
+			zap.String("Password", userReq.Passwd),
+			zap.String("ContactPerson", userReq.ContactPerson),
+			zap.String("ReferrerUsername", userReq.ReferrerUsername),
+			zap.Int("UserType", int(userReq.UserType)),
+		)
 		user := models.User{
 			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
 			Password:         userReq.Passwd,           //用户密码，md5加密
