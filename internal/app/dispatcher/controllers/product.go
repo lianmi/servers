@@ -31,6 +31,7 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
+	var gpWhere models.GeneralProduct
 	pageIndex, err := strconv.ParseInt(c.Param("page"), 10, 32)
 
 	if err != nil {
@@ -45,10 +46,11 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 
 	productType, err := strconv.ParseInt(c.Param("producttype"), 10, 32)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		// _ = c.AbortWithError(http.StatusBadRequest, err)
+		// return
+	} else {
+		gpWhere = models.GeneralProduct{ProductType: int(productType)}
 	}
-	gpWhere := models.GeneralProduct{ProductType: int(productType)}
 
 	var total int64
 	ps, err := pc.service.GetGeneralProductPage(int(pageIndex), int(pageSize), &total, gpWhere)
