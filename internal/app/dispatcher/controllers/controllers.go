@@ -296,6 +296,9 @@ func CreateInitControllersFn(
 			//查询通用商品分页-按商品种类查询
 			productGroup.GET("/generalproducts/list", pc.GetGeneralProductPage)
 
+			//根据商户注册号查询所有上架商品
+			productGroup.GET("/productslist", pc.GetProductsList)
+
 		}
 
 		//=======订单模块==========/

@@ -110,25 +110,3 @@ func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
 	}
 
 }
-
-//获取某个商户的所有商品列表
-func (pc *LianmiApisController) ProductsList(c *gin.Context) {
-
-	code := codes.InvalidParams
-	var req Order.ProductsListReq
-
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
-	} else {
-
-		resp, err := pc.service.GetProductsList(&req)
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取店铺商品列表错误")
-			return
-		}
-
-		RespData(c, http.StatusOK, 200, resp)
-	}
-
-}

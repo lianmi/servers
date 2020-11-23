@@ -1,5 +1,6 @@
 /*
-上传文件到阿里云
+上传 图片文件到阿里云
+./lmSdkClient oss upload -f ~/Downloads/shuangseqiu.jpeg -b lianmi-ipfs -d avatars
 */
 package cmd
 
@@ -9,12 +10,10 @@ import (
 
 	"crypto/md5"
 	"encoding/hex"
-	// "encoding/json"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/cobra"
 	"io"
-	// "log"
 	"os"
 	"path"
 )
@@ -45,7 +44,7 @@ var uploadCmd = &cobra.Command{
 		}
 
 		dir, _ := cmd.PersistentFlags().GetString("dir")
-		if bucketName == "" {
+		if dir == "" {
 			log.Println("dir name is empty")
 			return
 		}

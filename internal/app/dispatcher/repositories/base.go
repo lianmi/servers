@@ -170,6 +170,7 @@ type LianmiRepository interface {
 
 	//获取某个商户的所有商品列表
 	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
+	
 }
 
 type MysqlLianmiRepository struct {

@@ -321,3 +321,10 @@ message GetGeneralProductPageResp {
     repeated GeneralProduct generalproducts =2;
 
 }
+
+message GetProductsResp {
+
+    //搜索结果列表
+    repeated Product products =1;
+
+}
