@@ -335,12 +335,12 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			}
 		*/
 		product := &models.Product{
-			ProductID: productId,
-			Username:  username,
-			// Expire:      int64(req.Product.Expire),
-			// ProductName: req.Product.ProductName,
-			// ProductType: int(req.Product.ProductType),
-			// ProductDesc: req.Product.ProductDesc,
+			ProductID:   productId,
+			Username:    username,
+			Expire:      int64(req.Product.Expire),
+			ProductName: req.Product.ProductName,
+			ProductType: int(req.Product.ProductType),
+			ProductDesc: req.Product.ProductDesc,
 
 			// ProductPic1Small:  productPic1Small,
 			// ProductPic1Middle: productPic1Middle,
