@@ -163,26 +163,28 @@ func AddProduct() error {
 			log.Println("businessSubType: ", businessSubTypeStr)
 			log.Println("taskId: ", taskIdStr)
 			log.Println("code: ", code)
+			
+			if businessTypeStr == "7" && businessSubTypeStr == "2" {
+				if code == "200" {
+					log.Println("Wallet register succeed")
+					// 回包
+					//解包负载 m.Payload
+					var rsq Order.AddProductRsp
+					if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+						log.Println("Protobuf Unmarshal Error", err)
 
-			if code == "200" {
-				log.Println("Wallet register succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Order.AddProductRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
+					} else {
+
+						log.Println("回包内容 AddProductRsp ---------------------")
+						log.Println("商品ID productID: ", rsq.ProductID)
+
+						//
+
+					}
 
 				} else {
-
-					log.Println("回包内容 AddProductRsp ---------------------")
-					log.Println("商品ID productID: ", rsq.ProductID)
-
-					//
-
+					log.Println("AddProduct failed")
 				}
-
-			} else {
-				log.Println("AddProduct failed")
 			}
 
 		}),
@@ -220,7 +222,7 @@ func AddProduct() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:

@@ -183,6 +183,12 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	var data []byte
 	errorCode := 200
 	var errorMsg string
+	var productId string
+	var productPic1Small, productPic1Middle, productPic1Large string
+	var productPic2Small, productPic2Middle, productPic2Large string
+	var productPic3Small, productPic3Middle, productPic3Large string
+	var thumbnail string
+	var shortVideo string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -214,7 +220,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	body := msg.GetContent()
 	//解包body
 	var req Order.AddProductReq
-	if err := proto.Unmarshal(body, &req); err != nil {
+	if err = proto.Unmarshal(body, &req); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
@@ -262,8 +268,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//生成随机的商品id
-		// req.Product.ProductId = "aaa"
-		productId := uuid.NewV4().String()
+		productId = uuid.NewV4().String()
 		req.Product.ProductId = productId
 		rsp := &Order.AddProductRsp{
 			ProductID: productId,
@@ -299,7 +304,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//将3张图片的url组装为真正的url
-		var productPic1Small, productPic1Middle, productPic1Large string
+
 		if req.Product.ProductPic1Large != "" {
 			//小图
 			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -309,7 +314,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
 		}
 
-		var productPic2Small, productPic2Middle, productPic2Large string
 		if req.Product.ProductPic2Large != "" {
 			//小图
 			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -319,7 +323,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
 		}
 
-		var productPic3Small, productPic3Middle, productPic3Large string
 		if req.Product.ProductPic3Large != "" {
 			//小图
 			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -329,11 +332,10 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
 		}
 
-		var thumbnail string
 		if req.Product.Thumbnail != "" {
 			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.Thumbnail
 		}
-		var shortVideo string
+
 		if req.Product.ShortVideo != "" {
 			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
 		}
@@ -390,54 +392,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
 
-		//TODO 暂时屏蔽
-		//推送通知给关注的用户
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-		for _, watchingUser := range watchingUsers {
-
-			//7-5 新商品上架事件 将商品信息序化
-			addProductEventRsp := &Order.AddProductEventRsp{
-				Username: username, //商户用户账号id
-				Product: &Order.Product{
-					ProductId:   productId,
-					Expire:      uint64(req.Product.Expire),
-					ProductName: req.Product.ProductName,
-					ProductType: Global.ProductType(req.Product.ProductType),
-					ProductDesc: req.Product.ProductDesc,
-
-					ProductPic1Small:  productPic1Small,
-					ProductPic1Middle: productPic1Middle,
-					ProductPic1Large:  productPic1Large,
-
-					ProductPic2Small:  productPic2Small,
-					ProductPic2Middle: productPic2Middle,
-					ProductPic2Large:  productPic2Large,
-
-					ProductPic3Small:  productPic3Small,
-					ProductPic3Middle: productPic3Middle,
-					ProductPic3Large:  productPic3Large,
-
-					Thumbnail:         thumbnail,
-					ShortVideo:        shortVideo,
-					Price:             req.Product.Price,
-					LeftCount:         req.Product.LeftCount,
-					Discount:          req.Product.Discount,
-					DiscountDesc:      req.Product.DiscountDesc,
-					DiscountStartTime: uint64(req.Product.DiscountStartTime),
-					DiscountEndTime:   uint64(req.Product.DiscountEndTime),
-					AllowCancel:       req.Product.AllowCancel,
-				}, //商品详情
-				OrderType:   req.OrderType,       //订单类型，必填
-				OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
-				Expire:      req.Expire,          //商品过期时间
-				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
-			}
-			productData, _ := proto.Marshal(addProductEventRsp)
-
-			//向所有关注了此商户的用户推送 7-5 新商品上架事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
-		}
-
 	}
 
 COMPLETE:
@@ -461,7 +415,53 @@ COMPLETE:
 	} else {
 		nc.logger.Error("7-2 回包 Failed to send message to ProduceChannel", zap.Error(err))
 	}
-	_ = err
+
+	//推送通知给关注的用户
+	watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+	for _, watchingUser := range watchingUsers {
+
+		//7-5 新商品上架事件 将商品信息序化
+		addProductEventRsp := &Order.AddProductEventRsp{
+			Username: username, //商户用户账号id
+			Product: &Order.Product{
+				ProductId:   productId,
+				Expire:      uint64(req.Product.Expire),
+				ProductName: req.Product.ProductName,
+				ProductType: Global.ProductType(req.Product.ProductType),
+				ProductDesc: req.Product.ProductDesc,
+
+				ProductPic1Small:  productPic1Small,
+				ProductPic1Middle: productPic1Middle,
+				ProductPic1Large:  productPic1Large,
+
+				ProductPic2Small:  productPic2Small,
+				ProductPic2Middle: productPic2Middle,
+				ProductPic2Large:  productPic2Large,
+
+				ProductPic3Small:  productPic3Small,
+				ProductPic3Middle: productPic3Middle,
+				ProductPic3Large:  productPic3Large,
+
+				Thumbnail:         thumbnail,
+				ShortVideo:        shortVideo,
+				Price:             req.Product.Price,
+				LeftCount:         req.Product.LeftCount,
+				Discount:          req.Product.Discount,
+				DiscountDesc:      req.Product.DiscountDesc,
+				DiscountStartTime: uint64(req.Product.DiscountStartTime),
+				DiscountEndTime:   uint64(req.Product.DiscountEndTime),
+				AllowCancel:       req.Product.AllowCancel,
+			}, //商品详情
+			OrderType:   req.OrderType,       //订单类型，必填
+			OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
+			Expire:      req.Expire,          //商品过期时间
+			TimeAt:      uint64(time.Now().UnixNano() / 1e6),
+		}
+		productData, _ := proto.Marshal(addProductEventRsp)
+
+		//向所有关注了此商户的用户推送 7-5 新商品上架事件
+		go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+	}
 	return nil
 }
 
