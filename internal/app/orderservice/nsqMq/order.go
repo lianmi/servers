@@ -774,7 +774,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 
 		}
 		_, err = redisConn.Do("ZREM", fmt.Sprintf("Products:%s", username), req.ProductID)
-		_, err = redisConn.Do("ZADD", fmt.Sprintf("RemoveProducts:%s", username), time.Now().UnixNano()/1e6, req.ProductID)
+		_, err = redisConn.Do("ZADD", fmt.Sprintf("SoldoutProducts:%s", username), time.Now().UnixNano()/1e6, req.ProductID)
 
 		//TODO 判断是否存在着此商品id的订单
 
