@@ -262,7 +262,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//生成随机的商品id
-		req.Product.ProductId = uuid.NewV4().String()
+		req.Product.ProductId = "aaa"
+		// req.Product.ProductId = uuid.NewV4().String()
 		rsp.ProductID = req.Product.ProductId
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
@@ -377,7 +378,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		)
 		//保存到MySQL
 		if err = nc.service.AddProduct(product); err != nil {
-			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
+			nc.logger.Error("错误: 增加到MySQL失败", zap.Error(err))
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
