@@ -390,24 +390,27 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
 
-		//推送通知给关注的用户
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-		for _, watchingUser := range watchingUsers {
+		/*
+			//TODO 暂时屏蔽
+				//推送通知给关注的用户
+				watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+				for _, watchingUser := range watchingUsers {
 
-			//7-5 新商品上架事件 将商品信息序化
-			addProductEventRsp := &Order.AddProductEventRsp{
-				Username:    username,            //商户用户账号id
-				Product:     req.Product,         //商品详情
-				OrderType:   req.OrderType,       //订单类型，必填
-				OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
-				Expire:      req.Expire,          //商品过期时间
-				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
-			}
-			productData, _ := proto.Marshal(addProductEventRsp)
+					//7-5 新商品上架事件 将商品信息序化
+					addProductEventRsp := &Order.AddProductEventRsp{
+						Username:    username,            //商户用户账号id
+						Product:     req.Product,         //商品详情
+						OrderType:   req.OrderType,       //订单类型，必填
+						OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
+						Expire:      req.Expire,          //商品过期时间
+						TimeAt:      uint64(time.Now().UnixNano() / 1e6),
+					}
+					productData, _ := proto.Marshal(addProductEventRsp)
 
-			//向所有关注了此商户的用户推送 7-5 新商品上架事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
-		}
+					//向所有关注了此商户的用户推送 7-5 新商品上架事件
+					go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+				}
+		*/
 	}
 
 COMPLETE:

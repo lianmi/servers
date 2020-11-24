@@ -1,9 +1,9 @@
 package models
 
 import (
-// "time"
+	"time"
 
-// "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 /*
@@ -39,14 +39,14 @@ type Product struct {
 	ModifyAt          int64   `form:"modify_at" json:"modify_at,omitempty"`                     //最后修改时间
 }
 
-// //BeforeCreate CreatedAt赋值
-// func (d *Product) BeforeCreate(tx *gorm.DB) error {
-// 	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
-// 	return nil
-// }
+//BeforeCreate CreatedAt赋值
+func (d *Product) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreateAt", time.Now().UnixNano()/1e6)
+	return nil
+}
 
-// //BeforeUpdate ModifyAt赋值
-// func (d *Product) BeforeUpdate(tx *gorm.DB) error {
-// 	tx.Statement.SetColumn("ModifyAt", time.Now().UnixNano()/1e6)
-// 	return nil
-// }
+//BeforeUpdate ModifyAt赋值
+func (d *Product) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("ModifyAt", time.Now().UnixNano()/1e6)
+	return nil
+}
