@@ -494,7 +494,7 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		return jwtUserName, isAuthed, nil
 
 	} else {
-
+		mc.logger.Warn("MakeSureAuthed, 授权被拒绝", zap.Bool("isAuthed", isAuthed))
 		// topic := "lianmi/cloud/device/" + deviceId
 
 		topic := mc.o.TopicPrefix + deviceID

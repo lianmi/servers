@@ -138,7 +138,7 @@ var loginCmd = &cobra.Command{
 				return
 			}
 
-			jwtToken, _ := response.Get("data").String()
+			jwtToken, _ := response.Get("data").Get("jwt_token").String()
 			key := fmt.Sprintf("jwtToken:%s", username)
 			_, err = redisConn.Do("SET", key, jwtToken)
 			if err != nil {
