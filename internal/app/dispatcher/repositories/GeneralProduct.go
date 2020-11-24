@@ -103,7 +103,7 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 			ProductPic3Large:  generalProduct.ProductPic3Large,                //商品图片3-大图
 			Thumbnail:         generalProduct.Thumbnail,                       //商品短视频缩略图
 			ShortVideo:        generalProduct.ShortVideo,                      //商品短视频
-			CreateAt:          uint64(generalProduct.CreateAt),                //创建时间
+			CreateAt:          uint64(generalProduct.CreatedAt),               //创建时间
 			ModifyAt:          uint64(generalProduct.ModifyAt),                //最后修改时间
 			AllowCancel:       generalProduct.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 		})

@@ -1049,7 +1049,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					DiscountDesc:      productInfo.DiscountDesc,
 					DiscountStartTime: uint64(productInfo.DiscountStartTime),
 					DiscountEndTime:   uint64(productInfo.DiscountEndTime),
-					CreateAt:          uint64(productInfo.CreateAt),
+					CreateAt:          uint64(productInfo.CreatedAt),
 					ModifyAt:          uint64(productInfo.ModifyAt),
 					AllowCancel:       productInfo.AllowCancel,
 				})
@@ -1172,7 +1172,7 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 				ProductPic3Large:  productInfo.ProductPic3Large,
 				Thumbnail:         productInfo.Thumbnail,
 				ShortVideo:        productInfo.ShortVideo,
-				CreateAt:          uint64(productInfo.CreateAt),
+				CreateAt:          uint64(productInfo.CreatedAt),
 				ModifyAt:          uint64(productInfo.ModifyAt),
 				AllowCancel:       productInfo.AllowCancel,
 			})

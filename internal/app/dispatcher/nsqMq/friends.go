@@ -231,7 +231,6 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					}
 
 					//增加A的好友B的信息哈希表
-					//HMSET FriendInfo:{A}:{B} username {username} nick {nick} source {source} ex {ex} createAt {createAt} updateAt {updateAt}
 					nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userB), "Nick"))
 					_, err = redisConn.Do("HMSET",
 						fmt.Sprintf("FriendInfo:%s:%s", userA, userB),

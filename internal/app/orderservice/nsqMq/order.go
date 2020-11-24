@@ -141,7 +141,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				DiscountDesc:      product.DiscountDesc,
 				DiscountStartTime: uint64(product.DiscountStartTime),
 				DiscountEndTime:   uint64(product.DiscountEndTime),
-				CreateAt:          uint64(product.CreateAt),
+				CreateAt:          uint64(product.CreatedAt),
 				ModifyAt:          uint64(product.ModifyAt),
 				AllowCancel:       product.AllowCancel,
 			})
@@ -596,7 +596,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().UnixNano() / 1e6,
 			AllowCancel:       req.Product.AllowCancel,
 		}
 
