@@ -180,9 +180,9 @@ COMPLETE:
 //7-2 商品上架
 func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	var err error
+	var data []byte
 	errorCode := 200
 	var errorMsg string
-	rsp := &Order.AddProductRsp{}
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -265,7 +265,11 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		// req.Product.ProductId = "aaa"
 		productId := uuid.NewV4().String()
 		req.Product.ProductId = productId
-		rsp.ProductID = productId
+		rsp := &Order.AddProductRsp{
+			ProductID: productId,
+		}
+		data, _ = proto.Marshal(rsp)
+
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
 		//从redis里获取当前用户信息
@@ -411,7 +415,7 @@ COMPLETE:
 	if errorCode == 200 {
 		//
 		nc.logger.Debug("7-2 回包")
-		data, _ := proto.Marshal(rsp)
+
 		msg.FillBody(data)
 
 	} else {
