@@ -38,15 +38,15 @@ func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 	if product == nil {
 		return errors.New("product is nil")
 	}
-	// //如果没有记录，则增加，如果有记录，则更新全部字段
-	// if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(product).Error; err != nil {
-	// 	m.logger.Error("增加Product失败", zap.Error(err))
-	// 	return err
-	// } else {
-	// 	m.logger.Debug("增加Product成功")
-	// }
+	//如果没有记录，则增加，如果有记录，则更新全部字段
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(product).Error; err != nil {
+		m.logger.Error("增加Product失败", zap.Error(err))
+		return err
+	} else {
+		m.logger.Debug("增加Product成功")
+	}
 
-	return m.base.Create(product)
+	// return m.base.Create(product)
 
 }
 
