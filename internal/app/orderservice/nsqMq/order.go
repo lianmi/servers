@@ -262,9 +262,10 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		//生成随机的商品id
-		req.Product.ProductId = "aaa"
-		// req.Product.ProductId = uuid.NewV4().String()
-		rsp.ProductID = req.Product.ProductId
+		// req.Product.ProductId = "aaa"
+		productId := uuid.NewV4().String()
+		req.Product.ProductId = productId
+		rsp.ProductID = productId
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
 		//从redis里获取当前用户信息
@@ -334,7 +335,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			}
 		*/
 		product := &models.Product{
-			ProductID: req.Product.ProductId,
+			ProductID: productId,
 			Username:  username,
 			// Expire:      int64(req.Product.Expire),
 			// ProductName: req.Product.ProductName,
