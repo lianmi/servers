@@ -333,8 +333,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		product := &models.Product{
-			Username:          username,
 			ProductID:         req.Product.ProductId,
+			Username:          username,
 			Expire:            int64(req.Product.Expire),
 			ProductName:       req.Product.ProductName,
 			ProductType:       int(req.Product.ProductType),
@@ -359,10 +359,22 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			DiscountDesc:      req.Product.DiscountDesc,
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			CreateAt:          time.Now().UnixNano() / 1e6,
 			AllowCancel:       req.Product.AllowCancel,
 		}
 
+		nc.logger.Debug("Product字段",
+			zap.String("Username", product.Username),
+			zap.String("ProductId", product.ProductID),
+			zap.Int64("Expire", product.Expire),
+			zap.String("ProductName", product.ProductName),
+			zap.Int("ProductType", product.ProductType),
+			zap.String("ProductDesc", product.ProductDesc),
+			zap.String("ProductPic1Small", product.ProductPic1Small),
+			zap.String("ProductPic1Middle", product.ProductPic1Middle),
+			zap.String("ProductPic1Large", product.ProductPic1Large),
+
+			zap.Bool("AllowCancel", product.AllowCancel),
+		)
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
 			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
