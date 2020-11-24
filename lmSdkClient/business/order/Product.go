@@ -99,7 +99,7 @@ func AddProduct() error {
 			ProductDesc:       "最新玩法福彩3D",
 			ProductPic1Small:  "",
 			ProductPic1Middle: "",
-			ProductPic1Large:  "/product/215b66d14111da360261206e348c3223.jpg", // 原图
+			ProductPic1Large:  "product/215b66d14111da360261206e348c3223.jpg", // 原图
 			ProductPic2Small:  "",
 			ProductPic2Middle: "",
 			ProductPic2Large:  "",
