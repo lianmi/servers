@@ -7,7 +7,7 @@ grpc:
   port: 0    
 db:
   url: lianmidba:12345678@tcp(mariadb:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
-  debug: false  
+  debug: true  
 nsq:
   broker: nsqlookupd:4161
   producerAddr: nsqd:4150
