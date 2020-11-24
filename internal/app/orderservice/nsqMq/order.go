@@ -333,12 +333,12 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			}
 		*/
 		product := &models.Product{
-			ProductID:   req.Product.ProductId,
-			Username:    username,
-			Expire:      int64(req.Product.Expire),
-			ProductName: req.Product.ProductName,
-			ProductType: int(req.Product.ProductType),
-			ProductDesc: req.Product.ProductDesc,
+			ProductID: req.Product.ProductId,
+			Username:  username,
+			// Expire:      int64(req.Product.Expire),
+			// ProductName: req.Product.ProductName,
+			// ProductType: int(req.Product.ProductType),
+			// ProductDesc: req.Product.ProductDesc,
 
 			// ProductPic1Small:  productPic1Small,
 			// ProductPic1Middle: productPic1Middle,
@@ -375,13 +375,13 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			zap.String("ProductPic1Large", product.ProductPic1Large),
 			zap.Bool("AllowCancel", product.AllowCancel),
 		)
-		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
-		}
-
 		//保存到MySQL
 		if err = nc.service.AddProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
+		}
+
+		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
+			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
 
 		//推送通知给关注的用户
