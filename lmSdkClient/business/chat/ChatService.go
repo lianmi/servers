@@ -55,33 +55,32 @@ func GetOssToken() error {
 	defer redisConn.Close()
 
 	topic := "lianmi/cloud/dispatcher"
-	var adminName string
-	var adminDeviceID string
-	adminName, _ = redis.String(redisConn.Do("GET", "AdminName"))
-	adminDeviceID, _ = redis.String(redisConn.Do("GET", "AdminDeviceID"))
-	if adminName == "" {
-		log.Println("adminName is empty")
-		return errors.New("adminName is empty error")
+	var localUserName string
+	var localDeviceID string
+	localUserName, _ = redis.String(redisConn.Do("GET", "LocalUserName"))
+	localDeviceID, _ = redis.String(redisConn.Do("GET", "LocalDeviceID"))
+	if localUserName == "" {
+		log.Println("localUserName is  empty")
+		return errors.New("localUserName is empty error")
 	}
-	if adminDeviceID == "" {
-		log.Println("adminDeviceID is empty")
-		return errors.New("adminDeviceID is empty error")
+	if localDeviceID == "" {
+		log.Println("localDeviceID is  empty")
+		return errors.New("localDeviceID is empty error")
 	}
-
-	responseTopic := fmt.Sprintf("lianmi/cloud/%s", adminDeviceID)
+	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
 
 	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
-	key := fmt.Sprintf("jwtToken:%s", adminName)
+	key := fmt.Sprintf("jwtToken:%s", localUserName)
 	jwtToken, err := redis.String(redisConn.Do("GET", key))
 	if err != nil {
-		log.Println("Redis GET jwtToken:{adminName}", err)
+		log.Println("Redis GET jwtToken:{localUserName}", err)
 		return err
 	}
 	if jwtToken == "" {
 		return errors.New("jwtToken is empty error")
 	}
 
-	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", adminName)))
+	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
@@ -92,7 +91,7 @@ func GetOssToken() error {
 			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
-				"deviceId":        adminDeviceID, // 设备号
+				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "5",           // 业务号
 				"businessSubType": "12",          //  业务子号
 				"taskId":          taskIdStr,
@@ -178,7 +177,7 @@ func GetOssToken() error {
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
-		ClientID:   adminDeviceID,
+		ClientID:   localDeviceID,
 		CleanStart: true,
 		Username:   "",
 		Password:   []byte(""),
@@ -186,7 +185,7 @@ func GetOssToken() error {
 	ca, err := client.Connect(context.Background(), cp)
 	if err == nil {
 		if ca.ReasonCode == 0 {
-			subTopic := fmt.Sprintf("lianmi/cloud/device/%s", adminDeviceID)
+			subTopic := fmt.Sprintf("lianmi/cloud/device/%s", localDeviceID)
 			if _, err := client.Subscribe(context.Background(), &paho.Subscribe{
 				Subscriptions: map[string]paho.SubscribeOptions{
 					subTopic: paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
