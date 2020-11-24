@@ -333,33 +333,34 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		product := &models.Product{
-			ProductID:         req.Product.ProductId,
-			Username:          username,
-			Expire:            int64(req.Product.Expire),
-			ProductName:       req.Product.ProductName,
-			ProductType:       int(req.Product.ProductType),
-			ProductDesc:       req.Product.ProductDesc,
-			ProductPic1Small:  productPic1Small,
-			ProductPic1Middle: productPic1Middle,
-			ProductPic1Large:  productPic1Large,
+			ProductID:   req.Product.ProductId,
+			Username:    username,
+			Expire:      int64(req.Product.Expire),
+			ProductName: req.Product.ProductName,
+			ProductType: int(req.Product.ProductType),
+			ProductDesc: req.Product.ProductDesc,
 
-			ProductPic2Small:  productPic2Small,
-			ProductPic2Middle: productPic2Middle,
-			ProductPic2Large:  productPic2Large,
+			// ProductPic1Small:  productPic1Small,
+			// ProductPic1Middle: productPic1Middle,
+			// ProductPic1Large:  productPic1Large,
 
-			ProductPic3Small:  productPic3Small,
-			ProductPic3Middle: productPic3Middle,
-			ProductPic3Large:  productPic3Large,
+			// ProductPic2Small:  productPic2Small,
+			// ProductPic2Middle: productPic2Middle,
+			// ProductPic2Large:  productPic2Large,
 
-			Thumbnail:         thumbnail,
-			ShortVideo:        shortVideo,
-			Price:             req.Product.Price,
-			LeftCount:         req.Product.LeftCount,
-			Discount:          req.Product.Discount,
-			DiscountDesc:      req.Product.DiscountDesc,
-			DiscountStartTime: int64(req.Product.DiscountStartTime),
-			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			AllowCancel:       req.Product.AllowCancel,
+			// ProductPic3Small:  productPic3Small,
+			// ProductPic3Middle: productPic3Middle,
+			// ProductPic3Large:  productPic3Large,
+
+			// Thumbnail:         thumbnail,
+			// ShortVideo:        shortVideo,
+			// Price:             req.Product.Price,
+			// LeftCount:         req.Product.LeftCount,
+			// Discount:          req.Product.Discount,
+			// DiscountDesc:      req.Product.DiscountDesc,
+			// DiscountStartTime: int64(req.Product.DiscountStartTime),
+			// DiscountEndTime:   int64(req.Product.DiscountEndTime),
+			// AllowCancel:       req.Product.AllowCancel,
 		}
 
 		nc.logger.Debug("Product字段",
@@ -372,7 +373,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			zap.String("ProductPic1Small", product.ProductPic1Small),
 			zap.String("ProductPic1Middle", product.ProductPic1Middle),
 			zap.String("ProductPic1Large", product.ProductPic1Large),
-
 			zap.Bool("AllowCancel", product.AllowCancel),
 		)
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
