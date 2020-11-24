@@ -5,9 +5,9 @@ package common
 
 import "time"
 
-//短信校验码一天总量
+//短信校验码一天总量100条
 const (
-	SMSCOUNT = uint64(10)
+	SMSCOUNT = uint64(100)
 )
 
 //redis

@@ -24,7 +24,6 @@ import (
 )
 
 //9-1 商户上传订单DH加密公钥
-
 func RegisterPreKeys() error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
@@ -65,6 +64,22 @@ func RegisterPreKeys() error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	req := &Order.RegisterPreKeysReq{}
+	req.PreKeys = append(req.PreKeys, "62C76C2FC49107A3D512F44082C7A845C20F8B9B22451A9921BE1CCC1E14FA19")
+	req.PreKeys = append(req.PreKeys, "D139AFFB1FC86CF07C3D9CA119BF3702A3D26557BEC1CBF170556933A62FB92A")
+	req.PreKeys = append(req.PreKeys, "D1E702D92C9A5E1A7C3FEE0F6998DA95E08938B5C185B98138105EEED3985A54")
+	req.PreKeys = append(req.PreKeys, "04BBC68B78808AC7C1735900F52441613EA414220E2679BCA03234F76B4E585F")
+	req.PreKeys = append(req.PreKeys, "8A4685819A978E04F0E15111BE6370EC36128185591CFA52F7ED800FD5B1560B")
+	req.PreKeys = append(req.PreKeys, "961B09FBA687C8409DC42DC23ACEF3CB9885643E92E04A3CAEFFACB93536B304")
+	req.PreKeys = append(req.PreKeys, "CB56FD536579A97E1E15B7F8EA2BA2DB9C8F57A57C6B17BB3D94EC4F68B6313E")
+	req.PreKeys = append(req.PreKeys, "282BFB58DE91EBA200D3670746F0DB4F98AF56B1BDC7B297FBD0504B1A322D33")
+	req.PreKeys = append(req.PreKeys, "49A32DAA6CF3DDF9E38FC4ADAF4179D66F4C6C3934F2B87C3E91BA9CCE031A72")
+	req.PreKeys = append(req.PreKeys, "AC7C472C8C3B60B1B48D132A0A02D1D12C95734D6CA2908D8EBEFD4880D4D13D")
+	req.PreKeys = append(req.PreKeys, "5DEB22DB0A6BAB9471D3A7B34306B3EF284369997B6FD09147E5AB33847B0245")
+	req.PreKeys = append(req.PreKeys, "65A5ABEFFC862E236CFCA516ABFD571E41129DD4B3E5F51304D6DDC254681E3F")
+	req.PreKeys = append(req.PreKeys, "8B2E07F03C153686B1A50516C6A52B6EEA59162832434E95C6B19CF2F9E9FD40")
+	req.PreKeys = append(req.PreKeys, "ADA4D67EDB341258BF891A5B56609BC251EFBBFB1FEA8EDC8FA6E4FF63BB7B30")
+	req.PreKeys = append(req.PreKeys, "1FD921C1BB6DFD980A7DE1D2B5DADED2C2B06E5BA1E4DE34907DA0D80896DA62")
+	req.PreKeys = append(req.PreKeys, "3E258A22BC305A842E8B0F89567DC4D1ED3B6FB9774DF6B30856648AEE98111F")
 
 	content, _ := proto.Marshal(req)
 
@@ -173,7 +188,7 @@ func RegisterPreKeys() error {
 }
 
 //9-2 获取网点OPK公钥及订单ID, 只允许普通用户获取
-func GetPreKeyOrderID() error {
+func GetPreKeyOrderID(productId string) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -212,11 +227,14 @@ func GetPreKeyOrderID() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
-	pkey := fmt.Sprintf("ProductID:%s", localUserName)
-	productId, _ := redis.String(redisConn.Do("GET", pkey))
+	if productId == "" {
+		pkey := fmt.Sprintf("ProductID:%s", localUserName)
+		productId, _ = redis.String(redisConn.Do("GET", pkey))
+
+	}
 
 	req := &Order.GetPreKeyOrderIDReq{
-		UserName:  "id1",
+		UserName:  "id3",
 		OrderType: Global.OrderType(1),
 		ProductID: productId,
 	}
@@ -269,13 +287,32 @@ func GetPreKeyOrderID() error {
 			log.Println("taskId: ", taskIdStr)
 			log.Println("code: ", code)
 
-			if businessTypeStr == "9" && businessSubTypeStr == "1" {
-				if code == "200" {
-					log.Println("response succeed")
+			if code == "200" {
+				log.Println("response succeed")
+				// 回包
+				//解包负载 m.Payload
+				var rsq Order.GetPreKeyOrderIDRsp
+				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+					log.Println("Protobuf Unmarshal Error", err)
 
 				} else {
-					log.Println("GetPreKeyOrderID failed")
+
+					log.Println("回包内容 GetPreKeyOrderIDRsp ---------------------")
+					log.Println("商户的账号id userName: ", rsq.UserName)
+					log.Println("商品ID productID: ", rsq.ProductID)
+					log.Println("订单类型 orderType: ", int(rsq.OrderType))
+					log.Println("一次性公钥, hex方式 pubKey: ", rsq.PubKey)
+					log.Println("订单ID orderID: ", rsq.OrderID)
+
+					pkey := fmt.Sprintf("OrderID:%s", localUserName)
+					redisConn.Do("SET", pkey, rsq.OrderID)
+
+					//
+
 				}
+
+			} else {
+				log.Println("GetPreKeyOrderID failed")
 			}
 
 		}),
