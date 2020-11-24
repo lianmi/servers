@@ -45,6 +45,7 @@ func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 	} else {
 		m.logger.Debug("增加Product成功")
 	}
+	return nil
 
 	// return m.base.Create(product)
 
