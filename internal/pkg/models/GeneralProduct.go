@@ -25,7 +25,7 @@ type GeneralProduct struct {
 	ProductPic3Large  string `form:"product_pic3_large" json:"product_pic3_large,omitempty"`    //商品图片3-大图
 	Thumbnail         string `form:"thumbnail" json:"thumbnail,omitempty"`                      //商品短视频缩略图
 	ShortVideo        string `form:"short_video" json:"short_video,omitempty"`                  //商品短视频
-	CreateAt          int64  `form:"create_at" json:"create_at,omitempty"`                      //创建时刻， 也就是上架时刻
+	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`                    //创建时刻， 也就是上架时刻
 	ModifyAt          int64  `form:"modify_at" json:"modify_at,omitempty"`                      //最后修改时间
 	AllowCancel       bool   `form:"allow_cancel" json:"allow_cancel" binding:"required"`       //是否允许撤单， 默认是可以，彩票类的不可以
 }

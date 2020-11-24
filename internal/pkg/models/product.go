@@ -35,13 +35,13 @@ type Product struct {
 	DiscountStartTime int64   `form:"discount_starttime" json:"discount_starttime,omitempty"`   //折扣开始时间
 	DiscountEndTime   int64   `form:"discount_endtime" json:"discount_endtime,omitempty"`       //折扣结束时间
 	AllowCancel       bool    `form:"allow_cancel" json:"allow_cancel,omitempty"`               //是否允许撤单， 默认是可以，彩票类的不可以
-	CreateAt          int64   `form:"create_at" json:"create_at,omitempty"`                     //创建时刻， 也就是上架时刻
+	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`                     //创建时刻， 也就是上架时刻
 	ModifyAt          int64   `form:"modify_at" json:"modify_at,omitempty"`                     //最后修改时间
 }
 
 //BeforeCreate CreatedAt赋值
 func (d *Product) BeforeCreate(tx *gorm.DB) error {
-	tx.Statement.SetColumn("CreateAt", time.Now().UnixNano()/1e6)
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
