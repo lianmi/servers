@@ -14,6 +14,7 @@ import (
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
 	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
+	"github.com/lianmi/servers/util/conv"
 	"go.uber.org/zap"
 )
 
@@ -24,9 +25,10 @@ const (
 
 // Login form structure.
 type Login struct {
-	Username        string `form:"username" json:"username" binding:"required"`
-	Password        string `form:"password" json:"password" binding:"required"`
-	SmsCode         string `form:"smscode" json:"smscode" binding:"required"` //短信校验码，必填
+	Mobile          string `form:"mobile" json:"mobile"`                        // 11位手机号 选填
+	Username        string `form:"username" json:"username"`                    //注册号，当mobile非空的时候，选填
+	Password        string `form:"password" json:"password" binding:"required"` //密码 ，必填
+	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`   //短信校验码，必填
 	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
 	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
 	Os              string `form:"os" json:"os" binding:"required"`
@@ -112,13 +114,52 @@ func CreateInitControllersFn(
 					pc.logger.Error("Authenticator Error", zap.Error(err))
 					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
+				var err error
 				isMaster := loginVals.IsMaster
 				smscode := loginVals.SmsCode
+				mobile := loginVals.Mobile
 				username := loginVals.Username
 				password := loginVals.Password
 				deviceID := loginVals.DeviceID
 				clientType := loginVals.ClientType
 				os := loginVals.Os
+
+				if smscode == "" {
+					pc.logger.Error("SmsCode is empty")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				}
+
+				if mobile == "" && username == "" {
+					pc.logger.Error("Mobile and Username are both empty")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				}
+
+				if mobile != "" && username == "" {
+					//不是手机
+					if len(mobile) != 11 {
+						pc.logger.Warn("Mobile error", zap.Int("len", len(mobile)))
+
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
+
+					//不是全数字
+					if !conv.IsDigit(mobile) {
+						pc.logger.Warn("Mobile Is not Digit")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
+
+					username, err = pc.service.GetUsernameByMobile(mobile)
+					if err != nil {
+						pc.logger.Warn("GetUsernameByMobile error")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					} else {
+						if username == "" {
+							pc.logger.Warn("username get error")
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
+					}
+
+				}
 
 				// 检测用户是否可以登陆
 				if pc.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType) {

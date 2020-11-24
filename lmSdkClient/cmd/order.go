@@ -1,5 +1,5 @@
 /*
-商品及订单模块
+订单模块
 */
 package cmd
 
@@ -22,13 +22,4 @@ var orderCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(orderCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// orderCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// orderCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"net"
+	// "net"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"time"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
@@ -20,6 +23,7 @@ import (
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
 const (
@@ -37,6 +41,30 @@ const (
 type KeyPair struct {
 	PrivateKeyHex string //hex格式的私钥
 	AddressHex    string //hex格式的地址
+}
+
+func NewTlsConfig() *tls.Config {
+	certpool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(clientcommon.CaPath + "/ca.crt")
+	if err != nil {
+		log.Fatalln(err.Error())
+	} else {
+		log.Println("ReadFile ok")
+	}
+	certpool.AppendCertsFromPEM(ca)
+	clientKeyPair, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		panic(err)
+	} else {
+		log.Println("LoadX509KeyPair ok")
+	}
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientKeyPair},
+	}
 }
 
 //创建 用户 HD钱包
@@ -198,9 +226,19 @@ func RegisterWallet(walletAddress string) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -283,7 +321,7 @@ func RegisterWallet(walletAddress string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -367,9 +405,19 @@ func Deposit(rechargeAmount float64) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -451,7 +499,7 @@ func Deposit(rechargeAmount float64) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -578,11 +626,20 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 			},
 		},
 	}
-
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -714,7 +771,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -795,9 +852,19 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -877,7 +944,7 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -952,9 +1019,19 @@ func Balance() error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1033,7 +1110,7 @@ func Balance() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1108,9 +1185,19 @@ func UserSignIn() error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1189,7 +1276,7 @@ func UserSignIn() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1285,9 +1372,19 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1404,7 +1501,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1485,9 +1582,19 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1568,7 +1675,7 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1658,9 +1765,19 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1739,7 +1856,7 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1828,9 +1945,19 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -1909,7 +2036,7 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1999,12 +2126,21 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
 	if err != nil {
-		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-		return errors.New("BrokerServer dial error")
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
 	}
 
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
+	if err != nil {
+		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
+		return errors.New("BrokerServer dial error")
+	}
 	// Create paho client.
 	client := paho.NewClient(paho.ClientConfig{
 		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
@@ -2080,7 +2216,7 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -2169,12 +2305,21 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
 	if err != nil {
-		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-		return errors.New("BrokerServer dial error")
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
 	}
 
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
+	if err != nil {
+		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
+		return errors.New("BrokerServer dial error")
+	}
 	// Create paho client.
 	client := paho.NewClient(paho.ClientConfig{
 		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
@@ -2250,7 +2395,7 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -2335,9 +2480,19 @@ func DoTxHashInfo(txType int32, txHash string) error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", LMCommon.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -2419,7 +2574,7 @@ func DoTxHashInfo(txType int32, txHash string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:

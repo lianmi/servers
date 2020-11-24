@@ -1,4 +1,4 @@
-package chat
+package order
 
 import (
 	"context"
@@ -6,17 +6,18 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"time"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 
-	Msg "github.com/lianmi/servers/api/proto/msg"
+	Global "github.com/lianmi/servers/api/proto/global"
+	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
+	"io/ioutil"
+	"log"
+	"time"
 )
 
 func NewTlsConfig() *tls.Config {
@@ -43,8 +44,15 @@ func NewTlsConfig() *tls.Config {
 	}
 }
 
-// 5-12 获取阿里云临时令牌
-func GetOssToken() error {
+// 7-1  查询某个商户的所有商品信息
+func QueryProducts() error {
+
+	//TODO
+	return nil
+}
+
+// 7-2 商品上架
+func AddProduct() error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -84,17 +92,44 @@ func GetOssToken() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", adminName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
+	req := &Order.AddProductReq{
+		Product: &Order.Product{
+			Expire:            uint64(0),
+			ProductName:       "福彩3D",
+			ProductType:       Global.ProductType(8), //8-彩票
+			ProductDesc:       "最新玩法福彩3D",
+			ProductPic1Small:  "",
+			ProductPic1Middle: "",
+			ProductPic1Large:  "/product/215b66d14111da360261206e348c3223.jpg", // 原图
+			ProductPic2Small:  "",
+			ProductPic2Middle: "",
+			ProductPic2Large:  "",
+			ProductPic3Small:  "",
+			ProductPic3Middle: "",
+			ProductPic3Large:  "",
+			Thumbnail:         "",
+			ShortVideo:        "",
+			Price:             float32(2.0),
+			AllowCancel:       true,
+		},
+		OrderType:       Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
+		OpkBusinessUser: "",
+		Expire:          0,
+	}
+
+	content, _ := proto.Marshal(req)
+
 	pb := &paho.Publish{
 		Topic:   topic,
 		QoS:     byte(1),
-		Payload: nil,
+		Payload: content,
 		Properties: &paho.PublishProperties{
 			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
 				"deviceId":        adminDeviceID, // 设备号
-				"businessType":    "5",           // 业务号
-				"businessSubType": "12",          //  业务子号
+				"businessType":    "7",           // 业务号
+				"businessSubType": "2",           //  业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",
@@ -134,42 +169,21 @@ func GetOssToken() error {
 				log.Println("Wallet register succeed")
 				// 回包
 				//解包负载 m.Payload
-				var rsq Msg.GetOssTokenRsp
+				var rsq Order.AddProductRsp
 				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
 					log.Println("Protobuf Unmarshal Error", err)
 
 				} else {
 
-					log.Println("回包内容---------------------")
-					log.Println("资源服务器地址 EndPoint: ", rsq.EndPoint)
-					log.Println("空间名称 BucketName: ", rsq.BucketName)
-					log.Println("Bucket访问凭证 AccessKeyId: ", rsq.AccessKeyId)
-					log.Println("Bucket访问密钥 AccessKeySecret: ", rsq.AccessKeySecret)
-					log.Println("安全凭证 SecurityToken: ", rsq.SecurityToken)
-					log.Println("oss的文件目录 Directory: ", rsq.Directory)
-
-					//保存到redis
-					redisConn.Do("SET", "OSSEndPoint", rsq.EndPoint)
-					redisConn.Do("SET", "OSSBucketName", rsq.BucketName)
-					redisConn.Do("SET", "OSSAccessKeyId", rsq.AccessKeyId)
-					redisConn.Do("SET", "OSSAccessKeySecret", rsq.AccessKeySecret)
-					redisConn.Do("SET", "OSSSecurityToken", rsq.SecurityToken)
-					redisConn.Do("SET", "OSSDirectory", rsq.Directory)
-					/*
-						2020/11/23 15:24:28 资源服务器地址 EndPoint:  https://oss-cn-hangzhou.aliyuncs.com
-						2020/11/23 15:24:28 空间名称 BucketName:  lianmi-ipfs
-						2020/11/23 15:24:28 Bucket访问凭证 AccessKeyId:  STS.NToa6SbpTV9XNNhjCG68FZWiB
-						2020/11/23 15:24:28 Bucket访问密钥 AccessKeySecret:  5EgiwHWw5YQojjiobyiwLxB49Hi2X5YUXQh134DtQAZ
-						2020/11/23 15:24:28 安全凭证 SecurityToken:  CAIS8QF1q6Ft5B2yfSjIr5faKoznj6914fuzTGjZjkMSOrdqtZLCoDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CcmyvJJyMRo22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABacemwmaJvPS4R/oV5wbS2QS7xZTnEU1HFDqNyFsP+QdhQTrRD/h1Utlg2z1+xcZr6J54nVO8xTH1pshEPlw3MBnsHW3Jq31NQHdPppMoE5d0Qd1aMnlFgC+pQUNu5n1TyxU8BVCfHFT62EhT+EZz6ugpQ1LmQh1/a35zlCOo6oQ=
-						2020/11/23 15:24:28 oss的文件目录 Directory:  2020/11/23/
-					*/
+					log.Println("回包内容 AddProductRsp ---------------------")
+					log.Println("商品ID productID: ", rsq.ProductID)
 
 					//
 
 				}
 
 			} else {
-				log.Println("GetOssToken failed")
+				log.Println("AddProduct failed")
 			}
 
 		}),
@@ -216,7 +230,7 @@ func GetOssToken() error {
 		}
 
 	}
-	log.Println("GetOssToken is Done.")
+	log.Println("AddProduct is Done.")
 
 	return nil
 

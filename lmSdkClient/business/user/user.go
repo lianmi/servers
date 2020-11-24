@@ -2,24 +2,49 @@ package user
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
-	// "net"
-	"crypto/tls"
+	"io/ioutil"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/lmSdkClient/common"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"log"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/gomodule/redigo/redis"
 )
 
+func NewTlsConfig() *tls.Config {
+	certpool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(clientcommon.CaPath + "/ca.crt")
+	if err != nil {
+		log.Fatalln(err.Error())
+	} else {
+		log.Println("ReadFile ok")
+	}
+	certpool.AppendCertsFromPEM(ca)
+	clientKeyPair, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		panic(err)
+	} else {
+		log.Println("LoadX509KeyPair ok")
+	}
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientKeyPair},
+	}
+}
+
 //1-1
 func SendGetUsers(userNames []string) error {
-	redisConn, err := redis.Dial("tcp", common.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -81,15 +106,15 @@ func SendGetUsers(userNames []string) error {
 
 	//send req to mqtt
 	//利用TLS协议连接broker
-	cer, err := tls.LoadX509KeyPair(common.CaPath+"/mqtt.lianmi.cloud.crt", common.CaPath+"/mqtt.lianmi.cloud.key")
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
 	if err != nil {
 		log.Println("LoadX509KeyPair error: ", err.Error())
 		return err
 	}
 
+	//Connect mqtt broker using ssl
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
-	conn, err := tls.Dial("tcp", common.BrokerAddr, tlsConfig)
-	// conn, err := net.Dial("tcp", common.BrokerAddr)
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
 		log.Println("Dial error: ", err.Error())

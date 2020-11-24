@@ -5,18 +5,45 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
+	// "net"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"time"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Sync "github.com/lianmi/servers/api/proto/syn"
-	"github.com/lianmi/servers/lmSdkClient/common"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
+func NewTlsConfig() *tls.Config {
+	certpool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(clientcommon.CaPath + "/ca.crt")
+	if err != nil {
+		log.Fatalln(err.Error())
+	} else {
+		log.Println("ReadFile ok")
+	}
+	certpool.AppendCertsFromPEM(ca)
+	clientKeyPair, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		panic(err)
+	} else {
+		log.Println("LoadX509KeyPair ok")
+	}
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientKeyPair},
+	}
+}
+
 func DoSyncEvent() error {
-	redisConn, err := redis.Dial("tcp", common.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -85,9 +112,19 @@ func DoSyncEvent() error {
 	}
 
 	//send req to mqtt
-	conn, err := net.Dial("tcp", common.BrokerAddr)
+	//利用TLS协议连接broker
+	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
+	if err != nil {
+		log.Println("LoadX509KeyPair error: ", err.Error())
+		return err
+	}
+
+	//Connect mqtt broker using ssl
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
 	if err != nil {
 		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+		log.Println("Dial error: ", err.Error())
 		return errors.New("BrokerServer dial error")
 	}
 
@@ -150,7 +187,7 @@ func DoSyncEvent() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(60 * time.Second) // 60s后退出
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
