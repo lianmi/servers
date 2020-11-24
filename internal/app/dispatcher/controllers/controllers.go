@@ -37,6 +37,11 @@ type Login struct {
 	IsMaster        bool   `form:"ismaster" json:"ismaster"` //由于golang对false处理不对，所以不能设为必填
 }
 
+type LoginResp struct {
+	Username string `form:"username" json:"username"`
+	JwtToken string `form:"jwt_token" json:"jwt_token"`
+}
+
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token
 	token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {
@@ -233,8 +238,11 @@ func CreateInitControllersFn(
 				//将userName, deviceID, token及expire保存到redis, 用于mqtt协议的消息的授权验证
 				pc.SaveUserToken(userName, deviceID, token, t)
 
-				//向客户端回复生成的JWT令牌
-				RespData(c, http.StatusOK, code, token)
+				//向客户端回复注册号及生成的JWT令牌
+				RespData(c, http.StatusOK, code, &LoginResp{
+					Username: userName,
+					JwtToken: token,
+				})
 
 			},
 			// TokenLookup is a string in the form of "<source>:<name>" that is used
