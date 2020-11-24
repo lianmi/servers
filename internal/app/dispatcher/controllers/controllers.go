@@ -347,6 +347,10 @@ func CreateInitControllersFn(
 
 			//根据商户注册号查询所有上架商品
 			productGroup.GET("/productslist", pc.GetProductsList)
+			
+			//根据商品ID获取商品详情
+			productGroup.GET("/info/:productid", pc.GetProductInfo)
+
 
 		}
 

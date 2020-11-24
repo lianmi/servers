@@ -4,8 +4,12 @@ import (
 	// "time"
 
 	// "github.com/golang/protobuf/proto"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
+	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 //获取某个商户的所有商品列表
@@ -84,5 +88,54 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 		})
 	}
 	return resp, nil
+
+}
+
+func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product, error) {
+	product := new(models.Product)
+	where := models.Product{
+		ProductID: productID,
+	}
+
+	if err := s.db.Model(&models.Product{}).Where(&where).First(product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//记录找不到也会触发错误 记录不存在
+			return nil, errors.Wrapf(err, "Record not exists[productID=%s]", productID)
+		} else {
+			return nil, errors.Wrapf(err, "Get Product info error[productID=%s]", productID)
+		}
+
+	}
+
+	return &Order.Product{
+		ProductId:         productID,
+		Expire:            uint64(product.Expire),
+		ProductName:       product.ProductName,
+		ProductType:       Global.ProductType(product.ProductType),
+		ProductDesc:       product.ProductDesc,
+		ProductPic1Small:  product.ProductPic1Small,
+		ProductPic1Middle: product.ProductPic1Middle,
+		ProductPic1Large:  product.ProductPic1Large,
+
+		ProductPic2Small:  product.ProductPic2Small,
+		ProductPic2Middle: product.ProductPic2Middle,
+		ProductPic2Large:  product.ProductPic2Large,
+
+		ProductPic3Small:  product.ProductPic3Small,
+		ProductPic3Middle: product.ProductPic3Middle,
+		ProductPic3Large:  product.ProductPic3Large,
+
+		Thumbnail:         product.Thumbnail,
+		ShortVideo:        product.ShortVideo,
+		Price:             product.Price,
+		LeftCount:         product.LeftCount,
+		Discount:          product.Discount,
+		DiscountDesc:      product.DiscountDesc,
+		DiscountStartTime: uint64(product.DiscountStartTime),
+		DiscountEndTime:   uint64(product.DiscountEndTime),
+		CreateAt:          uint64(product.CreatedAt),
+		ModifyAt:          uint64(product.ModifyAt),
+		AllowCancel:       product.AllowCancel,
+	}, nil
 
 }

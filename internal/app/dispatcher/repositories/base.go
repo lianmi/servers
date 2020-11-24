@@ -91,6 +91,8 @@ type LianmiRepository interface {
 
 	DisBlockUser(username string) (err error)
 
+	GetProductInfo(productID string) (*Order.Product, error)
+	
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)

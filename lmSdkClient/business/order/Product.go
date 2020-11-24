@@ -3,7 +3,6 @@ package order
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 
@@ -15,34 +14,9 @@ import (
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
-	"io/ioutil"
 	"log"
 	"time"
 )
-
-func NewTlsConfig() *tls.Config {
-	certpool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(clientcommon.CaPath + "/ca.crt")
-	if err != nil {
-		log.Fatalln(err.Error())
-	} else {
-		log.Println("ReadFile ok")
-	}
-	certpool.AppendCertsFromPEM(ca)
-	clientKeyPair, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
-	if err != nil {
-		panic(err)
-	} else {
-		log.Println("LoadX509KeyPair ok")
-	}
-	return &tls.Config{
-		RootCAs:            certpool,
-		ClientAuth:         tls.NoClientCert,
-		ClientCAs:          nil,
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{clientKeyPair},
-	}
-}
 
 // 7-1  查询某个商户的所有商品信息
 func QueryProducts() error {

@@ -61,7 +61,9 @@ type LianmiApisService interface {
 	//保存禁言的值，用于设置群禁言或解禁
 	UpdateTeamMute(teamID string, muteType int) error
 
-	//======后台相关======/
+	GetProductInfo(product string) (*Order.Product, error)
+
+
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
@@ -334,6 +336,10 @@ func (s *DefaultLianmiApisService) UpdateTeamMute(teamID string, muteType int) e
 func (s *DefaultLianmiApisService) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
 	return s.Repository.AddGeneralProduct(generalProduct)
 
+}
+
+func (s *DefaultLianmiApisService) GetProductInfo(product string) (*Order.Product, error) {
+	return s.Repository.GetProductInfo(product)
 }
 
 //查询通用商品(id) - Read

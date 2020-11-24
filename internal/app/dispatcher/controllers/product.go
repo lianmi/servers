@@ -22,14 +22,31 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 		return
 	}
 
-	p, err := pc.service.GetGeneralProductByID(productId)
+	resp, err := pc.service.GetGeneralProductByID(productId)
 	if err != nil {
 		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
 		RespFail(c, http.StatusBadRequest, 5000, "Get GeneralProduct by productId error")
 		return
 	}
 
-	c.JSON(http.StatusOK, p)
+	c.JSON(http.StatusOK, resp)
+}
+
+func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
+	productId := c.Param("productid")
+	if productId == "" {
+		RespFail(c, http.StatusBadRequest, 400, "productid is empty")
+		return
+	}
+
+	resp, err := pc.service.GetProductInfo(productId)
+	if err != nil {
+		pc.logger.Error("get Product by productId error", zap.Error(err))
+		RespFail(c, http.StatusBadRequest, 5000, "Get GeneralProduct by productId error")
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
