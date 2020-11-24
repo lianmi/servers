@@ -47,8 +47,6 @@ func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 	}
 	return nil
 
-	// return m.base.Create(product)
-
 }
 
 //修改商品

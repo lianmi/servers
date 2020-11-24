@@ -628,33 +628,42 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			AllowCancel:       req.Product.AllowCancel,
 		}
-
-		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
-			nc.logger.Error("错误: HMSET Product Info", zap.Error(err))
-		}
-
 		//保存到MySQL
 		if err = nc.service.UpdateProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Save to db error")
+			goto COMPLETE
 		}
 
-		//推送通知给关注的用户
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-		for _, watchingUser := range watchingUsers {
+		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
+			nc.logger.Error("错误: HMSET Product Info", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Save to redis error")
+			goto COMPLETE
+		}
 
-			//7-6 已有商品的编辑更新事件
-			updateProductEventRsp := &Order.UpdateProductEventRsp{
-				Username:  username,
-				Product:   req.Product,
-				OrderType: req.OrderType,
-				Expire:    req.Expire,
-				TimeAt:    uint64(time.Now().UnixNano() / 1e6),
+		go func() {
+			//推送通知给关注的用户
+			watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+			for _, watchingUser := range watchingUsers {
+
+				//7-6 已有商品的编辑更新事件
+				updateProductEventRsp := &Order.UpdateProductEventRsp{
+					Username:  username,
+					Product:   req.Product,
+					OrderType: req.OrderType,
+					Expire:    req.Expire,
+					TimeAt:    uint64(time.Now().UnixNano() / 1e6),
+				}
+				productData, _ := proto.Marshal(updateProductEventRsp)
+
+				//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
+				go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
 			}
-			productData, _ := proto.Marshal(updateProductEventRsp)
 
-			//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
-		}
+		}()
+
 	}
 
 COMPLETE:
