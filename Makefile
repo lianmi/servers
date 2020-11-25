@@ -2,11 +2,8 @@ apps = 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
  
 .PHONY: run
 
-run: proto wire
-	for app in $(apps) ;\
-	do \
-		 go run ./cmd/$$app -f configs/$$app.yml  & \
-	done
+run: 
+	@echo "Mac: make mac, Linux: make linux"
 .PHONY: wire
 wire:
 	wire ./...
