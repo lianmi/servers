@@ -187,8 +187,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	var productPic1Small, productPic1Middle, productPic1Large string
 	var productPic2Small, productPic2Middle, productPic2Large string
 	var productPic3Small, productPic3Middle, productPic3Large string
-	var thumbnail string
-	var shortVideo string
+	var shortVideo, thumbnail string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -332,12 +331,13 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
 		}
 
-		if req.Product.Thumbnail != "" {
-			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.Thumbnail
-		}
-
+		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
 			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
+			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		} else {
+			shortVideo = ""
+			thumbnail = ""
 		}
 
 		product := &models.Product{
@@ -473,7 +473,11 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
 	var errorMsg string
-	// var newSeq uint64
+
+	var productPic1Small, productPic1Middle, productPic1Large string
+	var productPic2Small, productPic2Middle, productPic2Large string
+	var productPic3Small, productPic3Middle, productPic3Large string
+	var shortVideo, thumbnail string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -559,7 +563,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//将3张图片的url组装为真正的url
-		var productPic1Small, productPic1Middle, productPic1Large string
 		if req.Product.ProductPic1Large != "" {
 			//小图
 			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -569,7 +572,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
 		}
 
-		var productPic2Small, productPic2Middle, productPic2Large string
 		if req.Product.ProductPic2Large != "" {
 			//小图
 			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -579,7 +581,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
 		}
 
-		var productPic3Small, productPic3Middle, productPic3Large string
 		if req.Product.ProductPic3Large != "" {
 			//小图
 			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -589,13 +590,13 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
 		}
 
-		var thumbnail string
-		if req.Product.Thumbnail != "" {
-			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.Thumbnail
-		}
-		var shortVideo string
+		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
 			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
+			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		} else {
+			shortVideo = ""
+			thumbnail = ""
 		}
 
 		product := &models.Product{
@@ -628,6 +629,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			AllowCancel:       req.Product.AllowCancel,
 		}
+
 		//保存到MySQL
 		if err = nc.service.UpdateProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))

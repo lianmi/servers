@@ -14,6 +14,7 @@ var (
 	pri string = "7107BAEE6CBED449F1BD68A341958C8F776AC417A339387323D71060FBC95987"
 )
 
+
 func demo() {
 
 	var Aprivate, Apublic [32]byte
