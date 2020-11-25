@@ -729,7 +729,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                      //消息模块
 	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncOfflineSysMsgsEvent)) //同步系统离线消息
 
-	targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
@@ -749,7 +749,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	return nil
 }
 
-//处理离线系统通知 systemMsgAt
+//处理离线系统通知 systemMsgAt  包括订单消息
 func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
@@ -1279,7 +1279,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("Sync  payload",
+		nc.logger.Debug("Sync payload",
 			zap.Uint64("MyInfoAt", req.MyInfoAt),
 			zap.Uint64("FriendsAt", req.FriendsAt),
 			zap.Uint64("FriendUsersAt", req.FriendUsersAt),

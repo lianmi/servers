@@ -1221,7 +1221,7 @@ COMPLETE:
 业务号:  BusinessType_Msg(5)
 业务子号:  MsgSubType_RecvMsgEvent(2)
 */
-func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUsername string) error {
+func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUsername string) error {
 	data, _ := proto.Marshal(rsp)
 
 	redisConn := nc.redisPool.Get()
@@ -1241,7 +1241,7 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 		nc.logger.Error("ZADD Error", zap.Error(err))
 	}
 
-	//系统消息具体内容
+	//订单消息具体内容
 	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
 
 	_, err = redisConn.Do("HMSET",
@@ -1287,12 +1287,12 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 		topic := "Order.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+			nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("Broadcast  Msg To All Devices Succeed",
+		nc.logger.Info("Broadcast Msg To All Devices Succeed",
 			zap.String("Username:", toUsername),
 			zap.String("DeviceID:", curDeviceKey),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -1433,7 +1433,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleOrderMsg start...",
@@ -1685,7 +1684,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				)
 
 				//向商户发送订单消息
-				go nc.BroadcastSystemMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+				//TODO  当商户离线时，无法再次获取到此订单推送
+				go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 
 			default:
 
@@ -2313,8 +2313,9 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-
-			go nc.BroadcastSystemMsgToAllDevices(eRsp, toUsername)
+			//向商户发送订单消息的更改
+			//TODO  当商户离线时，无法再次获取到此订单推送
+			go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 		}
 
 	}

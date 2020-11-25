@@ -365,24 +365,9 @@ func GetPreKeyOrderID(productId string) error {
 }
 
 //9-3 下单
-/*
-class OrderProductDoubleQInfoDate{
-  int DateNumber; // 期号
-  int multiple ; // 倍数
-  OrderProductDoubleQInfoDateTypeEnum type ; // 类型
-  int numberMaster ; // 主号
-  // 其他号
-  int number1 ;
-  int number2 ;
-  int number3 ;
-  int number4 ;
-  int number5 ;
-  int number6 ;
 
-}
-*/
 func AddOrder(orderID, productID string) error {
-
+	var attach string
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
@@ -431,6 +416,33 @@ func AddOrder(orderID, productID string) error {
 		productID, _ = redis.String(redisConn.Do("GET", pkey))
 
 	}
+
+	ssqOrder := ShuangSeQiuOrder{
+		BuyUser:          "id1",                       //买家
+		BusinessUsername: "id3",                       //商户注册账号
+		ProductID:        productID,                   //商品ID
+		OrderID:          orderID,                     //订单ID
+		LotteryPicHash:   "",                          //彩票拍照的照片哈希
+		LotteryPicURL:    "",                          //彩票拍照的照片原图url
+		Count:            1,                           //总注数
+		Cost:             2.0,                         //花费, 每注2元, 乘以总注数
+		TxHash:           "",                          //上链的哈希
+		BlockNumber:      0,                           //区块高度
+		CreatedAt:        time.Now().UnixNano() / 1e6, //创建订单的时刻，服务端为准
+	}
+
+	//单式
+	ssqOrder.Straw = append(ssqOrder.Straw, &ShuangSeQiu{
+		DantuoBall: nil,
+		RedBall:    []int{1, 2, 3, 4, 5, 6},
+		BlueBall:   []int{9},
+	})
+
+	attach, err = ssqOrder.ToJson()
+	if err != nil {
+		return errors.New("ssqOrder.ToJson error")
+	}
+
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
 		ProductID: productID,
@@ -446,7 +458,7 @@ func AddOrder(orderID, productID string) error {
 		OrderTotalAmount: 2.00,
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
 		// 传输会进过sdk 处理
-		Attach: "",
+		Attach: attach,
 		// 透传信息 , 不加密 ，直接传过去 不处理
 		Userdata: nil,
 		//订单的状态;
@@ -465,7 +477,7 @@ func AddOrder(orderID, productID string) error {
 			User: map[string]string{
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "9",           // 业务号
-				"businessSubType": "2",           // 业务子号
+				"businessSubType": "3",           // 业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",

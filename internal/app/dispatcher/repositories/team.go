@@ -179,7 +179,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
