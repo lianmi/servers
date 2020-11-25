@@ -21,6 +21,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Global "github.com/lianmi/servers/api/proto/global"
 	User "github.com/lianmi/servers/api/proto/user"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
@@ -215,7 +216,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if avatar, ok := req.Fields[3]; ok {
 			//修改 头像
-			pUser.Avatar = avatar
+			pUser.Avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 		}
 
 		if label, ok := req.Fields[4]; ok {

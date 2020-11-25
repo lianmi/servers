@@ -142,18 +142,6 @@ func (b *BaseRepository) First(where interface{}, out interface{}, selects ...st
 	return db.First(out).Error
 }
 
-// First2 根据条件获取一个实体
-// func (b *BaseRepository) First2(where interface{}, out interface{}, selects ...string) error {
-// 	// db := b.db.Where(condition, values)
-// 	db := b.db.Where(&models.User{Username: "lsj001", Password: "654321"})
-// 	// if len(selects) > 0 {
-// 	// 	for _, sel := range selects {
-// 	// 		db = db.Select(sel)
-// 	// 	}
-// 	// }
-// 	return db.First(out).Error
-// }
-
 // FirstByID 根据条件获取一个实体
 func (b *BaseRepository) FirstByID(out interface{}, id int) error {
 	return b.db.First(out, id).Error

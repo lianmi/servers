@@ -13,10 +13,9 @@ import (
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/pkg/models"
-	// uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -40,6 +39,7 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	RespData(c, http.StatusBadRequest, http.StatusOK, user)
 
 }
+
 
 //多条件不定参数批量分页获取用户列表
 func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
@@ -84,12 +84,6 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			zap.String("ReferrerUsername", userReq.ReferrerUsername), //推荐人用户id
 		)
 
-		//初始化一些默认值及当期时间
-		// userReq.CreatedAt = uint64(time.Now().UnixNano() / 1e6) //注意，必须要unix时间戳，毫秒
-		// user.State = 0                                       //预审核
-		// user.Avatar = common.PubAvatar                       //公共头像
-		// user.AllowType = 3                                   //用户加好友枚举，默认是3
-
 		//检测手机是数字
 		if !conv.IsDigit(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is not digital")
@@ -124,13 +118,13 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			}
 
 		}
-
+		avatar := LMCommon.OSSUploadPicPrefix + userReq.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 		user := models.User{
 			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
 			Password:         userReq.Passwd,           //用户密码，md5加密
 			Nick:             userReq.Nick,             //用户呢称，必填
 			Gender:           int(userReq.Gender),      //性别
-			Avatar:           userReq.Avatar,           //头像url
+			Avatar:           avatar,                   //头像url
 			Label:            userReq.Label,            //签名标签
 			Mobile:           userReq.Mobile,           //注册手机
 			Email:            userReq.Email,            //密保邮件，需要发送校验邮件确认
@@ -315,7 +309,7 @@ func (pc *LianmiApisController) ExistsTokenInRedis(deviceID, token string) bool 
 
 func (pc *LianmiApisController) SignOut(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
-	userName := claims[common.IdentityKey].(string)
+	userName := claims[LMCommon.IdentityKey].(string)
 	deviceID := claims["deviceID"].(string)
 	token := jwt_v2.GetToken(c)
 

@@ -316,19 +316,18 @@ func CreateInitControllersFn(
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser)          //根据id获取用户信息
-			userGroup.POST("/resetpassword", pc.ResetPassword) //重置用户密码
-			userGroup.GET("/list", pc.QueryUsers)              //多条件不定参数批量分页获取用户列表
+			userGroup.GET("/getuser/:id", pc.GetUser) //根据id获取用户信息
+			userGroup.POST("/list", pc.QueryUsers)    //多条件不定参数批量分页获取用户列表
 		}
 
 		//=======店铺模块==========/
 		storeGroup := r.Group("/v1/store") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			storeGroup.GET("/storeinfo/:id", pc.GetStore)       //根据商户注册id获取店铺资料
-			storeGroup.POST("/savestore", pc.AddStore)          //增加或修改店铺资料
-			storeGroup.GET("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
-			storeGroup.GET("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
+			storeGroup.GET("/storeinfo/:id", pc.GetStore)        //根据商户注册id获取店铺资料
+			storeGroup.POST("/savestore", pc.AddStore)           //增加或修改店铺资料
+			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
+			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
 		}
 
 		//=======好友模块==========/
@@ -366,10 +365,10 @@ func CreateInitControllersFn(
 			productGroup.GET("/generalproduct/:productid", pc.GetGeneralProductByID)
 
 			//查询通用商品分页-按商品种类查询
-			productGroup.GET("/generalproducts/list", pc.GetGeneralProductPage)
+			productGroup.POST("/generalproducts/list", pc.GetGeneralProductPage)
 
 			//根据商户注册号查询所有上架商品
-			productGroup.GET("/productslist", pc.GetProductsList)
+			productGroup.POST("/productslist", pc.GetProductsList)
 
 			//根据商品ID获取商品详情
 			productGroup.GET("/info/:productid", pc.GetProductInfo)
