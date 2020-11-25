@@ -38,8 +38,8 @@ type Login struct {
 }
 
 type LoginResp struct {
-	Username    string `form:"username" json:"username"`         //注册账号
-	UserType    int    `form:"user_type" json:"user_type"`       //用户类型 1-普通，2-商户
+	Username    string `form:"username" json:"username"`         // 注册账号
+	UserType    int    `form:"user_type" json:"user_type"`       // 用户类型 1-普通，2-商户
 	State       int    `form:"state" json:"state"`               // 普通用户： 0-非VIP 1-付费用户(购买会员) 2-封号  商户：0-预审核, 1-审核通过, 2 -占位, 3-审核中
 	AuditResult string `form:"audit_result" json:"audit_result"` // 商户：  当state=3，此字段是审核的文字报告，如审核中，地址不符，照片模糊等
 	JwtToken    string `form:"jwt_token" json:"jwt_token"`       //令牌
