@@ -25,6 +25,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/randtool"
 	"go.uber.org/zap"
@@ -592,7 +593,7 @@ func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 
 		err = redisConn.Send("SET", key, "123456") //增加key
 
-		err = redisConn.Send("EXPIRE", key, 300) //设置有效期为300秒
+		err = redisConn.Send("EXPIRE", key, LMCommon.SMSEXPIRE) //设置有效期
 
 		//一次性写入到Redis
 		if err := redisConn.Flush(); err != nil {
@@ -720,8 +721,8 @@ func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 			zap.String("tempKey", tempKey),
 			zap.Int64("tId", tId),
 		)
-		//120秒的有效期
-		_, err = redisConn.Do("EXPIRE", tempKey, 120)
+		//有效期
+		_, err = redisConn.Do("EXPIRE", tempKey, LMCommon.SMSEXPIRE)
 		if err != nil {
 			nc.logger.Error("Failed to EXPIRE ", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误

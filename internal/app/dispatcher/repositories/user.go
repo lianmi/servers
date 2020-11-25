@@ -819,7 +819,7 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 		return false
 	}
 
-	_, err = redisConn.Do("EXPIRE", key, 70) //设置有效期为70秒
+	_, err = redisConn.Do("EXPIRE", key, LMCommon.SMSEXPIRE) //设置有效期为
 	if err != nil {
 		s.logger.Error("EXPIRE key 失败", zap.Error(err))
 		return false
@@ -878,7 +878,7 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 				return false
 			} else {
 				s.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
-				_, err = redisConn.Do("EXPIRE", key, 600) //设置有效期为600秒, 以便注册或登陆的时候校验
+				_, err = redisConn.Do("EXPIRE", key, LMCommon.SMSEXPIRE) //设置有效期, 以便注册或登陆的时候校验
 				if err != nil {
 					s.logger.Error("EXPIRE key 失败", zap.Error(err))
 					return false

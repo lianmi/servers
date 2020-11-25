@@ -1,5 +1,8 @@
 /*
  9-2 获取网点OPK公钥及订单ID
+
+ ./lmSdkClient order GetPreKeyOrderID -p ba89b52c-eb97-4ce1-bb66-90b95cabffd1
+
 */
 package cmd
 

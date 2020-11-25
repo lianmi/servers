@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	simpleJson "github.com/bitly/go-simplejson"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
 )
 
@@ -901,7 +902,7 @@ func (nc *NsqClient) SendMsgToUser(rsp *Msg.RecvMsgEventRsp, fromUser, fromDevic
 	if _, err := redisConn.Do("ZADD", recvKey, msgAt, toUser); err != nil {
 		nc.logger.Error("ZADD Error", zap.Error(err))
 	}
-	_, err = redisConn.Do("EXPIRE", recvKey, 120) //设置有效期为120秒
+	_, err = redisConn.Do("EXPIRE", recvKey, LMCommon.SMSEXPIRE) //设置有效期
 
 	//向用户的其它端发送 SyncSendMsgEvent
 	selfDeviceListKey := fmt.Sprintf("devices:%s", fromUser)

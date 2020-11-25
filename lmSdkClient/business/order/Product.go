@@ -33,6 +33,7 @@ func QueryProducts() error {
 	var localUserName string
 	var localDeviceID string
 	localUserName, _ = redis.String(redisConn.Do("GET", "LocalUserName"))
+
 	localDeviceID, _ = redis.String(redisConn.Do("GET", "LocalDeviceID"))
 	if localUserName == "" {
 		log.Println("localUserName is  empty")
@@ -42,6 +43,7 @@ func QueryProducts() error {
 		log.Println("localDeviceID is  empty")
 		return errors.New("localDeviceID is empty error")
 	}
+
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
 
 	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
@@ -54,12 +56,14 @@ func QueryProducts() error {
 	if jwtToken == "" {
 		return errors.New("jwtToken is empty error")
 	}
-
+	log.Println("localUserName: ", localUserName)
+	log.Println("localDeviceID: ", localDeviceID)
+	log.Println("jwtToken: ", jwtToken)
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	req := &Order.QueryProductsReq{
-		UserName: localUserName,
+		UserName: "id3", //测试指定为Id3
 		TimeAt:   0,
 	}
 
@@ -128,6 +132,7 @@ func QueryProducts() error {
 
 						for _, product := range rsq.Products {
 							log.Println("商品ID ProductId: ", product.ProductId)
+							log.Println("商品名称 ProductName: ", product.ProductName)
 							log.Println("商品描述 ProductDesc: ", product.ProductDesc)
 							log.Println("商品小图 ProductPic1Small: ", product.ProductPic1Small)
 
@@ -239,12 +244,12 @@ func AddProduct() error {
 	req := &Order.AddProductReq{
 		Product: &Order.Product{
 			Expire:            uint64(0),
-			ProductName:       "福彩3D",
+			ProductName:       "双色球",
 			ProductType:       Global.ProductType(8), //8-彩票
-			ProductDesc:       "最新玩法福彩3D",
+			ProductDesc:       "最高头奖1千万",
 			ProductPic1Small:  "",
 			ProductPic1Middle: "",
-			ProductPic1Large:  "product/215b66d14111da360261206e348c3223.jpg", // 原图
+			ProductPic1Large:  "avatars/3bd9492cb75f990b3effd5b39614f510.jpeg", // 原图https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/avatars/3bd9492cb75f990b3effd5b39614f510.jpeg
 			ProductPic2Small:  "",
 			ProductPic2Middle: "",
 			ProductPic2Large:  "",
@@ -410,7 +415,7 @@ func UpdateProduct() error {
 	}
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
 
-	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
+	//从本地redis里获取Token，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
 	key := fmt.Sprintf("jwtToken:%s", localUserName)
 	jwtToken, err := redis.String(redisConn.Do("GET", key))
 	if err != nil {

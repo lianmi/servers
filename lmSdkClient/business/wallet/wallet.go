@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	// "net"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"

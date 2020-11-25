@@ -7,7 +7,8 @@ import "time"
 
 //短信校验码一天总量100条
 const (
-	SMSCOUNT = uint64(100)
+	SMSCOUNT  = uint64(100)
+	SMSEXPIRE = 300
 )
 
 //redis

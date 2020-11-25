@@ -365,6 +365,22 @@ func GetPreKeyOrderID(productId string) error {
 }
 
 //9-3 下单
+/*
+class OrderProductDoubleQInfoDate{
+  int DateNumber; // 期号
+  int multiple ; // 倍数
+  OrderProductDoubleQInfoDateTypeEnum type ; // 类型
+  int numberMaster ; // 主号
+  // 其他号
+  int number1 ;
+  int number2 ;
+  int number3 ;
+  int number4 ;
+  int number5 ;
+  int number6 ;
+
+}
+*/
 func AddOrder(orderID, productID string) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
