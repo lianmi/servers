@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	// mac id2的助记词
+	// 用户账号id1的助记词
 	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
 	//id3的助记词
 	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
@@ -132,7 +132,7 @@ func GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
 
 }
 
-//10-1
+//10-1 注册钱包
 func RegisterWallet(walletAddress string) error {
 	if walletAddress == "" {
 		walletAddress = CreateHDWallet()
@@ -467,7 +467,6 @@ func Deposit(rechargeAmount float64) error {
 }
 
 //传入Rawtx， 进行签名, 构造一个已经签名的hex裸交易
-//
 func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 	//A私钥
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
@@ -506,6 +505,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 
 /*
 10-3 发起转账
+
 */
 func PreTransfer(orderID, targetUserName string, amount float64) error {
 
@@ -619,6 +619,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					log.Println("10-3 发起转账 回包内容 : \n RawDescToTarget---------------------")
 					log.Println("")
 					log.Println("RawDescToTarget---------------------")
+					log.Println("RawDescToTarget.Uuid: ", rsq.Uuid)
 					log.Println("RawDescToTarget.Nonce: ", rsq.RawDescToTarget.Nonce)
 					log.Println("RawDescToTarget.GasPrice: ", rsq.RawDescToTarget.GasPrice)
 					log.Println("RawDescToTarget.GasLimit: ", rsq.RawDescToTarget.GasLimit)
@@ -632,26 +633,6 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					log.Println("Time: ", rsq.Time)
 
 					log.Println("=======")
-
-					// rawTxToTarget := &models.RawDesc{
-					// 	Nonce: rsq.RawDescToTarget.Nonce,
-					// 	// gas价格
-					// 	GasPrice: rsq.RawDescToTarget.GasPrice,
-					// 	// 最低gas
-					// 	GasLimit: rsq.RawDescToTarget.GasLimit,
-					// 	//链id
-					// 	ChainID: rsq.RawDescToTarget.ChainID,
-					// 	// 交易数据
-					// 	Txdata: rsq.RawDescToTarget.Txdata,
-					// 	//ether，设为0
-					// 	Value: 0,
-					// 	//交易哈希
-					// 	TxHash: rsq.RawDescToTarget.TxHash,
-					// 	//发币合约地址
-					// 	ContractAddress: rsq.RawDescToTarget.ToWalletAddress,
-					// }
-
-					// log.Println(rawTxToTarget)
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
 					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex

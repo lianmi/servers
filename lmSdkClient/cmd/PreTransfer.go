@@ -1,5 +1,7 @@
 /*
 10-3 发起转账
+向id4转账 1 元
+./lmSdkClient wallet PreTransfer -t id4 -a 1.00
 */
 package cmd
 
@@ -16,8 +18,7 @@ var PreTransferCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("PreTransfer called")
-		
+
 		orderID, _ := cmd.PersistentFlags().GetString("orderID")
 		targetUserName, _ := cmd.PersistentFlags().GetString("targetUserName")
 		amount, _ := cmd.PersistentFlags().GetFloat64("amount")
@@ -37,6 +38,6 @@ func init() {
 	walletCmd.AddCommand(PreTransferCmd)
 	PreTransferCmd.PersistentFlags().StringP("orderID", "o", "", "订单ID")
 	PreTransferCmd.PersistentFlags().StringP("targetUserName", "t", "", "收款方的用户账号, like: 0x---------")
-	PreTransferCmd.PersistentFlags().Float64P("amount", "a", 0.00, "金额(人民币格式), like: 4.05")
+	PreTransferCmd.PersistentFlags().Float64P("amount", "a", 0.00, "金额(单位是元，人民币格式), like: 4.05")
 
 }

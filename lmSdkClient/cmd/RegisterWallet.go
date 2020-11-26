@@ -16,7 +16,6 @@ var RegisterWalletCmd = &cobra.Command{
 	Short: "./lmSdkClient wallet RegisterWallet",
 	Long:  `A用户利用钱包SDK生成的地址(约定第0号叶子的地址),  例子： ./lmSdkClient wallet RegisterWallet`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("RegisterWallet called")
 		walletAddress, _ := cmd.PersistentFlags().GetString("walletAddress")
 
 		err := wallet.RegisterWallet(walletAddress)
