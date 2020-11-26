@@ -40,16 +40,6 @@ message SmsCodeResp {
     string smsCode = 2; //短信验证码
 }
 
-//==== 修改密码 ===//
-message ChanPasswordReq {
-    string smsCode   = 1; //短信验证码
-    string oldpasswd = 2; //旧密码
-    string password  = 3; //新密码
-}
-
-message ChanPasswordResp {
-}
-
 //==== 重置密码 ===//
 message ResetPasswordReq {
     string mobile    = 1; //手机号 
