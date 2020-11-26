@@ -796,15 +796,15 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		}
 
 		PreTransferKey := fmt.Sprintf("PreTransfer:%s", req.Uuid)
-		preUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername"))
-		toUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername"))
+		preUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "Username"))  //发起方
+		toUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername")) //接收方
 		toWalletAddress, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToWalletAddress"))
 		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
 
 		if preUsername != username {
 			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Error:  preUsername is not equal to current username")
+			errorMsg = fmt.Sprintf("Error:  preUsername(%s) is not equal to current username(%s)", preUsername, username)
 			goto COMPLETE
 		}
 
