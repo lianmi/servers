@@ -75,6 +75,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 	} else {
 		pc.logger.Debug("注册",
 			zap.String("Nick", userReq.Nick), //呢称
+			zap.String("Password", userReq.Passwd), //密码 
 			zap.String("Avatar", userReq.Avatar),
 			zap.String("Mobile", userReq.Mobile),                     //手机号
 			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
