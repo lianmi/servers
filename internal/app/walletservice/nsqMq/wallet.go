@@ -505,7 +505,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				goto COMPLETE
 			} else {
 				if !isExists {
-					nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+					nc.logger.Warn("支付方钱包没注册，不能转账", zap.String("username", username))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Wallet had not registered")
 					goto COMPLETE
@@ -519,7 +519,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 				goto COMPLETE
 			} else {
 				if !isExists {
-					nc.logger.Warn("钱包没注册，不能转账", zap.String("TargetUserName", toUsername))
+					nc.logger.Warn("接收方钱包没注册，不能转账", zap.String("TargetUserName", toUsername))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Target Wallet had not registered")
 					goto COMPLETE
@@ -822,7 +822,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+				nc.logger.Warn("钱包没注册，不能确认", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Wallet had not registered")
 				goto COMPLETE
@@ -1155,7 +1155,7 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+				nc.logger.Warn("钱包没注册，不能查询余额", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Wallet had not registered")
 				goto COMPLETE
@@ -1327,7 +1327,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+				nc.logger.Warn("钱包没注册，不能提现", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Wallet had not registered")
 				goto COMPLETE
@@ -1557,7 +1557,7 @@ func (nc *NsqClient) HandleWithDraw(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			if !isExists {
-				nc.logger.Warn("钱包没注册，不能转账", zap.String("username", username))
+				nc.logger.Warn("钱包没注册，不能提现", zap.String("username", username))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Wallet had not registered")
 				goto COMPLETE

@@ -424,6 +424,7 @@ func AddOrder(orderID, productID string) error {
 		OrderID:          orderID,                     //订单ID
 		LotteryPicHash:   "",                          //彩票拍照的照片哈希
 		LotteryPicURL:    "",                          //彩票拍照的照片原图url
+		TicketType:       1,                           //彩票投注类型，1-单式\2-复式\3-胆拖
 		Count:            1,                           //总注数
 		Cost:             2.0,                         //花费, 每注2元, 乘以总注数
 		TxHash:           "",                          //上链的哈希
@@ -432,7 +433,7 @@ func AddOrder(orderID, productID string) error {
 	}
 
 	//单式
-	ssqOrder.Straw = append(ssqOrder.Straw, &ShuangSeQiu{
+	ssqOrder.Straws = append(ssqOrder.Straws, &ShuangSeQiu{
 		DantuoBall: nil,
 		RedBall:    []int{1, 2, 3, 4, 5, 6},
 		BlueBall:   []int{9},

@@ -19,7 +19,7 @@ type ShuangSeQiuOrder struct {
 	OrderID          string         //订单ID
 	LotteryPicHash   string         //彩票拍照的照片哈希
 	LotteryPicURL    string         //彩票拍照的照片原图url
-	LotteryType      int            //投注类型，1-单式\2-复式\3-胆拖
+	TicketType       int            //彩票投注类型，1-单式\2-复式\3-胆拖
 	Straws           []*ShuangSeQiu //用户选号后的数据，如果是单选，每个成员表示1注
 	Count            int            //总注数
 	Cost             float64        //花费, 每注2元, 乘以总注数
