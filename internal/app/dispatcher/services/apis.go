@@ -63,7 +63,6 @@ type LianmiApisService interface {
 
 	GetProductInfo(product string) (*Order.Product, error)
 
-
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
