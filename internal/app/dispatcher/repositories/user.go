@@ -707,17 +707,19 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 		//查询出所有主从设备
 		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSlice {
-			s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+
+			s.logger.Debug("SignOut, 查询出所有从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
 			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			if jwtToken, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
-
+				//
 			} else {
-				s.logger.Debug("Redis GET ok", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+				s.logger.Debug("SignOut, Redis GET ok", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-				//向当前主设备及从设备发出踢下线
-
-				if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
-					s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+				//向从设备发出踢下线
+				if eDeviceID != deviceID {
+					if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+						s.logger.Error("SignOut, Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+					}
 				}
 
 				_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
