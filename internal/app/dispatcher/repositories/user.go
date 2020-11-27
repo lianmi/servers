@@ -628,7 +628,7 @@ func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 	err := s.db.Model(&models.User{}).Where(&where).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Error("错误：记录不存在")
+			s.logger.Debug("记录不存在")
 			return false
 		} else {
 
