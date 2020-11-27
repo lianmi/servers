@@ -71,7 +71,7 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		//查询出所有主从设备
 		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSlice {
-			nc.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+			nc.logger.Debug("HandleSignOut, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
 			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))

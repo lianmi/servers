@@ -97,7 +97,7 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 
 	deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 	for index, eDeviceID := range deviceIDSlice {
-		s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+		s.logger.Debug("BlockUser, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
 		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 		s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
@@ -413,7 +413,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 
 		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		for index, eDeviceID := range deviceIDSlice {
-			s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+			s.logger.Debug("CheckUser, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
 			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
