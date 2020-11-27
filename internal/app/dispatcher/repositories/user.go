@@ -416,40 +416,42 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 		}
 
 		//查询出所有主从设备
-
 		deviceIDSlice, err2 := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		if err2 != nil {
 			s.logger.Error("ZRANGEBYSCORE err", zap.String("deviceListKey", deviceListKey), zap.Error(err2))
 			return false
 		} else {
 			for index, eDeviceID := range deviceIDSlice {
-				s.logger.Debug("CheckUser, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-				deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-				if jwtToken, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
-					s.logger.Error("GET deviceKey err", zap.Error(err))
-					continue
-				} else {
-					s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+				if eDeviceID != deviceID {
+					s.logger.Debug("CheckUser, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+					deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+					if jwtToken, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
+						s.logger.Error("GET deviceKey err", zap.Error(err))
+						continue
+					} else {
+						s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-					//向当前主设备及从设备发出踢下线
-					if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
-						s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+						//TODO 此语句导致堵塞，原因未明，向当前主设备及从设备发出踢下线
+						if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+							s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+						}
+					}
+
+					_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
+					if err != nil {
+						s.logger.Error("DEL deviceKey err", zap.Error(err))
+						continue
+
+					}
+					deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+					_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+					if err != nil {
+						s.logger.Error("DEL deviceHashKey err", zap.Error(err))
+						continue
+
 					}
 				}
 
-				_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
-				if err != nil {
-					s.logger.Error("DEL deviceKey err", zap.Error(err))
-					continue
-
-				}
-				deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
-				_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
-				if err != nil {
-					s.logger.Error("DEL deviceHashKey err", zap.Error(err))
-					continue
-
-				}
 			}
 
 		}
