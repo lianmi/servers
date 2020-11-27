@@ -72,7 +72,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		pc.logger.Error("Register, binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		pc.logger.Debug("注册",
+		pc.logger.Debug("注册body部分的字段 ",
 			zap.String("Nick", userReq.Nick),         //呢称
 			zap.String("Password", userReq.Password), //密码
 			zap.String("Avatar", userReq.Avatar),
