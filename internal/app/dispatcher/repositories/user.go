@@ -419,7 +419,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 
 		deviceIDSlice, err2 := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
 		if err2 != nil {
-			s.logger.Error("ZRANGEBYSCORE err", zap.Error(err2))
+			s.logger.Error("ZRANGEBYSCORE err", zap.String("deviceListKey", deviceListKey), zap.Error(err2))
 			return false
 		} else {
 			for index, eDeviceID := range deviceIDSlice {
@@ -707,19 +707,23 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 		for index, eDeviceID := range deviceIDSlice {
 			s.logger.Debug("查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
 			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
-			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+			if jwtToken, err := redis.String(redisConn.Do("GET", deviceKey)); err != nil {
 
-			//向当前主设备及从设备发出踢下线
+			} else {
+				s.logger.Debug("Redis GET ok", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-			if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
-				s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+				//向当前主设备及从设备发出踢下线
+
+				if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+					s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+				}
+
+				_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
+
+				deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
+				_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+
 			}
-
-			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
-
-			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
-			_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
 
 		}
 
@@ -753,6 +757,8 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 }
 
 func (s *MysqlLianmiRepository) SendKickedMsgToDevice(jwtToken, username, eDeviceID string) error {
+	s.logger.Debug("SendKickedMsgToDevice start  ...")
+
 	businessType := 2
 	businessSubType := 5 //KickedEvent
 
@@ -783,6 +789,8 @@ func (s *MysqlLianmiRepository) SendKickedMsgToDevice(jwtToken, username, eDevic
 
 	//构建数据完成，向NsqChan发送
 	s.multiChan.NsqChan <- kickMsg
+
+	s.logger.Debug("SendKickedMsgToDevice end")
 	return nil
 }
 
