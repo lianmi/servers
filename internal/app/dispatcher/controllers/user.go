@@ -72,16 +72,16 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		pc.logger.Error("Register, binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		pc.logger.Debug("注册body部分的字段 ",
+		pc.logger.Debug("注册body部分的字段",
 			zap.String("Nick", userReq.Nick),         //呢称
 			zap.String("Password", userReq.Password), //密码
 			zap.String("Avatar", userReq.Avatar),
-			zap.String("Mobile", userReq.Mobile),                     //手机号
-			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
-			zap.String("ContactPerson", userReq.ContactPerson),       //联系人
-			zap.Int("UserType", int(userReq.UserType)),               //用户类型 1-普通 2-商户
-			zap.Int("Gender", int(userReq.Gender)),                   //性别
-			zap.String("ReferrerUsername", userReq.ReferrerUsername), //推荐人用户id
+			zap.String("Mobile", userReq.Mobile),               //手机号
+			zap.String("SmsCode", userReq.Smscode),             //短信校验码
+			zap.String("ContactPerson", userReq.ContactPerson), //联系人
+			zap.Int("UserType", int(userReq.UserType)),         //用户类型 1-普通 2-商户
+			zap.Int("Gender", int(userReq.Gender)),             //性别
+			zap.String("InviteCode", userReq.InviteCode),       //推荐人用户id的数字部分
 		)
 
 		//检测手机是数字

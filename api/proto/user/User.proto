@@ -58,8 +58,8 @@ message User {
     UserType userType    = 11;
     UserState state      = 12;
     string extend        = 13;
-    string referrerUsername = 14;
-    string contactPerson = 15;
+    string invite_code = 14;     // 邀请码用户账号的数字部分 
+    string contact_person = 15;
     fixed64 createdAt = 16;     //用户注册时间,Unix时间戳
     fixed64 updatedaAt = 17;     //用户资料最后更新时间,Unix时间戳
 }
