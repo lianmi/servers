@@ -55,7 +55,7 @@ message User {
     string label     = 8;
     string mobile    = 9;
     string email     = 10;
-    UserType userType    = 11;
+    UserType user_type    = 11;
     UserState state      = 12;
     string extend        = 13;
     string contact_person = 14;
