@@ -55,13 +55,13 @@ message User {
     string label     = 8;
     string mobile    = 9;
     string email     = 10;
-    UserType userType    = 11;
+    UserType user_type    = 11;
     UserState state      = 12;
     string extend        = 13;
-    string referrerUsername = 14;
-    string contactPerson = 15;
-    fixed64 createdAt = 16;     //用户注册时间,Unix时间戳
-    fixed64 updatedAt = 17;     //用户资料最后更新时间,Unix时间戳
+    string referrer_username = 14;
+    string contact_person = 15;
+    fixed64 created_at = 16;     //用户注册时间,Unix时间戳
+    fixed64 updateda_at = 17;     //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表
