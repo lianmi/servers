@@ -2347,10 +2347,10 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 			key,
 			"LatestDate", currDate,
 			"Count", 1, //如果达到2次则奖励
-			"Total", 1,
+			"Total", 1, //奖励次数
 		)
-		rsp.Count = 1
-		rsp.TotalSignIn = 1
+		rsp.Count = 1  //当前
+		rsp.TotalSignIn = 1 //奖励次数
 
 	} else {
 		latestDate, _ = redis.String(redisConn.Do("HGET", key, "LatestDate"))
@@ -2364,11 +2364,11 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 		_, err = redisConn.Do("HSET", key, "LatestDate", currDate)
 		count, _ = redis.Int(redisConn.Do("HINCRBY", key, "Count", 1))
 		total, _ = redis.Int64(redisConn.Do("HINCRBY", key, "Total", 1))
-		rsp.Count = int32(count)
-		rsp.TotalSignIn = uint64(total)
+		rsp.Count = int32(count)        //当前签到次数
+		rsp.TotalSignIn = uint64(total) //累积次数
 
 		//如果count累计大于或等于2次，则奖励并重置为0
-		if count == 2 {
+		if count >= 2 {
 			redisConn.Do("HSET", key, "Count", 0)
 			go func() {
 				balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)

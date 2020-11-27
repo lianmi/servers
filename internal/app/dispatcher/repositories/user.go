@@ -878,11 +878,6 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 				return false
 			} else {
 				s.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
-				_, err = redisConn.Do("EXPIRE", key, LMCommon.SMSEXPIRE) //设置有效期, 以便注册或登陆的时候校验
-				if err != nil {
-					s.logger.Error("EXPIRE key 失败", zap.Error(err))
-					return false
-				}
 				return smscodeInRedis == smscode
 			}
 		}

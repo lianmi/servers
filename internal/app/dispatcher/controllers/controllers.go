@@ -115,7 +115,7 @@ func CreateInitControllersFn(
 			},
 			//认证，根据登录信息对用户进行身份验证的回调函数
 			Authenticator: func(c *gin.Context) (interface{}, error) {
-				pc.logger.Debug("Authenticator ...")
+
 				//handles the login logic. On success LoginResponse is called, on failure Unauthorized is called
 				var loginVals Login //重要！不能用models.User，因为有很多必填字段
 				if err := c.ShouldBind(&loginVals); err != nil {
@@ -131,6 +131,13 @@ func CreateInitControllersFn(
 				deviceID := loginVals.DeviceID
 				clientType := loginVals.ClientType
 				os := loginVals.Os
+
+				pc.logger.Debug("Authenticator ...",
+					zap.String("mobile", mobile),
+					zap.String("username", username),
+					zap.String("password", password),
+					zap.String("smscode", smscode),
+				)
 
 				if smscode == "" {
 					pc.logger.Error("SmsCode is empty")
@@ -176,6 +183,8 @@ func CreateInitControllersFn(
 						UserName: username,
 						DeviceID: deviceID,
 					}, nil
+
+				} else {
 
 				}
 
