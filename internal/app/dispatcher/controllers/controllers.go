@@ -185,7 +185,7 @@ func CreateInitControllersFn(
 					}, nil
 
 				} else {
-
+					pc.logger.Warn("Authenticator , CheckUser .... false")
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication
