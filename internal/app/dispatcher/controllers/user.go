@@ -65,6 +65,7 @@ func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
 // 用户注册- 支持普通用户及商户注册
 func (pc *LianmiApisController) Register(c *gin.Context) {
 	var userReq User.User
+	var avatar string
 	code := codes.InvalidParams
 
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到user变量中，必填字段一定要填
@@ -73,9 +74,9 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册body部分的字段",
-			zap.String("Nick", userReq.Nick),         //呢称
-			zap.String("Password", userReq.Password), //密码
-			zap.String("Avatar", userReq.Avatar),
+			zap.String("Nick", userReq.Nick),                         //呢称
+			zap.String("Password", userReq.Password),                 //密码
+			zap.String("Avatar", userReq.Avatar),                     //头像objid
 			zap.String("Mobile", userReq.Mobile),                     //手机号
 			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
 			zap.String("ContactPerson", userReq.ContactPerson),       //联系人
@@ -118,7 +119,14 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			}
 
 		}
-		avatar := LMCommon.OSSUploadPicPrefix + userReq.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+
+		// 如果不传头像，则用默认的
+		if userReq.Avatar == "" {
+			avatar = LMCommon.PubAvatar //TODO 上线前要更改
+		} else {
+			avatar = LMCommon.OSSUploadPicPrefix + userReq.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+
+		}
 		user := models.User{
 			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
 			Password:         userReq.Password,         //用户密码，md5加密

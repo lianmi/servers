@@ -215,8 +215,13 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		}
 
 		if avatar, ok := req.Fields[3]; ok {
-			//修改 头像
-			pUser.Avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			if avatar == "" {
+				pUser.Avatar = LMCommon.PubAvatar
+			} else {
+				//修改 头像
+				pUser.Avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+
+			}
 		}
 
 		if label, ok := req.Fields[4]; ok {
