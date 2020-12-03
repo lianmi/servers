@@ -53,7 +53,8 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 
 	db = s.db
 	db.Model(&mod).Count(total)
-	pages := math.Ceil(float64(*total / int64(pageSize)))
+
+	pages := math.Ceil(float64(*total) / float64(pageSize))
 
 	resp := &Order.ProductsListResp{
 		TotalPage: uint64(pages),
