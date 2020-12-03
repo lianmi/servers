@@ -255,6 +255,10 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	for _, store := range list {
 		//获取店铺头像
 		avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", store.BusinessUsername), "Avatar"))
+		if avatar == "" {
+			//没默认头像
+			avatar = LMCommon.PubAvatar
+		}
 
 		resp.Stores = append(resp.Stores, &User.Store{
 			StoreUUID:          store.StoreUUID,                   //店铺的uuid
