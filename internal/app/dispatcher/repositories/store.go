@@ -249,6 +249,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	db = s.db
 	db.Model(&mod).Count(total)
 	pages := math.Ceil(float64(*total / int64(pageSize)))
+	s.logger.Debug("math.Ceil", zap.Float64("pages", pages))
 
 	resp := &Order.QueryStoresNearbyResp{
 		TotalPage: uint64(pages),
