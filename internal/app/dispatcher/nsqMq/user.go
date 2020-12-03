@@ -562,7 +562,8 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					Username: account,
 					TagType:  int(req.GetType()),
 				}
-				//保存标签MarkTag
+
+				//MySQL 保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误

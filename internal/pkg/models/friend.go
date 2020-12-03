@@ -14,7 +14,7 @@ import (
 只要一加好友，就意味着有两条记录, 删除好友是双向的，也会产生两条记录
 */
 type Friend struct {
-	ID             uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`        //自动递增id
+	ID             uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`        //自动递增id
 	UserID         uint64 `form:"user_id" json:"user_id,omitempty"`                 //用户ID
 	FriendUserID   uint64 `form:"friend_user_id" json:"friend_user_id,omitempty"`   //好友的用户ID
 	FriendUsername string `form:"friend_username" json:"friend_username,omitempty"` //好友的用户账号

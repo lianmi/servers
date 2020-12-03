@@ -20,6 +20,9 @@ type LianmiRepository interface {
 	//根据注册用户idd获取用户的资料
 	GetUser(username string) (p *models.User, err error)
 
+	//查询出用户表所有用户账号
+	QueryAllUsernames() ([]string, error)
+
 	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error)
 
@@ -92,7 +95,7 @@ type LianmiRepository interface {
 	DisBlockUser(username string) (err error)
 
 	GetProductInfo(productID string) (*Order.Product, error)
-	
+
 	AddGeneralProduct(generalProduct *models.GeneralProduct) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
@@ -172,7 +175,19 @@ type LianmiRepository interface {
 
 	//获取某个商户的所有商品列表
 	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
-	
+
+	//获取当前用户对所有店铺点赞情况
+	UserLikes(username string) (*User.UserLikesResp, error)
+
+	//获取店铺的所有点赞的用户列表
+	StoreLikes(username string) (*User.StoreLikesResp, error)
+
+	ClickLike(username, businessUsername string) (int64, error)
+
+	DeleteClickLike(username, businessUsername string) (int64, error)
+
+	//将点赞记录插入到UserLike表
+	AddUserLike(username, businessUser string) error
 }
 
 type MysqlLianmiRepository struct {

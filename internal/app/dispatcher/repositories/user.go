@@ -948,7 +948,7 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 	return nil
 }
 
-//修改用户标签
+//修改用户标签 tags表
 func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
@@ -960,4 +960,21 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 	}
 
 	return nil
+}
+
+//获取sers表的所有用户账号
+func (s *MysqlLianmiRepository) QueryAllUsernames() ([]string, error) {
+	usernames := make([]string, 0)
+	var users []models.User
+	if err := s.db.Model(&models.User{}).Select("username").Find(&users).Error; err != nil {
+		s.logger.Error("Failed to query users", zap.Error(err))
+		return nil, err
+	}
+
+	for _, user := range users {
+		usernames = append(usernames, user.Username)
+	}
+
+	return usernames, nil
+
 }

@@ -54,7 +54,38 @@ func (nc *NsqClient) RunCron() {
 			}
 
 		}
+
 		nc.logger.Info("DissMuteTeamUsers done.")
+
+		//查询出用户表所有用户账号
+		usernames, err := nc.service.QueryAllUsernames()
+		if err != nil {
+			return
+		}
+
+		var businessUsers []string
+
+		for _, username := range usernames {
+			userlikeKey := fmt.Sprintf("UserLike:%s", username)
+
+			if businessUsers, err = redis.Strings(redisConn.Do("SMEMBERS", userlikeKey)); err != nil {
+				nc.logger.Error("SMEMBERS Error", zap.Error(err))
+				continue
+			}
+
+			for _, businessUser := range businessUsers {
+				//将记录插入到UserLike表
+				nc.logger.Debug("SMEMBERS 将记录插入到UserLike表", zap.String("username", username), zap.String("businessUser", businessUser))
+				if err := nc.service.AddUserLike(username, businessUser); err != nil {
+					continue
+				}
+
+			}
+
+		}
+
+		nc.logger.Info("AddUserLike done.")
+
 	})
 
 	//启动任务

@@ -13,7 +13,7 @@ CREATE TABLE `tuser` (`teamid` TEXT NOT NULL, `account` TEXT NOT NULL, `avatar` 
 
 //定义群用户的数据结构
 type TeamUser struct {
-	ID              uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`            //自增
+	ID              uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`            //自增
 	JoinAt          int64  `form:"join_at" json:"join_at,omitempty"`                     //入群时间，unix时间戳
 	UpdatedAt       int64  `form:"updated_at" json:"updated_at,omitempty"`               //最近更新时间，unix时间戳
 	TeamID          string `form:"team_id" json:"team_id" binding:"required"`            //群组id， 以team开头

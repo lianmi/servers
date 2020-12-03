@@ -10,7 +10,7 @@ import (
 客服技术人员表
 */
 type CustomerServiceInfo struct {
-	Username   string `gorm:"primary_key" json:"username" `           //客服或技术人员的注册账号id
+	Username   string `gorm:"primarykey" json:"username" `           //客服或技术人员的注册账号id
 	CreatedAt  int64  `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
 	UpdatedAt  int64  `form:"updated_at" json:"updated_at,omitempty"`
 	JobNumber  string `json:"job_number" ` //客服或技术人员的工号

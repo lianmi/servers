@@ -10,27 +10,46 @@ message Store {
     string storeUUID           = 1;  //店铺的uuid
     string businessUsername    = 2;  //店铺的商户注册号
     string avatar              = 3;  //店铺的头像，与商户头像一致 
-    global.StoreType storeType = 4;  //店铺类型,对应Global.proto里的StoreType枚举
-    string introductory        = 5;  //商店简介 Text文本类型
-    string province            = 6;  //省份, 如广东省
-    string city                = 7;  //城市，如广州市
-    string county              = 8;  //区，如天河区
-    string street              = 9;  //街道
-    string address             = 10; //地址
-    string branchesname        = 11; //店铺名称
-    string keys                = 12; //店铺经营范围搜索关键字
-    string legalPerson         = 13; //法人姓名
-    string legalIdentityCard   = 14; //法人身份证
-    string businessLicenseUrl  = 15; //营业执照阿里云url
-    string wechat              = 16; //商户地址的纬度
-    double longitude           = 17; //商户地址的经度
-    double latitude            = 18; //商户地址的纬度
-    int32  auditState          = 19; //商户审核状态， 0-预审核，1-已审核，2-占位
-    fixed64 createdAt          = 20; //用户注册时间,Unix时间戳
-    fixed64 updatedAt          = 21; //用户资料最后更新时间,Unix时间戳
+    string imageUrl            = 4;  //店铺的外景照片或产品图片
+    global.StoreType storeType = 5;  //店铺类型,对应Global.proto里的StoreType枚举
+    string introductory        = 6;  //商店简介 Text文本类型
+    string province            = 7;  //省份, 如广东省
+    string city                = 8;  //城市，如广州市
+    string county              = 9;  //区，如天河区
+    string street              = 10;  //街道
+    string address             = 11; //地址
+    string branchesname        = 12; //店铺名称
+    string keys                = 13; //店铺经营范围搜索关键字
+    string legalPerson         = 14; //法人姓名
+    string legalIdentityCard   = 15; //法人身份证
+    string businessLicenseUrl  = 16; //营业执照阿里云url
+    string wechat              = 17; //商户地址的纬度
+    double longitude           = 18; //商户地址的经度
+    double latitude            = 19; //商户地址的纬度
+    int32  auditState          = 20; //商户审核状态， 0-预审核，1-已审核，2-占位
+    fixed64 createdAt          = 21; //用户注册时间,Unix时间戳
+    fixed64 updatedAt          = 22; //用户资料最后更新时间,Unix时间戳
 }
 
 message BusinessUserUploadLicenseReq {
     string businessusername    = 1;  //店铺的商户注册号
     string businessLicenseUrl  = 2; //营业执照阿里云url
+}
+
+//获取当前用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
+message UserLikesResp {
+    //用户注册账号
+    string username    = 1; 
+
+    //某用户的所有店铺点赞列表
+    repeated string businessusernames =2; 
+}
+
+//获取店铺的所有点赞的用户列表
+message StoreLikesResp {
+    //店铺商户注册账号
+    string businessUsername    = 1; 
+
+    //点赞用户列表
+    repeated string usernames =2; 
 }

@@ -29,6 +29,8 @@ type LianmiApisService interface {
 	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
+	QueryAllUsernames() ([]string, error)
+
 	//检测用户登录
 	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
 
@@ -145,6 +147,21 @@ type LianmiApisService interface {
 
 	//获取某个商户的所有商品列表
 	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
+
+	//获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
+	UserLikes(username string) (*User.UserLikesResp, error)
+
+	//获取店铺的所有点赞的用户列表
+	StoreLikes(businessUsername string) (*User.StoreLikesResp, error)
+
+	//对某个店铺点赞
+	ClickLike(username, businessUsername string) (int64, error)
+
+	//取消对某个店铺点赞
+	DeleteClickLike(username, businessUsername string) (int64, error)
+
+	//将点赞记录插入到UserLike表
+	AddUserLike(username, businessUser string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -215,6 +232,10 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 
 		return resp, nil
 	}
+}
+
+func (s *DefaultLianmiApisService) QueryAllUsernames() ([]string, error) {
+	return s.Repository.QueryAllUsernames()
 }
 
 func (s *DefaultLianmiApisService) BlockUser(username string) (err error) {
@@ -602,4 +623,29 @@ func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
 //获取某个商户的所有商品列表
 func (s *DefaultLianmiApisService) GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error) {
 	return s.Repository.GetProductsList(req)
+}
+
+//获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
+func (s *DefaultLianmiApisService) UserLikes(username string) (*User.UserLikesResp, error) {
+	return s.Repository.UserLikes(username)
+}
+
+//获取店铺的所有点赞的用户列表
+func (s *DefaultLianmiApisService) StoreLikes(businessUsername string) (*User.StoreLikesResp, error) {
+	return s.Repository.StoreLikes(businessUsername)
+}
+
+//对某个店铺点赞
+func (s *DefaultLianmiApisService) ClickLike(username, businessUsername string) (int64, error) {
+	return s.Repository.ClickLike(username, businessUsername)
+}
+
+//取消对某个店铺点赞
+func (s *DefaultLianmiApisService) DeleteClickLike(username, businessUsername string) (int64, error) {
+	return s.Repository.DeleteClickLike(username, businessUsername)
+}
+
+//将点赞记录插入到UserLike表
+func (s *DefaultLianmiApisService) AddUserLike(username, businessUser string) error {
+	return s.Repository.AddUserLike(username, businessUser)
 }

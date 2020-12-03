@@ -10,9 +10,9 @@ import (
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
 
-	// jwt_v2 "github.com/appleboy/gin-jwt/v2"
+	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	// "github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/codes"
 	// "github.com/lianmi/servers/internal/pkg/models"
 	// uuid "github.com/satori/go.uuid"
@@ -60,6 +60,11 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "商户店铺名称必填")
 			return
 		}
+		if req.ImageUrl == "" {
+			RespFail(c, http.StatusBadRequest, code, "商户店铺外景图片必填")
+			return
+		}
+
 		if req.BusinessLicenseUrl == "" {
 			RespFail(c, http.StatusBadRequest, code, "营业执照url必填")
 			return
@@ -108,5 +113,107 @@ func (pc *LianmiApisController) QueryStoresNearby(c *gin.Context) {
 
 		RespData(c, http.StatusOK, 200, resp)
 	}
+
+}
+
+//获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
+func (pc *LianmiApisController) UserLikes(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	userLikes, err := pc.service.UserLikes(username)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, userLikes)
+
+}
+
+//获取店铺的所有点赞用户列表
+func (pc *LianmiApisController) StoreLikes(c *gin.Context) {
+	code := codes.InvalidParams
+
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		return
+	}
+
+	storeLikes, err := pc.service.StoreLikes(businessUsername)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, storeLikes)
+
+}
+
+//对某个店铺点赞
+func (pc *LianmiApisController) ClickLike(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		return
+	}
+
+	linkCount, err := pc.service.ClickLike(username, businessUsername)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, linkCount)
+
+}
+
+//取消对某个店铺点赞
+func (pc *LianmiApisController) DeleteClickLike(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		return
+	}
+
+	totalLikeCount, err := pc.service.DeleteClickLike(username, businessUsername)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, totalLikeCount)
 
 }

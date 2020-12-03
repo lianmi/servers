@@ -11,7 +11,7 @@ import (
 缓存商户的上架商品
 */
 type Product struct {
-	ProductID         string  `gorm:"primary_key"  form:"product_id" json:"product_id"`         //商品ID
+	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`         //商品ID
 	Username          string  `form:"username" json:"username,omitempty"`                       //商户用户账号id
 	Expire            int64   `form:"expire" json:"expire,omitempty"`                           //过期时间，0-无限
 	ProductName       string  `form:"product_name" json:"product_name,omitempty"`               //商品名称

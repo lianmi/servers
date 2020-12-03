@@ -10,7 +10,7 @@ import (
 服务端的通用商品表
 */
 type GeneralProduct struct {
-	ProductID         string `gorm:"primary_key" form:"product_id" json:"product_id,omitempty"` //商品ID
+	ProductID         string `gorm:"primarykey" form:"product_id" json:"product_id,omitempty"` //商品ID
 	ProductName       string `form:"product_name" json:"product_name,omitempty"`                //商品名称
 	ProductType       int    `form:"product_type" json:"product_type,omitempty"`                //商品种类枚举
 	ProductDesc       string `form:"product_desc" json:"product_desc,omitempty"`                //商品详细介绍

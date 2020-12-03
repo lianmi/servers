@@ -12,10 +12,11 @@ import (
 //当此店铺的商户提交审核后，后台需要删除此记录
 
 type Store struct {
-	StoreUUID         string  `gorm:"primary_key" form:"store_uuid" json:"store_uuid" `                      //店铺的uuid
+	StoreUUID         string  `gorm:"primarykey" form:"store_uuid" json:"store_uuid" `                       //店铺的uuid
 	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`                                //创建时刻,毫秒
 	UpdatedAt         int64   `form:"updated_at" json:"updated_at,omitempty"`                                //更新时刻,毫秒
 	StoreType         int     `form:"store_type" json:"store_type"`                                          //店铺类型,对应Global.proto里的StoreType枚举
+	ImageURL          string  `form:"image_url" json:"image_url" `                                           //店铺外景照片或产品图片
 	BusinessUsername  string  `form:"business_username" json:"business_username" `                           //商户注册号
 	Introductory      string  `gorm:"type:longtext;null" form:"introductory" json:"introductory,omitempty" ` //商店简介 Text文本类型
 	Province          string  `form:"province" json:"province,omitempty" `                                   //省份, 如广东省
@@ -32,6 +33,7 @@ type Store struct {
 	Keys              string  `form:"keys" json:"keys,omitempty" `                                           //商户经营范围搜索关键字
 	LicenseURL        string  `form:"license_url" json:"license_url" `                                       //商户营业执照阿里云url
 	AuditState        int     `form:"audit_state" json:"audit_state"`                                        //审核状态，0-预审核，1-审核通过, 2-占位
+
 }
 
 //BeforeCreate CreatedAt赋值
@@ -44,4 +46,29 @@ func (l *Store) BeforeCreate(tx *gorm.DB) error {
 func (l *Store) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
+}
+
+//see: https://www.jianshu.com/p/a43c6d2f8bfb
+//商店的点赞明细
+/*
+参数校验
+对传入的参数进行null值判断
+逻辑校验
+对于用户点赞，用户不能重复点赞相同的商店
+对于取消点赞，用户不能取消未点赞的商店
+存入Redis
+存入的数据主要有所有商店的点赞数、某商店的点赞数、用户点赞的商店
+定时任务
+通过定时【1小时执行一次】，从Redis读取数据持久化到MySQL中
+*/
+type StoreLike struct {
+	BusinessUsername string `gorm:"primarykey" form:"business_username" json:"business_username" ` //商户注册号
+	Username         string `form:"username" json:"username" `                                     //普通用户注册号
+}
+
+//用户点赞的店铺记录表
+//每个用户只能点赞一次，如果是点赞过了，可以取消点赞
+type UserLike struct {
+	Username         string `gorm:"primarykey" form:"username" json:"username" ` //普通用户注册号
+	BusinessUsername string `form:"business_username" json:"business_username" ` //商户注册号
 }

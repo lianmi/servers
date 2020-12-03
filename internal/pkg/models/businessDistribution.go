@@ -13,13 +13,13 @@ import (
 Three->Two-One->User
 */
 type Distribution struct {
-	Username           string `gorm:"primary_key" json:"username"  validate:"required"` //用户注册账号id
-	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
-	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
-	BusinessUsername   string `json:"business_username"  validate:"required"`           //归属的商户注册账号id
-	UsernameLevelOne   string `json:"username_level_one" `                              //向后的一级
-	UsernameLevelTwo   string `json:"username_level_two" `                              //向后的二级
-	UsernameLevelThree string `json:"username_level_three" `                            //向后的三级
+	Username           string `gorm:"primarykey" json:"username"  validate:"required"` //用户注册账号id
+	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`          //创建时刻,毫秒
+	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`          //修改时间
+	BusinessUsername   string `json:"business_username"  validate:"required"`          //归属的商户注册账号id
+	UsernameLevelOne   string `json:"username_level_one" `                             //向后的一级
+	UsernameLevelTwo   string `json:"username_level_two" `                             //向后的二级
+	UsernameLevelThree string `json:"username_level_three" `                           //向后的三级
 }
 
 //BeforeCreate CreatedAt赋值

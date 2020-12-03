@@ -22,6 +22,9 @@ import (
 //修改或增加店铺资料
 func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	var err error
+	var imageUrl string
+	var businessLicenseUrl string
+
 	store := new(models.Store)
 
 	redisConn := s.redisPool.Get()
@@ -57,29 +60,33 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		BusinessUsername: req.BusinessUsername,
 	}
 
+	imageUrl = LMCommon.OSSUploadPicPrefix + req.ImageUrl
+	businessLicenseUrl = LMCommon.OSSUploadPicPrefix + req.BusinessLicenseUrl
+
 	err = s.db.Model(&models.Store{}).Where(&where).First(&store).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("记录不存在")
 			store := models.Store{
-				StoreUUID:         uuid.NewV4().String(),  //店铺的uuid
-				StoreType:         int(req.StoreType),     //店铺类型,对应Global.proto里的StoreType枚举
-				BusinessUsername:  req.BusinessUsername,   //商户注册号
-				Introductory:      req.Introductory,       //商店简介 Text文本类型
-				Province:          req.Province,           //省份, 如广东省
-				City:              req.City,               //城市，如广州市
-				County:            req.County,             //区，如天河区
-				Street:            req.Street,             //街道
-				Address:           req.Address,            //地址
-				Branchesname:      req.Branchesname,       //网点名称
-				LegalPerson:       req.LegalPerson,        //法人姓名
-				LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
-				Longitude:         req.Longitude,          //商户地址的经度
-				Latitude:          req.Latitude,           //商户地址的纬度
-				WeChat:            req.Wechat,             //商户联系人微信号
-				Keys:              req.Keys,               //商户经营范围搜索关键字
-				LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
-				AuditState:        0,                      //初始值
+				StoreUUID:         uuid.NewV4().String(), //店铺的uuid
+				StoreType:         int(req.StoreType),    //店铺类型,对应Global.proto里的StoreType枚举
+				ImageURL:          imageUrl,
+				BusinessUsername:  req.BusinessUsername,  //商户注册号
+				Introductory:      req.Introductory,      //商店简介 Text文本类型
+				Province:          req.Province,          //省份, 如广东省
+				City:              req.City,              //城市，如广州市
+				County:            req.County,            //区，如天河区
+				Street:            req.Street,            //街道
+				Address:           req.Address,           //地址
+				Branchesname:      req.Branchesname,      //网点名称
+				LegalPerson:       req.LegalPerson,       //法人姓名
+				LegalIdentityCard: req.LegalIdentityCard, //法人身份证
+				Longitude:         req.Longitude,         //商户地址的经度
+				Latitude:          req.Latitude,          //商户地址的纬度
+				WeChat:            req.Wechat,            //商户联系人微信号
+				Keys:              req.Keys,              //商户经营范围搜索关键字
+				LicenseURL:        businessLicenseUrl,    //商户营业执照阿里云url
+				AuditState:        0,                     //初始值
 			}
 
 			//如果没有记录，则增加
@@ -170,21 +177,22 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		StoreType:          Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
 		BusinessUsername:   p.BusinessUsername,            //商户注册号
 		Avatar:             avatar,                        //头像
-		Introductory:       p.Introductory,                //商店简介 Text文本类型
-		Province:           p.Province,                    //省份, 如广东省
-		City:               p.City,                        //城市，如广州市
-		County:             p.County,                      //区，如天河区
-		Street:             p.Street,                      //街道
-		Address:            p.Address,                     //地址
-		Branchesname:       p.Branchesname,                //网点名称
-		LegalPerson:        p.LegalPerson,                 //法人姓名
-		LegalIdentityCard:  p.LegalIdentityCard,           //法人身份证
-		Longitude:          p.Longitude,                   //商户地址的经度
-		Latitude:           p.Latitude,                    //商户地址的纬度
-		Wechat:             p.WeChat,                      //商户联系人微信号
-		Keys:               p.Keys,                        //商户经营范围搜索关键字
-		BusinessLicenseUrl: p.LicenseURL,                  //商户营业执照阿里云url
-		AuditState:         int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
+		ImageUrl:           p.ImageURL,
+		Introductory:       p.Introductory,      //商店简介 Text文本类型
+		Province:           p.Province,          //省份, 如广东省
+		City:               p.City,              //城市，如广州市
+		County:             p.County,            //区，如天河区
+		Street:             p.Street,            //街道
+		Address:            p.Address,           //地址
+		Branchesname:       p.Branchesname,      //网点名称
+		LegalPerson:        p.LegalPerson,       //法人姓名
+		LegalIdentityCard:  p.LegalIdentityCard, //法人身份证
+		Longitude:          p.Longitude,         //商户地址的经度
+		Latitude:           p.Latitude,          //商户地址的纬度
+		Wechat:             p.WeChat,            //商户联系人微信号
+		Keys:               p.Keys,              //商户经营范围搜索关键字
+		BusinessLicenseUrl: p.LicenseURL,        //商户营业执照阿里云url
+		AuditState:         int32(p.AuditState), //审核状态，0-预审核，1-审核通过, 2-占位
 		CreatedAt:          uint64(p.CreatedAt),
 		UpdatedAt:          uint64(p.UpdatedAt),
 	}, nil
@@ -198,6 +206,9 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	total := new(int64) //总页数
 	pageIndex := int(req.Page)
 	pageSize := int(req.Limit)
+	if pageSize == 0 {
+		pageSize = 20
+	}
 
 	columns := []string{"*"}
 	orderBy := "updated_at desc"
@@ -249,6 +260,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			StoreType:          Global.StoreType(store.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
 			BusinessUsername:   store.BusinessUsername,            //商户注册号
 			Avatar:             avatar,                            //头像
+			ImageUrl:           store.ImageUrl,                    //头像
 			Introductory:       store.Introductory,                //商店简介 Text文本类型
 			Province:           store.Province,                    //省份, 如广东省
 			City:               store.City,                        //城市，如广州市
@@ -331,6 +343,160 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 
 	if result.Error != nil {
 		return result.Error
+	}
+	return nil
+}
+
+/*
+
+用户对所有店铺的点赞数列表
+使用HashMap数据结构，HashMap中的key为BusinessUsername，value为Set，Set中的值为用户Username，即HashMap<String, Set<String>>
+
+用户点赞的店铺列表
+使用HashMap数据结构，HashMap中的key为Username，value为Set，Set中的值为BusinessUsername，即HashMap<String, Set<String>>
+
+*/
+//获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
+func (s *MysqlLianmiRepository) UserLikes(username string) (*User.UserLikesResp, error) {
+	var err error
+	var businessUsers []string
+	rsp := &User.UserLikesResp{
+		Username: username,
+	}
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	userlikeKey := fmt.Sprintf("UserLike:%s", username)
+
+	if businessUsers, err = redis.Strings(redisConn.Do("SMEMBERS", userlikeKey)); err != nil {
+		s.logger.Error("SMEMBERS Error", zap.Error(err))
+		return nil, err
+	}
+
+	for _, user := range businessUsers {
+		rsp.Businessusernames = append(rsp.Businessusernames, user)
+	}
+
+	return rsp, nil
+}
+
+//获取店铺的所有点赞的用户列表
+func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.StoreLikesResp, error) {
+	var err error
+	var users []string
+	rsp := &User.StoreLikesResp{
+		BusinessUsername: businessUsername,
+	}
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
+
+	if users, err = redis.Strings(redisConn.Do("SMEMBERS", storelikeKey)); err != nil {
+		s.logger.Error("SMEMBERS Error", zap.Error(err))
+		return nil, err
+	}
+
+	for _, user := range users {
+		rsp.Usernames = append(rsp.Usernames, user)
+	}
+
+	return rsp, nil
+}
+
+//对某个店铺点赞，返回当前所有的点赞总数
+func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (int64, error) {
+
+	var err error
+	var totalLikeCount int64
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//增加到此用户的店铺点赞列表
+	userlikeKey := fmt.Sprintf("UserLike:%s", username)
+	if _, err = redisConn.Do("SADD", userlikeKey, businessUsername); err != nil {
+		s.logger.Error("SADD userlikeKey Error", zap.Error(err))
+		return 0, err
+	}
+
+	//增加到店铺点赞用户列表
+	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
+	if _, err = redisConn.Do("SADD", storelikeKey, username); err != nil {
+		s.logger.Error("SADD storelikeKey Error", zap.Error(err))
+		return 0, err
+	}
+
+	//此店铺的总点赞数， 包括其他用户的点赞
+	totalLikeKey := fmt.Sprintf("TotalLikeCount:%s", businessUsername)
+	if totalLikeCount, err = redis.Int64(redisConn.Do("INCR", totalLikeKey)); err != nil {
+		s.logger.Error("INCR TotalLike Error", zap.Error(err))
+		return 0, err
+	}
+
+	return totalLikeCount, nil
+}
+
+//取消对某个店铺点赞
+func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername string) (int64, error) {
+	var err error
+	var totalLikeCount int64
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	userlikeKey := fmt.Sprintf("UserLike:%s", username)
+	if _, err = redisConn.Do("SREM", userlikeKey, businessUsername); err != nil {
+		s.logger.Error("SREM Error", zap.Error(err))
+		return 0, err
+	}
+
+	//删除店铺点赞用户列表
+	storelikeKey := fmt.Sprintf("StoreLike:%s", username)
+	if _, err = redisConn.Do("SREM", storelikeKey); err != nil {
+		s.logger.Error("SADD storelikeKey Error", zap.Error(err))
+		return 0, err
+	}
+
+	//此店铺的总点赞数
+	totalLikeKey := fmt.Sprintf("TotalLikeCount:%s", businessUsername)
+	if totalLikeCount, err = redis.Int64(redisConn.Do("DECR", totalLikeKey)); err != nil {
+		s.logger.Error("DECR TotalLike Error", zap.Error(err))
+		return 0, err
+	}
+	return totalLikeCount, nil
+}
+
+//将点赞记录插入到UserLike表
+func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error {
+	userLike := &models.UserLike{
+		Username:         username,
+		BusinessUsername: businessUser,
+	}
+	//如果没有记录，则增加
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&userLike).Error; err != nil {
+		s.logger.Error("AddUserLike, failed to upsert UserLike", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("AddUserLike, upsert UserLike succeed")
+	}
+	return nil
+}
+
+//将用户对店铺的点赞记录插入到StoreLike表
+func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) error {
+	storeLike := &models.StoreLike{
+		BusinessUsername: businessUsername,
+		Username:         user,
+	}
+	//如果没有记录，则增加
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&storeLike).Error; err != nil {
+		s.logger.Error("AddStoreLike, failed to upsert UserLike", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("AddStoreLike, upsert UserLike succeed")
 	}
 	return nil
 }

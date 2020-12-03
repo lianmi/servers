@@ -11,7 +11,7 @@ import (
 */
 
 type UserWallet struct {
-	Username        string `gorm:"primary_key"  json:"username" validate:"required"` //用户注册号， 对应User表的username字段
+	Username        string `gorm:"primarykey"  json:"username" validate:"required"` //用户注册号， 对应User表的username字段
 	CreatedAt       int64  `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
 	UpdatedAt       int64  `form:"updated_at" json:"updated_at,omitempty"`           //更新时刻,毫秒
 	WalletAddress   string `json:"wallet_address" validate:"required"`               //用户链上地址，默认是用户HD钱包的第0号索引，用于存储Eth及连米币
@@ -33,7 +33,7 @@ func (w *UserWallet) BeforeUpdate(tx *gorm.DB) error {
 
 //此表是用于保存用户充值记录
 type LnmcDepositHistory struct {
-	UUID              string  `gorm:"primary_key" json:"username" validate:"required"` //uuid
+	UUID              string  `gorm:"primarykey" json:"username" validate:"required"` //uuid
 	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`          //创建时刻,毫秒
 	UpdatedAt         int64   `form:"updated_at" json:"updated_at,omitempty"`          //更新时刻,毫秒
 	Username          string  `json:"username" validate:"required"`                    //用户注册号
@@ -60,7 +60,7 @@ func (w *LnmcDepositHistory) BeforeUpdate(tx *gorm.DB) error {
 
 //此表是用于保存用户LNMC连米币转账及支付记录
 type LnmcTransferHistory struct {
-	UUID                string `gorm:"primary_key" form:"uuid" json:"uuid,omitempty"` //uuid
+	UUID                string `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"` //uuid
 	CreatedAt           int64  `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
 	UpdatedAt           int64  `form:"updated_at" json:"updated_at,omitempty"`        //更新时刻,毫秒
 	Username            string `json:"username" validate:"required"`                  //发送方用户注册号
@@ -94,7 +94,7 @@ func (w *LnmcTransferHistory) BeforeUpdate(tx *gorm.DB) error {
 
 //此表是用于保存用户LNMC连米币提现 记录
 type LnmcWithdrawHistory struct {
-	UUID              string `gorm:"primary_key" form:"uuid" json:"uuid,omitempty"` //uuid
+	UUID              string `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"` //uuid
 	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
 	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`        //更新时刻,毫秒
 	WithdrawUUID      string `json:"withdraw_uuid" validate:"required"`             //提现单编号，UUID
@@ -126,7 +126,7 @@ func (w *LnmcWithdrawHistory) BeforeUpdate(tx *gorm.DB) error {
 
 //此表是用于保存用户收款记录，收款有两个来源，一是订单支付，二是转账
 type LnmcCollectionHistory struct {
-	UUID              string `gorm:"primary_key" form:"uuid" json:"uuid,omitempty"` //uuid
+	UUID              string `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"` //uuid
 	CreatedAt         int64  `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
 	UpdatedAt         int64  `form:"updated_at" json:"updated_at,omitempty"`        //更新时刻,毫秒
 	FromUsername      string `json:"from_username" validate:"required"`             //发送方用户注册号
@@ -193,7 +193,7 @@ type HashInfo struct {
 
 //此表是用于保存订单完成后的到账或撤单退款记录
 type LnmcOrderTransferHistory struct {
-	UUID                      string  `gorm:"primary_key" form:"uuid" json:"uuid,omitempty"`    //uuid
+	UUID                      string  `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"`    //uuid
 	CreatedAt                 int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
 	UpdatedAt                 int64   `form:"updated_at" json:"updated_at,omitempty"`           //更新时刻,毫秒
 	OrderID                   string  `json:"order_id"  validate:"required"`                    //订单ID

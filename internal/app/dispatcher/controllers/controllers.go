@@ -327,6 +327,7 @@ func CreateInitControllersFn(
 		{
 			userGroup.GET("/getuser/:id", pc.GetUser) //根据id获取用户信息
 			userGroup.POST("/list", pc.QueryUsers)    //多条件不定参数批量分页获取用户列表
+			userGroup.GET("/likes", pc.UserLikes)     //获取当前用户对所有店铺点赞情况
 		}
 
 		//=======店铺模块==========/
@@ -337,6 +338,9 @@ func CreateInitControllersFn(
 			storeGroup.POST("/savestore", pc.AddStore)           //增加或修改店铺资料
 			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
 			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
+			storeGroup.GET("/likes/:id", pc.StoreLikes)          //获取店铺的所有点赞用户列表
+			storeGroup.POST("/like/:id", pc.ClickLike)           //对某个店铺点赞
+			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)   //取消对某个店铺点赞
 		}
 
 		//=======好友模块==========/

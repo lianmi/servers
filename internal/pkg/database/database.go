@@ -70,6 +70,8 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.NormalUserCommissionStatistics{})   // 普通用户佣金月统计表
 	db.AutoMigrate(&models.BusinessUserCommissionStatistics{}) // 商户佣金月统计表
 	db.AutoMigrate(&models.Store{})                            // 商户店铺表
+	db.AutoMigrate(&models.StoreLike{})                        // 商店的点赞明细表
+	db.AutoMigrate(&models.UserLike{})                         // 用户点赞的店铺记录表表
 	return db, nil
 }
 

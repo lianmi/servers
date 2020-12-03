@@ -10,7 +10,7 @@ import (
 
 //定义群组的数据结构
 type Team struct {
-	ID           uint64 `gorm:"primary_key" form:"id" json:"id,omitempty"`                         //自动递增id
+	ID           uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`                         //自动递增id
 	CreatedAt    int64  `form:"created_at" json:"created_at,omitempty"`                            //创建时刻
 	UpdatedAt    int64  `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻
 	TeamID       string `form:"team_id" json:"team_id" `                                           //群id，自动生成，字母(team) + 数字

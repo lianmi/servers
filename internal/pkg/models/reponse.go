@@ -3,11 +3,12 @@ package models
 import (
 	"encoding/json"
 )
+
 //通用请求返回结构体定义
 type Response struct {
-    Code    int         `json:"code"`
-    Message string      `json:"msg"`
-    Data    interface{} `json:"data"`
+	Code    int         `json:"code"`
+	Message string      `json:"msg"`
+	Data    interface{} `json:"data"`
 }
 
 func (r *Response) ToJson() string {
