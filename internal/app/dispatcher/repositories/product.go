@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"math"
 )
 
 //获取某个商户的所有商品列表
@@ -52,9 +53,10 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 
 	db = s.db
 	db.Model(&mod).Count(total)
+	pages := math.Ceil(float64(*total / int64(pageSize)))
 
 	resp := &Order.ProductsListResp{
-		TotalPage: uint64(*total),
+		TotalPage: uint64(pages),
 	}
 
 	for _, product := range list {

@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"math"
 )
 
 //修改或增加店铺资料
@@ -247,9 +248,10 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 
 	db = s.db
 	db.Model(&mod).Count(total)
+	pages := math.Ceil(float64(*total / int64(pageSize)))
 
 	resp := &Order.QueryStoresNearbyResp{
-		TotalPage: uint64(*total),
+		TotalPage: uint64(pages),
 	}
 
 	for _, store := range list {
