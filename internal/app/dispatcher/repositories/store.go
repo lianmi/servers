@@ -2,7 +2,8 @@ package repositories
 
 import (
 	"fmt"
-	// "time"
+	"math/rand"
+	"time"
 
 	// "github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -268,6 +269,9 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			//没默认头像
 			avatar = LMCommon.PubAvatar
 		}
+		//设置随机种子
+		rand.Seed(time.Now().UnixNano())
+		likes := rand.Intn(999)
 
 		resp.Stores = append(resp.Stores, &User.Store{
 			StoreUUID:          store.StoreUUID,                   //店铺的uuid
@@ -292,6 +296,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
+			Likes:              uint64(likes),
 		})
 	}
 	return resp, nil
