@@ -272,6 +272,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 		//设置随机种子
 		rand.Seed(time.Now().UnixNano())
 		likes := rand.Intn(999)
+		commentcount := rand.Intn(400)
 
 		resp.Stores = append(resp.Stores, &User.Store{
 			StoreUUID:          store.StoreUUID,                   //店铺的uuid
@@ -296,6 +297,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
+			Commentcount:       uint64(commentcount),
 			Likes:              uint64(likes),
 		})
 	}

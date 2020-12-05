@@ -29,7 +29,8 @@ message Store {
     int32  auditState          = 20; //商户审核状态， 0-预审核，1-已审核，2-占位
     fixed64 createdAt          = 21; //用户注册时间,Unix时间戳
     fixed64 updatedAt          = 22; //用户资料最后更新时间,Unix时间戳
-    fixed64 likes              = 23; //用户点赞数
+    fixed64 commentcount       = 23; //用户评论数
+    fixed64 likes              = 24; //用户点赞数
 }
 
 message BusinessUserUploadLicenseReq {
