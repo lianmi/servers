@@ -33,7 +33,7 @@ type Store struct {
 	Keys              string  `form:"keys" json:"keys,omitempty" `                                           //商户经营范围搜索关键字
 	LicenseURL        string  `form:"license_url" json:"license_url" `                                       //商户营业执照阿里云url
 	AuditState        int     `form:"audit_state" json:"audit_state"`                                        //审核状态，0-预审核，1-审核通过, 2-占位
-
+	OpeningHours      string  `form:"opening_hours" json:"opening_hours,omitempty"`                          //营业时间
 }
 
 //BeforeCreate CreatedAt赋值

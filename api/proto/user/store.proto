@@ -31,6 +31,7 @@ message Store {
     fixed64 updatedAt          = 22; //用户资料最后更新时间,Unix时间戳
     fixed64 commentcount       = 23; //用户评论数
     fixed64 likes              = 24; //用户点赞数
+    string openingHours        = 25; //营业时间
 }
 
 message BusinessUserUploadLicenseReq {

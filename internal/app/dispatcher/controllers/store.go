@@ -39,8 +39,9 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	RespData(c, http.StatusOK, code, store)
 }
 
-//返回商品种类
+//TODO 返回商品种类 在新的数据库需要建立字典表 
 func (pc *LianmiApisController) GetStoreTypes(c *gin.Context) {
+	
 	type StoreTypeData struct {
 		StoreType int    //编号
 		Name      string //名称

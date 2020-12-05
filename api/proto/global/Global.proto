@@ -39,8 +39,7 @@ enum AuthSubType {
 enum UserSubType {
     Ust_undefined          = 0;    //proto3必须从0开始
     GetUsers               = 1;    /**< 根据用户标示返回用户信息*/
-    
-          = 2;    /**< 更新当前用户信息*/
+    UpdateUserProfile      = 2;    /**< 更新当前用户信息*/
     SyncUserProfileEvent   = 3;    /**< 登录成功后,用户资料增量更新事件*/
     SyncUpdateProfileEvent = 4;    /**< 用户资料更新事件,同一账号其他终端修改个人资料会触发该事件*/
     MarkTag                = 5;    /**< 用户打标*/
@@ -191,32 +190,6 @@ enum OrderState {
     OS_Expedited    = 16;   /**< 加急订单, 排在首位*/
 }
 
-//全18种零售商店分类
-enum StoreType_delete {
-    ST_Undefined         = 0;     //proto3必须从0开始
-    ST_SuperStore        = 1;     //大型超市
-    ST_Store             = 2;     //普通超市, 往往离家很近，出门便到，一些日常用品、生活杂物往往不需要跑太远，这里都能买到。
-    ST_DiscountStore     = 3;     //折扣店周转快，但相对的种类不齐全、经营面积、地段、装修等因素较一般，以此换得折扣竞争力。
-    ST_ConvenienceStore  = 4;     //便利店 便利店同其名字一样，以满足客户应急性、便利性需求为目的，一般占据着离一方人士最近的地段，日经营日间长，但品种有限且固定。
-    ST_GroceryStore      = 5;     //食杂店 粮油 生活清洁用品
-    ST_MeatStore         = 6;     //肉类店
-    ST_FruitStore        = 7;     //水果店
-    ST_CakeStore         = 8;     //面包糕点店 蛋糕 
-    ST_FucaiStore        = 9;     //福彩彩票店
-    ST_TicaiStore        = 10;    //体彩彩票店
-    ST_CarryStore        = 11;    //物流搬运或载货出租车公司 
-    ST_MaintenanceStore  = 12;    //维修电器
-    ST_HouseKeepingStore = 13;    //家政服务，电工，木工，泥水工，开锁，
-    ST_ServicesStore     = 14;    //服务行业，会计
-    ST_WarehouseClub     = 15;    //仓储会员店是一种带有批发性质的批售式商店，在我国又称为仓储式商场或货仓式商场。东西价格往往比超市更便宜，但位置一般较偏。
-    ST_VarietyStore      = 16;    //百货店 百货店在同一较大场所会同时经营若干大类的商品，但实行统一的管理、分区销售，满足客户对商品多样化选择的需求。
-    ST_SpecialityStore   = 17;    //专业店是专门经营某类商品的商店，包括五金店、建材店，专业店所售商品的种类较全，所以顾客的选择很方便。
-    ST_ExclusiveStore    = 18;    //专卖店 专卖店是专门经营或授权经营某一主要品牌或厂家商品的实体店铺，专卖店主要用于满足消费者对品牌的选择与信任。
-    ST_MaterialsStore    = 19;    //家居建材店 专门提供家居、建材类物品的商店业态，针对性强，订单量大是它的显著特点。
-    ST_Microbusiness     = 20;    //微商
-    
-
-}
 enum StoreType {
     ST_Undefined         = 0;     //proto3必须从0开始
     ST_FreshProduct  = 1;     /**< 生鲜*/
@@ -226,7 +199,7 @@ enum StoreType {
     ST_Delicatessen  = 5;     /**< 熟食类*/
     ST_Bakery        = 6;     /**< 面包糕点类*/
     ST_GroceryStore  = 7;     /**< 生活五金用品类*/
-    ST_HouseKeeping  = 8;     /**< 家政保姆*/
+    ST_HouseKeeping  = 8;     /**< 家政*/
     ST_Lottery       = 9;      /**< 彩票*/
     ST_Carry         = 10;      /**< 搬运*/
     ST_Maintenance   = 11;     /**< 维修*/

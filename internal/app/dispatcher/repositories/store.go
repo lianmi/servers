@@ -89,6 +89,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 				Keys:              req.Keys,              //商户经营范围搜索关键字
 				LicenseURL:        businessLicenseUrl,    //商户营业执照阿里云url
 				AuditState:        0,                     //初始值
+				OpeningHours:      req.OpeningHours,      //营业时间
 			}
 
 			//如果没有记录，则增加
@@ -135,6 +136,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 			WeChat:            req.Wechat,            //商户联系人微信号
 			Keys:              req.Keys,              //商户经营范围搜索关键字
 			LicenseURL:        businessLicenseUrl,    //商户营业执照阿里云url
+			OpeningHours:      req.OpeningHours,      //营业时间
 		})
 
 		//updated records count
@@ -299,6 +301,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			UpdatedAt:          uint64(store.UpdatedAt),
 			Commentcount:       uint64(commentcount), //TODO 暂时是虚拟的
 			Likes:              uint64(likes),        //TODO 暂时是虚拟的
+			OpeningHours:       store.OpeningHours,   //营业时间
 		})
 	}
 	return resp, nil
