@@ -62,7 +62,7 @@ const (
 	//阿里云OSS临时token的过期时间, 默认是3600秒
 	EXPIRESECONDS = 3600
 
-	OSSUploadPicPrefix = "https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/lianmi-ipfs/"
+	OSSUploadPicPrefix = "https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/"
 	//https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/msg/2020/11/29/id1/EF6B35D42C56273EF6D94B0DFC53C9C8
 )
 
