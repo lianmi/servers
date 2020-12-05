@@ -39,7 +39,8 @@ enum AuthSubType {
 enum UserSubType {
     Ust_undefined          = 0;    //proto3必须从0开始
     GetUsers               = 1;    /**< 根据用户标示返回用户信息*/
-    UpdateUserProfile      = 2;    /**< 更新当前用户信息*/
+    
+          = 2;    /**< 更新当前用户信息*/
     SyncUserProfileEvent   = 3;    /**< 登录成功后,用户资料增量更新事件*/
     SyncUpdateProfileEvent = 4;    /**< 用户资料更新事件,同一账号其他终端修改个人资料会触发该事件*/
     MarkTag                = 5;    /**< 用户打标*/
@@ -191,7 +192,7 @@ enum OrderState {
 }
 
 //全18种零售商店分类
-enum StoreType {
+enum StoreType_delete {
     ST_Undefined         = 0;     //proto3必须从0开始
     ST_SuperStore        = 1;     //大型超市
     ST_Store             = 2;     //普通超市, 往往离家很近，出门便到，一些日常用品、生活杂物往往不需要跑太远，这里都能买到。
@@ -216,7 +217,22 @@ enum StoreType {
     
 
 }
-
+enum StoreType {
+    ST_Undefined         = 0;     //proto3必须从0开始
+    ST_FreshProduct  = 1;     /**< 生鲜*/
+    ST_Meat          = 2;     /**< 肉类*/
+    ST_Fruits        = 3;     /**< 水果蔬菜类*/
+    ST_GrainOil      = 4;     /**< 粮油类*/
+    ST_Delicatessen  = 5;     /**< 熟食类*/
+    ST_Bakery        = 6;     /**< 面包糕点类*/
+    ST_GroceryStore  = 7;     /**< 生活五金用品类*/
+    ST_HouseKeeping  = 8;     /**< 家政保姆*/
+    ST_Lottery       = 9;      /**< 彩票*/
+    ST_Carry         = 10;      /**< 搬运*/
+    ST_Maintenance   = 11;     /**< 维修*/
+    ST_Services      = 12;     /**< 服务行业*/
+    ST_Others        = 13;     /**<其它*/
+}
 //商品类型
 enum ProductType {
     OT_Undefined     = 0;     //proto3必须从0开始
@@ -226,12 +242,13 @@ enum ProductType {
     OT_GrainOil      = 4;     /**< 粮油类*/
     OT_Delicatessen  = 5;     /**< 熟食类*/
     OT_Bakery        = 6;     /**< 面包糕饼类*/
-    OT_HouseKeeping  = 7;     /**< 家政*/
-    OT_Lottery       = 8;      /**< 彩票*/
-    OT_Carry         = 9;      /**< 搬运*/
-    OT_Maintenance   = 10;     /**< 维修*/
-    OT_Services      = 11;     /**< 服务行业*/
-    OT_Others        = 12;     /**<其它*/
+    OT_GroceryStore  = 7;     /**< 生活清洁用品类*/
+    OT_HouseKeeping  = 8;     /**< 家政*/
+    OT_Lottery       = 9;      /**< 彩票*/
+    OT_Carry         = 10;      /**< 搬运*/
+    OT_Maintenance   = 11;     /**< 维修*/
+    OT_Services      = 12;     /**< 服务行业*/
+    OT_Others        = 13;     /**<其它*/
 }
 
 //交易类型枚举(钱包资产的收支)： 

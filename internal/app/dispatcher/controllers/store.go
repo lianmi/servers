@@ -39,6 +39,84 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	RespData(c, http.StatusOK, code, store)
 }
 
+//返回商品种类
+func (pc *LianmiApisController) GetStoreTypes(c *gin.Context) {
+	type StoreTypeData struct {
+		StoreType int    //编号
+		Name      string //名称
+	}
+	storeTypes := make([]StoreTypeData, 0)
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 1,
+		Name:      "生鲜家禽",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 2,
+		Name:      "肉类",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 3,
+		Name:      "水果蔬菜",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 4,
+		Name:      "粮油食杂",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 5,
+		Name:      "熟食",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 6,
+		Name:      "面包糕点",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 7,
+		Name:      "生活五金",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 8,
+		Name:      "家政保姆",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 9,
+		Name:      "彩票",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 10,
+		Name:      "搬运货运",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 11,
+		Name:      "电器维修",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 12,
+		Name:      "服务行业",
+	})
+
+	storeTypes = append(storeTypes, StoreTypeData{
+		StoreType: 13,
+		Name:      "其它",
+	})
+
+	code := codes.SUCCESS
+
+	RespData(c, http.StatusOK, code, storeTypes)
+}
+
 //增加或修改店铺资料
 func (pc *LianmiApisController) AddStore(c *gin.Context) {
 

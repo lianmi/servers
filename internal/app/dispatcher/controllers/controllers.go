@@ -335,6 +335,7 @@ func CreateInitControllersFn(
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			storeGroup.GET("/storeinfo/:id", pc.GetStore)        //根据商户注册id获取店铺资料
+			storeGroup.GET("/types", pc.GetStoreTypes)           //返回商品种类
 			storeGroup.POST("/savestore", pc.AddStore)           //增加或修改店铺资料
 			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
 			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表

@@ -297,8 +297,8 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
-			Commentcount:       uint64(commentcount),
-			Likes:              uint64(likes),
+			Commentcount:       uint64(commentcount), //TODO 暂时是虚拟的
+			Likes:              uint64(likes),        //TODO 暂时是虚拟的
 		})
 	}
 	return resp, nil
