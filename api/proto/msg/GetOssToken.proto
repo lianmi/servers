@@ -5,7 +5,8 @@ option go_package = "github.com/lianmi/servers/api/proto/msg";
 
 //向服务端发送获取阿里云OSS上传Token的请求，用业务号及子号即可
 message GetOssTokenReq {
-
+//新增，如果true表示私有, false表示公有目录
+    bool isPrivate = 1;
 }
 
 //响应参数
@@ -29,4 +30,5 @@ message GetOssTokenRsp {
 
     //废除：服务器为新文件分配的文件名，注：该名字不带文件后缀，客户端自行将后缀拼接完整
     //改为以上传文件的md5作为文件名， string name = md5; 
+    
 }

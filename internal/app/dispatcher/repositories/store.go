@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"time"
 
+	"strings"
+
 	// "github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
@@ -268,7 +270,13 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			//没默认头像
 			avatar = LMCommon.PubAvatar
 		}
-		avatar = LMCommon.OSSUploadPicPrefix + avatar //拼接URL
+
+		//智能判断一下，是否是带 http(s) 前缀
+		if !strings.HasPrefix(avatar, "http") {
+
+			avatar = LMCommon.OSSUploadPicPrefix + avatar //拼接URL
+
+		}
 
 		if store.ImageUrl != "" {
 			imageUrl = LMCommon.OSSUploadPicPrefix + store.ImageUrl
