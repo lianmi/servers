@@ -116,22 +116,22 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		result := s.db.Model(&models.Store{}).Where(&where2).Updates(models.Store{
 			StoreType:         int(req.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
 			ImageURL:          req.ImageUrl,
-			BusinessUsername:  req.BusinessUsername,  //商户注册号
-			Introductory:      req.Introductory,      //商店简介 Text文本类型
-			Province:          req.Province,          //省份, 如广东省
-			City:              req.City,              //城市，如广州市
-			County:            req.County,            //区，如天河区
-			Street:            req.Street,            //街道
-			Address:           req.Address,           //地址
-			Branchesname:      req.Branchesname,      //网点名称
-			LegalPerson:       req.LegalPerson,       //法人姓名
-			LegalIdentityCard: req.LegalIdentityCard, //法人身份证
-			Longitude:         req.Longitude,         //商户地址的经度
-			Latitude:          req.Latitude,          //商户地址的纬度
-			WeChat:            req.Wechat,            //商户联系人微信号
-			Keys:              req.Keys,              //商户经营范围搜索关键字
-			LicenseURL:        req.BusinessLicenseUrl,    //商户营业执照阿里云url
-			OpeningHours:      req.OpeningHours,      //营业时间
+			BusinessUsername:  req.BusinessUsername,   //商户注册号
+			Introductory:      req.Introductory,       //商店简介 Text文本类型
+			Province:          req.Province,           //省份, 如广东省
+			City:              req.City,               //城市，如广州市
+			County:            req.County,             //区，如天河区
+			Street:            req.Street,             //街道
+			Address:           req.Address,            //地址
+			Branchesname:      req.Branchesname,       //网点名称
+			LegalPerson:       req.LegalPerson,        //法人姓名
+			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+			Longitude:         req.Longitude,          //商户地址的经度
+			Latitude:          req.Latitude,           //商户地址的纬度
+			WeChat:            req.Wechat,             //商户联系人微信号
+			Keys:              req.Keys,               //商户经营范围搜索关键字
+			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+			OpeningHours:      req.OpeningHours,       //营业时间
 		})
 
 		//updated records count
@@ -261,12 +261,23 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	}
 
 	for _, store := range list {
+		var imageUrl, businessLicenseUrl string
 		//获取店铺头像
 		avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", store.BusinessUsername), "Avatar"))
 		if avatar == "" {
 			//没默认头像
 			avatar = LMCommon.PubAvatar
 		}
+		avatar = LMCommon.OSSUploadPicPrefix + avatar //拼接URL
+
+		if store.ImageUrl != "" {
+			imageUrl = LMCommon.OSSUploadPicPrefix + store.ImageUrl
+		}
+
+		if store.BusinessLicenseUrl != "" {
+			businessLicenseUrl = LMCommon.OSSUploadPicPrefix + store.BusinessLicenseUrl
+		}
+
 		//设置随机种子
 		rand.Seed(time.Now().UnixNano())
 		likes := rand.Intn(999)
@@ -277,7 +288,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			StoreType:          Global.StoreType(store.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
 			BusinessUsername:   store.BusinessUsername,            //商户注册号
 			Avatar:             avatar,                            //头像
-			ImageUrl:           store.ImageUrl,                    //头像
+			ImageUrl:           imageUrl,                          //头像
 			Introductory:       store.Introductory,                //商店简介 Text文本类型
 			Province:           store.Province,                    //省份, 如广东省
 			City:               store.City,                        //城市，如广州市
@@ -291,7 +302,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			Latitude:           store.Latitude,                    //商户地址的纬度
 			Wechat:             store.Wechat,                      //商户联系人微信号
 			Keys:               store.Keys,                        //商户经营范围搜索关键字
-			BusinessLicenseUrl: store.BusinessLicenseUrl,          //商户营业执照阿里云url
+			BusinessLicenseUrl: businessLicenseUrl,                //商户营业执照阿里云url
 			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
