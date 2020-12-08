@@ -1,6 +1,7 @@
 /*
 上传 图片文件到阿里云
-./lmSdkClient oss upload -f ~/Downloads/shuangseqiu.jpeg -b lianmi-ipfs -d avatars
+第一步:  ./lmSdkClient oss osstoken
+第二步:  ./lmSdkClient oss upload -f ~/Downloads/shuangseqiu.jpeg -b lianmi-ipfs -d products
 */
 package cmd
 
@@ -32,20 +33,20 @@ var uploadCmd = &cobra.Command{
 		// fmt.Println("upload called")
 		localFileName, _ := cmd.PersistentFlags().GetString("file")
 		if localFileName == "" {
-			log.Println("localFileName is empty")
+			log.Println("Error:  localFileName is empty")
 			return
 		}
 		// bucketName := "lianmi-images" //公共读
 
 		bucketName, _ := cmd.PersistentFlags().GetString("bucket")
 		if bucketName == "" {
-			log.Println("bucket name is empty")
+			log.Println("Error:  bucket name is empty")
 			return
 		}
 
 		dir, _ := cmd.PersistentFlags().GetString("dir")
 		if dir == "" {
-			log.Println("dir name is empty")
+			log.Println("Error:  dir name is empty")
 			return
 		}
 
@@ -132,8 +133,7 @@ func init() {
 	//子命令
 	ossCmd.AddCommand(uploadCmd)
 
-	//本地文件
-	uploadCmd.PersistentFlags().StringP("file", "f", "", "本地文件")
-	uploadCmd.PersistentFlags().StringP("bucket", "b", "lianmi-images", "bucket name")
-	uploadCmd.PersistentFlags().StringP("dir", "d", "", "dir")
+	uploadCmd.PersistentFlags().StringP("file", "f", "", "本地文件")                     //本地文件
+	uploadCmd.PersistentFlags().StringP("bucket", "b", "lianmi-ipfs", "bucket name") //bucket
+	uploadCmd.PersistentFlags().StringP("dir", "d", "", "dir")                       //bucket里的存放目录
 }

@@ -1026,33 +1026,44 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 						continue
 					}
 				}
-				rsp.AddProducts = append(rsp.AddProducts, &Order.Product{
-					ProductId:         productID,
-					Expire:            uint64(productInfo.Expire),
-					ProductName:       productInfo.ProductName,
-					ProductType:       Global.ProductType(productInfo.ProductType),
-					ProductDesc:       productInfo.ProductDesc,
-					ProductPic1Small:  productInfo.ProductPic1Small,
-					ProductPic1Middle: productInfo.ProductPic1Middle,
-					ProductPic1Large:  productInfo.ProductPic1Large,
-					ProductPic2Small:  productInfo.ProductPic2Small,
-					ProductPic2Middle: productInfo.ProductPic2Middle,
-					ProductPic2Large:  productInfo.ProductPic2Large,
-					ProductPic3Small:  productInfo.ProductPic3Small,
-					ProductPic3Middle: productInfo.ProductPic3Middle,
-					ProductPic3Large:  productInfo.ProductPic3Large,
-					Thumbnail:         productInfo.Thumbnail,
-					ShortVideo:        productInfo.ShortVideo,
-					Price:             productInfo.Price,
-					LeftCount:         productInfo.LeftCount,
-					Discount:          productInfo.Discount,
-					DiscountDesc:      productInfo.DiscountDesc,
-					DiscountStartTime: uint64(productInfo.DiscountStartTime),
-					DiscountEndTime:   uint64(productInfo.DiscountEndTime),
-					CreateAt:          uint64(productInfo.CreatedAt),
-					ModifyAt:          uint64(productInfo.ModifyAt),
-					AllowCancel:       productInfo.AllowCancel,
+
+				oProduct := &Order.Product{
+					ProductId:         productID,                                   //商品ID
+					Expire:            uint64(productInfo.Expire),                  //商品过期时间
+					ProductName:       productInfo.ProductName,                     //商品名称
+					ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
+					ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
+					ShortVideo:        productInfo.ShortVideo,                      //商品短视频
+					Thumbnail:         productInfo.Thumbnail,                       //商品短视频缩略图
+					Price:             productInfo.Price,                           //价格
+					LeftCount:         productInfo.LeftCount,                       //库存数量
+					Discount:          productInfo.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+					DiscountDesc:      productInfo.DiscountDesc,                    //折扣说明
+					DiscountStartTime: uint64(productInfo.DiscountStartTime),       //折扣开始时间
+					DiscountEndTime:   uint64(productInfo.DiscountEndTime),         //折扣结束时间
+					CreateAt:          uint64(productInfo.CreatedAt),               //创建时间
+					ModifyAt:          uint64(productInfo.ModifyAt),                //最后修改时间
+					AllowCancel:       productInfo.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+				}
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productInfo.ProductPic1Small,
+					Middle: productInfo.ProductPic1Middle,
+					Large:  productInfo.ProductPic1Large,
 				})
+
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productInfo.ProductPic2Small,
+					Middle: productInfo.ProductPic2Middle,
+					Large:  productInfo.ProductPic2Large,
+				})
+
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productInfo.ProductPic3Small,
+					Middle: productInfo.ProductPic3Middle,
+					Large:  productInfo.ProductPic3Large,
+				})
+
+				rsp.AddProducts = append(rsp.AddProducts, oProduct)
 			}
 
 			//下架的商品ID

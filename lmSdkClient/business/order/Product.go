@@ -9,6 +9,7 @@ import (
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/util/array"
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -128,15 +129,16 @@ func QueryProducts() error {
 
 						log.Println("回包内容 QueryProductsRsp ---------------------")
 						log.Println("")
-						log.Println(" 商户商品明细 ---------------------")
+						log.Println(" 商户商品明细 rsq.Products---------------------")
 
-						for _, product := range rsq.Products {
-							log.Println("商品ID ProductId: ", product.ProductId)
-							log.Println("商品名称 ProductName: ", product.ProductName)
-							log.Println("商品描述 ProductDesc: ", product.ProductDesc)
-							log.Println("商品小图 ProductPic1Small: ", product.ProductPic1Small)
+						// for _, product := range rsq.Products {
+						// 	log.Println("商品ID ProductId: ", product.ProductId)
+						// 	log.Println("商品名称 ProductName: ", product.ProductName)
+						// 	log.Println("商品描述 ProductDesc: ", product.ProductDesc)
+						// }
 
-						}
+						array.PrintPretty(rsq.Products)
+
 						log.Println("")
 						log.Println(" 下架商品明细 ---------------------")
 
@@ -241,26 +243,36 @@ func AddProduct() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
+	oProduct := &Order.Product{
+		Expire:      uint64(0),
+		ProductName: "福彩3D",
+		ProductType: Global.ProductType(8), //8-彩票
+		ProductDesc: "最新玩法福彩3D",
+		ShortVideo:  "",
+		Price:       float32(2.0),
+		AllowCancel: true,
+	}
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图1
+	})
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图2
+	})
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图3
+	})
+
+	//商品内容图片数组
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+
 	req := &Order.AddProductReq{
-		Product: &Order.Product{
-			Expire:            uint64(0),
-			ProductName:       "双色球",
-			ProductType:       Global.ProductType(8), //8-彩票
-			ProductDesc:       "最高头奖1千万",
-			ProductPic1Small:  "",
-			ProductPic1Middle: "",
-			ProductPic1Large:  "avatars/3bd9492cb75f990b3effd5b39614f510.jpeg", // 原图https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/avatars/3bd9492cb75f990b3effd5b39614f510.jpeg
-			ProductPic2Small:  "",
-			ProductPic2Middle: "",
-			ProductPic2Large:  "",
-			ProductPic3Small:  "",
-			ProductPic3Middle: "",
-			ProductPic3Large:  "",
-			Thumbnail:         "",
-			ShortVideo:        "",
-			Price:             float32(2.0),
-			AllowCancel:       true,
-		},
+		Product:         oProduct,
 		OrderType:       Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
 		OpkBusinessUser: "",
 		Expire:          0,
@@ -430,27 +442,37 @@ func UpdateProduct() error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 	pkey := fmt.Sprintf("ProductID:%s", localUserName)
 	productId, _ := redis.String(redisConn.Do("GET", pkey))
+	oProduct := &Order.Product{
+		ProductId:   productId,
+		Expire:      uint64(0),
+		ProductName: "福彩3D",
+		ProductType: Global.ProductType(8), //8-彩票
+		ProductDesc: "最新玩法福彩3D",
+		ShortVideo:  "",
+		Price:       float32(2.0),
+		AllowCancel: true,
+	}
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图1
+	})
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图2
+	})
+	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图3
+	})
+
+	//商品内容图片数组
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+
 	req := &Order.UpdateProductReq{
-		Product: &Order.Product{
-			ProductId:         productId,
-			Expire:            uint64(0),
-			ProductName:       "福彩3D",
-			ProductType:       Global.ProductType(8), //8-彩票
-			ProductDesc:       "最新玩法福彩3D",
-			ProductPic1Small:  "",
-			ProductPic1Middle: "",
-			ProductPic1Large:  "product/215b66d14111da360261206e348c3223.jpg", // 原图
-			ProductPic2Small:  "",
-			ProductPic2Middle: "",
-			ProductPic2Large:  "",
-			ProductPic3Small:  "",
-			ProductPic3Middle: "",
-			ProductPic3Large:  "",
-			Thumbnail:         "",
-			ShortVideo:        "",
-			Price:             float32(2.0),
-			AllowCancel:       true,
-		},
+		Product:   oProduct,
 		OrderType: Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
 		Expire:    0,
 	}

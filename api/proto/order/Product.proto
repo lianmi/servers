@@ -6,6 +6,20 @@ import "api/proto/user/Store.proto";
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
 
+//商品图片 
+message ProductPic {
+    //小图
+    string small=1;
+
+    //中图
+    string middle=2;
+
+    //大图
+    string large=3;
+
+
+}
+
 message Product {
     //商品ID
     //是否必须-是
@@ -25,86 +39,56 @@ message Product {
     //是否必须-是
     string ProductDesc = 5;
 
-    //商品图片1-小图
-    //是否必须-是
-    string ProductPic1Small = 6;
+    //商品图片数组，默认是3个图片
+    repeated ProductPic productPics = 6;
 
-    //商品图片1-中图
-    //是否必须-是
-    string ProductPic1Middle = 7;
-
-    //商品图片1-大图
-    //是否必须-是
-    string ProductPic1Large = 8;
-
-
-    //商品图片2-小图
-    //是否必须-否
-    string ProductPic2Small = 9;
-
-    //商品图片2-中图
-    //是否必须-否
-    string ProductPic2Middle = 10;
-
-    //商品图片2-大图
-    //是否必须-否
-    string ProductPic2Large = 11;
-
-    //商品图片3-小图
-    //是否必须-否
-    string ProductPic3Small = 12;
-
-    //商品图片3-中图
-    //是否必须-否
-    string ProductPic3Middle = 13;
-
-    //商品图片3-大图
-    //是否必须-否
-    string ProductPic3Large = 14;
-
-    //商品短视频缩略图
-    //是否必须-否
-    string Thumbnail = 15;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 16;
+    string ShortVideo = 7;
+
+   //商品短视频缩略图
+    //是否必须-否
+    string Thumbnail = 8;
 
     //价格
     //是否必须-是
-    float Price = 17;
+    float Price = 9;
 
     //库存数量
     //是否必须-是
-    fixed64 LeftCount = 18;
+    fixed64 LeftCount = 10;
 
     //折扣
     //实际数字，例如: 0.95, UI显示为九五折
     //是否必须-否
-    float Discount = 19;
+    float Discount = 11;
 
     //折扣说明
     //是否必须-否
-    string DiscountDesc = 20;
+    string DiscountDesc = 12;
 
     //折扣开始时间
     //是否必须-否
-    fixed64 DiscountStartTime = 21;
+    fixed64 DiscountStartTime = 13;
 
     //折扣结束时间
     //是否必须-否
-    fixed64 DiscountEndTime = 22;
+    fixed64 DiscountEndTime = 14;
+
+    //商品内容详情图片，默认是 6张
+   repeated string descPics =15;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 23;
+    fixed64 CreateAt = 16;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 24;
+    fixed64 ModifyAt = 17;
 
     //是否允许撤单， 默认是可以，彩票类的不可以
-    bool AllowCancel = 25;
+    bool AllowCancel = 18;
 
 }
 
@@ -210,6 +194,7 @@ message GeneralProduct {
 
     //是否允许撤单， 默认是可以，彩票类的不可以
     bool AllowCancel = 18;
+
 }
 
 

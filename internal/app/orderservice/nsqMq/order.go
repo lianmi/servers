@@ -52,7 +52,6 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleQueryProducts start...",
@@ -114,37 +113,49 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 					continue
 				}
 			}
-
-			rsp.Products = append(rsp.Products, &Order.Product{
-				ProductId:         productID,
-				Expire:            uint64(product.Expire),
-				ProductName:       product.ProductName,
-				ProductType:       Global.ProductType(product.ProductType),
-				ProductDesc:       product.ProductDesc,
-				ProductPic1Small:  product.ProductPic1Small,
-				ProductPic1Middle: product.ProductPic1Middle,
-				ProductPic1Large:  product.ProductPic1Large,
-
-				ProductPic2Small:  product.ProductPic2Small,
-				ProductPic2Middle: product.ProductPic2Middle,
-				ProductPic2Large:  product.ProductPic2Large,
-
-				ProductPic3Small:  product.ProductPic3Small,
-				ProductPic3Middle: product.ProductPic3Middle,
-				ProductPic3Large:  product.ProductPic3Large,
-
-				Thumbnail:         product.Thumbnail,
-				ShortVideo:        product.ShortVideo,
-				Price:             product.Price,
-				LeftCount:         product.LeftCount,
-				Discount:          product.Discount,
-				DiscountDesc:      product.DiscountDesc,
-				DiscountStartTime: uint64(product.DiscountStartTime),
-				DiscountEndTime:   uint64(product.DiscountEndTime),
-				CreateAt:          uint64(product.CreatedAt),
-				ModifyAt:          uint64(product.ModifyAt),
-				AllowCancel:       product.AllowCancel,
+			oProduct := &Order.Product{
+				ProductId:         product.ProductID,                       //商品ID
+				Expire:            uint64(product.Expire),                  //商品过期时间
+				ProductName:       product.ProductName,                     //商品名称
+				ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
+				ProductDesc:       product.ProductDesc,                     //商品详细介绍
+				ShortVideo:        product.ShortVideo,                      //商品短视频
+				Thumbnail:         product.Thumbnail,                       //商品短视频缩略图
+				Price:             product.Price,                           //价格
+				LeftCount:         product.LeftCount,                       //库存数量
+				Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      product.DiscountDesc,                    //折扣说明
+				DiscountStartTime: uint64(product.DiscountStartTime),       //折扣开始时间
+				DiscountEndTime:   uint64(product.DiscountEndTime),         //折扣结束时间
+				CreateAt:          uint64(product.CreatedAt),               //创建时间
+				ModifyAt:          uint64(product.ModifyAt),                //最后修改时间
+				AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+			}
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  product.ProductPic1Small,
+				Middle: product.ProductPic1Middle,
+				Large:  product.ProductPic1Large,
 			})
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  product.ProductPic2Small,
+				Middle: product.ProductPic2Middle,
+				Large:  product.ProductPic2Large,
+			})
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  product.ProductPic3Small,
+				Middle: product.ProductPic3Middle,
+				Large:  product.ProductPic3Large,
+			})
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic1)
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic2)
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic3)
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic4)
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic5)
+			oProduct.DescPics = append(oProduct.DescPics, product.DescPic6)
+
+			rsp.Products = append(rsp.Products, oProduct)
 		}
 
 		//获取商户的下架soldoutProducts
@@ -188,6 +199,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	var productPic2Small, productPic2Middle, productPic2Large string
 	var productPic3Small, productPic3Middle, productPic3Large string
 	var shortVideo, thumbnail string
+	var product = &models.Product{}
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -226,12 +238,49 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
+		//将3张图片的url组装为真正的url
+		if len(req.Product.ProductPics) >= 1 {
+			//小图
+			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large
+
+		}
+		if len(req.Product.ProductPics) >= 2 {
+
+			//小图
+			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large
+		}
+
+		if len(req.Product.ProductPics) >= 3 {
+			//小图
+			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large
+		}
+
+		//如果有短视频，则组装缩略图
+		if req.Product.ShortVideo != "" {
+			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
+			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		} else {
+			shortVideo = ""
+			thumbnail = ""
+		}
 		nc.logger.Debug("AddProduct payload",
 			zap.String("ProductId", req.Product.ProductId),
 			zap.Int("OrderType", int(req.OrderType)),
-			zap.String("ProductPic1Large", req.Product.ProductPic1Large),
-			zap.String("ProductPic2Large", req.Product.ProductPic2Large),
-			zap.String("ProductPic3Large", req.Product.ProductPic3Large),
+			zap.String("ProductPic1Large", productPic1Large),
+			zap.String("ProductPic2Large", productPic2Large),
+			zap.String("ProductPic3Large", productPic3Large),
 			zap.String("OpkBusinessUser", req.OpkBusinessUser),
 			zap.Uint64("Expire", req.Expire),
 		)
@@ -302,45 +351,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 
-		//将3张图片的url组装为真正的url
-
-		if req.Product.ProductPic1Large != "" {
-			//小图
-			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-			//大图
-			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
-		}
-
-		if req.Product.ProductPic2Large != "" {
-			//小图
-			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-			//大图
-			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
-		}
-
-		if req.Product.ProductPic3Large != "" {
-			//小图
-			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-			//大图
-			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
-		}
-
-		//如果有短视频，则组装缩略图
-		if req.Product.ShortVideo != "" {
-			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
-			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
-		} else {
-			shortVideo = ""
-			thumbnail = ""
-		}
-
-		product := &models.Product{
+		product = &models.Product{
 			ProductID:   productId,
 			Username:    username,
 			Expire:      int64(req.Product.Expire),
@@ -369,6 +380,25 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			AllowCancel:       req.Product.AllowCancel,
+		}
+
+		if len(req.Product.DescPics) >= 1 {
+			product.DescPic1 = req.Product.DescPics[0]
+		}
+		if len(req.Product.DescPics) >= 2 {
+			product.DescPic2 = req.Product.DescPics[1]
+		}
+		if len(req.Product.DescPics) >= 3 {
+			product.DescPic3 = req.Product.DescPics[2]
+		}
+		if len(req.Product.DescPics) >= 4 {
+			product.DescPic4 = req.Product.DescPics[3]
+		}
+		if len(req.Product.DescPics) >= 5 {
+			product.DescPic5 = req.Product.DescPics[4]
+		}
+		if len(req.Product.DescPics) >= 6 {
+			product.DescPic6 = req.Product.DescPics[5]
 		}
 
 		nc.logger.Debug("Product字段",
@@ -422,37 +452,51 @@ COMPLETE:
 		for _, watchingUser := range watchingUsers {
 
 			//7-5 新商品上架事件 将商品信息序化
+			oProduct := &Order.Product{
+				ProductId:   productId,                                   //商品ID
+				Expire:      uint64(req.Product.Expire),                  //商品过期时间
+				ProductName: req.Product.ProductName,                     //商品名称
+				ProductType: Global.ProductType(req.Product.ProductType), //商品种类类型  枚举
+				ProductDesc: req.Product.ProductDesc,                     //商品详细介绍
+				ShortVideo:  shortVideo,
+				Thumbnail:   thumbnail,
+
+				Price:             req.Product.Price,                     //价格
+				LeftCount:         req.Product.LeftCount,                 //库存数量
+				Discount:          req.Product.Discount,                  //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      req.Product.DiscountDesc,              //折扣说明
+				DiscountStartTime: uint64(req.Product.DiscountStartTime), //折扣开始时间
+				DiscountEndTime:   uint64(req.Product.DiscountEndTime),   //折扣结束时间
+				CreateAt:          uint64(req.Product.CreateAt),          //创建时间
+				ModifyAt:          uint64(req.Product.ModifyAt),          //最后修改时间
+				AllowCancel:       req.Product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
+			}
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic1Small,
+				Middle: productPic1Middle,
+				Large:  productPic1Large,
+			})
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic2Small,
+				Middle: productPic2Middle,
+				Large:  productPic2Large,
+			})
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic3Small,
+				Middle: productPic3Middle,
+				Large:  productPic3Large,
+			})
+
+			for _, pic := range req.Product.DescPics {
+
+				oProduct.DescPics = append(oProduct.DescPics, pic)
+			}
+
 			addProductEventRsp := &Order.AddProductEventRsp{
-				Username: username, //商户用户账号id
-				Product: &Order.Product{
-					ProductId:   productId,
-					Expire:      uint64(req.Product.Expire),
-					ProductName: req.Product.ProductName,
-					ProductType: Global.ProductType(req.Product.ProductType),
-					ProductDesc: req.Product.ProductDesc,
-
-					ProductPic1Small:  productPic1Small,
-					ProductPic1Middle: productPic1Middle,
-					ProductPic1Large:  productPic1Large,
-
-					ProductPic2Small:  productPic2Small,
-					ProductPic2Middle: productPic2Middle,
-					ProductPic2Large:  productPic2Large,
-
-					ProductPic3Small:  productPic3Small,
-					ProductPic3Middle: productPic3Middle,
-					ProductPic3Large:  productPic3Large,
-
-					Thumbnail:         thumbnail,
-					ShortVideo:        shortVideo,
-					Price:             req.Product.Price,
-					LeftCount:         req.Product.LeftCount,
-					Discount:          req.Product.Discount,
-					DiscountDesc:      req.Product.DiscountDesc,
-					DiscountStartTime: uint64(req.Product.DiscountStartTime),
-					DiscountEndTime:   uint64(req.Product.DiscountEndTime),
-					AllowCancel:       req.Product.AllowCancel,
-				}, //商品详情
+				Username:    username,            //商户用户账号id
+				Product:     oProduct,            //商品数据
 				OrderType:   req.OrderType,       //订单类型，必填
 				OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
 				Expire:      req.Expire,          //商品过期时间
@@ -561,33 +605,33 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			}
 
 		}
-
 		//将3张图片的url组装为真正的url
-		if req.Product.ProductPic1Large != "" {
+		if len(req.Product.ProductPics) >= 1 {
 			//小图
-			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
 			//中图
-			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic1Large
+			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large
+
+		}
+		if len(req.Product.ProductPics) >= 2 {
+
+			//小图
+			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			//中图
+			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			//大图
+			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large
 		}
 
-		if req.Product.ProductPic2Large != "" {
+		if len(req.Product.ProductPics) >= 3 {
 			//小图
-			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
 			//中图
-			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic2Large
-		}
-
-		if req.Product.ProductPic3Large != "" {
-			//小图
-			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-			//大图
-			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPic3Large
+			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large
 		}
 
 		//如果有短视频，则组装缩略图
@@ -628,6 +672,25 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			DiscountStartTime: int64(req.Product.DiscountStartTime),
 			DiscountEndTime:   int64(req.Product.DiscountEndTime),
 			AllowCancel:       req.Product.AllowCancel,
+		}
+
+		if len(req.Product.DescPics) >= 1 {
+			product.DescPic1 = req.Product.DescPics[0]
+		}
+		if len(req.Product.DescPics) >= 2 {
+			product.DescPic2 = req.Product.DescPics[1]
+		}
+		if len(req.Product.DescPics) >= 3 {
+			product.DescPic3 = req.Product.DescPics[2]
+		}
+		if len(req.Product.DescPics) >= 4 {
+			product.DescPic4 = req.Product.DescPics[3]
+		}
+		if len(req.Product.DescPics) >= 5 {
+			product.DescPic5 = req.Product.DescPics[4]
+		}
+		if len(req.Product.DescPics) >= 6 {
+			product.DescPic6 = req.Product.DescPics[5]
 		}
 
 		//保存到MySQL
@@ -1406,6 +1469,55 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
 				zap.String("ShortVideo:", product.ShortVideo))
+		}
+
+	}
+
+	if product.DescPic1 != "" {
+		err = bucket.DeleteObject(product.DescPic1)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic1:", product.DescPic1))
+		}
+
+	}
+	if product.DescPic2 != "" {
+		err = bucket.DeleteObject(product.DescPic2)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic2:", product.DescPic2))
+		}
+
+	}
+	if product.DescPic3 != "" {
+		err = bucket.DeleteObject(product.DescPic3)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic3:", product.DescPic3))
+		}
+
+	}
+	if product.DescPic4 != "" {
+		err = bucket.DeleteObject(product.DescPic4)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic4:", product.DescPic4))
+		}
+
+	}
+	if product.DescPic5 != "" {
+		err = bucket.DeleteObject(product.DescPic5)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic5:", product.DescPic5))
+		}
+
+	}
+	if product.DescPic6 != "" {
+		err = bucket.DeleteObject(product.DescPic6)
+		if err == nil {
+			nc.logger.Info("删除文件 Succeed",
+				zap.String("DescPic6:", product.DescPic6))
 		}
 
 	}

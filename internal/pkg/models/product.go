@@ -11,7 +11,7 @@ import (
 缓存商户的上架商品
 */
 type Product struct {
-	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`         //商品ID
+	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`          //商品ID
 	Username          string  `form:"username" json:"username,omitempty"`                       //商户用户账号id
 	Expire            int64   `form:"expire" json:"expire,omitempty"`                           //过期时间，0-无限
 	ProductName       string  `form:"product_name" json:"product_name,omitempty"`               //商品名称
@@ -35,8 +35,15 @@ type Product struct {
 	DiscountStartTime int64   `form:"discount_starttime" json:"discount_starttime,omitempty"`   //折扣开始时间
 	DiscountEndTime   int64   `form:"discount_endtime" json:"discount_endtime,omitempty"`       //折扣结束时间
 	AllowCancel       bool    `form:"allow_cancel" json:"allow_cancel,omitempty"`               //是否允许撤单， 默认是可以，彩票类的不可以
-	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`                     //创建时刻， 也就是上架时刻
-	ModifyAt          int64   `form:"modify_at" json:"modify_at,omitempty"`                     //最后修改时间
+	DescPic1          string  `form:"desc_pic1" json:"desc_pic1,omitempty"`                     //商品介绍pic1 -图片1
+	DescPic2          string  `form:"desc_pic2" json:"desc_pic2,omitempty"`                     //商品介绍pic2 -图片2
+	DescPic3          string  `form:"desc_pic3" json:"desc_pic3,omitempty"`                     //商品介绍pic3 -图片3
+	DescPic4          string  `form:"desc_pic4" json:"desc_pic4,omitempty"`                     //商品介绍pic4 -图片4
+	DescPic5          string  `form:"desc_pic5" json:"desc_pic5,omitempty"`                     //商品介绍pic5 -图片5
+	DescPic6          string  `form:"desc_pic6" json:"desc_pic16,omitempty"`                    //商品介绍pic6 -图片6
+
+	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻， 也就是上架时刻
+	ModifyAt  int64 `form:"modify_at" json:"modify_at,omitempty"`   //最后修改时间
 }
 
 //BeforeCreate CreatedAt赋值
