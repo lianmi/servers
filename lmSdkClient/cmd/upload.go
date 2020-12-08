@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	// "fmt"
 	"log"
 
 	"crypto/md5"
@@ -133,7 +132,7 @@ func init() {
 	//子命令
 	ossCmd.AddCommand(uploadCmd)
 
-	uploadCmd.PersistentFlags().StringP("file", "f", "", "本地文件")                     //本地文件
+	uploadCmd.PersistentFlags().StringP("file", "f", "", "local flie (full path) ")  //本地文件
 	uploadCmd.PersistentFlags().StringP("bucket", "b", "lianmi-ipfs", "bucket name") //bucket
 	uploadCmd.PersistentFlags().StringP("dir", "d", "", "dir")                       //bucket里的存放目录
 }

@@ -6,6 +6,8 @@ import (
 	// "github.com/golang/protobuf/proto"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
+	LMCommon "github.com/lianmi/servers/internal/common"
+
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -61,6 +63,10 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 	}
 
 	for _, product := range products {
+		var thumbnail string
+		if product.ShortVideo != "" {
+			thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		}
 		oProduct := &Order.Product{
 			ProductId:         product.ProductID,                       //商品ID
 			Expire:            uint64(product.Expire),                  //商品过期时间
@@ -68,7 +74,7 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 			ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
 			ProductDesc:       product.ProductDesc,                     //商品详细介绍
 			ShortVideo:        product.ShortVideo,                      //商品短视频
-			Thumbnail:         product.Thumbnail,                       //商品短视频缩略图
+			Thumbnail:         thumbnail,                               //商品短视频缩略图
 			Price:             product.Price,                           //价格
 			LeftCount:         product.LeftCount,                       //库存数量
 			Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
@@ -79,30 +85,67 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 			ModifyAt:          uint64(product.ModifyAt),                //最后修改时间
 			AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 		}
-		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-			Small:  product.ProductPic1Small,
-			Middle: product.ProductPic1Middle,
-			Large:  product.ProductPic1Large,
-		})
 
-		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-			Small:  product.ProductPic2Small,
-			Middle: product.ProductPic2Middle,
-			Large:  product.ProductPic2Large,
-		})
+		if product.ProductPic1Large != "" {
+			// 动态拼接
+			productPic1Small := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic1Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 
-		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-			Small:  product.ProductPic3Small,
-			Middle: product.ProductPic3Middle,
-			Large:  product.ProductPic3Large,
-		})
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic1Small,
+				Middle: productPic1Middle,
+				Large:  product.ProductPic1Large,
+			})
+		}
 
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic1)
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic2)
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic3)
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic4)
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic5)
-		oProduct.DescPics = append(oProduct.DescPics, product.DescPic6)
+		if product.ProductPic2Large != "" {
+			// 动态拼接
+			productPic2Small := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic2Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic2Small,
+				Middle: productPic2Middle,
+				Large:  product.ProductPic2Large,
+			})
+		}
+
+		if product.ProductPic3Large != "" {
+			// 动态拼接
+			productPic3Small := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic3Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic3Small,
+				Middle: productPic3Middle,
+				Large:  product.ProductPic3Large,
+			})
+		}
+
+		if product.DescPic1 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+		}
+
+		if product.DescPic2 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+		}
+
+		if product.DescPic3 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+		}
+
+		if product.DescPic4 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+		}
+
+		if product.DescPic5 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+		}
+
+		if product.DescPic6 != "" {
+			oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+
+		}
 
 		resp.Products = append(resp.Products, oProduct)
 	}
@@ -125,6 +168,11 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 		}
 
 	}
+	var thumbnail string
+	if product.ShortVideo != "" {
+
+		thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+	}
 	oProduct := &Order.Product{
 		ProductId:         productID,                               //商品ID
 		Expire:            uint64(product.Expire),                  //商品过期时间
@@ -132,7 +180,7 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 		ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
 		ProductDesc:       product.ProductDesc,                     //商品详细介绍
 		ShortVideo:        product.ShortVideo,                      //商品短视频
-		Thumbnail:         product.Thumbnail,                       //商品短视频缩略图
+		Thumbnail:         thumbnail,                               //商品短视频缩略图
 		Price:             product.Price,                           //价格
 		LeftCount:         product.LeftCount,                       //库存数量
 		Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
@@ -143,29 +191,67 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 		ModifyAt:          uint64(product.ModifyAt),                //最后修改时间
 		AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 	}
-	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Small:  product.ProductPic1Small,
-		Middle: product.ProductPic1Middle,
-		Large:  product.ProductPic1Large,
-	})
 
-	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Small:  product.ProductPic2Small,
-		Middle: product.ProductPic2Middle,
-		Large:  product.ProductPic2Large,
-	})
+	if product.ProductPic1Large != "" {
+		// 动态拼接
+		productPic1Small := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+		productPic1Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 
-	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Small:  product.ProductPic3Small,
-		Middle: product.ProductPic3Middle,
-		Large:  product.ProductPic3Large,
-	})
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic1)
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic2)
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic3)
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic4)
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic5)
-	oProduct.DescPics = append(oProduct.DescPics, product.DescPic6)
+		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+			Small:  productPic1Small,
+			Middle: productPic1Middle,
+			Large:  product.ProductPic1Large,
+		})
+	}
+
+	if product.ProductPic2Large != "" {
+		// 动态拼接
+		productPic2Small := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+		productPic2Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+			Small:  productPic2Small,
+			Middle: productPic2Middle,
+			Large:  product.ProductPic2Large,
+		})
+	}
+
+	if product.ProductPic3Large != "" {
+		// 动态拼接
+		productPic3Small := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+		productPic3Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+		oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+			Small:  productPic3Small,
+			Middle: productPic3Middle,
+			Large:  product.ProductPic3Large,
+		})
+	}
+
+	if product.DescPic1 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+	}
+
+	if product.DescPic2 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+	}
+
+	if product.DescPic3 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+	}
+
+	if product.DescPic4 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+	}
+
+	if product.DescPic5 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+	}
+
+	if product.DescPic6 != "" {
+		oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+
+	}
 
 	return oProduct, nil
 

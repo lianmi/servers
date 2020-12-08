@@ -18,10 +18,10 @@ const (
 )
 
 const (
-	SecretKey   = "lianimicloud-secret"                                         //salt for jwt
-	IdentityKey = "userName"                                                    //jwt key
-	ExpireTime  = 30 * 24 * time.Hour                                           //token expire time, one year
-	PubAvatar   = "https://zbj-bucket1.oss-cn-shenzhen.aliyuncs.com/avatar.JPG" //默认头像 TODO 要换为自己的OSS
+	SecretKey   = "lianimicloud-secret"                           //salt for jwt
+	IdentityKey = "userName"                                      //jwt key
+	ExpireTime  = 30 * 24 * time.Hour                             //token expire time, one year
+	PubAvatar   = "/avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" //默认头像
 
 )
 
@@ -52,12 +52,18 @@ const (
 	OnedayInvitedLimit = 50
 )
 
-//阿里云
+/*
+阿里云
+
+// RAM角色  ipfsuploader
+
+*/
 const (
-	Endpoint   = "https://oss-cn-hangzhou.aliyuncs.com"
-	AccessID   = "LTAI4G3o4sECdSBsD7rGLmCs"
-	AccessKey  = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
-	RoleAcs    = "acs:ram::1230446857465673:role/ipfsuploader"
+	Endpoint  = "https://oss-cn-hangzhou.aliyuncs.com"
+	AccessID  = "LTAI4G3o4sECdSBsD7rGLmCs" //tempUploader@1230446857465673.onaliyun.com
+	AccessKey = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
+	RoleAcs   = "acs:ram::1230446857465673:role/ipfsuploader"
+
 	BucketName = "lianmi-ipfs"
 	//阿里云OSS临时token的过期时间, 默认是3600秒
 	EXPIRESECONDS = 3600

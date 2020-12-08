@@ -40,6 +40,8 @@ func (cli *AliyunStsClient) GenerateSignatureUrl(sessionName, durationSeconds st
 	assumeUrl += "&SignatureNonce=" + uuid.NewV4().String()
 	assumeUrl += "&DurationSeconds=" + durationSeconds
 
+	// TODO Policy 策略，可以精确控制用户的目录权限
+
 	// 解析成V type
 	signToString, err := url.ParseQuery(assumeUrl)
 	if err != nil {

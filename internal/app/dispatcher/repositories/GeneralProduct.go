@@ -3,6 +3,7 @@ package repositories
 import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -87,26 +88,78 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 		TotalPage: uint64(*total),
 	}
 	for _, generalProduct := range generalProducts {
-		resp.Generalproducts = append(resp.Generalproducts, &Order.GeneralProduct{
-			ProductId:         generalProduct.ProductID,                       //通用商品ID
-			ProductName:       generalProduct.ProductName,                     //商品名称
-			ProductType:       Global.ProductType(generalProduct.ProductType), //商品种类类型  枚举
-			ProductDesc:       generalProduct.ProductDesc,                     //商品详细介绍
-			ProductPic1Small:  generalProduct.ProductPic1Small,                //商品图片1-小图
-			ProductPic1Middle: generalProduct.ProductPic1Middle,               //商品图片1-中图
-			ProductPic1Large:  generalProduct.ProductPic1Large,                //商品图片1-大图
-			ProductPic2Small:  generalProduct.ProductPic2Small,                //商品图片2-小图
-			ProductPic2Middle: generalProduct.ProductPic2Middle,               //商品图片2-中图
-			ProductPic2Large:  generalProduct.ProductPic2Large,                //商品图片2-大图
-			ProductPic3Small:  generalProduct.ProductPic3Small,                //商品图片3-小图
-			ProductPic3Middle: generalProduct.ProductPic3Small,                //商品图片3-中图
-			ProductPic3Large:  generalProduct.ProductPic3Large,                //商品图片3-大图
-			Thumbnail:         generalProduct.Thumbnail,                       //商品短视频缩略图
-			ShortVideo:        generalProduct.ShortVideo,                      //商品短视频
-			CreateAt:          uint64(generalProduct.CreatedAt),               //创建时间
-			ModifyAt:          uint64(generalProduct.ModifyAt),                //最后修改时间
-			AllowCancel:       generalProduct.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
-		})
+		var thumbnail string
+		if generalProduct.ShortVideo != "" {
+			thumbnail = LMCommon.OSSUploadPicPrefix + generalProduct.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		}
+
+		gProduct := &Order.GeneralProduct{
+			ProductId:   generalProduct.ProductID,                       //通用商品ID
+			ProductName: generalProduct.ProductName,                     //商品名称
+			ProductType: Global.ProductType(generalProduct.ProductType), //商品种类类型  枚举
+			ProductDesc: generalProduct.ProductDesc,                     //商品详细介绍
+			Thumbnail:   thumbnail,                                      //商品短视频缩略图
+			ShortVideo:  generalProduct.ShortVideo,                      //商品短视频
+			CreateAt:    uint64(generalProduct.CreatedAt),               //创建时间
+			ModifyAt:    uint64(generalProduct.ModifyAt),                //最后修改时间
+			AllowCancel: generalProduct.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+		}
+
+		if generalProduct.ProductPic1Large != "" {
+			// 动态拼接
+			productPic1Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic1Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic1Small,
+				Middle: productPic1Middle,
+				Large:  generalProduct.ProductPic1Large,
+			})
+
+		}
+
+		if generalProduct.ProductPic2Large != "" {
+			// 动态拼接
+			productPic2Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic2Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic2Small,
+				Middle: productPic2Middle,
+				Large:  generalProduct.ProductPic2Large,
+			})
+		}
+
+		if generalProduct.ProductPic3Large != "" {
+			// 动态拼接
+			productPic3Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+			productPic3Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
+				Small:  productPic3Small,
+				Middle: productPic3Middle,
+				Large:  generalProduct.ProductPic3Large,
+			})
+		}
+
+		//商品介绍图片，6张
+		if generalProduct.DescPic1 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic1)
+		}
+		if generalProduct.DescPic2 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic2)
+		}
+		if generalProduct.DescPic3 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic3)
+		}
+		if generalProduct.DescPic4 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic4)
+		}
+		if generalProduct.DescPic5 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic5)
+		}
+		if generalProduct.DescPic6 != "" {
+			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic6)
+		}
+
+		resp.Generalproducts = append(resp.Generalproducts)
 	}
 
 	return resp, nil

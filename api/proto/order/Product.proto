@@ -42,7 +42,6 @@ message Product {
     //商品图片数组，默认是3个图片
     repeated ProductPic productPics = 6;
 
-
     //商品短视频
     //是否必须-否
     string ShortVideo = 7;
@@ -139,61 +138,31 @@ message GeneralProduct {
     //是否必须-是
     string ProductDesc = 4;
 
-    //商品图片1-小图
-    //是否必须-是
-    string ProductPic1Small = 5;
+    //商品图片数组，默认是3个图片
+    repeated ProductPic productPics = 5;
 
-    //商品图片1-中图
-    //是否必须-是
-    string ProductPic1Middle = 6;
-
-    //商品图片1-大图
-    //是否必须-是
-    string ProductPic1Large = 7;
-
-
-    //商品图片2-小图
-    //是否必须-否
-    string ProductPic2Small = 8;
-
-    //商品图片2-中图
-    //是否必须-否
-    string ProductPic2Middle = 9;
-
-    //商品图片2-大图
-    //是否必须-否
-    string ProductPic2Large = 10;
-
-    //商品图片3-小图
-    //是否必须-否
-    string ProductPic3Small = 11;
-
-    //商品图片3-中图
-    //是否必须-否
-    string ProductPic3Middle = 12;
-
-    //商品图片3-大图
-    //是否必须-否
-    string ProductPic3Large = 13;
 
     //商品短视频缩略图
     //是否必须-否
-    string Thumbnail = 14;
+    string Thumbnail = 6;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 15;
+    string ShortVideo = 7;
+
+    //商品内容详情图片，默认是 6张
+    repeated string descPics =8;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 16;
+    fixed64 CreateAt = 9;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 17;
+    fixed64 ModifyAt = 10;
 
     //是否允许撤单， 默认是可以，彩票类的不可以
-    bool AllowCancel = 18;
+    bool AllowCancel = 11;
 
 }
 
@@ -313,3 +282,4 @@ message GetProductsResp {
     repeated Product products =1;
 
 }
+

@@ -113,6 +113,13 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 					continue
 				}
 			}
+
+			var thumbnail string
+			if product.ShortVideo != "" {
+
+				thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+			}
+
 			oProduct := &Order.Product{
 				ProductId:         product.ProductID,                       //商品ID
 				Expire:            uint64(product.Expire),                  //商品过期时间
@@ -120,7 +127,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
 				ProductDesc:       product.ProductDesc,                     //商品详细介绍
 				ShortVideo:        product.ShortVideo,                      //商品短视频
-				Thumbnail:         product.Thumbnail,                       //商品短视频缩略图
+				Thumbnail:         thumbnail,                               //商品短视频缩略图
 				Price:             product.Price,                           //价格
 				LeftCount:         product.LeftCount,                       //库存数量
 				Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
@@ -131,29 +138,66 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				ModifyAt:          uint64(product.ModifyAt),                //最后修改时间
 				AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 			}
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  product.ProductPic1Small,
-				Middle: product.ProductPic1Middle,
-				Large:  product.ProductPic1Large,
-			})
+			if product.ProductPic1Large != "" {
+				// 动态拼接
+				productPic1Small := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+				productPic1Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  product.ProductPic2Small,
-				Middle: product.ProductPic2Middle,
-				Large:  product.ProductPic2Large,
-			})
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic1Small,
+					Middle: productPic1Middle,
+					Large:  product.ProductPic1Large,
+				})
+			}
 
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  product.ProductPic3Small,
-				Middle: product.ProductPic3Middle,
-				Large:  product.ProductPic3Large,
-			})
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic1)
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic2)
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic3)
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic4)
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic5)
-			oProduct.DescPics = append(oProduct.DescPics, product.DescPic6)
+			if product.ProductPic2Large != "" {
+				// 动态拼接
+				productPic2Small := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+				productPic2Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic2Small,
+					Middle: productPic2Middle,
+					Large:  product.ProductPic2Large,
+				})
+			}
+
+			if product.ProductPic3Large != "" {
+				// 动态拼接
+				productPic3Small := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
+				productPic3Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
+
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic3Small,
+					Middle: productPic3Middle,
+					Large:  product.ProductPic3Large,
+				})
+			}
+
+			if product.DescPic1 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+			}
+
+			if product.DescPic2 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+			}
+
+			if product.DescPic3 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+			}
+
+			if product.DescPic4 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+			}
+
+			if product.DescPic5 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+			}
+
+			if product.DescPic6 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+
+			}
 
 			rsp.Products = append(rsp.Products, oProduct)
 		}
@@ -238,42 +282,26 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		//将3张图片的url组装为真正的url
 		if len(req.Product.ProductPics) >= 1 {
-			//小图
-			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large
+			productPic1Large = req.Product.ProductPics[0].Large
 
 		}
 		if len(req.Product.ProductPics) >= 2 {
-
-			//小图
-			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large
+			productPic2Large = req.Product.ProductPics[1].Large
 		}
 
 		if len(req.Product.ProductPics) >= 3 {
-			//小图
-			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large
+			productPic3Large = req.Product.ProductPics[2].Large
 		}
 
 		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
-			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
-			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+			shortVideo = req.Product.ShortVideo
 		} else {
 			shortVideo = ""
-			thumbnail = ""
 		}
 		nc.logger.Debug("AddProduct payload",
 			zap.String("ProductId", req.Product.ProductId),
@@ -359,19 +387,12 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			ProductType: int(req.Product.ProductType),
 			ProductDesc: req.Product.ProductDesc,
 
-			ProductPic1Small:  productPic1Small,
-			ProductPic1Middle: productPic1Middle,
-			ProductPic1Large:  productPic1Large,
+			ProductPic1Large: productPic1Large,
 
-			ProductPic2Small:  productPic2Small,
-			ProductPic2Middle: productPic2Middle,
-			ProductPic2Large:  productPic2Large,
+			ProductPic2Large: productPic2Large,
 
-			ProductPic3Small:  productPic3Small,
-			ProductPic3Middle: productPic3Middle,
-			ProductPic3Large:  productPic3Large,
+			ProductPic3Large: productPic3Large,
 
-			Thumbnail:         thumbnail,
 			ShortVideo:        shortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
@@ -408,8 +429,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			zap.String("ProductName", product.ProductName),
 			zap.Int("ProductType", product.ProductType),
 			zap.String("ProductDesc", product.ProductDesc),
-			zap.String("ProductPic1Small", product.ProductPic1Small),
-			zap.String("ProductPic1Middle", product.ProductPic1Middle),
+			// zap.String("ProductPic1Small", product.ProductPic1Small),
+			// zap.String("ProductPic1Middle", product.ProductPic1Middle),
 			zap.String("ProductPic1Large", product.ProductPic1Large),
 			zap.Bool("AllowCancel", product.AllowCancel),
 		)
@@ -450,7 +471,10 @@ COMPLETE:
 		//推送通知给关注的用户
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
+			if shortVideo != "" {
 
+				thumbnail = LMCommon.OSSUploadPicPrefix + shortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+			}
 			//7-5 新商品上架事件 将商品信息序化
 			oProduct := &Order.Product{
 				ProductId:   productId,                                   //商品ID
@@ -471,27 +495,38 @@ COMPLETE:
 				ModifyAt:          uint64(req.Product.ModifyAt),          //最后修改时间
 				AllowCancel:       req.Product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 			}
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic1Small,
-				Middle: productPic1Middle,
-				Large:  productPic1Large,
-			})
 
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic2Small,
-				Middle: productPic2Middle,
-				Large:  productPic2Large,
-			})
+			if productPic1Large != "" {
 
-			oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic3Small,
-				Middle: productPic3Middle,
-				Large:  productPic3Large,
-			})
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic1Small,
+					Middle: productPic1Middle,
+					Large:  productPic1Large,
+				})
+			}
+
+			if productPic2Large != "" {
+
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic2Small,
+					Middle: productPic2Middle,
+					Large:  productPic2Large,
+				})
+			}
+
+			if productPic3Large != "" {
+				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
+					Small:  productPic3Small,
+					Middle: productPic3Middle,
+					Large:  productPic3Large,
+				})
+			}
 
 			for _, pic := range req.Product.DescPics {
 
-				oProduct.DescPics = append(oProduct.DescPics, pic)
+				if pic != "" {
+					oProduct.DescPics = append(oProduct.DescPics, pic)
+				}
 			}
 
 			addProductEventRsp := &Order.AddProductEventRsp{
@@ -518,10 +553,10 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 
-	var productPic1Small, productPic1Middle, productPic1Large string
-	var productPic2Small, productPic2Middle, productPic2Large string
-	var productPic3Small, productPic3Middle, productPic3Large string
-	var shortVideo, thumbnail string
+	var productPic1Large string
+	var productPic2Large string
+	var productPic3Large string
+	var shortVideo string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -607,40 +642,25 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 		//将3张图片的url组装为真正的url
 		if len(req.Product.ProductPics) >= 1 {
-			//小图
-			productPic1Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic1Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic1Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[0].Large
+			productPic1Large = req.Product.ProductPics[0].Large
 
 		}
 		if len(req.Product.ProductPics) >= 2 {
-
-			//小图
-			productPic2Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic2Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic2Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[1].Large
+			productPic2Large = req.Product.ProductPics[1].Large
 		}
 
 		if len(req.Product.ProductPics) >= 3 {
-			//小图
-			productPic3Small = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			//中图
-			productPic3Middle = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			//大图
-			productPic3Large = LMCommon.OSSUploadPicPrefix + req.Product.ProductPics[2].Large
+			productPic3Large = req.Product.ProductPics[2].Large
 		}
 
 		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
-			shortVideo = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo
-			thumbnail = LMCommon.OSSUploadPicPrefix + req.Product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+			shortVideo = req.Product.ShortVideo
 		} else {
 			shortVideo = ""
-			thumbnail = ""
 		}
 
 		product := &models.Product{
@@ -651,19 +671,12 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			ProductType: int(req.Product.ProductType),
 			ProductDesc: req.Product.ProductDesc,
 
-			ProductPic1Small:  productPic1Small,
-			ProductPic1Middle: productPic1Middle,
-			ProductPic1Large:  productPic1Large,
+			ProductPic1Large: productPic1Large,
 
-			ProductPic2Small:  productPic2Small,
-			ProductPic2Middle: productPic2Middle,
-			ProductPic2Large:  productPic2Large,
+			ProductPic2Large: productPic2Large,
 
-			ProductPic3Small:  productPic3Small,
-			ProductPic3Middle: productPic3Middle,
-			ProductPic3Large:  productPic3Large,
+			ProductPic3Large: productPic3Large,
 
-			Thumbnail:         thumbnail,
 			ShortVideo:        shortVideo,
 			Price:             req.Product.Price,
 			LeftCount:         req.Product.LeftCount,
@@ -1381,22 +1394,7 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 	}
 
 	//删除文件
-	if product.ProductPic1Small != "" {
-		err = bucket.DeleteObject(product.ProductPic1Small)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic1Small:", product.ProductPic1Small))
-		}
 
-	}
-	if product.ProductPic1Middle != "" {
-		err = bucket.DeleteObject(product.ProductPic1Middle)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic1Middle:", product.ProductPic1Middle))
-		}
-
-	}
 	if product.ProductPic1Large != "" {
 		err = bucket.DeleteObject(product.ProductPic1Large)
 		if err == nil {
@@ -1406,22 +1404,6 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 
 	}
 
-	if product.ProductPic2Small != "" {
-		err = bucket.DeleteObject(product.ProductPic2Small)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic2Small:", product.ProductPic2Small))
-		}
-
-	}
-	if product.ProductPic2Middle != "" {
-		err = bucket.DeleteObject(product.ProductPic2Middle)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic2Middle:", product.ProductPic2Middle))
-		}
-
-	}
 	if product.ProductPic2Large != "" {
 		err = bucket.DeleteObject(product.ProductPic2Large)
 		if err == nil {
@@ -1431,22 +1413,6 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 
 	}
 
-	if product.ProductPic3Small != "" {
-		err = bucket.DeleteObject(product.ProductPic3Small)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic3Small:", product.ProductPic3Small))
-		}
-
-	}
-	if product.ProductPic3Middle != "" {
-		err = bucket.DeleteObject(product.ProductPic3Middle)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic3Middle:", product.ProductPic3Middle))
-		}
-
-	}
 	if product.ProductPic3Large != "" {
 		err = bucket.DeleteObject(product.ProductPic3Large)
 		if err == nil {
@@ -1456,14 +1422,6 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 
 	}
 
-	if product.Thumbnail != "" {
-		err = bucket.DeleteObject(product.Thumbnail)
-		if err == nil {
-			nc.logger.Info("删除文件 Succeed",
-				zap.String("Thumbnail:", product.Thumbnail))
-		}
-
-	}
 	if product.ShortVideo != "" {
 		err = bucket.DeleteObject(product.ShortVideo)
 		if err == nil {
@@ -1873,7 +1831,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName() //当前用户
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleChangeOrderState start...",
@@ -2468,7 +2425,6 @@ func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleGetPreKeysCount start...",

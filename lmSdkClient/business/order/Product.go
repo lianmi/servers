@@ -203,7 +203,7 @@ func QueryProducts() error {
 	return nil
 }
 
-// 7-2 商品上架
+//  模拟  7-2 商品上架
 func AddProduct() error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
@@ -256,20 +256,19 @@ func AddProduct() error {
 		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图1
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图2
+		Large: "products/bcbc2495424e33b18a4bb16df786cc2d.jpg", // 原图2
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图3
+		Large: "products/32c1ee824c074ab7b6c1ca28b07a1a45.jpeg", // 原图3
 	})
 
 	//商品内容图片数组
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/07cb349819583706fee9c08d03434a30.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/048c9822ca1c424080fcbc195abf9624.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/fb5e2fa4e971b0aa4d3d8937e60997c.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/4a3f0fe2d58092e2a7f48ce8f58a3df7.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/cf14e9281e6f3819a2001c4b1bdc1301.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/0ffb4f3bc3d419affa6d8fe3efa7eb31.jpeg")
 
 	req := &Order.AddProductReq{
 		Product:         oProduct,

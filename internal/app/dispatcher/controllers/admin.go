@@ -14,7 +14,7 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	// User "github.com/lianmi/servers/api/proto/user"
-	
+
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	// "github.com/lianmi/servers/internal/app/dispatcher/services"
@@ -179,32 +179,55 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 		//增加
+		var productPic1Large, productPic2Large, productPic3Large string
+		if len(og.ProductPics) >= 1 {
+			productPic1Large = og.ProductPics[0].Large
+		}
+		if len(og.ProductPics) >= 2 {
+			productPic2Large = og.ProductPics[1].Large
+		}
+		if len(og.ProductPics) >= 3 {
+			productPic3Large = og.ProductPics[2].Large
+		}
 
-		if err := pc.service.AddGeneralProduct(&models.GeneralProduct{
-			ProductID:         uuid.NewV4().String(), //商品ID
-			ProductName:       og.ProductName,        //商品名称
-			ProductType:       int(og.ProductType),   //商品种类枚举
-			ProductDesc:       og.ProductDesc,        //商品详细介绍
-			ProductPic1Small:  og.ProductPic1Small,   //商品图片1-小图
-			ProductPic1Middle: og.ProductPic1Middle,  //商品图片1-中图
-			ProductPic1Large:  og.ProductPic1Large,   //商品图片1-大图
-			ProductPic2Small:  og.ProductPic2Small,   //商品图片2-小图
-			ProductPic2Middle: og.ProductPic2Middle,  //商品图片2-中图
-			ProductPic2Large:  og.ProductPic2Large,   //商品图片2-大图
-			ProductPic3Small:  og.ProductPic3Small,   //商品图片3-小图
-			ProductPic3Middle: og.ProductPic3Middle,  //商品图片3-中图
-			ProductPic3Large:  og.ProductPic3Large,   //商品图片3-大图
-			Thumbnail:         og.Thumbnail,          //商品短视频缩略图
-			ShortVideo:        og.ShortVideo,         //商品短视频
-			AllowCancel:       og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
+		generalProduct := &models.GeneralProduct{
+			ProductID:        uuid.NewV4().String(), //商品ID
+			ProductName:      og.ProductName,        //商品名称
+			ProductType:      int(og.ProductType),   //商品种类枚举
+			ProductDesc:      og.ProductDesc,        //商品详细介绍
+			ProductPic1Large: productPic1Large,      //商品图片1-大图
+			ProductPic2Large: productPic2Large,      //商品图片2-大图
+			ProductPic3Large: productPic3Large,      //商品图片3-大图
+			ShortVideo:       og.ShortVideo,         //商品短视频
+			AllowCancel:      og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
 
-		}); err == nil {
-			pc.logger.Debug("AddGeneralProduct  run ok")
+		}
+
+		if len(og.DescPics) >= 1 {
+			generalProduct.DescPic1 = og.DescPics[0]
+		}
+		if len(og.DescPics) >= 2 {
+			generalProduct.DescPic2 = og.DescPics[1]
+		}
+		if len(og.DescPics) >= 3 {
+			generalProduct.DescPic3 = og.DescPics[2]
+		}
+		if len(og.DescPics) >= 4 {
+			generalProduct.DescPic4 = og.DescPics[3]
+		}
+		if len(og.DescPics) >= 5 {
+			generalProduct.DescPic5 = og.DescPics[4]
+		}
+		if len(og.DescPics) >= 6 {
+			generalProduct.DescPic6 = og.DescPics[5]
+		}
+
+		if err := pc.service.AddGeneralProduct(generalProduct); err == nil {
+			pc.logger.Debug("AddGeneralProduct run ok")
 			RespOk(c, http.StatusOK, 200)
 		} else {
-			pc.logger.Warn("AddGeneralProduct  run FAILD")
+			pc.logger.Warn("AddGeneralProduct run FAILD")
 			RespFail(c, http.StatusBadRequest, 400, "增加通用商品失败")
-
 		}
 
 	}
@@ -226,26 +249,50 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			pc.logger.Warn("ProductId is empty")
 			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductId 不能为空")
 		}
+		var productPic1Large, productPic2Large, productPic3Large string
+		if len(og.ProductPics) >= 1 {
+			productPic1Large = og.ProductPics[0].Large
+		}
+		if len(og.ProductPics) >= 2 {
+			productPic2Large = og.ProductPics[1].Large
+		}
+		if len(og.ProductPics) >= 3 {
+			productPic3Large = og.ProductPics[2].Large
+		}
 
-		if err := pc.service.UpdateGeneralProduct(&models.GeneralProduct{
-			ProductID:         og.ProductId,         //商品ID
-			ProductName:       og.ProductName,       //商品名称
-			ProductType:       int(og.ProductType),  //商品种类枚举
-			ProductDesc:       og.ProductDesc,       //商品详细介绍
-			ProductPic1Small:  og.ProductPic1Small,  //商品图片1-小图
-			ProductPic1Middle: og.ProductPic1Middle, //商品图片1-中图
-			ProductPic1Large:  og.ProductPic1Large,  //商品图片1-大图
-			ProductPic2Small:  og.ProductPic2Small,  //商品图片2-小图
-			ProductPic2Middle: og.ProductPic2Middle, //商品图片2-中图
-			ProductPic2Large:  og.ProductPic2Large,  //商品图片2-大图
-			ProductPic3Small:  og.ProductPic3Small,  //商品图片3-小图
-			ProductPic3Middle: og.ProductPic3Middle, //商品图片3-中图
-			ProductPic3Large:  og.ProductPic3Large,  //商品图片3-大图
-			Thumbnail:         og.Thumbnail,         //商品短视频缩略图
-			ShortVideo:        og.ShortVideo,        //商品短视频
-			AllowCancel:       og.AllowCancel,       //是否允许撤单， 默认是可以，彩票类的不可以
+		generalProduct := &models.GeneralProduct{
+			ProductID:        uuid.NewV4().String(), //商品ID
+			ProductName:      og.ProductName,        //商品名称
+			ProductType:      int(og.ProductType),   //商品种类枚举
+			ProductDesc:      og.ProductDesc,        //商品详细介绍
+			ProductPic1Large: productPic1Large,      //商品图片1-大图
+			ProductPic2Large: productPic2Large,      //商品图片2-大图
+			ProductPic3Large: productPic3Large,      //商品图片3-大图
+			ShortVideo:       og.ShortVideo,         //商品短视频
+			AllowCancel:      og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
 
-		}); err == nil {
+		}
+
+		if len(og.DescPics) >= 1 {
+			generalProduct.DescPic1 = og.DescPics[0]
+		}
+		if len(og.DescPics) >= 2 {
+			generalProduct.DescPic2 = og.DescPics[1]
+		}
+		if len(og.DescPics) >= 3 {
+			generalProduct.DescPic3 = og.DescPics[2]
+		}
+		if len(og.DescPics) >= 4 {
+			generalProduct.DescPic4 = og.DescPics[3]
+		}
+		if len(og.DescPics) >= 5 {
+			generalProduct.DescPic5 = og.DescPics[4]
+		}
+		if len(og.DescPics) >= 6 {
+			generalProduct.DescPic6 = og.DescPics[5]
+		}
+
+		if err := pc.service.UpdateGeneralProduct(generalProduct); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
 			RespOk(c, http.StatusOK, 200)
 		} else {

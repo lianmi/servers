@@ -219,8 +219,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 				pUser.Avatar = LMCommon.PubAvatar
 			} else {
 				//修改 头像
-				pUser.Avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
-
+				pUser.Avatar = avatar
 			}
 		}
 

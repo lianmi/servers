@@ -62,9 +62,6 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		BusinessUsername: req.BusinessUsername,
 	}
 
-	imageUrl = LMCommon.OSSUploadPicPrefix + req.ImageUrl
-	businessLicenseUrl = LMCommon.OSSUploadPicPrefix + req.BusinessLicenseUrl
-
 	err = s.db.Model(&models.Store{}).Where(&where).First(&store).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -72,24 +69,24 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 			store := models.Store{
 				StoreUUID:         uuid.NewV4().String(), //店铺的uuid
 				StoreType:         int(req.StoreType),    //店铺类型,对应Global.proto里的StoreType枚举
-				ImageURL:          imageUrl,
-				BusinessUsername:  req.BusinessUsername,  //商户注册号
-				Introductory:      req.Introductory,      //商店简介 Text文本类型
-				Province:          req.Province,          //省份, 如广东省
-				City:              req.City,              //城市，如广州市
-				County:            req.County,            //区，如天河区
-				Street:            req.Street,            //街道
-				Address:           req.Address,           //地址
-				Branchesname:      req.Branchesname,      //网点名称
-				LegalPerson:       req.LegalPerson,       //法人姓名
-				LegalIdentityCard: req.LegalIdentityCard, //法人身份证
-				Longitude:         req.Longitude,         //商户地址的经度
-				Latitude:          req.Latitude,          //商户地址的纬度
-				WeChat:            req.Wechat,            //商户联系人微信号
-				Keys:              req.Keys,              //商户经营范围搜索关键字
-				LicenseURL:        businessLicenseUrl,    //商户营业执照阿里云url
-				AuditState:        0,                     //初始值
-				OpeningHours:      req.OpeningHours,      //营业时间
+				ImageURL:          req.ImageUrl,
+				BusinessUsername:  req.BusinessUsername,   //商户注册号
+				Introductory:      req.Introductory,       //商店简介 Text文本类型
+				Province:          req.Province,           //省份, 如广东省
+				City:              req.City,               //城市，如广州市
+				County:            req.County,             //区，如天河区
+				Street:            req.Street,             //街道
+				Address:           req.Address,            //地址
+				Branchesname:      req.Branchesname,       //网点名称
+				LegalPerson:       req.LegalPerson,        //法人姓名
+				LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
+				Longitude:         req.Longitude,          //商户地址的经度
+				Latitude:          req.Latitude,           //商户地址的纬度
+				WeChat:            req.Wechat,             //商户联系人微信号
+				Keys:              req.Keys,               //商户经营范围搜索关键字
+				LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
+				AuditState:        0,                      //初始值
+				OpeningHours:      req.OpeningHours,       //营业时间
 			}
 
 			//如果没有记录，则增加
