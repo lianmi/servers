@@ -121,22 +121,24 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			}
 
 			oProduct := &Order.Product{
-				ProductId:         product.ProductID,                       //商品ID
-				Expire:            uint64(product.Expire),                  //商品过期时间
-				ProductName:       product.ProductName,                     //商品名称
-				ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
-				ProductDesc:       product.ProductDesc,                     //商品详细介绍
-				ShortVideo:        product.ShortVideo,                      //商品短视频
-				Thumbnail:         thumbnail,                               //商品短视频缩略图
-				Price:             product.Price,                           //价格
-				LeftCount:         product.LeftCount,                       //库存数量
-				Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
-				DiscountDesc:      product.DiscountDesc,                    //折扣说明
-				DiscountStartTime: uint64(product.DiscountStartTime),       //折扣开始时间
-				DiscountEndTime:   uint64(product.DiscountEndTime),         //折扣结束时间
-				CreateAt:          uint64(product.CreatedAt),               //创建时间
-				ModifyAt:          uint64(product.ModifyAt),                //最后修改时间
-				AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+				ProductId:   product.ProductID,                       //商品ID
+				Expire:      uint64(product.Expire),                  //商品过期时间
+				ProductName: product.ProductName,                     //商品名称
+				ProductType: Global.ProductType(product.ProductType), //商品种类类型  枚举
+				//TODO  暂时全部都是双色球
+				LotteryType:       Global.LotteryType_LT_Shuangseqiu, //Global.LotteryType(product.LotteryType),
+				ProductDesc:       product.ProductDesc,               //商品详细介绍
+				ShortVideo:        product.ShortVideo,                //商品短视频
+				Thumbnail:         thumbnail,                         //商品短视频缩略图
+				Price:             product.Price,                     //价格
+				LeftCount:         product.LeftCount,                 //库存数量
+				Discount:          product.Discount,                  //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      product.DiscountDesc,              //折扣说明
+				DiscountStartTime: uint64(product.DiscountStartTime), //折扣开始时间
+				DiscountEndTime:   uint64(product.DiscountEndTime),   //折扣结束时间
+				CreateAt:          uint64(product.CreatedAt),         //创建时间
+				ModifyAt:          uint64(product.ModifyAt),          //最后修改时间
+				AllowCancel:       product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 			}
 			if product.ProductPic1Large != "" {
 				// 动态拼接
@@ -472,7 +474,9 @@ COMPLETE:
 				Expire:      uint64(req.Product.Expire),                  //商品过期时间
 				ProductName: req.Product.ProductName,                     //商品名称
 				ProductType: Global.ProductType(req.Product.ProductType), //商品种类类型  枚举
-				ProductDesc: req.Product.ProductDesc,                     //商品详细介绍
+				//TODO  暂时全部都是双色球
+				LotteryType: Global.LotteryType_LT_Shuangseqiu, //Global.LotteryType(product.LotteryType),
+				ProductDesc: req.Product.ProductDesc,           //商品详细介绍
 				ShortVideo:  shortVideo,
 				Thumbnail:   thumbnail,
 

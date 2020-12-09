@@ -246,6 +246,7 @@ func AddProduct() error {
 	oProduct := &Order.Product{
 		Expire:      uint64(0),
 		ProductName: "双色球",                 //双色球
+		LotteryType: 1,                     //双色球枚举
 		ProductType: Global.ProductType(9), //9-彩票
 		ProductDesc: "最新派彩，大奖最高一千万",        //大奖最高一千万
 		ShortVideo:  "",
@@ -446,6 +447,7 @@ func UpdateProduct() error {
 		Expire:      uint64(0),
 		ProductName: "双色球",
 		ProductType: Global.ProductType(9), //9-彩票
+		LotteryType: 1,                     //双色球枚举
 		ProductDesc: "最高一千万",
 		ShortVideo:  "",
 		Price:       float32(2.0),

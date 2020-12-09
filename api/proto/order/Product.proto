@@ -35,59 +35,62 @@ message Product {
     //商品种类类型  枚举 
     global.ProductType productType= 4;
 
+    //TODO 彩票类型 1- 双色球  2- 大乐透,  3- 福彩3d ... 
+    global.LotteryType lotteryType= 5;
+
     //商品详细介绍
     //是否必须-是
-    string ProductDesc = 5;
+    string ProductDesc = 6;
 
     //商品图片数组，默认是3个图片
-    repeated ProductPic productPics = 6;
+    repeated ProductPic productPics = 7;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 7;
+    string ShortVideo = 8;
 
    //商品短视频缩略图
     //是否必须-否
-    string Thumbnail = 8;
+    string Thumbnail = 9;
 
     //价格
     //是否必须-是
-    float Price = 9;
+    float Price = 10;
 
     //库存数量
     //是否必须-是
-    fixed64 LeftCount = 10;
+    fixed64 LeftCount = 11;
 
     //折扣
     //实际数字，例如: 0.95, UI显示为九五折
     //是否必须-否
-    float Discount = 11;
+    float Discount = 12;
 
     //折扣说明
     //是否必须-否
-    string DiscountDesc = 12;
+    string DiscountDesc = 13;
 
     //折扣开始时间
     //是否必须-否
-    fixed64 DiscountStartTime = 13;
+    fixed64 DiscountStartTime = 14;
 
     //折扣结束时间
     //是否必须-否
-    fixed64 DiscountEndTime = 14;
+    fixed64 DiscountEndTime = 15;
 
     //商品内容详情图片，默认是 6张
-   repeated string descPics =15;
+   repeated string descPics =16;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 16;
+    fixed64 CreateAt = 17;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 17;
+    fixed64 ModifyAt = 18;
 
     //是否允许撤单， 默认是可以，彩票类的不可以
-    bool AllowCancel = 18;
+    bool AllowCancel = 19;
 
 }
 

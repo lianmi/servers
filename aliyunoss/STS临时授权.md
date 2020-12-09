@@ -1,6 +1,12 @@
+# 官方sdk
+https://github.com/aliyun/aliyun-oss-go-sdk
+
 # STS临时授权
 
-see: https://developer.aliyun.com/ask/2549
+see: 
+    STS临时授权 RoleArn在哪找 https://developer.aliyun.com/ask/2549
+
+    STS Python_SDK授权临时用户读写OSS资源 https://developer.aliyun.com/article/756616
 
     官方 https://help.aliyun.com/document_detail/100624.html
 

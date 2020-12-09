@@ -224,6 +224,17 @@ enum ProductType {
     OT_Others        = 13;     /**<其它*/
 }
 
+ //彩票类型 1- 双色球  2- 大乐透,  3- 福彩3d
+enum LotteryType {
+    LT_Undefined     = 0;     //proto3必须从0开始
+    LT_Shuangseqiu   = 1;     /**< 双色球*/
+    LT_Daletou       = 2;     /**< 大乐透*/
+    LT_Fucai3d       = 3;     /**< 福彩3d*/
+    
+}
+
+
+
 //交易类型枚举(钱包资产的收支)： 
 enum TransactionType {
     DT_Undefined     = 0;     //proto3必须从0开始
