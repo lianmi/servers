@@ -74,10 +74,10 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 		pageSize = 20
 	}
 	total := new(int64)
-	where := Order.GeneralProduct{}
+	where := models.GeneralProduct{}
 	if req.ProductType > 0 {
-		where = Order.GeneralProduct{
-			ProductType: Global.ProductType(req.ProductType),
+		where = models.GeneralProduct{
+			ProductType: int(req.ProductType),
 		}
 	}
 	if err := s.base.GetPages(&models.GeneralProduct{}, &generalProducts, pageIndex, pageSize, total, &where); err != nil {

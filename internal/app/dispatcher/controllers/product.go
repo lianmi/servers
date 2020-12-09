@@ -95,7 +95,7 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 	} else {
 		resp, err := pc.service.GetGeneralProductPage(&req)
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取店铺商品列表错误")
+			RespFail(c, http.StatusBadRequest, code, "获取通用商品列表错误")
 			return
 		}
 
@@ -125,4 +125,3 @@ func (pc *LianmiApisController) GetProductsList(c *gin.Context) {
 	}
 
 }
-
