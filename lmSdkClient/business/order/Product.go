@@ -245,21 +245,21 @@ func AddProduct() error {
 
 	oProduct := &Order.Product{
 		Expire:      uint64(0),
-		ProductName: "福彩3D",                //双色球
+		ProductName: "双色球",                 //双色球
 		ProductType: Global.ProductType(9), //9-彩票
-		ProductDesc: "最新玩法福彩3D",            //大奖最高一千万
+		ProductDesc: "最新派彩，大奖最高一千万",        //大奖最高一千万
 		ShortVideo:  "",
 		Price:       float32(2.0),
 		AllowCancel: true,
 	}
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图1
+		Large: "products/2020/12/09/2ff867f849548257d20c003e9de44f98.jpeg", // 原图1
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/bcbc2495424e33b18a4bb16df786cc2d.jpg", // 原图2
+		Large: "products/2020/12/09/2ff867f849548257d20c003e9de44f98.jpeg", // 原图2
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/32c1ee824c074ab7b6c1ca28b07a1a45.jpeg", // 原图3
+		Large: "products/2020/12/09/2ff867f849548257d20c003e9de44f98.jpeg", // 原图3
 	})
 
 	//商品内容图片数组

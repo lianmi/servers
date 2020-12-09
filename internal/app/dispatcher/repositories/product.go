@@ -34,6 +34,9 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 	if req.ProductType > 0 {
 		wheres = append(wheres, []interface{}{"product_type", "=", int(req.ProductType)})
 	}
+	if req.BusinessUsername != "" {
+		wheres = append(wheres, []interface{}{"username", "=", req.BusinessUsername})
+	}
 
 	db := s.db
 	db, err = s.base.BuildQueryList(db, wheres, columns, orderBy, pageIndex, pageSize)

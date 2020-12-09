@@ -249,6 +249,11 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			pc.logger.Warn("ProductId is empty")
 			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductId 不能为空")
 		}
+
+		if len(og.ProductPics) == 0 {
+			pc.logger.Warn("ProductPics length is 0")
+			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductPics length is 0")
+		}
 		var productPic1Large, productPic2Large, productPic3Large string
 		if len(og.ProductPics) >= 1 {
 			productPic1Large = og.ProductPics[0].Large

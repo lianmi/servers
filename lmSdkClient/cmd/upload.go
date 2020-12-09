@@ -7,6 +7,7 @@ package cmd
 
 import (
 	"log"
+	"time"
 
 	"crypto/md5"
 	"encoding/hex"
@@ -108,7 +109,7 @@ var uploadCmd = &cobra.Command{
 		//上传的文件名： md5 +  原来的后缀名
 		fileExt := path.Ext(localFileName)
 		// objectName := "generalproduct/" + time.Now().Format("2006/01/02/") + userName + "/" + md5Str + fileExt
-		objectName := dir + "/" + md5Str + fileExt
+		objectName := dir + "/" + time.Now().Format("2006/01/02/") + md5Str + fileExt
 		log.Printf("objectName: %s\n", objectName)
 
 		// 获取存储空间。

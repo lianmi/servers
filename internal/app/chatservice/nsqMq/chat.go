@@ -763,14 +763,11 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	rsp := &Msg.GetOssTokenRsp{}
-	// var isExists bool
-	// var newSeq uint64
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	username := msg.GetUserName()
-	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
 	nc.logger.Info("HandleGetOssToken start...",
