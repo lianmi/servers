@@ -107,56 +107,50 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 
 		if generalProduct.ProductPic1Large != "" {
 			// 动态拼接
-			productPic1Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			productPic1Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic1Small,
-				Middle: productPic1Middle,
-				Large:  generalProduct.ProductPic1Large,
+				Small:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic1Large,
 			})
 
 		}
 
 		if generalProduct.ProductPic2Large != "" {
 			// 动态拼接
-			productPic2Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			productPic2Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic2Small,
-				Middle: productPic2Middle,
-				Large:  generalProduct.ProductPic2Large,
+				Small:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic2Large,
 			})
 		}
 
 		if generalProduct.ProductPic3Large != "" {
 			// 动态拼接
-			productPic3Small := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-			productPic3Middle := LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
 			gProduct.ProductPics = append(gProduct.ProductPics, &Order.ProductPic{
-				Small:  productPic3Small,
-				Middle: productPic3Middle,
-				Large:  generalProduct.ProductPic3Large,
+				Small:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + generalProduct.ProductPic3Large,
 			})
 		}
 
 		//商品介绍图片，6张
 		if generalProduct.DescPic1 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic1)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic1)
 		}
 		if generalProduct.DescPic2 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic2)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic2)
 		}
 		if generalProduct.DescPic3 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic3)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic3)
 		}
 		if generalProduct.DescPic4 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic4)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic4)
 		}
 		if generalProduct.DescPic5 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic5)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic5)
 		}
 		if generalProduct.DescPic6 != "" {
-			gProduct.DescPics = append(gProduct.DescPics, generalProduct.DescPic6)
+			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic6)
 		}
 
 		resp.Generalproducts = append(resp.Generalproducts)

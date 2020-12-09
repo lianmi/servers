@@ -140,37 +140,28 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			}
 			if product.ProductPic1Large != "" {
 				// 动态拼接
-				productPic1Small := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic1Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  productPic1Small,
-					Middle: productPic1Middle,
-					Large:  product.ProductPic1Large,
+					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large,
 				})
 			}
 
 			if product.ProductPic2Large != "" {
 				// 动态拼接
-				productPic2Small := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic2Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  productPic2Small,
-					Middle: productPic2Middle,
-					Large:  product.ProductPic2Large,
+					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large,
 				})
 			}
 
 			if product.ProductPic3Large != "" {
 				// 动态拼接
-				productPic3Small := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic3Middle := LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  productPic3Small,
-					Middle: productPic3Middle,
-					Large:  product.ProductPic3Large,
+					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large,
 				})
 			}
 

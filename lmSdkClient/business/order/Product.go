@@ -245,9 +245,9 @@ func AddProduct() error {
 
 	oProduct := &Order.Product{
 		Expire:      uint64(0),
-		ProductName: "福彩3D",
-		ProductType: Global.ProductType(8), //8-彩票
-		ProductDesc: "最新玩法福彩3D",
+		ProductName: "福彩3D",                //双色球
+		ProductType: Global.ProductType(9), //9-彩票
+		ProductDesc: "最新玩法福彩3D",            //大奖最高一千万
 		ShortVideo:  "",
 		Price:       float32(2.0),
 		AllowCancel: true,
@@ -400,7 +400,7 @@ func AddProduct() error {
 
 }
 
-// 7-3 商品编辑更新
+//  模拟 7-3 商品编辑更新
 func UpdateProduct() error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
@@ -444,31 +444,30 @@ func UpdateProduct() error {
 	oProduct := &Order.Product{
 		ProductId:   productId,
 		Expire:      uint64(0),
-		ProductName: "福彩3D",
-		ProductType: Global.ProductType(8), //8-彩票
-		ProductDesc: "最新玩法福彩3D",
+		ProductName: "双色球",
+		ProductType: Global.ProductType(9), //9-彩票
+		ProductDesc: "最高一千万",
 		ShortVideo:  "",
 		Price:       float32(2.0),
 		AllowCancel: true,
 	}
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图1
+		Large: "products/2ff867f849548257d20c003e9de44f98.jpeg", // 原图1
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图2
+		Large: "products/2ff867f849548257d20c003e9de44f98.jpeg", // 原图2
 	})
 	oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-		Large: "products/215b66d14111da360261206e348c3223.jpg", // 原图3
+		Large: "products/2ff867f849548257d20c003e9de44f98.jpeg", // 原图3
 	})
 
 	//商品内容图片数组
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
-	oProduct.DescPics = append(oProduct.DescPics, "products/215b66d14111da360261206e348c3223.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/07cb349819583706fee9c08d03434a30.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/048c9822ca1c424080fcbc195abf9624.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/fb5e2fa4e971b0aa4d3d8937e60997c.jpg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/4a3f0fe2d58092e2a7f48ce8f58a3df7.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/cf14e9281e6f3819a2001c4b1bdc1301.jpeg")
+	oProduct.DescPics = append(oProduct.DescPics, "products/0ffb4f3bc3d419affa6d8fe3efa7eb31.jpeg")
 
 	req := &Order.UpdateProductReq{
 		Product:   oProduct,

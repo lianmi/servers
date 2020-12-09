@@ -803,7 +803,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("GetOssToken payload")
+		nc.logger.Debug("GetOssToken payload", zap.Bool("IsPrivate", req.IsPrivate))
 
 		//生成阿里云oss临时sts
 		client := sts.NewStsClient(common.AccessID, common.AccessKey, common.RoleAcs)

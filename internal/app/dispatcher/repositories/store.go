@@ -173,28 +173,42 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		s.logger.Error("HGET Avatar error", zap.Error(err))
 		return nil, errors.Wrapf(err, "Query error[BusinessUsername=%s]", businessUsername)
 	}
+	//智能判断一下，是否是带 http(s) 前缀
+	if !strings.HasPrefix(avatar, "http") {
 
+		avatar = LMCommon.OSSUploadPicPrefix + avatar //拼接URL
+
+	}
+
+	var imageURL, licenseURL string
+	if p.ImageURL != "" {
+		imageURL = LMCommon.OSSUploadPicPrefix + p.ImageURL
+	}
+
+	if p.LicenseURL != "" {
+		licenseURL = LMCommon.OSSUploadPicPrefix + p.LicenseURL
+	}
 	return &User.Store{
 		StoreUUID:          p.StoreUUID,                   //店铺的uuid
 		StoreType:          Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
 		BusinessUsername:   p.BusinessUsername,            //商户注册号
 		Avatar:             avatar,                        //头像
-		ImageUrl:           p.ImageURL,
-		Introductory:       p.Introductory,      //商店简介 Text文本类型
-		Province:           p.Province,          //省份, 如广东省
-		City:               p.City,              //城市，如广州市
-		County:             p.County,            //区，如天河区
-		Street:             p.Street,            //街道
-		Address:            p.Address,           //地址
-		Branchesname:       p.Branchesname,      //网点名称
-		LegalPerson:        p.LegalPerson,       //法人姓名
-		LegalIdentityCard:  p.LegalIdentityCard, //法人身份证
-		Longitude:          p.Longitude,         //商户地址的经度
-		Latitude:           p.Latitude,          //商户地址的纬度
-		Wechat:             p.WeChat,            //商户联系人微信号
-		Keys:               p.Keys,              //商户经营范围搜索关键字
-		BusinessLicenseUrl: p.LicenseURL,        //商户营业执照阿里云url
-		AuditState:         int32(p.AuditState), //审核状态，0-预审核，1-审核通过, 2-占位
+		ImageUrl:           imageURL,                      //店铺形象图片
+		Introductory:       p.Introductory,                //商店简介 Text文本类型
+		Province:           p.Province,                    //省份, 如广东省
+		City:               p.City,                        //城市，如广州市
+		County:             p.County,                      //区，如天河区
+		Street:             p.Street,                      //街道
+		Address:            p.Address,                     //地址
+		Branchesname:       p.Branchesname,                //网点名称
+		LegalPerson:        p.LegalPerson,                 //法人姓名
+		LegalIdentityCard:  p.LegalIdentityCard,           //法人身份证
+		Longitude:          p.Longitude,                   //商户地址的经度
+		Latitude:           p.Latitude,                    //商户地址的纬度
+		Wechat:             p.WeChat,                      //商户联系人微信号
+		Keys:               p.Keys,                        //商户经营范围搜索关键字
+		BusinessLicenseUrl: licenseURL,                    //商户营业执照阿里云url
+		AuditState:         int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
 		CreatedAt:          uint64(p.CreatedAt),
 		UpdatedAt:          uint64(p.UpdatedAt),
 		OpeningHours:       p.OpeningHours, //营业时间

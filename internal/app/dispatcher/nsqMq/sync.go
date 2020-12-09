@@ -1054,38 +1054,29 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 				}
 				if productInfo.ProductPic1Large != "" {
 					// 动态拼接
-					productPic1Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-					productPic1Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  productPic1Small,
-						Middle: productPic1Middle,
-						Large:  productInfo.ProductPic1Large,
+						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large,
 					})
 
 				}
 
 				if productInfo.ProductPic2Large != "" {
 					// 动态拼接
-					productPic2Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-					productPic2Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  productPic2Small,
-						Middle: productPic2Middle,
-						Large:  productInfo.ProductPic2Large,
+						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large,
 					})
 				}
 
 				if productInfo.ProductPic3Large != "" {
 					// 动态拼接
-					productPic3Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-					productPic3Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  productPic3Small,
-						Middle: productPic3Middle,
-						Large:  productInfo.ProductPic3Large,
+						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large,
 					})
 				}
 
@@ -1240,35 +1231,26 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 
 			if productInfo.ProductPic1Large != "" {
 				// 动态拼接
-				productPic1Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic1Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				og.ProductPics = append(og.ProductPics, &Order.ProductPic{
-					Small:  productPic1Small,
-					Middle: productPic1Middle,
-					Large:  productInfo.ProductPic1Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large,
 				})
 			}
 			if productInfo.ProductPic2Large != "" {
 				// 动态拼接
-				productPic2Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic2Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				og.ProductPics = append(og.ProductPics, &Order.ProductPic{
-					Small:  productPic2Small,
-					Middle: productPic2Middle,
-					Large:  productInfo.ProductPic2Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large,
 				})
 			}
 			if productInfo.ProductPic3Large != "" {
 				// 动态拼接
-				productPic3Small := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50"
-				productPic3Middle := LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100"
-
 				og.ProductPics = append(og.ProductPics, &Order.ProductPic{
-					Small:  productPic3Small,
-					Middle: productPic3Middle,
-					Large:  productInfo.ProductPic3Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large,
 				})
 			}
 
