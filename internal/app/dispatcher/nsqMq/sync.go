@@ -1040,19 +1040,19 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					ProductName: productInfo.ProductName,                     //商品名称
 					ProductType: Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
 					//TODO  暂时全部都是双色球
-					SubType:           int32(Global.LotteryType_LT_Shuangseqiu), //Global.LotteryType(product.LotteryType),
-					ProductDesc:       productInfo.ProductDesc,                  //商品详细介绍
-					ShortVideo:        productInfo.ShortVideo,                   //商品短视频
-					Thumbnail:         thumbnail,                                //商品短视频缩略图
-					Price:             productInfo.Price,                        //价格
-					LeftCount:         productInfo.LeftCount,                    //库存数量
-					Discount:          productInfo.Discount,                     //折扣 实际数字，例如: 0.95, UI显示为九五折
-					DiscountDesc:      productInfo.DiscountDesc,                 //折扣说明
-					DiscountStartTime: uint64(productInfo.DiscountStartTime),    //折扣开始时间
-					DiscountEndTime:   uint64(productInfo.DiscountEndTime),      //折扣结束时间
-					CreateAt:          uint64(productInfo.CreatedAt),            //创建时间
-					ModifyAt:          uint64(productInfo.ModifyAt),             //最后修改时间
-					AllowCancel:       productInfo.AllowCancel,                  //是否允许撤单， 默认是可以，彩票类的不可以
+					SubType:           int32(Global.LotteryType_LT_Shuangseqiu),
+					ProductDesc:       productInfo.ProductDesc,               //商品详细介绍
+					ShortVideo:        productInfo.ShortVideo,                //商品短视频
+					Thumbnail:         thumbnail,                             //商品短视频缩略图
+					Price:             productInfo.Price,                     //价格
+					LeftCount:         productInfo.LeftCount,                 //库存数量
+					Discount:          productInfo.Discount,                  //折扣 实际数字，例如: 0.95, UI显示为九五折
+					DiscountDesc:      productInfo.DiscountDesc,              //折扣说明
+					DiscountStartTime: uint64(productInfo.DiscountStartTime), //折扣开始时间
+					DiscountEndTime:   uint64(productInfo.DiscountEndTime),   //折扣结束时间
+					CreateAt:          uint64(productInfo.CreatedAt),         //创建时间
+					ModifyAt:          uint64(productInfo.ModifyAt),          //最后修改时间
+					AllowCancel:       productInfo.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 				}
 				if productInfo.ProductPic1Large != "" {
 					// 动态拼接

@@ -16,7 +16,7 @@ type Product struct {
 	Expire           int64  `form:"expire" json:"expire,omitempty"`                         //过期时间，0-无限
 	ProductName      string `form:"product_name" json:"product_name,omitempty"`             //商品名称
 	ProductType      int    `form:"product_type" json:"product_type,omitempty"`             //商品种类枚举
-	LotteryType      int    `form:"lottery_type" json:"lottery_type,omitempty"`             //彩票类型枚举
+	SubType          int    `form:"sub_type" json:"sub_type,omitempty"`                     //子类型枚举, 如彩票， 肉类
 	ProductDesc      string `form:"product_desc" json:"product_desc,omitempty"`             //商品详细介绍
 	ProductPic1Large string `form:"product_pic1_large" json:"product_pic1_large,omitempty"` //商品图片1-大图
 	ProductPic2Large string `form:"product_pic2_large" json:"product_pic2_large,omitempty"` //商品图片2-大图
