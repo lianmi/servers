@@ -37,10 +37,10 @@ lianmi-ipfs
      用户可以上传，但不能删除。其它用户只能匿名读
 
 ####    (2). 目录约定 
-    店铺:   stores/2020-12-04/id1/xxx.jpg
-    商品:   products/2020-12-04/id1/xxx.jpg
-    用户头像:   avatars/2020-12-04/id1/xxx.jpg
-    群头像:   teamicons/2020-12-04/id1/xxx.jpg
+    店铺:   stores/id1/2020-12-04/xxx.jpg
+    商品:   products/id1/2020-12-04/xxx.jpg
+    用户头像:   avatars/id1/2020-12-04/xxx.jpg
+    群头像:   teamicons/id1/2020-12-04/xxx.jpg
 
 ### 3、 实名用户的身份证照片 ，订单上链照片 、聊天消息里的图片及短视频
  
@@ -49,6 +49,6 @@ lianmi-ipfs
      保证每个App用户之间的数据隔离(暂时不做隔离)
 
 ####    (2). 目录约定 
-    用户身份证照片:   users/2020-12-04/id1/身份证.jpg
-    订单上链照片:   orders/2020-12-04/id1/xxx.jpg
-    聊天消息里的图片及短视频:   msg/2020-12-04/id1/xxx.jpg
+    用户身份证照片:   users/id1/2020-12-04/身份证.jpg
+    订单上链照片:   orders/id1/2020-12-04/xxx.jpg
+    聊天消息里的图片及短视频:   msg/id1/2020-12-04/xxx.jpg

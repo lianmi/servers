@@ -811,12 +811,14 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 
 			//仅允许用户向lianmi-ipfs这个Bucket上传类似users/{username}/的文件
 			acs := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
+			nc.logger.Debug("acs", zap.String("acs", acs))
 
 			policy := sts.Policy{
 				Version: "1",
 				Statement: []sts.StatementBase{sts.StatementBase{
-					Effect:   "Allow",
-					Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Effect: "Allow",
+					// Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Action:   []string{"oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
 					Resource: []string{acs},
 				}},
 			}
@@ -829,6 +831,8 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
 				goto COMPLETE
 			}
+
+			nc.logger.Debug("url", zap.String("url", url))
 
 		} else {
 			//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
@@ -875,7 +879,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		nc.logger.Debug("收到阿里云OSS服务端的消息",
+		nc.logger.Debug("收到阿里云OSS服务端的回包",
 			zap.String("RequestId", sjson.Get("RequestId").MustString()),
 			zap.String("AccessKeyId", sjson.Get("Credentials").Get("AccessKeyId").MustString()),
 			zap.String("AccessKeySecret", sjson.Get("Credentials").Get("AccessKeySecret").MustString()),

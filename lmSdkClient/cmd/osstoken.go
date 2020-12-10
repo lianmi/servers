@@ -15,7 +15,8 @@ var osstokenCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := chat.GetOssToken()
+		isPrivate, _ := cmd.PersistentFlags().GetBool("isprivate")
+		err := chat.GetOssToken(isPrivate)
 
 		if err != nil {
 			log.Println("GetOssToken error:", err)
@@ -28,5 +29,6 @@ var osstokenCmd = &cobra.Command{
 func init() {
 	//子命令
 	ossCmd.AddCommand(osstokenCmd)
+	osstokenCmd.PersistentFlags().BoolP("isprivate", "p", false, "用户私有")
 
 }

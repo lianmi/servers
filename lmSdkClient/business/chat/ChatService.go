@@ -44,7 +44,7 @@ func NewTlsConfig() *tls.Config {
 }
 
 // 5-12 获取阿里云临时令牌
-func GetOssToken() error {
+func GetOssToken(isPrivate bool) error {
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -83,10 +83,16 @@ func GetOssToken() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
+	req := &Msg.GetOssTokenReq{
+		IsPrivate: isPrivate,
+	}
+
+	content, _ := proto.Marshal(req)
+
 	pb := &paho.Publish{
 		Topic:   topic,
 		QoS:     byte(1),
-		Payload: nil,
+		Payload: content,
 		Properties: &paho.PublishProperties{
 			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
