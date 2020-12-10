@@ -23,74 +23,74 @@ message ProductPic {
 message Product {
     //商品ID
     //是否必须-是
-    string ProductId = 1;
+    string productId = 1;
 
     //商品过期时间
     fixed64 expire=2;
 
     //商品名称
     //是否必须-是
-    string ProductName = 3;
+    string productName = 3;
 
     //商品种类类型  枚举 
     global.ProductType productType= 4;
 
-    //TODO 彩票类型 1- 双色球  2- 大乐透,  3- 福彩3d ... 
-    global.LotteryType lotteryType= 5;
+    //商品子类型 UI约定 应用在彩票店  1- 双色球  2- 大乐透,  3- 福彩3d ...  如果应用在肉类，1- 排骨 2-五花肉 3-纯瘦肉。。。
+    int32 subType= 5;
 
     //商品详细介绍
     //是否必须-是
-    string ProductDesc = 6;
+    string productDesc = 6;
 
     //商品图片数组，默认是3个图片
     repeated ProductPic productPics = 7;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 8;
+    string shortVideo = 8;
 
    //商品短视频缩略图
     //是否必须-否
-    string Thumbnail = 9;
+    string thumbnail = 9;
 
     //价格
     //是否必须-是
-    float Price = 10;
+    float price = 10;
 
     //库存数量
     //是否必须-是
-    fixed64 LeftCount = 11;
+    fixed64 leftCount = 11;
 
     //折扣
     //实际数字，例如: 0.95, UI显示为九五折
     //是否必须-否
-    float Discount = 12;
+    float discount = 12;
 
     //折扣说明
     //是否必须-否
-    string DiscountDesc = 13;
+    string discountDesc = 13;
 
     //折扣开始时间
     //是否必须-否
-    fixed64 DiscountStartTime = 14;
+    fixed64 discountStartTime = 14;
 
     //折扣结束时间
     //是否必须-否
-    fixed64 DiscountEndTime = 15;
+    fixed64 discountEndTime = 15;
 
     //商品内容详情图片，默认是 6张
    repeated string descPics =16;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 17;
+    fixed64 createAt = 17;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 18;
+    fixed64 modifyAt = 18;
 
     //是否允许撤单， 默认是可以，彩票类的不可以
-    bool AllowCancel = 19;
+    bool allowCancel = 19;
 
 }
 
@@ -137,35 +137,38 @@ message GeneralProduct {
     //商品种类类型  枚举 
     global.ProductType productType = 3;
 
+    //商品子类型 UI约定 应用在彩票店  1- 双色球  2- 大乐透,  3- 福彩3d ...  如果应用在肉类，1- 排骨 2-五花肉 3-纯瘦肉。。。
+    int32 subType= 4;
+
     //商品详细介绍
     //是否必须-是
-    string ProductDesc = 4;
+    string ProductDesc = 5;
 
     //商品图片数组，默认是3个图片
-    repeated ProductPic productPics = 5;
+    repeated ProductPic productPics = 6;
 
 
     //商品短视频缩略图
     //是否必须-否
-    string Thumbnail = 6;
+    string Thumbnail = 7;
 
     //商品短视频
     //是否必须-否
-    string ShortVideo = 7;
+    string ShortVideo = 8;
 
     //商品内容详情图片，默认是 6张
-    repeated string descPics =8;
+    repeated string descPics =9;
 
     //创建时间
     //是否必须-是
-    fixed64 CreateAt = 9;
+    fixed64 CreateAt = 10;
 
     //最后修改时间
     //是否必须-是
-    fixed64 ModifyAt = 10;
+    fixed64 ModifyAt = 11;
 
     //是否允许撤单， 默认是可以，彩票类的不可以
-    bool AllowCancel = 11;
+    bool AllowCancel = 12;
 
 }
 
@@ -231,9 +234,8 @@ message ProductsListReq {
     //商品类型
     global.ProductType productType = 2;
 
-    //关键字, 以半角逗号隔开
+    //关键字, 以空格 隔开
     string keys = 3;
-
 
     //页数,第几页
     //默认1

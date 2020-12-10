@@ -135,7 +135,7 @@ enum ProductSubType {
 
 //订单模块子模块定义
 enum OrderSubType {
-    OST_undefined     =  0;    //proto3必须从0开始
+    OST_undefined     =  0;     //proto3必须从0开始
     RegisterPreKeys   =  1;     /**< 9-1. 商户上传订单DH加密公钥*/
     GetPreKeyOrderID  =  2;     /**< 9-2. 获取网点OPK公钥及订单ID*/
     OrderStateEvent   =  4;     /**< 已取消 9-4. 订单状态变化事件*/
@@ -181,13 +181,13 @@ enum OrderState {
     OS_Processing   = 7;     /**< 订单处理中，一般用于商户，安抚下单的*/
     OS_Confirm      = 8;     /**< 确认收货*/
     OS_ApplyCancel  = 9;     /**< 申请撤单 */
-    OS_AttachChange = 10;   /**< 订单内容发生更改*/
-    OS_Paying       = 11;   /**< 支付中*/
-    OS_Overdue      = 12;   /**< 已逾期*/
-    OS_Refuse       = 13;   /**< 已拒单， 跟已接单是相反的操作*/
-    OS_IsPayed      = 14;   /**< 已支付， 支付成功*/
-    OS_Urge         = 15;   /**< 买家催单, 商户可以回复7*/
-    OS_Expedited    = 16;   /**< 加急订单, 排在首位*/
+    OS_AttachChange = 10;    /**< 订单内容发生更改*/
+    OS_Paying       = 11;    /**< 支付中*/
+    OS_Overdue      = 12;    /**< 已逾期*/
+    OS_Refuse       = 13;    /**< 已拒单， 跟已接单是相反的操作*/
+    OS_IsPayed      = 14;    /**< 已支付， 支付成功*/
+    OS_Urge         = 15;    /**< 买家催单, 商户可以回复7*/
+    OS_Expedited    = 16;    /**< 加急订单, 排在首位*/
 }
 
 enum StoreType {
@@ -200,8 +200,8 @@ enum StoreType {
     ST_Bakery        = 6;     /**< 面包糕点类*/
     ST_GroceryStore  = 7;     /**< 生活五金用品类*/
     ST_HouseKeeping  = 8;     /**< 家政*/
-    ST_Lottery       = 9;      /**< 彩票*/
-    ST_Carry         = 10;      /**< 搬运*/
+    ST_Lottery       = 9;     /**< 彩票*/
+    ST_Carry         = 10;    /**< 搬运*/
     ST_Maintenance   = 11;     /**< 维修*/
     ST_Services      = 12;     /**< 服务行业*/
     ST_Others        = 13;     /**<其它*/
@@ -217,11 +217,11 @@ enum ProductType {
     OT_Bakery        = 6;     /**< 面包糕饼类*/
     OT_GroceryStore  = 7;     /**< 生活清洁用品类*/
     OT_HouseKeeping  = 8;     /**< 家政*/
-    OT_Lottery       = 9;      /**< 彩票*/
-    OT_Carry         = 10;      /**< 搬运*/
-    OT_Maintenance   = 11;     /**< 维修*/
-    OT_Services      = 12;     /**< 服务行业*/
-    OT_Others        = 13;     /**<其它*/
+    OT_Lottery       = 9;     /**< 彩票*/
+    OT_Carry         = 10;    /**< 搬运*/
+    OT_Maintenance   = 11;    /**< 维修*/
+    OT_Services      = 12;    /**< 服务行业*/
+    OT_Others        = 13;    /**<其它*/
 }
 
  //彩票类型 1- 双色球  2- 大乐透,  3- 福彩3d
@@ -262,19 +262,19 @@ enum ThirdPartyPaymentType {
 
 //充值金额枚举
 enum DepositRecharge {
-     DR_Undefined   = 0;          //proto3必须从0开始
+     DR_Undefined   = 0;     //proto3必须从0开始
      DR_100         = 1;     //100元 
      DR_200         = 2;     //200元 
      DR_300         = 3;     //300元 
      DR_500         = 4;     //500元 
-     DR_1000        = 5;    //1000元 
-     DR_3000        = 6;    //3000元 
-     DR_10000       = 7;   //10000元 
+     DR_1000        = 5;     //1000元 
+     DR_3000        = 6;     //3000元 
+     DR_10000       = 7;     //10000元 
 }
 
 //客服技术类型枚举 
 enum CustomerServiceType {
       CS_Undefined   = 0;          //proto3必须从0开始
       CS_CustomerService =1;       //客服
-      CS_TechnologyService =2;       // 技术支持
+      CS_TechnologyService =2;     // 技术支持
 }

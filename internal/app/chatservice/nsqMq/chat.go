@@ -13,7 +13,7 @@ import (
 	Team "github.com/lianmi/servers/api/proto/team"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
-	"github.com/lianmi/servers/util/sts"
+	"github.com/lianmi/servers/internal/pkg/sts"
 	"google.golang.org/protobuf/proto"
 
 	simpleJson "github.com/bitly/go-simplejson"
@@ -802,16 +802,60 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 	} else {
 		nc.logger.Debug("GetOssToken payload", zap.Bool("IsPrivate", req.IsPrivate))
 
-		//生成阿里云oss临时sts
-		client := sts.NewStsClient(common.AccessID, common.AccessKey, common.RoleAcs)
+		var client *sts.AliyunStsClient
+		var url string
 
-		//阿里云规定，最低expire为1500秒
-		url, err := client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.EXPIRESECONDS))
-		if err != nil {
-			nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
-			goto COMPLETE
+		client = sts.NewStsClient(common.AccessID, common.AccessKey, common.RoleAcs)
+
+		if req.IsPrivate {
+
+			//仅允许用户向lianmi-ipfs这个Bucket上传类似users/{username}/的文件
+			acs := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
+
+			policy := sts.Policy{
+				Version: "1",
+				Statement: []sts.StatementBase{sts.StatementBase{
+					Effect:   "Allow",
+					Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Resource: []string{acs},
+				}},
+			}
+
+			//300秒
+			url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.PrivateEXPIRESECONDS), policy.ToJson())
+			if err != nil {
+				nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
+				goto COMPLETE
+			}
+
+		} else {
+			//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
+			acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
+			acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
+			acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
+			acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
+			acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
+			acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
+
+			// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+			policy := sts.Policy{
+				Version: "1",
+				Statement: []sts.StatementBase{sts.StatementBase{
+					Effect:   "Allow",
+					Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsTeamIcons},
+				}},
+			}
+
+			url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.EXPIRESECONDS), policy.ToJson())
+			if err != nil {
+				nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
+				goto COMPLETE
+			}
 		}
 
 		data, err := client.GetStsResponse(url)
@@ -838,6 +882,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			zap.String("SecurityToken", sjson.Get("Credentials").Get("SecurityToken").MustString()),
 			zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
 		)
+
 		/*
 			//计算出Expire
 			dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())

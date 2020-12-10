@@ -56,17 +56,21 @@ const (
 阿里云
 
 // RAM角色  ipfsuploader
+// AccessID  = "LTAI4G3o4sECdSBsD7rGLmCs" //tempUploader@1230446857465673.onaliyun.com
+// AccessKey = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
+// RoleAcs   = "acs:ram::1230446857465673:role/ipfsuploader"
 
 */
 const (
 	Endpoint  = "https://oss-cn-hangzhou.aliyuncs.com"
-	AccessID  = "LTAI4G3o4sECdSBsD7rGLmCs" //tempUploader@1230446857465673.onaliyun.com
-	AccessKey = "0XmB9tLOBLhmjIcM6CrBv2PHfnoDa8"
-	RoleAcs   = "acs:ram::1230446857465673:role/ipfsuploader"
+	AccessID  = "LTAI4G8bgDLiaU9LfLyGQwgw"
+	AccessKey = "uSI3XA0fk5FbLTVwhZ5bJNO1N1UAJA"
+	RoleAcs   = "acs:ram::1230446857465673:role/lianmiipfswrite" //可读写
 
 	BucketName = "lianmi-ipfs"
 	//阿里云OSS临时token的过期时间, 默认是3600秒
-	EXPIRESECONDS = 3600
+	EXPIRESECONDS        = 3600
+	PrivateEXPIRESECONDS = 300
 
 	OSSUploadPicPrefix = "https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/"
 	//例子 https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/msg/2020/11/29/id1/EF6B35D42C56273EF6D94B0DFC53C9C8

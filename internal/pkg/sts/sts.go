@@ -1,4 +1,3 @@
-
 package sts
 
 import (
@@ -6,6 +5,7 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,6 +13,25 @@ import (
 
 	"github.com/satori/go.uuid"
 )
+
+type StatementBase struct {
+	Effect   string
+	Action   []string
+	Resource []string
+}
+
+type Policy struct {
+	Version   string
+	Statement []StatementBase
+}
+
+func (p *Policy) ToJson() string {
+	jsonBytes, err := json.Marshal(p)
+	if err != nil {
+		return ""
+	}
+	return string(jsonBytes)
+}
 
 type AliyunStsClient struct {
 	ChildAccountKeyId  string
@@ -28,7 +47,12 @@ func NewStsClient(key, secret, roleAcs string) *AliyunStsClient {
 	}
 }
 
-func (cli *AliyunStsClient) GenerateSignatureUrl(sessionName, durationSeconds string) (string, error) {
+/*
+sessionName - 是一个用来标示临时凭证的名称，一般来说建议使用不同的应用程序用户来区分。
+DurationSeconds - 指的是临时凭证的有效期，单位是s，最小为900，最大为3600。
+policy -  表示的是在扮演角色的时候额外加上的一个权限限制。此参数可以限制生成的STS token的权限，若不指定则返回的token拥有指定角色的所有权限。
+*/
+func (cli *AliyunStsClient) GenerateSignatureUrl(sessionName, durationSeconds, policy string) (string, error) {
 	assumeUrl := "SignatureVersion=1.0"
 	assumeUrl += "&Format=JSON"
 	assumeUrl += "&Timestamp=" + url.QueryEscape(time.Now().UTC().Format("2006-01-02T15:04:05Z"))
@@ -40,6 +64,11 @@ func (cli *AliyunStsClient) GenerateSignatureUrl(sessionName, durationSeconds st
 	assumeUrl += "&Action=AssumeRole"
 	assumeUrl += "&SignatureNonce=" + uuid.NewV4().String()
 	assumeUrl += "&DurationSeconds=" + durationSeconds
+
+	if policy != "" {
+		//TODO Policy 策略，可以精确控制用户的目录权限
+		assumeUrl += "&Policy=" + policy //字符串  若policy为空，则用户将获得该角色下所有权限
+	}
 
 	// 解析成V type
 	signToString, err := url.ParseQuery(assumeUrl)
