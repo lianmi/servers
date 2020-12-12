@@ -120,7 +120,9 @@ func CreateApp(cf string) (*app.Application, error) {
 	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService)
 	logger.Debug("NewLianmiApisController succeed")
 	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
+	logger.Debug("CreateInitControllersFn succeed")
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
+	logger.Debug(" http.NewRouter")
 	apiClient, err := consul.New(consulOptions)
 	if err != nil {
 		//TODO
