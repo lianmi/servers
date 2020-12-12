@@ -585,11 +585,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		BuyUsername:       buyUser,          //买家注册号
 		BussinessUsername: businessUser,     //商户注册号
 		Cost:              orderTotalAmount, //本订单的总金额
-
-		//订单图片在买家的oss objectID 暂时支持1张图片, 等迁移到Gorm2.0并重构数据库后改为数组
-		// BuyerOssImages:req.
-		//订单图片在商户的oss objectID
-		BusinessOssImages: req.OrderImageMD5,
+		BusinessOssImages: req.OrderImage,   //订单图片在商户的oss objectID
 	}
 	data, err = json.Marshal(orderImagesOnBlockChain)
 	if err != nil {

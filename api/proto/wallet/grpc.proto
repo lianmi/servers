@@ -130,7 +130,7 @@ message OrderImagesOnBlockchainReq{
     fixed64 amount=5;
 
     // 订单图片oss objectId
-    string orderImageMD5 =6;
+    string orderImage =6;
 }
 
 message OrderImagesOnBlockchainResp{
