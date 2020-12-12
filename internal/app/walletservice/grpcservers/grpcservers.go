@@ -49,6 +49,7 @@ func (s *WalletServer) SendConfirmPayForMembership(ctx context.Context, req *Wal
 }
 
 //订单上链
+//rpc OrderImagesOnBlockchain(OrderImagesOnBlockchainReq) returns  (OrderImagesOnBlockchainResp);
 func (s *WalletServer) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
 	return s.service.OrderImagesOnBlockchain(ctx, req)
 }
