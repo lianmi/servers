@@ -25,6 +25,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
+	"go.uber.org/zap"
 )
 
 // Injectors from wire.go:
@@ -101,7 +102,11 @@ func CreateApp(cf string) (*app.Application, error) {
 	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService, nsqChannel)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
+		//TODO
+		logger.Error(" mqtt.NewMQTTOptions", zap.Error(err))
 		return nil, err
+	} else {
+		logger.Debug("NewMQTTOptions succeed")
 	}
 	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
 	httpOptions, err := http.NewOptions(viper)

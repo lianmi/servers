@@ -16,9 +16,9 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/wire"
-	"gorm.io/gorm"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
