@@ -1193,6 +1193,44 @@ func (x *ProductSetSubTypeReq) GetSubType() int32 {
 	return 0
 }
 
+type ProductSetSubTypeResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ProductSetSubTypeResp) Reset() {
+	*x = ProductSetSubTypeResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_Product_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProductSetSubTypeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProductSetSubTypeResp) ProtoMessage() {}
+
+func (x *ProductSetSubTypeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_Product_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProductSetSubTypeResp.ProtoReflect.Descriptor instead.
+func (*ProductSetSubTypeResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_Product_proto_rawDescGZIP(), []int{12}
+}
+
 var File_api_proto_order_Product_proto protoreflect.FileDescriptor
 
 var file_api_proto_order_Product_proto_rawDesc = []byte{
@@ -1378,10 +1416,12 @@ var file_api_proto_order_Product_proto_rawDesc = []byte{
 	0x0a, 0x09, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x09, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x74, 0x49, 0x64, 0x12, 0x18, 0x0a, 0x07,
 	0x73, 0x75, 0x62, 0x54, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x73,
-	0x75, 0x62, 0x54, 0x79, 0x70, 0x65, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76,
-	0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6f, 0x72,
-	0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x75, 0x62, 0x54, 0x79, 0x70, 0x65, 0x22, 0x17, 0x0a, 0x15, 0x50, 0x72, 0x6f, 0x64, 0x75, 0x63,
+	0x74, 0x53, 0x65, 0x74, 0x53, 0x75, 0x62, 0x54, 0x79, 0x70, 0x65, 0x52, 0x65, 0x73, 0x70, 0x42,
+	0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69,
+	0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69,
+	0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1396,7 +1436,7 @@ func file_api_proto_order_Product_proto_rawDescGZIP() []byte {
 	return file_api_proto_order_Product_proto_rawDescData
 }
 
-var file_api_proto_order_Product_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_api_proto_order_Product_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_api_proto_order_Product_proto_goTypes = []interface{}{
 	(*ProductPic)(nil),                // 0: cloud.lianmi.im.order.ProductPic
 	(*Product)(nil),                   // 1: cloud.lianmi.im.order.Product
@@ -1410,22 +1450,23 @@ var file_api_proto_order_Product_proto_goTypes = []interface{}{
 	(*GetGeneralProductPageResp)(nil), // 9: cloud.lianmi.im.order.GetGeneralProductPageResp
 	(*GetProductsResp)(nil),           // 10: cloud.lianmi.im.order.GetProductsResp
 	(*ProductSetSubTypeReq)(nil),      // 11: cloud.lianmi.im.order.ProductSetSubTypeReq
-	(global.ProductType)(0),           // 12: cloud.lianmi.im.global.ProductType
-	(global.OrderState)(0),            // 13: cloud.lianmi.im.global.OrderState
-	(global.StoreType)(0),             // 14: cloud.lianmi.im.global.StoreType
-	(*user.Store)(nil),                // 15: cloud.lianmi.im.user.Store
+	(*ProductSetSubTypeResp)(nil),     // 12: cloud.lianmi.im.order.ProductSetSubTypeResp
+	(global.ProductType)(0),           // 13: cloud.lianmi.im.global.ProductType
+	(global.OrderState)(0),            // 14: cloud.lianmi.im.global.OrderState
+	(global.StoreType)(0),             // 15: cloud.lianmi.im.global.StoreType
+	(*user.Store)(nil),                // 16: cloud.lianmi.im.user.Store
 }
 var file_api_proto_order_Product_proto_depIdxs = []int32{
-	12, // 0: cloud.lianmi.im.order.Product.productType:type_name -> cloud.lianmi.im.global.ProductType
+	13, // 0: cloud.lianmi.im.order.Product.productType:type_name -> cloud.lianmi.im.global.ProductType
 	0,  // 1: cloud.lianmi.im.order.Product.productPics:type_name -> cloud.lianmi.im.order.ProductPic
-	13, // 2: cloud.lianmi.im.order.OrderProductBody.state:type_name -> cloud.lianmi.im.global.OrderState
-	12, // 3: cloud.lianmi.im.order.GeneralProduct.productType:type_name -> cloud.lianmi.im.global.ProductType
+	14, // 2: cloud.lianmi.im.order.OrderProductBody.state:type_name -> cloud.lianmi.im.global.OrderState
+	13, // 3: cloud.lianmi.im.order.GeneralProduct.productType:type_name -> cloud.lianmi.im.global.ProductType
 	0,  // 4: cloud.lianmi.im.order.GeneralProduct.productPics:type_name -> cloud.lianmi.im.order.ProductPic
-	14, // 5: cloud.lianmi.im.order.QueryStoresNearbyReq.storeType:type_name -> cloud.lianmi.im.global.StoreType
-	15, // 6: cloud.lianmi.im.order.QueryStoresNearbyResp.stores:type_name -> cloud.lianmi.im.user.Store
-	12, // 7: cloud.lianmi.im.order.ProductsListReq.productType:type_name -> cloud.lianmi.im.global.ProductType
+	15, // 5: cloud.lianmi.im.order.QueryStoresNearbyReq.storeType:type_name -> cloud.lianmi.im.global.StoreType
+	16, // 6: cloud.lianmi.im.order.QueryStoresNearbyResp.stores:type_name -> cloud.lianmi.im.user.Store
+	13, // 7: cloud.lianmi.im.order.ProductsListReq.productType:type_name -> cloud.lianmi.im.global.ProductType
 	1,  // 8: cloud.lianmi.im.order.ProductsListResp.products:type_name -> cloud.lianmi.im.order.Product
-	12, // 9: cloud.lianmi.im.order.GetGeneralProductPageReq.productType:type_name -> cloud.lianmi.im.global.ProductType
+	13, // 9: cloud.lianmi.im.order.GetGeneralProductPageReq.productType:type_name -> cloud.lianmi.im.global.ProductType
 	3,  // 10: cloud.lianmi.im.order.GetGeneralProductPageResp.generalproducts:type_name -> cloud.lianmi.im.order.GeneralProduct
 	1,  // 11: cloud.lianmi.im.order.GetProductsResp.products:type_name -> cloud.lianmi.im.order.Product
 	12, // [12:12] is the sub-list for method output_type
@@ -1585,6 +1626,18 @@ func file_api_proto_order_Product_proto_init() {
 				return nil
 			}
 		}
+		file_api_proto_order_Product_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProductSetSubTypeResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1592,7 +1645,7 @@ func file_api_proto_order_Product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_order_Product_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

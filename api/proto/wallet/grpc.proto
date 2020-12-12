@@ -22,6 +22,8 @@ service LianmiWallet {
     //确认购买会员的支付交易
     rpc SendConfirmPayForMembership (SendConfirmPayForMembershipReq) returns (SendConfirmPayForMembershipResp);
 
+    //订单图片上链
+    rpc OrderImagesOnBlockchain(OrderImagesOnBlockchainReq) returns  (OrderImagesOnBlockchainResp);
 
 }
 
@@ -98,9 +100,42 @@ message SendConfirmPayForMembershipReq{
 }
 
 message SendConfirmPayForMembershipResp{
-       //要给谁付费
+    //要给谁付费
     string payForUsername =1;
 
+    // 区块高度 
+    fixed64 blockNumber=2;
+
+    // 交易哈希hex
+    string hash=3;
+
+    //时间
+    fixed64 time=4;
+}
+
+message OrderImagesOnBlockchainReq{
+    // 订单ID
+    string orderID =1;
+
+    //买家注册账号
+    string buyUsername =2;
+
+    //商户注册账号
+    string bussinessUsername =3;
+
+    //买家钱包地址
+   //  string buyerAccount =4;
+
+    //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
+    fixed64 amount=5;
+
+    // 订单图片oss objectId
+    string orderImageMD5 =6;
+}
+
+message OrderImagesOnBlockchainResp{
+     // 订单ID
+    string orderID =1;
 
     // 区块高度 
     fixed64 blockNumber=2;

@@ -155,14 +155,14 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 		)
 
 		//给叶子发送 1 个ether 以便作为中转账号的时候，可以对商户转账或对买家退款 有足够的gas
-		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER); err != nil {
+		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER, nil); err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Wallet register while TransferEthToOtherAccount error")
 			goto COMPLETE
 		}
 
 		//给用户钱包发送10000000个gas
-		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.WalletAddress, 2*LMCommon.GASLIMIT); err != nil {
+		if blockNumber, hash, err = nc.ethService.TransferEthToOtherAccount(req.WalletAddress, 2*LMCommon.GASLIMIT, nil); err != nil {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Wallet register while TransferEthToOtherAccount error")
 			goto COMPLETE
@@ -2349,7 +2349,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 			"Count", 1, //如果达到2次则奖励
 			"Total", 1, //奖励次数
 		)
-		rsp.Count = 1  //当前
+		rsp.Count = 1       //当前
 		rsp.TotalSignIn = 1 //奖励次数
 
 	} else {
@@ -2373,7 +2373,7 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 			go func() {
 				balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)
 				awardEth = uint64(LMCommon.AWARDGAS)
-				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth))
+				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth), nil)
 				balanceEth, err = nc.ethService.GetWeiBalance(walletAddress)
 				nc.logger.Info("奖励ETH",
 					zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),

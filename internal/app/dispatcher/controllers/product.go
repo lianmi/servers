@@ -4,15 +4,11 @@
 package controllers
 
 import (
-	"net/http"
-	// "strconv"
-
 	"github.com/gin-gonic/gin"
 	Order "github.com/lianmi/servers/api/proto/order"
-	// "github.com/lianmi/servers/internal/common/codes"
-	// "github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/internal/common/codes"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
@@ -50,43 +46,7 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
-	/*
-		var err error
-		var gpWhere models.GeneralProduct
-		var pageIndex int64
-		var pageSize int64
-		var productType int64
-		pageIndex, err = strconv.ParseInt(c.Param("page"), 10, 32)
 
-		if err != nil {
-			// _ = c.AbortWithError(http.StatusBadRequest, err)
-			// return
-			pageIndex = 1
-		}
-		pageSize, err = strconv.ParseInt(c.Param("pagesize"), 10, 32)
-		if err != nil {
-			// _ = c.AbortWithError(http.StatusBadRequest, err)
-			// return
-			pageSize = 20
-		}
-
-		productType, err = strconv.ParseInt(c.Param("producttype"), 10, 32)
-		if err != nil {
-			// _ = c.AbortWithError(http.StatusBadRequest, err)
-			// return
-		} else {
-			gpWhere = models.GeneralProduct{ProductType: int(productType)}
-		}
-
-		var total int64
-		ps, err := pc.service.GetGeneralProductPage(int(pageIndex), int(pageSize), &total, gpWhere)
-		if err != nil {
-			pc.logger.Error("GetGeneralProduct Page by ProductType error", zap.Error(err))
-			c.String(http.StatusInternalServerError, "%+v", err)
-			return
-		}
-		c.JSON(http.StatusOK, ps)
-	*/
 	code := codes.InvalidParams
 	var req Order.GetGeneralProductPageReq
 	if c.BindJSON(&req) != nil {

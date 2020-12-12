@@ -11,13 +11,12 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	Team "github.com/lianmi/servers/api/proto/team"
-	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/internal/pkg/sts"
 	"google.golang.org/protobuf/proto"
 
 	simpleJson "github.com/bitly/go-simplejson"
-	LMCommon "github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
 )
 
@@ -805,7 +804,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		var client *sts.AliyunStsClient
 		var url string
 
-		client = sts.NewStsClient(common.AccessID, common.AccessKey, common.RoleAcs)
+		client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
 		/*
 			if req.IsPrivate {
 
@@ -824,7 +823,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 				}
 
 				//300秒
-				url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.PrivateEXPIRESECONDS), policy.ToJson())
+				url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.PrivateEXPIRESECONDS), policy.ToJson())
 				if err != nil {
 					nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -845,6 +844,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
 		acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
 		acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
+		acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
 		acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
 		acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
 
@@ -854,11 +854,11 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			Statement: []sts.StatementBase{sts.StatementBase{
 				Effect:   "Allow",
 				Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsTeamIcons, acsUsers},
+				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
 			}},
 		}
 
-		url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", common.EXPIRESECONDS), policy.ToJson())
+		url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
 		if err != nil {
 			nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -900,14 +900,14 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		*/
 
 		rsp = &Msg.GetOssTokenRsp{
-			EndPoint:        common.Endpoint,
-			BucketName:      common.BucketName,
+			EndPoint:        LMCommon.Endpoint,
+			BucketName:      LMCommon.BucketName,
 			AccessKeyId:     sjson.Get("Credentials").Get("AccessKeyId").MustString(),
 			AccessKeySecret: sjson.Get("Credentials").Get("AccessKeySecret").MustString(),
 			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),
 			Directory:       time.Now().Format("2006/01/02/"),
-			Expire:          common.EXPIRESECONDS, //默认3600s
-			Callback:        "",                   //不填
+			Expire:          LMCommon.EXPIRESECONDS, //默认3600s
+			Callback:        "",                     //不填
 		}
 	}
 

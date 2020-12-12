@@ -166,6 +166,281 @@ func (x *PayOrderRsp) GetTime() uint64 {
 	return 0
 }
 
+//商户端: 将完成订单拍照所有图片上链
+type UploadOrderImagesReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//订单ID
+	OrderID string `protobuf:"bytes,1,opt,name=orderID,proto3" json:"orderID,omitempty"`
+	//订单拍照所有图片
+	Images []string `protobuf:"bytes,2,rep,name=images,proto3" json:"images,omitempty"`
+}
+
+func (x *UploadOrderImagesReq) Reset() {
+	*x = UploadOrderImagesReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_PayOrder_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UploadOrderImagesReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadOrderImagesReq) ProtoMessage() {}
+
+func (x *UploadOrderImagesReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_PayOrder_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadOrderImagesReq.ProtoReflect.Descriptor instead.
+func (*UploadOrderImagesReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_PayOrder_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UploadOrderImagesReq) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+func (x *UploadOrderImagesReq) GetImages() []string {
+	if x != nil {
+		return x.Images
+	}
+	return nil
+}
+
+type UploadOrderImagesResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//订单ID
+	OrderID string `protobuf:"bytes,1,opt,name=orderID,proto3" json:"orderID,omitempty"`
+	// 区块高度
+	BlockNumber uint64 `protobuf:"fixed64,2,opt,name=blockNumber,proto3" json:"blockNumber,omitempty"`
+	// 交易哈希hex
+	Hash string `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	//时间
+	Time uint64 `protobuf:"fixed64,4,opt,name=time,proto3" json:"time,omitempty"`
+}
+
+func (x *UploadOrderImagesResp) Reset() {
+	*x = UploadOrderImagesResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_PayOrder_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UploadOrderImagesResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadOrderImagesResp) ProtoMessage() {}
+
+func (x *UploadOrderImagesResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_PayOrder_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadOrderImagesResp.ProtoReflect.Descriptor instead.
+func (*UploadOrderImagesResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_PayOrder_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UploadOrderImagesResp) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+func (x *UploadOrderImagesResp) GetBlockNumber() uint64 {
+	if x != nil {
+		return x.BlockNumber
+	}
+	return 0
+}
+
+func (x *UploadOrderImagesResp) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *UploadOrderImagesResp) GetTime() uint64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
+//用户端: 根据 OrderID 获取所有订单拍照图片
+type DownloadOrderImagesReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//订单ID
+	OrderID string `protobuf:"bytes,1,opt,name=orderID,proto3" json:"orderID,omitempty"`
+}
+
+func (x *DownloadOrderImagesReq) Reset() {
+	*x = DownloadOrderImagesReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_PayOrder_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DownloadOrderImagesReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadOrderImagesReq) ProtoMessage() {}
+
+func (x *DownloadOrderImagesReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_PayOrder_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadOrderImagesReq.ProtoReflect.Descriptor instead.
+func (*DownloadOrderImagesReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_PayOrder_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DownloadOrderImagesReq) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+type DownloadOrderImagesResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	//订单ID
+	OrderID string `protobuf:"bytes,1,opt,name=orderID,proto3" json:"orderID,omitempty"`
+	//商户注册id
+	BusinessUsername string `protobuf:"bytes,2,opt,name=businessUsername,proto3" json:"businessUsername,omitempty"`
+	//订单拍照所有图片
+	Images []string `protobuf:"bytes,3,rep,name=images,proto3" json:"images,omitempty"`
+	// 区块高度
+	BlockNumber uint64 `protobuf:"fixed64,4,opt,name=blockNumber,proto3" json:"blockNumber,omitempty"`
+	// 交易哈希hex
+	Hash string `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
+	//时间
+	Time uint64 `protobuf:"fixed64,6,opt,name=time,proto3" json:"time,omitempty"`
+}
+
+func (x *DownloadOrderImagesResp) Reset() {
+	*x = DownloadOrderImagesResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_order_PayOrder_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DownloadOrderImagesResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadOrderImagesResp) ProtoMessage() {}
+
+func (x *DownloadOrderImagesResp) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_order_PayOrder_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadOrderImagesResp.ProtoReflect.Descriptor instead.
+func (*DownloadOrderImagesResp) Descriptor() ([]byte, []int) {
+	return file_api_proto_order_PayOrder_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DownloadOrderImagesResp) GetOrderID() string {
+	if x != nil {
+		return x.OrderID
+	}
+	return ""
+}
+
+func (x *DownloadOrderImagesResp) GetBusinessUsername() string {
+	if x != nil {
+		return x.BusinessUsername
+	}
+	return ""
+}
+
+func (x *DownloadOrderImagesResp) GetImages() []string {
+	if x != nil {
+		return x.Images
+	}
+	return nil
+}
+
+func (x *DownloadOrderImagesResp) GetBlockNumber() uint64 {
+	if x != nil {
+		return x.BlockNumber
+	}
+	return 0
+}
+
+func (x *DownloadOrderImagesResp) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *DownloadOrderImagesResp) GetTime() uint64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
 var File_api_proto_order_PayOrder_proto protoreflect.FileDescriptor
 
 var file_api_proto_order_PayOrder_proto_rawDesc = []byte{
@@ -187,10 +462,38 @@ var file_api_proto_order_PayOrder_proto_rawDesc = []byte{
 	0x28, 0x06, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12,
 	0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68,
 	0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x06, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75,
-	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72,
-	0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6f,
-	0x72, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x06, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x48, 0x0a, 0x14, 0x55, 0x70, 0x6c, 0x6f, 0x61,
+	0x64, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x52, 0x65, 0x71, 0x12,
+	0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x12, 0x16, 0x0a, 0x06, 0x69, 0x6d, 0x61,
+	0x67, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65,
+	0x73, 0x22, 0x7b, 0x0a, 0x15, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x4f, 0x72, 0x64, 0x65, 0x72,
+	0x49, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72,
+	0x64, 0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64,
+	0x65, 0x72, 0x49, 0x44, 0x12, 0x20, 0x0a, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d,
+	0x62, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x06, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
+	0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x69,
+	0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x06, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x32,
+	0x0a, 0x16, 0x44, 0x6f, 0x77, 0x6e, 0x6c, 0x6f, 0x61, 0x64, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x49,
+	0x6d, 0x61, 0x67, 0x65, 0x73, 0x52, 0x65, 0x71, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65,
+	0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72,
+	0x49, 0x44, 0x22, 0xc1, 0x01, 0x0a, 0x17, 0x44, 0x6f, 0x77, 0x6e, 0x6c, 0x6f, 0x61, 0x64, 0x4f,
+	0x72, 0x64, 0x65, 0x72, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x12, 0x18,
+	0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x49, 0x44, 0x12, 0x2a, 0x0a, 0x10, 0x62, 0x75, 0x73, 0x69,
+	0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x10, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x55, 0x73, 0x65, 0x72,
+	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x18, 0x03,
+	0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x12, 0x20, 0x0a, 0x0b,
+	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28,
+	0x06, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x12,
+	0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61,
+	0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x06,
+	0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76,
+	0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6f, 0x72,
+	0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -205,10 +508,14 @@ func file_api_proto_order_PayOrder_proto_rawDescGZIP() []byte {
 	return file_api_proto_order_PayOrder_proto_rawDescData
 }
 
-var file_api_proto_order_PayOrder_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_api_proto_order_PayOrder_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_api_proto_order_PayOrder_proto_goTypes = []interface{}{
-	(*PayOrderReq)(nil), // 0: cloud.lianmi.im.order.PayOrderReq
-	(*PayOrderRsp)(nil), // 1: cloud.lianmi.im.order.PayOrderRsp
+	(*PayOrderReq)(nil),             // 0: cloud.lianmi.im.order.PayOrderReq
+	(*PayOrderRsp)(nil),             // 1: cloud.lianmi.im.order.PayOrderRsp
+	(*UploadOrderImagesReq)(nil),    // 2: cloud.lianmi.im.order.UploadOrderImagesReq
+	(*UploadOrderImagesResp)(nil),   // 3: cloud.lianmi.im.order.UploadOrderImagesResp
+	(*DownloadOrderImagesReq)(nil),  // 4: cloud.lianmi.im.order.DownloadOrderImagesReq
+	(*DownloadOrderImagesResp)(nil), // 5: cloud.lianmi.im.order.DownloadOrderImagesResp
 }
 var file_api_proto_order_PayOrder_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -248,6 +555,54 @@ func file_api_proto_order_PayOrder_proto_init() {
 				return nil
 			}
 		}
+		file_api_proto_order_PayOrder_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UploadOrderImagesReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_order_PayOrder_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UploadOrderImagesResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_order_PayOrder_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DownloadOrderImagesReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_order_PayOrder_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DownloadOrderImagesResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -255,7 +610,7 @@ func file_api_proto_order_PayOrder_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_order_PayOrder_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

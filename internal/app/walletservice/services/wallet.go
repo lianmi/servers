@@ -2,14 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"time"
-
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
@@ -22,11 +22,9 @@ type WalletService interface {
 
 	//订单完成或退款
 	TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error)
-	//grpc.pb.go: TransferByOrder(context.Context, *TransferReq) (*TransferResp, error)
 
 	//获取用户钱包eth及LNMC代币余额
 	GetUserBalance(ctx context.Context, req *Wallet.GetUserBalanceReq) (*Wallet.GetUserBalanceResp, error)
-	// GetUserBalance(ctx context.Context, in *GetUserBalanceReq, opts ...grpc.CallOption) (*GetUserBalanceResp, error) {
 
 	//根据HD的索引号，获取对应的钱包地址
 	GetWalletAddressbyBip32Index(ctx context.Context, req *Wallet.GetWalletAddressbyBip32IndexReq) (*Wallet.GetWalletAddressbyBip32IndexResp, error)
@@ -36,6 +34,9 @@ type WalletService interface {
 
 	//确认购买会员的支付交易
 	SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error)
+
+	//订单图片上链
+	OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error)
 }
 
 type DefaultApisService struct {
@@ -544,5 +545,64 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 		BlockNumber:    blockNumber,
 		Hash:           hash,
 		Time:           uint64(time.Now().UnixNano() / 1e6),
+	}, nil
+}
+
+//订单图片上链
+func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
+
+	//TODO
+
+	var targetAccount string
+	var data []byte
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	buyUserWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.BuyUsername), "WalletAddress"))
+	if s.ethService.CheckIsvalidAddress(buyUserWalletAddress) == false {
+		s.logger.Warn("buyUser非法钱包地址", zap.String("buyUserWalletAddress", buyUserWalletAddress))
+		return nil, errors.Wrap(err, "BuyUser wallet address is not valid")
+	}
+
+	businessUserWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.BussinessUsername), "WalletAddress"))
+	if s.ethService.CheckIsvalidAddress(businessUserWalletAddress) == false {
+		s.logger.Warn("BusinessUser非法钱包地址", zap.String("businessUserWalletAddress", businessUserWalletAddress))
+		return nil, errors.Wrap(err, "BusinessUser wallet address is not valid")
+	}
+	//订单详情
+	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
+	//获取订单的具体信息
+	productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+	buyUser, _ := redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
+	businessUser, _ := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+	orderTotalAmount, _ := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+	attachHash, _ := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
+
+	orderImagesOnBlockChain := &models.OrderImagesOnBlockChain{
+		OrderID:           req.OrderID,      //订单IDs
+		ProductID:         productID,        //商品ID
+		AttachHash:        attachHash,       //订单内容hash
+		BuyUsername:       buyUser,          //买家注册号
+		BussinessUsername: businessUser,     //商户注册号
+		Cost:              orderTotalAmount, //本订单的总金额
+
+		//订单图片在买家的oss objectID 暂时支持1张图片, 等迁移到Gorm2.0并重构数据库后改为数组
+		// BuyerOssImages:req.
+		//订单图片在商户的oss objectID
+		BusinessOssImages: req.OrderImageMD5,
+	}
+	data, err = json.Marshal(orderImagesOnBlockChain)
+	if err != nil {
+		return nil, err
+	}
+	amount := int64(orderTotalAmount * 100)
+	s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
+
+	return &Wallet.OrderImagesOnBlockchainResp{
+		OrderID:     req.OrderID,
+		BlockNumber: 0,
+		Hash:        "",
+		Time:        uint64(time.Now().UnixNano() / 1e6),
 	}, nil
 }

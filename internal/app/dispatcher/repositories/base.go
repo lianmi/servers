@@ -191,6 +191,12 @@ type LianmiRepository interface {
 
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
+
+	//商户端: 将完成订单拍照所有图片上链
+	UploadOrderImages(req *Order.UploadOrderImagesReq) error
+
+	//用户端: 根据 OrderID 获取所有订单拍照图片
+	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
 }
 
 type MysqlLianmiRepository struct {
@@ -201,7 +207,7 @@ type MysqlLianmiRepository struct {
 	base      *BaseRepository
 }
 
-func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, multiChan *multichannel.NsqChannel) LianmiRepository { //, walletSvc Wallet.LianmiWalletClient
+func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, multiChan *multichannel.NsqChannel) LianmiRepository {
 	return &MysqlLianmiRepository{
 		logger:    logger.With(zap.String("type", "LianmiRepository")),
 		db:        db,

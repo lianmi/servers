@@ -81,6 +81,13 @@ type LianmiApisService interface {
 
 	DeleteCustomerService(req *Auth.DeleteCustomerServiceReq) bool
 
+	//订单模块
+	//商户端: 将完成订单拍照所有图片上链
+	UploadOrderImages(req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
+
+	//用户端: 根据 OrderID 获取所有订单拍照图片
+	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
+
 	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
@@ -656,4 +663,38 @@ func (s *DefaultLianmiApisService) DeleteClickLike(username, businessUsername st
 //将点赞记录插入到UserLike表
 func (s *DefaultLianmiApisService) AddUserLike(username, businessUser string) error {
 	return s.Repository.AddUserLike(username, businessUser)
+}
+
+//商户端: 将完成订单拍照所有图片上链
+func (s *DefaultLianmiApisService) UploadOrderImages(req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error) {
+	//TODO  调用微服务IPFS 上链
+
+	// getUserBalanceResp, err := s.walletGrpcClientSvc.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
+	// 	Username: username,
+	// })
+	// if err != nil {
+	// 	s.logger.Error("walletGrpcClientSvc.GetUserBalance 错误", zap.Error(err))
+	// 	return nil, err
+	// }
+
+	err := s.Repository.UploadOrderImages(req)
+	if err != nil {
+		return nil, err
+	}
+	resp := &Order.UploadOrderImagesResp{
+		OrderID: req.OrderID,
+		// 区块高度
+		BlockNumber: 0,
+		// 交易哈希hex
+		Hash: "",
+		//时间
+		Time: uint64(time.Now().UnixNano() / 1e6),
+	}
+
+	return resp, nil
+}
+
+//用户端: 根据 OrderID 获取所有订单拍照图片
+func (s *DefaultLianmiApisService) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
+	return s.Repository.DownloadOrderImages(req)
 }

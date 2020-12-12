@@ -56,11 +56,11 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Product{})                          // 商品表
 	db.AutoMigrate(&models.GeneralProduct{})                   // 通用商品表
 	db.AutoMigrate(&models.UserWallet{})                       // 用户钱包表
-	db.AutoMigrate(&models.LnmcDepositHistory{})               // 用户充值记录
-	db.AutoMigrate(&models.LnmcTransferHistory{})              // 用户转账及支付记录
-	db.AutoMigrate(&models.LnmcWithdrawHistory{})              // 用户提现记录
+	db.AutoMigrate(&models.LnmcDepositHistory{})               // 用户充值记录表
+	db.AutoMigrate(&models.LnmcTransferHistory{})              // 用户转账及支付记录表
+	db.AutoMigrate(&models.LnmcWithdrawHistory{})              // 用户提现记录表
 	db.AutoMigrate(&models.LnmcCollectionHistory{})            // 用户收款记录
-	db.AutoMigrate(&models.LnmcOrderTransferHistory{})         // 订单完成后的商户到账或撤单退款记录
+	db.AutoMigrate(&models.LnmcOrderTransferHistory{})         // 订单完成后的商户到账或撤单退款记录表
 	db.AutoMigrate(&models.CustomerServiceInfo{})              // 在线客服技术表
 	db.AutoMigrate(&models.Grade{})                            // 客服满意度评分
 	db.AutoMigrate(&models.Distribution{})                     // 用户层级表
@@ -71,7 +71,8 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.BusinessUserCommissionStatistics{}) // 商户佣金月统计表
 	db.AutoMigrate(&models.Store{})                            // 商户店铺表
 	db.AutoMigrate(&models.StoreLike{})                        // 商店的点赞明细表
-	db.AutoMigrate(&models.UserLike{})                         // 用户点赞的店铺记录表表
+	db.AutoMigrate(&models.UserLike{})                         // 用户点赞的店铺记录表
+	db.AutoMigrate(&models.OrderImages{})                      // 服务端的订单图片上链历史表s
 	return db, nil
 }
 
