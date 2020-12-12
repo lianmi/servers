@@ -176,6 +176,9 @@ type LianmiRepository interface {
 	//获取某个商户的所有商品列表
 	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
 
+	//设置商品的子类型
+	SetProductSubType(req *Order.ProductSetSubTypeReq) error
+
 	//获取当前用户对所有店铺点赞情况
 	UserLikes(username string) (*User.UserLikesResp, error)
 

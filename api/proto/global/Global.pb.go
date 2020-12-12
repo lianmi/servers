@@ -1052,7 +1052,7 @@ func (ProductType) EnumDescriptor() ([]byte, []int) {
 	return file_api_proto_global_Global_proto_rawDescGZIP(), []int{12}
 }
 
-//彩票类型 1- 双色球  2- 大乐透,  3- 福彩3d
+//商品子类型的彩票枚举 1- 双色球  2- 大乐透,  3- 福彩3d
 type LotteryType int32
 
 const (

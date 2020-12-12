@@ -149,6 +149,35 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 
 }
 
+//设置商品的子类型
+func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeReq) error {
+	product := new(models.Product)
+	where := models.Product{
+		ProductID: req.ProductId,
+	}
+	if err := s.db.Model(&models.Product{}).Where(&where).First(product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//记录找不到也会触发错误 记录不存在
+			return errors.Wrapf(err, "Record not exists[productID=%s]", req.ProductId)
+		} else {
+			return errors.Wrapf(err, "Get Product info error[productID=%s]", req.ProductId)
+		}
+
+	}
+
+	result := s.db.Model(&models.User{}).Where(&where).Update("sub_type", req.SubType)
+	//updated records count
+	s.logger.Debug("SetProductSubType result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("设置商品的子类型失败", zap.Error(result.Error))
+		return result.Error
+	}
+
+	return nil
+}
+
+//根据商品ID查询商品详情
 func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product, error) {
 	product := new(models.Product)
 	where := models.Product{

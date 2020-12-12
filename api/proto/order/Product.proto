@@ -288,3 +288,14 @@ message GetProductsResp {
 
 }
 
+//设置商品的子类型
+message ProductSetSubTypeReq {
+    //商品ID
+    //是否必须-是
+    string ProductId = 1;
+
+    //子类型
+    int32 subType = 2; 
+}
+
+message ProductSetSubTypeResp {}

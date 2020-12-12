@@ -148,6 +148,9 @@ type LianmiApisService interface {
 	//获取某个商户的所有商品列表
 	GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error)
 
+	//设置商品的子类型
+	SetProductSubType(req *Order.ProductSetSubTypeReq) error
+
 	//获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
 	UserLikes(username string) (*User.UserLikesResp, error)
 
@@ -623,6 +626,11 @@ func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
 //获取某个商户的所有商品列表
 func (s *DefaultLianmiApisService) GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error) {
 	return s.Repository.GetProductsList(req)
+}
+
+//设置商品的子类型
+func (s *DefaultLianmiApisService) SetProductSubType(req *Order.ProductSetSubTypeReq) error {
+	return s.Repository.SetProductSubType(req)
 }
 
 //获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步

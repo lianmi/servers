@@ -125,3 +125,28 @@ func (pc *LianmiApisController) GetProductsList(c *gin.Context) {
 	}
 
 }
+
+//设置商品的子类型
+func (pc *LianmiApisController) SetProductSubType(c *gin.Context) {
+	code := codes.InvalidParams
+	var req Order.ProductSetSubTypeReq
+
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+		if req.ProductId == "" {
+			RespFail(c, http.StatusBadRequest, code, "商品ID不能为空")
+			return
+		}
+
+		err := pc.service.SetProductSubType(&req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "设置商品的子类型发生错误")
+			return
+		}
+
+		RespOk(c, http.StatusOK, 200)
+	}
+
+}
