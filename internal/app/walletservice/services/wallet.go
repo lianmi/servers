@@ -553,7 +553,6 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 
 	//TODO
 
-	var targetAccount string
 	var data []byte
 
 	redisConn := s.redisPool.Get()
@@ -597,12 +596,14 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		return nil, err
 	}
 	amount := int64(orderTotalAmount * 100)
-	s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
-
+	blockNumber, hash, err := s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
+	if err != nil {
+		return nil, err
+	}
 	return &Wallet.OrderImagesOnBlockchainResp{
 		OrderID:     req.OrderID,
-		BlockNumber: 0,
-		Hash:        "",
+		BlockNumber: blockNumber,
+		Hash:        hash,
 		Time:        uint64(time.Now().UnixNano() / 1e6),
 	}, nil
 }
