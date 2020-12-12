@@ -69,6 +69,7 @@ func NewRouter(o *Options, logger *zap.Logger, init InitControllers, tracer open
 	pprof.Register(r)
 
 	init(r)
+	logger.Debug("NewRouter end")
 
 	return r
 }

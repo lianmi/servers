@@ -82,7 +82,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tracer != nil {
+	if tracer == nil {
 		logger.Error("tracer is nil error")
 	}
 	clientOptions, err := grpc.NewClientOptions(viper, tracer)
