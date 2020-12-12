@@ -47,3 +47,8 @@ func (s *WalletServer) SendPrePayForMembership(ctx context.Context, req *Wallet.
 func (s *WalletServer) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
 	return s.service.SendConfirmPayForMembership(ctx, req)
 }
+
+//订单上链
+func (s *WalletServer) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
+	return s.service.OrderImagesOnBlockchain(ctx, req)
+}
