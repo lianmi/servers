@@ -82,6 +82,9 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	if tracer != nil {
+		logger.Error("tracer is nil error")
+	}
 	clientOptions, err := grpc.NewClientOptions(viper, tracer)
 	if err != nil {
 		return nil, err
@@ -122,7 +125,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
 	logger.Debug("CreateInitControllersFn succeed")
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
-	logger.Debug(" http.NewRouter")
+	logger.Debug("http.NewRouter succeed")
 	apiClient, err := consul.New(consulOptions)
 	if err != nil {
 		//TODO
