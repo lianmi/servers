@@ -578,7 +578,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	orderTotalAmount, _ := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 	attachHash, _ := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
-	orderImagesOnBlockChain := &models.OrderImagesOnBlockChain{
+	orderImagesOnBlockChain := &models.OrderImagesOnBlockChainHistory{
 		OrderID:           req.OrderID,      //订单IDs
 		ProductID:         productID,        //商品ID
 		AttachHash:        attachHash,       //订单内容hash
