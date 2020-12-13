@@ -397,7 +397,7 @@ func CreateInitControllersFn(
 		orderGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//商户端: 将完成订单拍照所有图片上链
-			orderGroup.POST("/uploadorderimages", pc.UploadOrderImages)
+			orderGroup.POST("/uploadorderimage", pc.UploadOrderImages)
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
 			orderGroup.POST("/orderimages", pc.DownloadOrderImages)
