@@ -61,6 +61,8 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 					return errors.Wrapf(err, "Order is not Payed[OrderID=%s]", req.OrderID)
 				}
 			*/
+			_ = isPayed
+
 			if productID == "" {
 				s.logger.Error("ProductID is empty")
 
