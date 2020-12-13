@@ -27,13 +27,13 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "参数错误, Images 长度为0 ")
 		}
 
-		// resp, err := pc.service.UploadOrderImages(&req)
-		// if err != nil {
-		// 	RespFail(c, http.StatusBadRequest, code, "将完成订单拍照所有图片上链时发生错误")
-		// 	return
-		// }
+		resp, err := pc.service.UploadOrderImages(&req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "将完成订单拍照所有图片上链时发生错误")
+			return
+		}
 
-		// RespData(c, http.StatusOK, 200, resp)
+		RespData(c, http.StatusOK, 200, resp)
 
 	}
 }
@@ -46,13 +46,13 @@ func (pc *LianmiApisController) DownloadOrderImages(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
 	} else {
-		// resp, err := pc.service.DownloadOrderImages(&req)
-		// if err != nil {
-		// 	RespFail(c, http.StatusBadRequest, code, "获取所有订单拍照图片时发生错误")
-		// 	return
-		// }
+		resp, err := pc.service.DownloadOrderImages(&req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "获取所有订单拍照图片时发生错误")
+			return
+		}
 
-		// RespData(c, http.StatusOK, 200, resp)
+		RespData(c, http.StatusOK, 200, resp)
 
 	}
 }

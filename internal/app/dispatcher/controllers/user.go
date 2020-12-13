@@ -122,10 +122,9 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 
 		// 如果不传头像，则用默认的
 		if userReq.Avatar == "" {
-			avatar = LMCommon.PubAvatar //TODO 上线前要更改
+			avatar = LMCommon.PubAvatar
 		} else {
-			avatar = LMCommon.OSSUploadPicPrefix + userReq.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
-
+			avatar = userReq.Avatar //oss  objid形式的字符串
 		}
 		user := models.User{
 			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
