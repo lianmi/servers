@@ -7,7 +7,6 @@
 package cmd
 
 import (
-	// "fmt"
 	"log"
 
 	"github.com/lianmi/servers/lmSdkClient/business/order"
@@ -20,7 +19,6 @@ var GetPreKeyOrderIDCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("GetPreKeyOrderID called")
 		productid, _ := cmd.PersistentFlags().GetString("productid")
 
 		if err := order.GetPreKeyOrderID(productid); err != nil {

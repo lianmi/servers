@@ -165,8 +165,10 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, logger *zap
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 1)] = nsqClient.HandleRegisterPreKeys  //9-1 商户上传订单DH加密公钥
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 2)] = nsqClient.HandleGetPreKeyOrderID //9-2 获取网点OPK公钥及订单ID
 
-	//9-3 处理chatService转发过来的订单消息
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = nsqClient.HandleOrderMsg
+	//9-3
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 3)] = nsqClient.HandleOrderMsg //9-3 下单
+	//5-1 处理chatService转发过来的订单消息
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = nsqClient.HandleOrderMsg //9-3 下单
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 5)] = nsqClient.HandleChangeOrderState //9-5 对订单进行状态更改
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(9, 6)] = nsqClient.HandleGetPreKeysCount  //9-8 商户获取OPK存量

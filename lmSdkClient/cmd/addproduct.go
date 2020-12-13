@@ -29,5 +29,5 @@ var addproductCmd = &cobra.Command{
 func init() {
 	//子命令
 	productCmd.AddCommand(addproductCmd)
-	// addproductCmd.PersistentFlags().StringP("orderID", "o", "", "订单ID")
+	
 }
