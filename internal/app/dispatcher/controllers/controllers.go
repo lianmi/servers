@@ -387,20 +387,12 @@ func CreateInitControllersFn(
 			//根据商品ID获取商品详情
 			productGroup.GET("/info/:productid", pc.GetProductInfo)
 
-			//设置商品的子类型
-			productGroup.POST("/setsubtype", pc.SetProductSubType)
-
 		}
 
 		//=======订单模块==========/
 		orderGroup := r.Group("/v1/order")
 		orderGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			//商户端: 将完成订单拍照所有图片上链
-			orderGroup.POST("/uploadorderimages", pc.UploadOrderImages)
-
-			//用户端: 根据 OrderID 获取所有订单拍照图片
-			orderGroup.GET("/orderimages:/orderid", pc.DownloadOrderImages)
 		}
 
 		//=======钱包模块==========/
