@@ -592,6 +592,8 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		return nil, err
 	}
 	amount := int64(orderTotalAmount * 100)
+
+	//Grpc
 	blockNumber, hash, err := s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
 	if err != nil {
 		return nil, err

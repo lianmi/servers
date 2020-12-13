@@ -147,20 +147,20 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				s.logger.Debug("利用临时STS创建OSSClient实例 ok")
 			}
 
-			// 获取存储空间。
+			// 获取存储空间
 			bucket, err := client2.Bucket(LMCommon.BucketName)
 			if err != nil {
 				s.logger.Error("阿里云oss Error", zap.Error(err))
 				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 			}
 
-			var descObjectKey = strings.Replace(req.Images[0], buyUser, businessUser, 1)
-			_, err = bucket.CopyObject(req.Images[0], descObjectKey)
+			var descObjectKey = strings.Replace(req.Image, buyUser, businessUser, 1)
+			_, err = bucket.CopyObject(req.Image, descObjectKey)
 			if err != nil {
 				s.logger.Error("阿里云oss Error", zap.Error(err))
 				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 			} else {
-				s.logger.Debug("CopyObject ok", zap.String("req.Images[0]", req.Images[0]), zap.String("descObjectKey", descObjectKey))
+				s.logger.Debug("CopyObject ok", zap.String("req.Image", req.Image), zap.String("descObjectKey", descObjectKey))
 			}
 
 			oi := &models.OrderImagesHistory{
@@ -169,7 +169,7 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				BussinessUsername: businessUser,
 				Cost:              orderTotalAmount,
 				BuyerOssImages:    descObjectKey,
-				BusinessOssImages: req.Images[0],
+				BusinessOssImages: req.Image,
 				BlockNumber:       uint64(0),
 				TxHash:            "",
 			}

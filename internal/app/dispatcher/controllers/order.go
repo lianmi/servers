@@ -20,11 +20,11 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 	} else {
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少OrderID字段")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少orderID字段")
 		}
-		if len(req.Images) == 0 {
-			pc.logger.Error("Images is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, Images 长度为0 ")
+		if req.Image == "" {
+			pc.logger.Error("Image is empty")
+			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少image字段 ")
 		}
 
 		resp, err := pc.service.UploadOrderImages(&req)
