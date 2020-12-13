@@ -160,7 +160,7 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 			}
 
-			var descObjectKey = strings.Replace(req.Image, buyUser, businessUser, 1)
+			var descObjectKey = strings.Replace(req.Image, businessUser, buyUser, 1)
 			s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
 
 			_, err = bucket.CopyObject(req.Image, descObjectKey)
