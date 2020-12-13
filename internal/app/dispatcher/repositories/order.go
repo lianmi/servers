@@ -161,6 +161,8 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 			}
 
 			var descObjectKey = strings.Replace(req.Image, buyUser, businessUser, 1)
+			s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
+
 			_, err = bucket.CopyObject(req.Image, descObjectKey)
 			if err != nil {
 				s.logger.Error("阿里云oss Error, bucket.CopyObject", zap.Error(err))
