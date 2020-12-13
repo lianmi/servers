@@ -53,11 +53,14 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				s.logger.Error("从Redis里取出此 Order 对应的businessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
 			}
 
-			if !isPayed {
-				s.logger.Error("Order is not Payed")
+			/*
+				暂时屏蔽， 不判断支付是否成功
+				if !isPayed {
+					s.logger.Error("Order is not Payed")
 
-				return errors.Wrapf(err, "Order is not Payed[OrderID=%s]", req.OrderID)
-			}
+					return errors.Wrapf(err, "Order is not Payed[OrderID=%s]", req.OrderID)
+				}
+			*/
 			if productID == "" {
 				s.logger.Error("ProductID is empty")
 

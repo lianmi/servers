@@ -12,6 +12,7 @@ import (
 	// "github.com/lianmi/servers/util/array"
 
 	Global "github.com/lianmi/servers/api/proto/global"
+	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
@@ -110,12 +111,12 @@ func AddOrder(orderID, productID string) error {
 		ProductID: productID,
 		//买家账号
 		BuyUser: "id1",
-		//买家的协商公钥
-		OpkBuyUser: "",
+		//买家的协商公钥, 必填
+		OpkBuyUser: "bbbbb",
 		//商户账号
 		BusinessUser: "id3",
-		//商户的协商公钥
-		OpkBusinessUser: "",
+		//商户的协商公钥 , 必填
+		OpkBusinessUser: "aadffassfdasfdasd",
 		// 订单的总金额, 支付的时候以这个金额 计算
 		OrderTotalAmount: 2.00,
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
@@ -127,7 +128,16 @@ func AddOrder(orderID, productID string) error {
 		State: Global.OrderState_OS_Prepare,
 	}
 
-	content, _ := proto.Marshal(req)
+	orderContent, _ := proto.Marshal(req)
+	msgReq := &Msg.SendMsgReq{
+		Scene: Msg.MessageScene_MsgScene_C2C, //个人
+		Type:  Msg.MessageType_MsgType_Order, //订单消息
+		To:    "id3",
+		Uuid:  "aaaaaaa",
+		Body:  orderContent,
+	}
+
+	content, _ := proto.Marshal(msgReq)
 
 	pb := &paho.Publish{
 		Topic:   topic,
@@ -138,8 +148,8 @@ func AddOrder(orderID, productID string) error {
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
 				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "9",           // 业务号
-				"businessSubType": "3",           // 业务子号
+				"businessType":    "5",           // 业务号
+				"businessSubType": "1",           // 业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",

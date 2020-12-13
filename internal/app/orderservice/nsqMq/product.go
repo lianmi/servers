@@ -1478,9 +1478,9 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 	return nil
 }
 
+// 9-3
 /*
-处理订单消息 5-1
-文档是 9-3 下单 处理订单消息，是由ChatService转发过来的
+处理订单消息 5-1，是由ChatService转发过来的
 只能是向商户下单
 */
 func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
@@ -1712,7 +1712,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				//对attach进行哈希计算，以便获知订单内容是否发生改变
 				attachHash := crypt.Sha1(orderProductBody.Attach)
 
-				// 将订单信息缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+				// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
 				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
 				_, err = redisConn.Do("HMSET",
 					orderProductBodyKey,
@@ -1731,7 +1731,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				)
 
 				// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
-
 				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
 				_, err = redisConn.Do("HMSET",
 					orderIDKey,
