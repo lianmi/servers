@@ -387,9 +387,6 @@ func CreateInitControllersFn(
 			//根据商品ID获取商品详情
 			productGroup.GET("/info/:productid", pc.GetProductInfo)
 
-			//设置商品的子类型
-			productGroup.POST("/setsubtype", pc.SetProductSubType)
-
 		}
 
 		//=======订单模块==========/
