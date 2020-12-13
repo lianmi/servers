@@ -400,7 +400,7 @@ func CreateInitControllersFn(
 			orderGroup.POST("/uploadorderimages", pc.UploadOrderImages)
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
-			orderGroup.GET("/orderimages:/orderid", pc.DownloadOrderImages)
+			orderGroup.POST("/orderimages", pc.DownloadOrderImages)
 		}
 
 		//=======钱包模块==========/

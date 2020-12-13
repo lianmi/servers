@@ -1,6 +1,6 @@
 package models
 
-type OrderImagesOnBlockChain struct {
+type OrderImagesOnBlockChainHistory struct {
 	OrderID           string  `json:"order_id"`                               //订单ID
 	ProductID         string  `form:"product_id" json:"product_id"`           //商品ID
 	AttachHash        string  `form:"attach_hash" json:"attach_hash"`         //订单内容hash
