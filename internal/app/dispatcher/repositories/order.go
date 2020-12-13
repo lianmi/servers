@@ -26,7 +26,7 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 		OrderID: req.OrderID,
 	}
 	orderImagesHistory := new(models.OrderImagesHistory)
-	if err := s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImages).Error; err != nil {
+	if err := s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var curState int
 			var productID string
