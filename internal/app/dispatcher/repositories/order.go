@@ -20,13 +20,13 @@ import (
 
 //商户端: 将完成订单拍照所有图片上链
 func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesReq) error {
-	//TODO 将字段增加到OrderImages表，然后将订单图片复制到买家id的orders目录
+	//TODO 将字段增加到 OrderImagesHistory 表，然后将订单图片复制到买家id的orders目录
 	//先查询OrderID的数据是否存在，如果存在，则返回，如果不存在，则新增
-	where := models.OrderImages{
+	where := models.OrderImagesHistory{
 		OrderID: req.OrderID,
 	}
-	orderImages := new(models.OrderImages)
-	if err := s.db.Model(&models.OrderImages{}).Where(&where).First(orderImages).Error; err != nil {
+	orderImagesHistory := new(models.OrderImagesHistory)
+	if err := s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImages).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var curState int
 			var productID string
@@ -163,7 +163,7 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				s.logger.Debug("CopyObject ok", zap.String("req.Images[0]", req.Images[0]), zap.String("descObjectKey", descObjectKey))
 			}
 
-			oi := &models.OrderImages{
+			oi := &models.OrderImagesHistory{
 				OrderID:           req.OrderID,
 				BuyUsername:       buyUser,
 				BussinessUsername: businessUser,
@@ -174,10 +174,10 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				TxHash:            "",
 			}
 			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&oi).Error; err != nil {
-				s.logger.Error("UploadOrderImages, failed to upsert OrderImages", zap.Error(err))
+				s.logger.Error("UploadOrderImages, failed to upsert OrderImages History", zap.Error(err))
 				return err
 			} else {
-				s.logger.Debug("UploadOrderImages, upsert OrderImages succeed")
+				s.logger.Debug("UploadOrderImages, upsert OrderImages History succeed")
 			}
 			return nil
 

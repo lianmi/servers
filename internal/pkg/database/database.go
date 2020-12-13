@@ -72,7 +72,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Store{})                            // 商户店铺表
 	db.AutoMigrate(&models.StoreLike{})                        // 商店的点赞明细表
 	db.AutoMigrate(&models.UserLike{})                         // 用户点赞的店铺记录表
-	db.AutoMigrate(&models.OrderImages{})                      // 服务端的订单图片上链历史表s
+	db.AutoMigrate(&models.OrderImagesHistory{})                      // 服务端的订单图片上链历史表
 	return db, nil
 }
 

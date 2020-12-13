@@ -9,7 +9,7 @@ import (
 /*
 服务端的订单图片上链历史表
 */
-type OrderImages struct {
+type OrderImagesHistory struct {
 	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
 	UpdatedAt int64 `form:"updated_at" json:"updated_at,omitempty"` //更新时刻,毫秒
 
@@ -30,13 +30,13 @@ type OrderImages struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (o *OrderImages) BeforeCreate(tx *gorm.DB) error {
+func (o *OrderImagesHistory) BeforeCreate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (o *OrderImages) BeforeUpdate(tx *gorm.DB) error {
+func (o *OrderImagesHistory) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
