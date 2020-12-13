@@ -87,6 +87,7 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				zap.String("BusinessUser", businessUser),
 				zap.String("AttachHash", attachHash), //订单内容hash
 				zap.Float64("OrderTotalAmount", orderTotalAmount),
+				zap.String("OrderImageFile", req.Image),
 			)
 
 			// 将订单图片复制到买家的orders私有目录
@@ -155,14 +156,14 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 			// 获取存储空间
 			bucket, err := client2.Bucket(LMCommon.BucketName)
 			if err != nil {
-				s.logger.Error("阿里云oss Error", zap.Error(err))
+				s.logger.Error("阿里云oss Error, client2.Bucket", zap.Error(err))
 				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 			}
 
 			var descObjectKey = strings.Replace(req.Image, buyUser, businessUser, 1)
 			_, err = bucket.CopyObject(req.Image, descObjectKey)
 			if err != nil {
-				s.logger.Error("阿里云oss Error", zap.Error(err))
+				s.logger.Error("阿里云oss Error, bucket.CopyObject", zap.Error(err))
 				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 			} else {
 				s.logger.Debug("CopyObject ok", zap.String("req.Image", req.Image), zap.String("descObjectKey", descObjectKey))
