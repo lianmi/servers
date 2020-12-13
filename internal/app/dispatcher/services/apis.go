@@ -2,13 +2,14 @@ package services
 
 import (
 	"context"
+	// "fmt"
+	// "github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
-	LMCommon "github.com/lianmi/servers/internal/common"
-
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -83,7 +84,7 @@ type LianmiApisService interface {
 
 	//订单模块
 	//商户端: 将完成订单拍照所有图片上链
-	UploadOrderImages(req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
+	UploadOrderImages(ctx context.Context, req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
@@ -666,27 +667,90 @@ func (s *DefaultLianmiApisService) AddUserLike(username, businessUser string) er
 }
 
 //商户端: 将完成订单拍照所有图片上链
-func (s *DefaultLianmiApisService) UploadOrderImages(req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error) {
-	//TODO  调用微服务IPFS 上链
+func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error) {
 
-	// getUserBalanceResp, err := s.walletGrpcClientSvc.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
-	// 	Username: username,
-	// })
-	// if err != nil {
-	// 	s.logger.Error("walletGrpcClientSvc.GetUserBalance 错误", zap.Error(err))
-	// 	return nil, err
-	// }
+	orderInfo, err := s.Repository.GetOrderInfo(req.OrderID)
+	if err != nil {
+		s.logger.Error("从Redis里取出此Order数据 Error")
+	}
 
-	err := s.Repository.UploadOrderImages(req)
+	/*
+		暂时屏蔽， 不判断支付是否成功
+		if !isPayed {
+			s.logger.Error("Order is not Payed")
+
+			return errors.Wrapf(err, "Order is not Payed[OrderID=%s]", req.OrderID)
+		}
+	*/
+
+	if orderInfo.ProductID == "" {
+		s.logger.Error("ProductID is empty")
+
+		return nil, errors.Wrapf(err, "ProductID is empty[OrderID=%s]", req.OrderID)
+	}
+
+	if orderInfo.BuyerUsername == "" {
+		s.logger.Error("BuyeerUsername is empty")
+		return nil, errors.Wrapf(err, "BuyerUsername is empty[OrderID=%s]", req.OrderID)
+	}
+
+	if orderInfo.BusinessUsername == "" {
+		s.logger.Error("BusinessUsername is empty")
+		return nil, errors.Wrapf(err, "BusinessUsername is empty[OrderID=%s]", req.OrderID)
+	}
+
+	s.logger.Debug("UploadOrderImages",
+		zap.Int("State", orderInfo.State), //状态
+		zap.String("OrderID", req.OrderID),
+		zap.String("ProductID", orderInfo.ProductID),
+		zap.String("BuyUser", orderInfo.BuyerUsername),
+		zap.String("BusinessUser", orderInfo.BusinessUsername),
+		zap.String("AttachHash", orderInfo.AttachHash), //订单内容hash
+		zap.Float64("OrderTotalAmount", orderInfo.Cost),
+		zap.String("OrderImageFile", req.Image),
+	)
+
+	//TODO  调用微服务 上链
+	amout := uint64(orderInfo.Cost * 100)
+	orderImagesOnBlockchainResp, err := s.walletGrpcClientSvc.OrderImagesOnBlockchain(ctx, &Wallet.OrderImagesOnBlockchainReq{
+		OrderID:          req.OrderID,                /// 订单ID
+		ProductID:        orderInfo.ProductID,        // 商品ID
+		BuyUsername:      orderInfo.BuyerUsername,    //买家注册账号
+		BusinessUsername: orderInfo.BusinessUsername, //商户注册账号
+		AttachHash:       orderInfo.AttachHash,       //订单内容hash
+		Amount:           amout,                      //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
+		OrderImage:       req.Image,                  //商户拍照的订单图片oss objectId
+	})
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.OrderImagesOnBlockchain 错误", zap.Error(err))
+		return nil, err
+	} else {
+		s.logger.Debug("walletGrpcClientSvc.OrderImagesOnBlockchain 成功",
+			zap.String("OrderID", req.OrderID),
+			zap.Uint64("BlockNumber", orderImagesOnBlockchainResp.BlockNumber),
+			zap.String("Hash", orderImagesOnBlockchainResp.Hash),
+			zap.Uint64("Time", orderImagesOnBlockchainResp.Time),
+		)
+
+	}
+
+	err = s.Repository.SaveOrderImagesBlockchain(
+		req,
+		orderInfo.Cost,
+		orderImagesOnBlockchainResp.BlockNumber,
+		orderInfo.BuyerUsername,
+		orderInfo.BusinessUsername,
+		orderImagesOnBlockchainResp.Hash)
+
 	if err != nil {
 		return nil, err
 	}
 	resp := &Order.UploadOrderImagesResp{
 		OrderID: req.OrderID,
 		// 区块高度
-		BlockNumber: 0,
+		BlockNumber: orderImagesOnBlockchainResp.BlockNumber,
 		// 交易哈希hex
-		Hash: "",
+		Hash: orderImagesOnBlockchainResp.Hash,
 		//时间
 		Time: uint64(time.Now().UnixNano() / 1e6),
 	}

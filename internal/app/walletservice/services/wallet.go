@@ -564,7 +564,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		return nil, errors.Wrap(err, "BuyUser wallet address is not valid")
 	}
 
-	businessUserWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.BussinessUsername), "WalletAddress"))
+	businessUserWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", req.BusinessUsername), "WalletAddress"))
 	if s.ethService.CheckIsvalidAddress(businessUserWalletAddress) == false {
 		s.logger.Warn("BusinessUser非法钱包地址", zap.String("businessUserWalletAddress", businessUserWalletAddress))
 		return nil, errors.Wrap(err, "BusinessUser wallet address is not valid")
@@ -583,7 +583,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		ProductID:         productID,        //商品ID
 		AttachHash:        attachHash,       //订单内容hash
 		BuyUsername:       buyUser,          //买家注册号
-		BussinessUsername: businessUser,     //商户注册号
+		BusinessUsername: businessUser,     //商户注册号
 		Cost:              orderTotalAmount, //本订单的总金额
 		BusinessOssImages: req.OrderImage,   //订单图片在商户的oss objectID
 	}

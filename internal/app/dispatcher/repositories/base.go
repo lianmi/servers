@@ -192,8 +192,11 @@ type LianmiRepository interface {
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
 
-	//商户端: 将完成订单拍照所有图片上链
-	UploadOrderImages(req *Order.UploadOrderImagesReq) error
+	//从redis里获取订单当前最新的数据及状态
+	GetOrderInfo(orderID string) (*models.OrderInfo, error)
+
+	//增加订单拍照图片上链历史表
+	SaveOrderImagesBlockchain(req *Order.UploadOrderImagesReq, orderTotalAmount float64, blcokNumber uint64, buyUser, businessUser, hash string) error
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)

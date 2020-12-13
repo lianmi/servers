@@ -27,7 +27,7 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少image字段 ")
 		}
 
-		resp, err := pc.service.UploadOrderImages(&req)
+		resp, err := pc.service.UploadOrderImages(c, &req)
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, code, "将完成订单拍照所有图片上链时发生错误")
 			return

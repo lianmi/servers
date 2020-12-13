@@ -117,20 +117,23 @@ message OrderImagesOnBlockchainReq{
     // 订单ID
     string orderID =1;
 
+    // 商品ID
+    string productID =2;
+
     //买家注册账号
-    string buyUsername =2;
+    string buyUsername =3;
 
     //商户注册账号
-    string bussinessUsername =3;
+    string bussinessUsername =4;
 
-    //买家钱包地址
-   //  string buyerAccount =4;
+    //订单内容哈希 
+     string attachHash =5;
 
     //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
-    fixed64 amount=5;
+    fixed64 amount=6;
 
     // 订单图片oss objectId
-    string orderImage =6;
+    string orderImage =7;
 }
 
 message OrderImagesOnBlockchainResp{
