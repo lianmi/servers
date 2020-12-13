@@ -89,94 +89,96 @@ func (s *MysqlLianmiRepository) UploadOrderImages(req *Order.UploadOrderImagesRe
 				zap.Float64("OrderTotalAmount", orderTotalAmount),
 				zap.String("OrderImageFile", req.Image),
 			)
+			/*
+				 暂时屏蔽，不成功
+					// 将订单图片复制到买家的orders私有目录
+					var client *sts.AliyunStsClient
+					var url string
 
-			// 将订单图片复制到买家的orders私有目录
-			var client *sts.AliyunStsClient
-			var url string
+					client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
+					//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
 
-			client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
-			//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
+					// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+					policy := sts.Policy{
+						Version: "1",
+						Statement: []sts.StatementBase{sts.StatementBase{
+							Effect:   "Allow",
+							Action:   []string{"oss:*"},
+							Resource: []string{"acs:oss:*:*:lianmi-ipfs/orders/*"},
+						}},
+					}
 
-			// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
-			policy := sts.Policy{
-				Version: "1",
-				Statement: []sts.StatementBase{sts.StatementBase{
-					Effect:   "Allow",
-					Action:   []string{"oss:*"},
-					Resource: []string{"acs:oss:*:*:lianmi-ipfs/orders/*"},
-				}},
-			}
+					url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
+					if err != nil {
+						s.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					}
 
-			url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
-			if err != nil {
-				s.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
-			}
+					data, err := client.GetStsResponse(url)
+					if err != nil {
+						s.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					}
 
-			data, err := client.GetStsResponse(url)
-			if err != nil {
-				s.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
-			}
+					// log.Println("result:", string(data))
+					sjson, err := simpleJson.NewJson(data)
+					if err != nil {
+						s.logger.Warn("simplejson.NewJson Error", zap.Error(err))
+						return errors.Wrapf(err, "NewJson error[OrderID=%s]", req.OrderID)
+					}
+					accessKeyID := sjson.Get("Credentials").Get("AccessKeyId").MustString()
+					accessSecretKey := sjson.Get("Credentials").Get("AccessKeySecret").MustString()
+					securityToken := sjson.Get("Credentials").Get("SecurityToken").MustString()
 
-			// log.Println("result:", string(data))
-			sjson, err := simpleJson.NewJson(data)
-			if err != nil {
-				s.logger.Warn("simplejson.NewJson Error", zap.Error(err))
-				return errors.Wrapf(err, "NewJson error[OrderID=%s]", req.OrderID)
-			}
-			accessKeyID := sjson.Get("Credentials").Get("AccessKeyId").MustString()
-			accessSecretKey := sjson.Get("Credentials").Get("AccessKeySecret").MustString()
-			securityToken := sjson.Get("Credentials").Get("SecurityToken").MustString()
+					s.logger.Debug("收到阿里云OSS服务端的回包",
+						zap.String("RequestId", sjson.Get("RequestId").MustString()),
+						zap.String("AccessKeyId", accessKeyID),
+						zap.String("AccessKeySecret", accessSecretKey),
+						zap.String("SecurityToken", securityToken),
+						zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
+					)
 
-			s.logger.Debug("收到阿里云OSS服务端的回包",
-				zap.String("RequestId", sjson.Get("RequestId").MustString()),
-				zap.String("AccessKeyId", accessKeyID),
-				zap.String("AccessKeySecret", accessSecretKey),
-				zap.String("SecurityToken", securityToken),
-				zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
-			)
+					if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
+						s.logger.Warn("获取STS错误")
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					}
+					// Copy an existing object
+					// 创建OSSClient实例。
+					client2, err := oss.New(LMCommon.Endpoint, accessKeyID, accessSecretKey, oss.SecurityToken(securityToken))
+					if err != nil {
+						s.logger.Error("阿里云oss Error", zap.Error(err))
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
 
-			if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
-				s.logger.Warn("获取STS错误")
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
-			}
-			// Copy an existing object
-			// 创建OSSClient实例。
-			client2, err := oss.New(LMCommon.Endpoint, accessKeyID, accessSecretKey, oss.SecurityToken(securityToken))
-			if err != nil {
-				s.logger.Error("阿里云oss Error", zap.Error(err))
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					} else {
+						// OSS操作。
+						s.logger.Debug("利用临时STS创建OSSClient实例 ok")
+					}
 
-			} else {
-				// OSS操作。
-				s.logger.Debug("利用临时STS创建OSSClient实例 ok")
-			}
+					// 获取存储空间
+					bucket, err := client2.Bucket(LMCommon.BucketName)
+					if err != nil {
+						s.logger.Error("阿里云oss Error, client2.Bucket", zap.Error(err))
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					}
 
-			// 获取存储空间
-			bucket, err := client2.Bucket(LMCommon.BucketName)
-			if err != nil {
-				s.logger.Error("阿里云oss Error, client2.Bucket", zap.Error(err))
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
-			}
+					var descObjectKey = strings.Replace(req.Image, businessUser, buyUser, 1)
+					s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
 
-			var descObjectKey = strings.Replace(req.Image, businessUser, buyUser, 1)
-			s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
-
-			_, err = bucket.CopyObject(req.Image, descObjectKey)
-			if err != nil {
-				s.logger.Error("阿里云oss Error, bucket.CopyObject", zap.Error(err))
-				return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
-			} else {
-				s.logger.Debug("CopyObject ok", zap.String("req.Image", req.Image), zap.String("descObjectKey", descObjectKey))
-			}
-
+					_, err = bucket.CopyObject(req.Image, descObjectKey)
+					if err != nil {
+						s.logger.Error("阿里云oss Error, bucket.CopyObject", zap.Error(err))
+						return errors.Wrapf(err, "Oss error[OrderID=%s]", req.OrderID)
+					} else {
+						s.logger.Debug("CopyObject ok", zap.String("req.Image", req.Image), zap.String("descObjectKey", descObjectKey))
+					}
+					//{"level":"error","ts":1607868562.76748,"msg":"阿里云oss Error, bucket.CopyObject","type":"LianmiRepository","error":"Put \"https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/orders%2Fid58%2F2020%2F12%2F13%2F73bc66f54d22094a633a617f09391cf7.jpeg\": x509: certificate signed by unknown authority"}
+			*/
 			oi := &models.OrderImagesHistory{
 				OrderID:           req.OrderID,
 				BuyUsername:       buyUser,
 				BussinessUsername: businessUser,
 				Cost:              orderTotalAmount,
-				BuyerOssImages:    descObjectKey,
+				// BuyerOssImages:    descObjectKey,
 				BusinessOssImages: req.Image,
 				BlockNumber:       uint64(0),
 				TxHash:            "",
