@@ -579,13 +579,13 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	attachHash, _ := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
 	orderImagesOnBlockChain := &models.OrderImagesOnBlockChainHistory{
-		OrderID:           req.OrderID,      //订单IDs
-		ProductID:         productID,        //商品ID
-		AttachHash:        attachHash,       //订单内容hash
-		BuyUsername:       buyUser,          //买家注册号
+		OrderID:          req.OrderID,      //订单IDs
+		ProductID:        productID,        //商品ID
+		AttachHash:       attachHash,       //订单内容hash
+		BuyUsername:      buyUser,          //买家注册号
 		BusinessUsername: businessUser,     //商户注册号
-		Cost:              orderTotalAmount, //本订单的总金额
-		BusinessOssImages: req.OrderImage,   //订单图片在商户的oss objectID
+		Cost:             orderTotalAmount, //本订单的总金额
+		BusinessOssImage: req.OrderImage,   //订单图片在商户的oss objectID
 	}
 	data, err = json.Marshal(orderImagesOnBlockChain)
 	if err != nil {

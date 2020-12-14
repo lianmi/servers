@@ -27,17 +27,14 @@ type OrderImagesHistory struct {
 	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
 	UpdatedAt int64 `form:"updated_at" json:"updated_at,omitempty"` //更新时刻,毫秒
 
-	OrderID          string  `gorm:"primarykey" json:"order_id"`             //订单ID
-	ProductID        string  ` json:"product_id"`                            //商品ID
-	BuyUsername      string  `json:"buy_username" validate:"required"`       //买家注册号
+	OrderID          string  `gorm:"primarykey" json:"order_id"`            //订单ID
+	ProductID        string  ` json:"product_id"`                           //商品ID
+	BuyUsername      string  `json:"buy_username" validate:"required"`      //买家注册号
 	BusinessUsername string  `json:"business_username" validate:"required"` //商户注册号
-	Cost             float64 `json:"cost" validate:"required"`               //本订单的总金额
-
-	//订单图片在买家的oss objectID 暂时支持1张图片, 等迁移到Gorm2.0并重构数据库后改为数组
-	BuyerOssImages string `json:"buyer_images" validate:"required"`
+	Cost             float64 `json:"cost" validate:"required"`              //本订单的总金额
 
 	//订单图片在商户的oss objectID
-	BusinessOssImages string `json:"business_images" validate:"required"`
+	BusinessOssImage string `json:"business_image" validate:"required"`
 
 	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
 	TxHash      string `json:"tx_hash" `     //交易哈希

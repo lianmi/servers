@@ -92,10 +92,9 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 				BuyUsername:      buyUser,
 				BusinessUsername: businessUser,
 				Cost:             orderTotalAmount,
-				// BuyerOssImages:    descObjectKey,
-				BusinessOssImages: req.Image,
-				BlockNumber:       blcokNumber,
-				TxHash:            hash,
+				BusinessOssImage: req.Image,
+				BlockNumber:      blcokNumber,
+				TxHash:           hash,
 			}
 			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&oi).Error; err != nil {
 				s.logger.Error("UploadOrderImages, failed to upsert OrderImages History", zap.Error(err))
@@ -116,7 +115,7 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 }
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
-func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
+func (s *MysqlLianmiRepository) DownloadOrderImage(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
 	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -132,15 +131,14 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 	} else {
 
 		//文件名
-		fileName := filepath.Base(orderImagesHistory.BusinessOssImages)
+		fileName := filepath.Base(orderImagesHistory.BusinessOssImage)
 
-		s.logger.Debug("DownloadOrderImages",
+		s.logger.Debug("DownloadOrderImage",
 			zap.String("OrderID", orderImagesHistory.OrderID),
 			zap.String("ProductID", orderImagesHistory.ProductID),
 			zap.String("BuyUsername", orderImagesHistory.BuyUsername),
 			zap.String("BusinessUsername", orderImagesHistory.BusinessUsername),
-			zap.String("BuyerOssImages", orderImagesHistory.BuyerOssImages),
-			zap.String("BusinessOssImages", orderImagesHistory.BusinessOssImages),
+			zap.String("BusinessOssImage", orderImagesHistory.BusinessOssImage),
 			zap.String("fileName", fileName),
 			zap.Float64("Cost", orderImagesHistory.Cost),
 			zap.Uint64("BlockNumber", orderImagesHistory.BlockNumber),
@@ -162,7 +160,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 		}
 
-		signedURL, err := bucket.SignURL(orderImagesHistory.BuyUsername, oss.HTTPGet, 60)
+		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 60)
 		if err != nil {
 			s.logger.Error("bucket.SignURL error", zap.Error(err))
 			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", req.OrderID)

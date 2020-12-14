@@ -87,7 +87,7 @@ type LianmiApisService interface {
 	UploadOrderImages(ctx context.Context, req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
-	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
+	DownloadOrderImage(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
 
 	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
@@ -759,6 +759,6 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 }
 
 //用户端: 根据 OrderID 获取所有订单拍照图片
-func (s *DefaultLianmiApisService) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
-	return s.Repository.DownloadOrderImages(req)
+func (s *DefaultLianmiApisService) DownloadOrderImage(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
+	return s.Repository.DownloadOrderImage(req)
 }

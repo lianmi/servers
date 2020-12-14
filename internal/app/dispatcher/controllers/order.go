@@ -39,14 +39,14 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 }
 
 //用户端: 根据 OrderID 获取所有订单拍照图片
-func (pc *LianmiApisController) DownloadOrderImages(c *gin.Context) {
+func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	code := codes.InvalidParams
 	var req Order.DownloadOrderImagesReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
 	} else {
-		resp, err := pc.service.DownloadOrderImages(&req)
+		resp, err := pc.service.DownloadOrderImage(&req)
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, code, "获取所有订单拍照图片时发生错误")
 			return

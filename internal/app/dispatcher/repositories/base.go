@@ -199,7 +199,7 @@ type LianmiRepository interface {
 	SaveOrderImagesBlockchain(req *Order.UploadOrderImagesReq, orderTotalAmount float64, blcokNumber uint64, buyUser, businessUser, hash string) error
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
-	DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
+	DownloadOrderImage(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error)
 }
 
 type MysqlLianmiRepository struct {
