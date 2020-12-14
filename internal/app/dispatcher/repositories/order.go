@@ -152,23 +152,36 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			s.logger.Error("client.Bucket Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
 		}
+		/*
+			var destObjectName = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 
-		var destObjectName = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
+			// destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
+			s.logger.Debug("复制", zap.String("destObjectName", destObjectName))
+			// destObjectName:= "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
 
-		// destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
-		s.logger.Debug("复制", zap.String("destObjectName", destObjectName))
-		// destObjectName:= "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
+			// 拷贝文件到同一个存储空间的另一个文件。
+			_, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, destObjectName)
+
+			if err != nil {
+				s.logger.Error("CopyObject Error", zap.Error(err))
+				return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
+			} else {
+				s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
+			}
+		*/
+
+		objectName := "orders/id3/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
+		// download(objectName)
+		destObjectName := "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
 
 		// 拷贝文件到同一个存储空间的另一个文件。
-		_, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, destObjectName)
-
+		_, err = bucket.CopyObject(objectName, destObjectName)
 		if err != nil {
 			s.logger.Error("CopyObject Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
 		} else {
-			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
+			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))fmt.Println("CopyObject ok")
 		}
-
 		return &Order.DownloadOrderImagesResp{
 			//订单ID
 			OrderID: orderImagesHistory.OrderID,
