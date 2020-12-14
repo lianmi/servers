@@ -2,7 +2,11 @@ package nsqMq
 
 import (
 	"fmt"
+	// "github.com/aliyun/aliyun-oss-go-sdk/oss"
+	simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
+	LMCommon "github.com/lianmi/servers/internal/common"
+	"github.com/lianmi/servers/internal/pkg/sts"
 	// "github.com/lianmi/servers/internal/pkg/models"
 	"github.com/robfig/cron"
 	"go.uber.org/zap"
@@ -88,6 +92,12 @@ func (nc *NsqClient) RunCron() {
 
 	})
 
+	//生成oss完全控制权限的token, 仅仅是服务端使用，有效期是24小时，每天自动刷新一次，保存在redis里
+	c.AddFunc("0 0 0 * * ?", func() {
+		nc.RefreshOssSTSToken()
+
+	})
+
 	//启动任务
 	c.Start()
 
@@ -113,4 +123,67 @@ func (nc *NsqClient) RunCron() {
 
 	nc.logger.Info("RunCron end")
 
+}
+
+func (nc *NsqClient) RefreshOssSTSToken() {
+	var err error
+	var client *sts.AliyunStsClient
+	var url string
+
+	client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
+	//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
+
+	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+	policy := sts.Policy{
+		Version: "1",
+		Statement: []sts.StatementBase{sts.StatementBase{
+			Effect:   "Allow",
+			Action:   []string{"oss:*"},
+			Resource: []string{"acs:oss:*:*:lianmi-ipfs/*"},
+		}},
+	}
+
+	//设置24小时
+	url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", 24*LMCommon.EXPIRESECONDS), policy.ToJson())
+	if err != nil {
+		nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+		return
+	}
+
+	data, err := client.GetStsResponse(url)
+	if err != nil {
+		nc.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
+		return
+	}
+
+	// log.Println("result:", string(data))
+	sjson, err := simpleJson.NewJson(data)
+	if err != nil {
+		nc.logger.Warn("simplejson.NewJson Error", zap.Error(err))
+		return
+	}
+	accessKeyID := sjson.Get("Credentials").Get("AccessKeyId").MustString()
+	accessSecretKey := sjson.Get("Credentials").Get("AccessKeySecret").MustString()
+	securityToken := sjson.Get("Credentials").Get("SecurityToken").MustString()
+
+	nc.logger.Debug("收到阿里云OSS服务端的回包",
+		zap.String("RequestId", sjson.Get("RequestId").MustString()),
+		zap.String("AccessKeyId", accessKeyID),
+		zap.String("AccessKeySecret", accessSecretKey),
+		zap.String("SecurityToken", securityToken),
+		zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
+	)
+
+	if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
+		nc.logger.Warn("获取STS错误")
+		return
+
+	}
+
+	//保存到redis里
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+	redisConn.Do("SET", "OSSAccessKeyId", accessKeyID)
+	redisConn.Do("SET", "OSSAccessKeySecret", accessSecretKey)
+	redisConn.Do("SET", "OSSSecurityToken", securityToken)
 }

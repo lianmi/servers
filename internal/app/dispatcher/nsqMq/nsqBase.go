@@ -278,6 +278,9 @@ func (nc *NsqClient) Start() error {
 	//redis初始化
 	go nc.RedisInit()
 
+	//刷新 oss STS token
+	go nc.RefreshOssSTSToken()
+
 	//Go程，启动定时任务
 	go nc.RunCron()
 

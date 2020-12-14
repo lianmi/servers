@@ -2,14 +2,13 @@ package repositories
 
 import (
 	"fmt"
-	// "github.com/aliyun/aliyun-oss-go-sdk/oss"
-	// simpleJson "github.com/bitly/go-simplejson"
+	
 	"github.com/gomodule/redigo/redis"
 	// Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
-	// LMCommon "github.com/lianmi/servers/internal/common"
+
 	"github.com/lianmi/servers/internal/pkg/models"
-	// "github.com/lianmi/servers/internal/pkg/sts"
+
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -44,14 +43,14 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 		return nil, err
 	}
 	return &models.OrderInfo{
-		OrderID:           orderID,
-		AttachHash:        attachHash,
-		ProductID:         productID,
-		BuyerUsername:     buyUser,
+		OrderID:          orderID,
+		AttachHash:       attachHash,
+		ProductID:        productID,
+		BuyerUsername:    buyUser,
 		BusinessUsername: businessUser,
-		Cost:              orderTotalAmount,
-		State:             curState,
-		IsPayed:           isPayed,
+		Cost:             orderTotalAmount,
+		State:            curState,
+		IsPayed:          isPayed,
 	}, nil
 
 }
@@ -68,10 +67,10 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 
 			oi := &models.OrderImagesHistory{
-				OrderID:           req.OrderID,
-				BuyUsername:       buyUser,
+				OrderID:          req.OrderID,
+				BuyUsername:      buyUser,
 				BusinessUsername: businessUser,
-				Cost:              orderTotalAmount,
+				Cost:             orderTotalAmount,
 				// BuyerOssImages:    descObjectKey,
 				BusinessOssImages: req.Image,
 				BlockNumber:       blcokNumber,
@@ -97,6 +96,30 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
 func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
-	//TODO
+	//TODO 根据OrderID 查询  OrderImagesHistory 表的对应数据
+	where := models.OrderImagesHistory{
+		OrderID: req.OrderID,
+	}
+	orderImagesHistory := new(models.OrderImagesHistory)
+	if err := s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
+		// if errors.Is(err, gorm.ErrRecordNotFound) {}
+		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", req.OrderID)
+	} else {
+		s.logger.Debug("DownloadOrderImages",
+			zap.String("OrderID", orderImagesHistory.OrderID),
+			zap.String("ProductID", orderImagesHistory.ProductID),
+			zap.String("BuyUsername", orderImagesHistory.BuyUsername),
+			zap.String("BusinessUsername", orderImagesHistory.BusinessUsername),
+			zap.String("BuyerOssImages", orderImagesHistory.BuyerOssImages),
+			zap.String("BusinessOssImages", orderImagesHistory.BusinessOssImages),
+			zap.Float64("Cost", orderImagesHistory.Cost),
+			zap.Uint64("BlockNumber", orderImagesHistory.BlockNumber),
+			zap.String("TxHash", orderImagesHistory.TxHash),
+		)
+
+		//将商户的订单图片下载到临时目录/tmp/，然后上传到orders买家的对应目录
+
+
+	}
 	return nil, nil
 }
