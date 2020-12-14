@@ -69,6 +69,7 @@ const (
 
 	BucketName = "lianmi-ipfs"
 	//阿里云OSS临时token的过期时间, 默认是3600秒
+	ServerEXPIRESECONDS        = 7200
 	EXPIRESECONDS        = 3600
 	PrivateEXPIRESECONDS = 300
 

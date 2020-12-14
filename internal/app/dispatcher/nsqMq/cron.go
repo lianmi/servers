@@ -154,7 +154,7 @@ func (nc *NsqClient) RefreshOssSTSToken() {
 	}
 
 	//设置24小时
-	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
+	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.ServerEXPIRESECONDS), policy.ToJson())
 	if err != nil {
 		nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 		return
