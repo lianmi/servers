@@ -27,6 +27,19 @@ import (
 	"time"
 )
 
+var (
+	// userName    = "id3"
+	// downloadDir = ""
+	endpoint = "https://oss-cn-hangzhou.aliyuncs.com"
+	// // 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
+	accessID        = "LTAI4FzZsweRdNRd3KLsUc2J"
+	accessKeySecret = "W8a576pxtoyiJ7n8g4RHBFz9k5fF3r"
+	bucketName      = "lianmi-ipfs"
+
+	client *oss.Client
+	bucket *oss.Bucket
+)
+
 func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
 	var err error
 	var curState int
@@ -106,7 +119,7 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
 func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
-
+	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
@@ -137,7 +150,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		)
 
 		//超级用户
-		client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)
+		client, err = oss.New(endpoint, accessID, accessKeySecret)
 		if err != nil {
 			s.logger.Error("oss.New Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "oss失败[OrderID=%s]", req.OrderID)
@@ -146,8 +159,9 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			// OSS操作。
 			s.logger.Debug("创建OSSClient实例 ok")
 		}
+
 		// 获取存储空间。
-		bucket, err := client.Bucket(LMCommon.BucketName)
+		bucket, err = client.Bucket(bucketName)
 		if err != nil {
 			s.logger.Error("client.Bucket Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
@@ -182,6 +196,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		} else {
 			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
 		}
+
 		return &Order.DownloadOrderImagesResp{
 			//订单ID
 			OrderID: orderImagesHistory.OrderID,
