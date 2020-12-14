@@ -62,7 +62,11 @@ const (
 
 */
 const (
-	Endpoint  = "https://oss-cn-hangzhou.aliyuncs.com"
+	Endpoint = "https://oss-cn-hangzhou.aliyuncs.com"
+
+	SuperAccessID        = "LTAI4FzZsweRdNRd3KLsUc2J"       //最高权限
+	SuperAccessKeySecret = "W8a576pxtoyiJ7n8g4RHBFz9k5fF3r" //最高权限
+
 	AccessID  = "LTAI4G8bgDLiaU9LfLyGQwgw"
 	AccessKey = "uSI3XA0fk5FbLTVwhZ5bJNO1N1UAJA"
 	RoleAcs   = "acs:ram::1230446857465673:role/lianmiipfswrite" //可读写

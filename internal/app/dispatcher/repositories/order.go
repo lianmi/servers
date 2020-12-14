@@ -122,6 +122,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 		//文件名
 		fileName := filepath.Base(orderImagesHistory.BusinessOssImages)
+		
 		s.logger.Debug("DownloadOrderImages",
 			zap.String("OrderID", orderImagesHistory.OrderID),
 			zap.String("ProductID", orderImagesHistory.ProductID),
@@ -135,28 +136,15 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			zap.String("TxHash", orderImagesHistory.TxHash),
 		)
 
-		//将商户的订单图片下载到临时目录/tmp/，然后上传到orders买家的对应目录
-		accessKeyID, _ := redis.String(redisConn.Do("GET", "OSSAccessKeyId"))
-		accessSecretKey, _ := redis.String(redisConn.Do("GET", "OSSAccessKeySecret"))
-		securityToken, _ := redis.String(redisConn.Do("GET", "OSSSecurityToken"))
-
-		if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
-			s.logger.Warn("STS不存在或已过期, 重新获取 ")
-			if err := s.RefreshOssSTSToken(); err != nil {
-				s.logger.Warn("STS获取失败")
-				return nil, errors.Wrapf(err, "STS获取失败[OrderID=%s]", req.OrderID)
-			}
-
-		}
-		// 创建OSSClient实例。
-		client, err := oss.New(LMCommon.Endpoint, accessKeyID, accessSecretKey, oss.SecurityToken(securityToken))
+		//超级用户
+		client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)
 		if err != nil {
 			s.logger.Error("oss.New Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "oss失败[OrderID=%s]", req.OrderID)
 
 		} else {
 			// OSS操作。
-			s.logger.Debug("利用临时STS创建OSSClient实例 ok")
+			s.logger.Debug("创建OSSClient实例 ok")
 		}
 		// 获取存储空间。
 		bucket, err := client.Bucket(LMCommon.BucketName)
@@ -166,14 +154,14 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		}
 
 		//下载
-		filePath := "/tmp/" + fileName
-		err = bucket.GetObjectToFile(orderImagesHistory.BusinessOssImages, filePath)
-		if err != nil {
-			s.logger.Error("GetObjectToFile Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "下载失败[OrderID=%s]", req.OrderID)
-		} else {
-			s.logger.Debug("下载完成: ", zap.String("filePath", filePath))
-		}
+		// filePath := "/tmp/" + fileName
+		// err = bucket.GetObjectToFile(orderImagesHistory.BusinessOssImages, filePath)
+		// if err != nil {
+		// 	s.logger.Error("GetObjectToFile Error", zap.Error(err))
+		// 	return nil, errors.Wrapf(err, "下载失败[OrderID=%s]", req.OrderID)
+		// } else {
+		// 	s.logger.Debug("下载完成: ", zap.String("filePath", filePath))
+		// }
 
 		//上传到买家oss
 		// f, err := os.Open(filePath)
@@ -197,15 +185,17 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 		// var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 		// _, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, descObjectKey)
-		objectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
-		s.logger.Debug("上传的objectName", zap.String("objectName", objectName))
+		destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
+		s.logger.Debug("复制", zap.String("destObjectName", destObjectName))
 
-		err = bucket.PutObjectFromFile(objectName, filePath)
+		// 拷贝文件到同一个存储空间的另一个文件。
+		_, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, destObjectName)
+
 		if err != nil {
-			s.logger.Error("PutObjectFromFile Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "PutObjectFromFile失败[OrderID=%s]", req.OrderID)
+			s.logger.Error("v Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
 		} else {
-			s.logger.Debug("买家订单图片上传完成", zap.String("objectName", objectName))
+			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
 		}
 
 		return &Order.DownloadOrderImagesResp{
@@ -214,7 +204,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			//商户注册id
 			BusinessUsername: orderImagesHistory.BusinessUsername,
 			//订单拍照图片
-			Image: objectName,
+			Image: destObjectName,
 			// 区块高度
 			BlockNumber: orderImagesHistory.BlockNumber,
 			// 交易哈希hex
