@@ -115,19 +115,19 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 }
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
-func (s *MysqlLianmiRepository) DownloadOrderImage(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
+func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
 	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
 	//TODO 根据OrderID 查询  OrderImagesHistory 表的对应数据
 	where := models.OrderImagesHistory{
-		OrderID: req.OrderID,
+		OrderID: orderID,
 	}
 	orderImagesHistory := new(models.OrderImagesHistory)
 	if err = s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
 		// if errors.Is(err, gorm.ErrRecordNotFound) {}
-		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", req.OrderID)
+		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", orderID)
 	} else {
 
 		//文件名
@@ -149,21 +149,21 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(req *Order.DownloadOrderImage
 		client, err = oss.New(endpoint, accessID, accessKeySecret)
 
 		if err != nil {
-			return nil, errors.Wrapf(err, "oss.New失败[OrderID=%s]", req.OrderID)
+			return nil, errors.Wrapf(err, "oss.New失败[OrderID=%s]", orderID)
 
 		}
 
 		// 获取存储空间。
 		bucket, err = client.Bucket(bucketName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
+			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", orderID)
 
 		}
 
 		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 60)
 		if err != nil {
 			s.logger.Error("bucket.SignURL error", zap.Error(err))
-			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", req.OrderID)
+			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", orderID)
 		}
 
 		return &Order.DownloadOrderImagesResp{
