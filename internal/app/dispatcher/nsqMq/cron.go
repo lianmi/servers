@@ -137,14 +137,14 @@ func (nc *NsqClient) RefreshOssSTSToken() {
 	policy := sts.Policy{
 		Version: "1",
 		Statement: []sts.StatementBase{sts.StatementBase{
-			Effect:   "Allow",
-			Action:   []string{"oss:*"},
-			Resource: []string{"acs:oss:*:*:lianmi-ipfs/*"},
+			Effect: "Allow",
+			Action: []string{"oss:*"},
+			// Resource: []string{"acs:oss:*:*:lianmi-ipfs/*"},
 		}},
 	}
 
 	//设置24小时
-	url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", 24*LMCommon.EXPIRESECONDS), policy.ToJson())
+	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", 12*LMCommon.EXPIRESECONDS), policy.ToJson())
 	if err != nil {
 		nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 		return
