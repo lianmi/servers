@@ -128,7 +128,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		OrderID: req.OrderID,
 	}
 	orderImagesHistory := new(models.OrderImagesHistory)
-	if err := s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
+	if err = s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
 		// if errors.Is(err, gorm.ErrRecordNotFound) {}
 		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", req.OrderID)
 	} else {
