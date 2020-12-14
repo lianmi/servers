@@ -3,10 +3,10 @@ package nsqMq
 import (
 	"fmt"
 	// "github.com/aliyun/aliyun-oss-go-sdk/oss"
-	simpleJson "github.com/bitly/go-simplejson"
+	// simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
-	LMCommon "github.com/lianmi/servers/internal/common"
-	"github.com/lianmi/servers/internal/pkg/sts"
+	// LMCommon "github.com/lianmi/servers/internal/common"
+	// "github.com/lianmi/servers/internal/pkg/sts"
 	// "github.com/lianmi/servers/internal/pkg/models"
 	"github.com/robfig/cron"
 	"go.uber.org/zap"
