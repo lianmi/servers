@@ -5,12 +5,12 @@ import (
 	// "encoding/hex"
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	simpleJson "github.com/bitly/go-simplejson"
+	// simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
-	LMCommon "github.com/lianmi/servers/internal/common"
-	"github.com/lianmi/servers/internal/pkg/sts"
+	// LMCommon "github.com/lianmi/servers/internal/common"
+	// "github.com/lianmi/servers/internal/pkg/sts"
 	// "io"
-	// "os"
+	"os"
 	// "path"
 	"path/filepath"
 
@@ -28,8 +28,6 @@ import (
 )
 
 var (
-	// userName    = "id3"
-	// downloadDir = ""
 	endpoint = "https://oss-cn-hangzhou.aliyuncs.com"
 	// // 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
 	accessID        = "LTAI4FzZsweRdNRd3KLsUc2J"
@@ -165,6 +163,8 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		if err != nil {
 			s.logger.Error("client.Bucket Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
+		} else {
+			s.logger.Debug("获取存储空间 ok")
 		}
 		/*
 			var destObjectName = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
@@ -188,14 +188,31 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		// download(objectName)
 		destObjectName := "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
 
-		// 拷贝文件到同一个存储空间的另一个文件。
-		_, err = bucket.CopyObject(objectName, destObjectName)
+		//下载
+		downloadDir := "/tmp"
+		userDir, fileName := filepath.Split(objectName)
+		// log.Println(userDir, fileName)
+		err = os.MkdirAll(downloadDir+"/"+userDir, os.ModePerm)
+
+		downloadedFileName := downloadDir + "/" + objectName
+		err = bucket.GetObjectToFile(objectName, downloadedFileName)
 		if err != nil {
-			s.logger.Error("CopyObject Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
+			s.logger.Error("GetObjectToFile Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "GetObjectToFile 失败[OrderID=%s]", req.OrderID)
 		} else {
-			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
+			s.logger.Debug("下载完成", zap.String("downloadedFileName", downloadedFileName))
 		}
+
+		// 拷贝文件到同一个存储空间的另一个文件。
+		// _, err = bucket.CopyObject(objectName, destObjectName)
+		// if err != nil {
+		// 	s.logger.Error("CopyObject Error", zap.Error(err))
+		// 	return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
+		// } else {
+		// 	s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
+		// }
+
+		_ = destObjectName
 
 		return &Order.DownloadOrderImagesResp{
 			//订单ID
@@ -214,84 +231,4 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 	}
 	return nil, nil
-}
-
-func (s *MysqlLianmiRepository) RefreshOssSTSToken() error {
-	var err error
-	var client *sts.AliyunStsClient
-	var url string
-
-	client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
-	//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
-
-	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
-	acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/*")
-	acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/*")
-	acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/*")
-	acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/*")
-	acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/*")
-	acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/*")
-	acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/*")
-	acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/*")
-
-	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
-	policy := sts.Policy{
-		Version: "1",
-		Statement: []sts.StatementBase{sts.StatementBase{
-			Effect:   "Allow",
-			Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-			Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
-		}},
-	}
-
-	//1小时过期
-	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
-	if err != nil {
-		s.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
-		return err
-	}
-
-	data, err := client.GetStsResponse(url)
-	if err != nil {
-		s.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
-		return err
-	}
-
-	// log.Println("result:", string(data))
-	sjson, err := simpleJson.NewJson(data)
-	if err != nil {
-		s.logger.Warn("simplejson.NewJson Error", zap.Error(err))
-		return err
-	}
-	accessKeyID := sjson.Get("Credentials").Get("AccessKeyId").MustString()
-	accessSecretKey := sjson.Get("Credentials").Get("AccessKeySecret").MustString()
-	securityToken := sjson.Get("Credentials").Get("SecurityToken").MustString()
-
-	s.logger.Debug("收到阿里云OSS服务端的回包",
-		zap.String("RequestId", sjson.Get("RequestId").MustString()),
-		zap.String("AccessKeyId", accessKeyID),
-		zap.String("AccessKeySecret", accessSecretKey),
-		zap.String("SecurityToken", securityToken),
-		zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
-	)
-
-	if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
-		s.logger.Warn("获取STS错误")
-		return err
-
-	}
-
-	//保存到redis里
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-	redisConn.Do("SET", "OSSAccessKeyId", accessKeyID)
-	redisConn.Do("EXPIRE", "OSSAccessKeyId", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
-
-	redisConn.Do("SET", "OSSAccessKeySecret", accessSecretKey)
-	redisConn.Do("EXPIRE", "OSSAccessKeySecret", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
-
-	redisConn.Do("SET", "OSSSecurityToken", securityToken)
-	redisConn.Do("EXPIRE", "OSSSecurityToken", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
-
-	return nil
 }
