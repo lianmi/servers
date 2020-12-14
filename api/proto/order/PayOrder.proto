@@ -67,16 +67,16 @@ message DownloadOrderImagesResp {
     //商户注册id
     string  businessUsername=2;
 
-    //订单拍照图片
-    string image =3;
+    //订单拍照图片下载URL，买家需要用此URL进行下载
+    string imageURL =3;
 
     // 区块高度 
     fixed64 blockNumber=4;
 
-    // 交易哈希hex
+    // 上链哈希hex
     string hash=5;
 
-    //时间
+    //上链时间
     fixed64 time=6;
 
 }

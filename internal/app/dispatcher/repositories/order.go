@@ -8,9 +8,9 @@ import (
 	// simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
 	// LMCommon "github.com/lianmi/servers/internal/common"
-	// "github.com/lianmi/servers/internal/pkg/sts"
+	// "github.com/lianmi/servers/internal/pkg/sts"s
 	// "io"
-	"os"
+	// "os"
 	// "path"
 	"path/filepath"
 
@@ -147,80 +147,34 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			zap.String("TxHash", orderImagesHistory.TxHash),
 		)
 
-		//超级用户
+		// 超级用户创建OSSClient实例。
 		client, err = oss.New(endpoint, accessID, accessKeySecret)
-		if err != nil {
-			s.logger.Error("oss.New Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "oss失败[OrderID=%s]", req.OrderID)
 
-		} else {
-			// OSS操作。
-			s.logger.Debug("创建OSSClient实例 ok")
+		if err != nil {
+			return nil, errors.Wrapf(err, "oss.New失败[OrderID=%s]", req.OrderID)
+
 		}
 
 		// 获取存储空间。
 		bucket, err = client.Bucket(bucketName)
 		if err != nil {
-			s.logger.Error("client.Bucket Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
-		} else {
-			s.logger.Debug("获取存储空间 ok")
+
 		}
-		/*
-			var destObjectName = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 
-			// destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
-			s.logger.Debug("复制", zap.String("destObjectName", destObjectName))
-			// destObjectName:= "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
-
-			// 拷贝文件到同一个存储空间的另一个文件。
-			_, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, destObjectName)
-
-			if err != nil {
-				s.logger.Error("CopyObject Error", zap.Error(err))
-				return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
-			} else {
-				s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
-			}
-		*/
-
-		objectName := "orders/id3/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
-		// download(objectName)
-		destObjectName := "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
-
-		//下载
-		downloadDir := "/tmp"
-		userDir, fileName := filepath.Split(objectName)
-		// log.Println(userDir, fileName)
-		err = os.MkdirAll(downloadDir+"/"+userDir, os.ModePerm)
-
-		downloadedFileName := downloadDir + "/" + objectName
-		err = bucket.GetObjectToFile(objectName, downloadedFileName)
+		signedURL, err := bucket.SignURL(orderImagesHistory.BuyUsername, oss.HTTPGet, 60)
 		if err != nil {
-			s.logger.Error("GetObjectToFile Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "GetObjectToFile 失败[OrderID=%s]", req.OrderID)
-		} else {
-			s.logger.Debug("下载完成", zap.String("downloadedFileName", downloadedFileName))
+			s.logger.Error("bucket.SignURL error", zap.Error(err))
+			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", req.OrderID)
 		}
-
-		// 拷贝文件到同一个存储空间的另一个文件。
-		// _, err = bucket.CopyObject(objectName, destObjectName)
-		// if err != nil {
-		// 	s.logger.Error("CopyObject Error", zap.Error(err))
-		// 	return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
-		// } else {
-		// 	s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
-		// }
-
-		_ = destObjectName
 
 		return &Order.DownloadOrderImagesResp{
 			//订单ID
 			OrderID: orderImagesHistory.OrderID,
 			//商户注册id
 			BusinessUsername: orderImagesHistory.BusinessUsername,
-			//订单拍照图片
-			Image: destObjectName,
+			//订单拍照图片URL
+			ImageURL: signedURL,
 			// 区块高度
 			BlockNumber: orderImagesHistory.BlockNumber,
 			// 交易哈希hex
