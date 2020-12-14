@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"strings"
+	// "strings"
 	"time"
 )
 
@@ -180,7 +180,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			s.logger.Error("CopyObject Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
 		} else {
-			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))fmt.Println("CopyObject ok")
+			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))
 		}
 		return &Order.DownloadOrderImagesResp{
 			//订单ID
