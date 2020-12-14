@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	// "strings"
+	"strings"
 	"time"
 )
 
@@ -122,7 +122,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 		//文件名
 		fileName := filepath.Base(orderImagesHistory.BusinessOssImages)
-		
+
 		s.logger.Debug("DownloadOrderImages",
 			zap.String("OrderID", orderImagesHistory.OrderID),
 			zap.String("ProductID", orderImagesHistory.ProductID),
@@ -153,46 +153,17 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
 		}
 
-		//下载
-		// filePath := "/tmp/" + fileName
-		// err = bucket.GetObjectToFile(orderImagesHistory.BusinessOssImages, filePath)
-		// if err != nil {
-		// 	s.logger.Error("GetObjectToFile Error", zap.Error(err))
-		// 	return nil, errors.Wrapf(err, "下载失败[OrderID=%s]", req.OrderID)
-		// } else {
-		// 	s.logger.Debug("下载完成: ", zap.String("filePath", filePath))
-		// }
+		var destObjectName = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 
-		//上传到买家oss
-		// f, err := os.Open(filePath)
-		// if err != nil {
-		// 	s.logger.Error("os.Open Error", zap.Error(err))
-		// 	return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
-		// }
-
-		// defer f.Close()
-
-		// md5hash := md5.New()
-		// if _, err := io.Copy(md5hash, f); err != nil {
-		// 	// log.Println("Copy", err)
-		// 	return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
-		// }
-
-		// md5hash.Sum(nil)
-		// // log.Printf("%x\n", md5hash.Sum(nil))
-
-		// md5Str := hex.EncodeToString(md5hash.Sum(nil))
-
-		// var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
-		// _, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, descObjectKey)
-		destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
+		// destObjectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
 		s.logger.Debug("复制", zap.String("destObjectName", destObjectName))
+		// destObjectName:= "orders/id1/2020/12/13/73bc66f54d22094a633a617f09391cf7.jpeg"
 
 		// 拷贝文件到同一个存储空间的另一个文件。
 		_, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, destObjectName)
 
 		if err != nil {
-			s.logger.Error("v Error", zap.Error(err))
+			s.logger.Error("CopyObject Error", zap.Error(err))
 			return nil, errors.Wrapf(err, "CopyObject失败[OrderID=%s]", req.OrderID)
 		} else {
 			s.logger.Debug("订单图片已经复制到买家oss目录", zap.String("destObjectName", destObjectName))

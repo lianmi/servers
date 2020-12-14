@@ -124,7 +124,7 @@ message OrderImagesOnBlockchainReq{
     string buyUsername =3;
 
     //商户注册账号
-    string bussinessUsername =4;
+    string businessUsername =4;
 
     //订单内容哈希 
      string attachHash =5;
