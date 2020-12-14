@@ -134,17 +134,27 @@ func (nc *NsqClient) RefreshOssSTSToken() {
 	//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
 
 	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+	acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/*")
+	acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/*")
+	acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/*")
+	acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/*")
+	acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/*")
+	acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/*")
+	acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/*")
+	acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/*")
+
+	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
 	policy := sts.Policy{
 		Version: "1",
 		Statement: []sts.StatementBase{sts.StatementBase{
-			Effect: "Allow",
-			Action: []string{"oss:*"},
-			// Resource: []string{"acs:oss:*:*:lianmi-ipfs/*"},
+			Effect:   "Allow",
+			Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+			Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
 		}},
 	}
 
 	//设置24小时
-	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", 12*LMCommon.EXPIRESECONDS), policy.ToJson())
+	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", 2*LMCommon.EXPIRESECONDS), policy.ToJson())
 	if err != nil {
 		nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 		return
