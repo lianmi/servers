@@ -12,6 +12,7 @@ import (
 	// "io"
 	// "os"
 	// "path"
+	"path/filepath"
 
 	// Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -191,18 +192,19 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 
 		// //上传的文件名： md5 +  原来的后缀名
 		// fileExt := path.Ext(filePath)
+		fileName := filepath.Base(filePath)
 
-		var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
-		s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
+		// var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 		// _, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, descObjectKey)
-		// objectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + md5Str + fileExt
+		objectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + fileName
+		s.logger.Debug("上传的objectName", zap.String("objectName", objectName))
 
-		err = bucket.PutObjectFromFile(descObjectKey, filePath)
+		err = bucket.PutObjectFromFile(objectName, filePath)
 		if err != nil {
 			s.logger.Error("PutObjectFromFile Error", zap.Error(err))
-			return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
+			return nil, errors.Wrapf(err, "PutObjectFromFile失败[OrderID=%s]", req.OrderID)
 		} else {
-			s.logger.Debug("买家订单图片上传完成", zap.String("descObjectKey", descObjectKey))
+			s.logger.Debug("买家订单图片上传完成", zap.String("objectName", objectName))
 		}
 
 		return &Order.DownloadOrderImagesResp{
@@ -211,7 +213,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			//商户注册id
 			BusinessUsername: orderImagesHistory.BusinessUsername,
 			//订单拍照图片
-			Image: descObjectKey,
+			Image: objectName,
 			// 区块高度
 			BlockNumber: orderImagesHistory.BlockNumber,
 			// 交易哈希hex
