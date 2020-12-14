@@ -119,6 +119,9 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		// if errors.Is(err, gorm.ErrRecordNotFound) {}
 		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", req.OrderID)
 	} else {
+
+		//文件名
+		fileName := filepath.Base(orderImagesHistory.BusinessOssImages)
 		s.logger.Debug("DownloadOrderImages",
 			zap.String("OrderID", orderImagesHistory.OrderID),
 			zap.String("ProductID", orderImagesHistory.ProductID),
@@ -126,6 +129,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 			zap.String("BusinessUsername", orderImagesHistory.BusinessUsername),
 			zap.String("BuyerOssImages", orderImagesHistory.BuyerOssImages),
 			zap.String("BusinessOssImages", orderImagesHistory.BusinessOssImages),
+			zap.String("fileName", fileName),
 			zap.Float64("Cost", orderImagesHistory.Cost),
 			zap.Uint64("BlockNumber", orderImagesHistory.BlockNumber),
 			zap.String("TxHash", orderImagesHistory.TxHash),
@@ -162,10 +166,11 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		}
 
 		//下载
-		filePath := "/tmp/" + orderImagesHistory.BusinessOssImages
+		filePath := "/tmp/" + fileName
 		err = bucket.GetObjectToFile(orderImagesHistory.BusinessOssImages, filePath)
 		if err != nil {
 			s.logger.Error("GetObjectToFile Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "下载失败[OrderID=%s]", req.OrderID)
 		} else {
 			s.logger.Debug("下载完成: ", zap.String("filePath", filePath))
 		}
@@ -189,10 +194,6 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		// // log.Printf("%x\n", md5hash.Sum(nil))
 
 		// md5Str := hex.EncodeToString(md5hash.Sum(nil))
-
-		// //上传的文件名： md5 +  原来的后缀名
-		// fileExt := path.Ext(filePath)
-		fileName := filepath.Base(filePath)
 
 		// var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
 		// _, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, descObjectKey)
