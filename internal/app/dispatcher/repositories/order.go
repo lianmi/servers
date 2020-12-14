@@ -1,9 +1,18 @@
 package repositories
 
 import (
+	// "crypto/md5"
+	// "encoding/hex"
 	"fmt"
-	
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
+	LMCommon "github.com/lianmi/servers/internal/common"
+	"github.com/lianmi/servers/internal/pkg/sts"
+	// "io"
+	// "os"
+	// "path"
+
 	// Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 
@@ -13,8 +22,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	// "strings"
-	// "time"
+	"strings"
+	"time"
 )
 
 func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
@@ -96,6 +105,10 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
 func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImagesReq) (*Order.DownloadOrderImagesResp, error) {
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
 	//TODO 根据OrderID 查询  OrderImagesHistory 表的对应数据
 	where := models.OrderImagesHistory{
 		OrderID: req.OrderID,
@@ -118,8 +131,175 @@ func (s *MysqlLianmiRepository) DownloadOrderImages(req *Order.DownloadOrderImag
 		)
 
 		//将商户的订单图片下载到临时目录/tmp/，然后上传到orders买家的对应目录
+		accessKeyID, _ := redis.String(redisConn.Do("GET", "OSSAccessKeyId"))
+		accessSecretKey, _ := redis.String(redisConn.Do("GET", "OSSAccessKeySecret"))
+		securityToken, _ := redis.String(redisConn.Do("GET", "OSSSecurityToken"))
 
+		if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
+			s.logger.Warn("STS不存在或已过期, 重新获取 ")
+			if err := s.RefreshOssSTSToken(); err != nil {
+				s.logger.Warn("STS获取失败")
+				return nil, errors.Wrapf(err, "STS获取失败[OrderID=%s]", req.OrderID)
+			}
+
+		}
+		// 创建OSSClient实例。
+		client, err := oss.New(LMCommon.Endpoint, accessKeyID, accessSecretKey, oss.SecurityToken(securityToken))
+		if err != nil {
+			s.logger.Error("oss.New Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "oss失败[OrderID=%s]", req.OrderID)
+
+		} else {
+			// OSS操作。
+			s.logger.Debug("利用临时STS创建OSSClient实例 ok")
+		}
+		// 获取存储空间。
+		bucket, err := client.Bucket(LMCommon.BucketName)
+		if err != nil {
+			s.logger.Error("client.Bucket Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", req.OrderID)
+		}
+
+		//下载
+		filePath := "/tmp/" + orderImagesHistory.BusinessOssImages
+		err = bucket.GetObjectToFile(orderImagesHistory.BusinessOssImages, filePath)
+		if err != nil {
+			s.logger.Error("GetObjectToFile Error", zap.Error(err))
+		} else {
+			s.logger.Debug("下载完成: ", zap.String("filePath", filePath))
+		}
+
+		//上传到买家oss
+		// f, err := os.Open(filePath)
+		// if err != nil {
+		// 	s.logger.Error("os.Open Error", zap.Error(err))
+		// 	return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
+		// }
+
+		// defer f.Close()
+
+		// md5hash := md5.New()
+		// if _, err := io.Copy(md5hash, f); err != nil {
+		// 	// log.Println("Copy", err)
+		// 	return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
+		// }
+
+		// md5hash.Sum(nil)
+		// // log.Printf("%x\n", md5hash.Sum(nil))
+
+		// md5Str := hex.EncodeToString(md5hash.Sum(nil))
+
+		// //上传的文件名： md5 +  原来的后缀名
+		// fileExt := path.Ext(filePath)
+
+		var descObjectKey = strings.Replace(orderImagesHistory.BusinessOssImages, orderImagesHistory.BusinessUsername, orderImagesHistory.BuyUsername, 1)
+		s.logger.Debug("After Replace ", zap.String("descObjectKey", descObjectKey))
+		// _, err = bucket.CopyObject(orderImagesHistory.BusinessOssImages, descObjectKey)
+		// objectName := "orders/" + orderImagesHistory.BuyUsername + "/" + time.Now().Format("2006/01/02/") + md5Str + fileExt
+
+		err = bucket.PutObjectFromFile(descObjectKey, filePath)
+		if err != nil {
+			s.logger.Error("PutObjectFromFile Error", zap.Error(err))
+			return nil, errors.Wrapf(err, "os.Open失败[OrderID=%s]", req.OrderID)
+		} else {
+			s.logger.Debug("买家订单图片上传完成", zap.String("descObjectKey", descObjectKey))
+		}
+
+		return &Order.DownloadOrderImagesResp{
+			//订单ID
+			OrderID: orderImagesHistory.OrderID,
+			//商户注册id
+			BusinessUsername: orderImagesHistory.BusinessUsername,
+			//订单拍照图片
+			Image: descObjectKey,
+			// 区块高度
+			BlockNumber: orderImagesHistory.BlockNumber,
+			// 交易哈希hex
+			Hash: orderImagesHistory.TxHash,
+			//时间
+			Time: uint64(time.Now().UnixNano() / 1e6),
+		}, nil
 
 	}
 	return nil, nil
+}
+
+func (s *MysqlLianmiRepository) RefreshOssSTSToken() error {
+	var err error
+	var client *sts.AliyunStsClient
+	var url string
+
+	client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
+	//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
+
+	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+	acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/*")
+	acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/*")
+	acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/*")
+	acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/*")
+	acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/*")
+	acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/*")
+	acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/*")
+	acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/*")
+
+	// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
+	policy := sts.Policy{
+		Version: "1",
+		Statement: []sts.StatementBase{sts.StatementBase{
+			Effect:   "Allow",
+			Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+			Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
+		}},
+	}
+
+	//1小时过期
+	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
+	if err != nil {
+		s.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+		return err
+	}
+
+	data, err := client.GetStsResponse(url)
+	if err != nil {
+		s.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
+		return err
+	}
+
+	// log.Println("result:", string(data))
+	sjson, err := simpleJson.NewJson(data)
+	if err != nil {
+		s.logger.Warn("simplejson.NewJson Error", zap.Error(err))
+		return err
+	}
+	accessKeyID := sjson.Get("Credentials").Get("AccessKeyId").MustString()
+	accessSecretKey := sjson.Get("Credentials").Get("AccessKeySecret").MustString()
+	securityToken := sjson.Get("Credentials").Get("SecurityToken").MustString()
+
+	s.logger.Debug("收到阿里云OSS服务端的回包",
+		zap.String("RequestId", sjson.Get("RequestId").MustString()),
+		zap.String("AccessKeyId", accessKeyID),
+		zap.String("AccessKeySecret", accessSecretKey),
+		zap.String("SecurityToken", securityToken),
+		zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
+	)
+
+	if accessKeyID == "" || accessSecretKey == "" || securityToken == "" {
+		s.logger.Warn("获取STS错误")
+		return err
+
+	}
+
+	//保存到redis里
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	redisConn.Do("SET", "OSSAccessKeyId", accessKeyID)
+	redisConn.Do("EXPIRE", "OSSAccessKeyId", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
+
+	redisConn.Do("SET", "OSSAccessKeySecret", accessSecretKey)
+	redisConn.Do("EXPIRE", "OSSAccessKeySecret", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
+
+	redisConn.Do("SET", "OSSSecurityToken", securityToken)
+	redisConn.Do("EXPIRE", "OSSSecurityToken", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
+
+	return nil
 }

@@ -92,8 +92,8 @@ func (nc *NsqClient) RunCron() {
 
 	})
 
-	//生成oss完全控制权限的token, 仅仅是服务端使用，有效期是24小时，每天自动刷新一次，保存在redis里
-	c.AddFunc("0 0 0 * * ?", func() {
+	//生成oss完全控制权限的token, 仅仅是服务端使用，有效期是1小时，每隔自动刷新一次，保存在redis里
+	c.AddFunc("@hourly", func() {
 		nc.RefreshOssSTSToken()
 
 	})
@@ -153,8 +153,8 @@ func (nc *NsqClient) RefreshOssSTSToken() {
 		}},
 	}
 
-	//设置24小时
-	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.ServerEXPIRESECONDS), policy.ToJson())
+	//1小时过期
+	url, err = client.GenerateSignatureUrl("lianmiserver", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
 	if err != nil {
 		nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
 		return
@@ -194,6 +194,11 @@ func (nc *NsqClient) RefreshOssSTSToken() {
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 	redisConn.Do("SET", "OSSAccessKeyId", accessKeyID)
+	redisConn.Do("EXPIRE", "OSSAccessKeyId", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
+
 	redisConn.Do("SET", "OSSAccessKeySecret", accessSecretKey)
+	redisConn.Do("EXPIRE", "OSSAccessKeySecret", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
+
 	redisConn.Do("SET", "OSSSecurityToken", securityToken)
+	redisConn.Do("EXPIRE", "OSSSecurityToken", LMCommon.EXPIRESECONDS) //设置失效时间为1小时
 }

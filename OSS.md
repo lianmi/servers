@@ -1,4 +1,7 @@
 #  阿里云OSS使用规范
+## RAM Policy Editor v1.2.0 
+http://gosspublic.alicdn.com/ram-policy-editor/index.html
+
 ## 一、说明
 
    ### 1. 上传:  
