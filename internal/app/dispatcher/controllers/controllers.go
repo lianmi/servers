@@ -356,8 +356,6 @@ func CreateInitControllersFn(
 		teamGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
-
-
 		}
 
 		//=======商品模块==========/
