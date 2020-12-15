@@ -153,7 +153,7 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 			gProduct.DescPics = append(gProduct.DescPics, LMCommon.OSSUploadPicPrefix+generalProduct.DescPic6)
 		}
 
-		resp.Generalproducts = append(resp.Generalproducts)
+		resp.Generalproducts = append(resp.Generalproducts, gProduct)
 	}
 
 	return resp, nil
