@@ -392,6 +392,12 @@ func CreateInitControllersFn(
 		walletGroup := r.Group("/v1/wallet")
 		walletGroup.Use(authMiddleware.MiddlewareFunc())
 		{
+			//支付宝预支付动作
+			walletGroup.POST("/alipay", pc.PreAlipay)
+			//支付宝回调
+			walletGroup.POST("/alipay/callback", pc.AlipayCallback)
+			//支付宝回调
+			walletGroup.POST("/alipay/notify", pc.AlipayNotify)
 		}
 
 		//=======会员付费分销模块==========/

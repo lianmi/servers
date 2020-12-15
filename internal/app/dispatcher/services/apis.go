@@ -173,6 +173,12 @@ type LianmiApisService interface {
 
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
+
+	//支付宝预支付
+	PreAlipay(username, totalAmount string) (*Wallet.PreAlipayRsp, error)
+
+	//支付宝付款成功
+	AlipayDone(outTradeNo string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -761,4 +767,14 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
 	return s.Repository.DownloadOrderImage(orderID)
+}
+
+//支付宝预支付
+func (s *DefaultLianmiApisService) PreAlipay(username, totalAmount string) (*Wallet.PreAlipayRsp, error) {
+	return s.Repository.PreAlipay(username, totalAmount)
+}
+
+//支付宝付款成功
+func (s *DefaultLianmiApisService) AlipayDone(outTradeNo string) error {
+	return s.Repository.AlipayDone(outTradeNo)
 }

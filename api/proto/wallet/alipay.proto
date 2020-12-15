@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+//支付宝发起预支付
+message PreAlipayReq{
+
+    //支付金额，字符串方式: 0.01元, "0.01"
+    string totalAmount =1;
+
+}
+
+message PreAlipayRsp{
+    
+    //支付订单号 
+    string tradeNo=1;
+
+    //签名信息
+    string signedinfo=2;
+
+}
