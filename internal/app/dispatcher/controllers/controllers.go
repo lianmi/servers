@@ -356,18 +356,6 @@ func CreateInitControllersFn(
 		teamGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
-			//4-2 获取群组成员信息
-			// teamGroup.GET("/teammembers/:teamid", pc.GetTeamMembers)
-
-			// 4-3 查询群信息
-			// teamGroup.GET("/getteam/:teamid", pc.GetTeam)
-
-			//4-24 获取指定群组成员
-			// teamGroup.POST("/pullteammembers", pc.PullTeamMembers)
-
-			// 4-27 分页获取群成员信息
-			// teamGroup.POST("/getteammemberspage", pc.GetTeamMembersPage)
-
 		}
 
 		//=======商品模块==========/
