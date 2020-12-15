@@ -356,6 +356,18 @@ func CreateInitControllersFn(
 		teamGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 
+			//4-2 获取群组成员信息
+			// teamGroup.GET("/teammembers/:teamid", pc.GetTeamMembers)
+
+			// 4-3 查询群信息
+			// teamGroup.GET("/getteam/:teamid", pc.GetTeam)
+
+			//4-24 获取指定群组成员
+			// teamGroup.POST("/pullteammembers", pc.PullTeamMembers)
+
+			// 4-27 分页获取群成员信息
+			// teamGroup.POST("/getteammemberspage", pc.GetTeamMembersPage)
+
 		}
 
 		//=======商品模块==========/
@@ -367,7 +379,7 @@ func CreateInitControllersFn(
 			productGroup.GET("/generalproduct/:productid", pc.GetGeneralProductByID)
 
 			//查询通用商品分页-按商品种类查询
-			// productGroup.POST("/generalproductslist", pc.GetGeneralProductPage)
+			productGroup.POST("/generalproducts/list", pc.GetGeneralProductPage)
 
 			//根据商户注册号查询所有上架商品
 			productGroup.POST("/productslist", pc.GetProductsList)
@@ -388,7 +400,7 @@ func CreateInitControllersFn(
 			orderGroup.POST("/uploadorderimage", pc.UploadOrderImages)
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
-			orderGroup.GET("/orderimage/:orderid", pc.DownloadOrderImage)
+			orderGroup.GET("/orderimage", pc.DownloadOrderImage)
 		}
 
 		//=======钱包模块==========/
@@ -402,16 +414,16 @@ func CreateInitControllersFn(
 		membershipGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-			membershipGroup.POST("/prepay", pc.PreOrderForPayMembership)
+			membershipGroup.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
 
 			//确认为自己或他人支付会员费
-			membershipGroup.POST("/confirmpay", pc.ConfirmPayForMembership)
+			membershipGroup.POST("/confirmpayformembership", pc.ConfirmPayForMembership)
 
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-			membershipGroup.GET("/getall", pc.GetBusinessMembership)
+			membershipGroup.GET("/getbusinessmembership", pc.GetBusinessMembership)
 
 			//普通用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-			membershipGroup.GET("/normalgetall", pc.GetNormalMembership)
+			membershipGroup.GET("/getnormalmembership", pc.GetNormalMembership)
 
 			//提交佣金提现申请
 			membershipGroup.POST("/submitcommssionwithdraw", pc.SubmitCommssionWithdraw)

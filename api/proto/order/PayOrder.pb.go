@@ -299,7 +299,7 @@ func (x *UploadOrderImagesResp) GetTime() uint64 {
 	return 0
 }
 
-//用户端: 根据 OrderID 获取所有订单拍照图片
+//用户端: 根据 OrderID 获取订单拍照图片
 type DownloadOrderImagesResp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
