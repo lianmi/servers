@@ -1,20 +1,11 @@
 package repositories
 
 import (
-	// "crypto/md5"
-	// "encoding/hex"
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	// simpleJson "github.com/bitly/go-simplejson"
 	"github.com/gomodule/redigo/redis"
-	// LMCommon "github.com/lianmi/servers/internal/common"
-	// "github.com/lianmi/servers/internal/pkg/sts"s
-	// "io"
-	// "os"
-	// "path"
-	"path/filepath"
+	LMCommon "github.com/lianmi/servers/internal/common"
 
-	// Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -23,19 +14,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	// "strings"
 	"time"
-)
-
-var (
-	endpoint = "https://oss-cn-hangzhou.aliyuncs.com"
-	// // 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
-	accessID        = "LTAI4FzZsweRdNRd3KLsUc2J"
-	accessKeySecret = "W8a576pxtoyiJ7n8g4RHBFz9k5fF3r"
-	bucketName      = "lianmi-ipfs"
-
-	client *oss.Client
-	bucket *oss.Bucket
 )
 
 func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
@@ -120,7 +99,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	//TODO 根据OrderID 查询  OrderImagesHistory 表的对应数据
+	//根据OrderID 查询  OrderImagesHistory 表的对应数据
 	where := models.OrderImagesHistory{
 		OrderID: orderID,
 	}
@@ -130,23 +109,19 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", orderID)
 	} else {
 
-		//文件名
-		fileName := filepath.Base(orderImagesHistory.BusinessOssImage)
-
 		s.logger.Debug("DownloadOrderImage",
 			zap.String("OrderID", orderImagesHistory.OrderID),
 			zap.String("ProductID", orderImagesHistory.ProductID),
 			zap.String("BuyUsername", orderImagesHistory.BuyUsername),
 			zap.String("BusinessUsername", orderImagesHistory.BusinessUsername),
 			zap.String("BusinessOssImage", orderImagesHistory.BusinessOssImage),
-			zap.String("fileName", fileName),
 			zap.Float64("Cost", orderImagesHistory.Cost),
 			zap.Uint64("BlockNumber", orderImagesHistory.BlockNumber),
 			zap.String("TxHash", orderImagesHistory.TxHash),
 		)
 
 		// 超级用户创建OSSClient实例。
-		client, err = oss.New(endpoint, accessID, accessKeySecret)
+		client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.AccessKey)
 
 		if err != nil {
 			return nil, errors.Wrapf(err, "oss.New失败[OrderID=%s]", orderID)
@@ -154,12 +129,13 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		}
 
 		// 获取存储空间。
-		bucket, err = client.Bucket(bucketName)
+		bucket, err := client.Bucket(LMCommon.BucketName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "client.Bucket失败[OrderID=%s]", orderID)
 
 		}
 
+		//生成签名URL下载链接， 60s后过期
 		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 60)
 		if err != nil {
 			s.logger.Error("bucket.SignURL error", zap.Error(err))
