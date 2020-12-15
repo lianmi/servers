@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	// "time"
 
 	// "github.com/golang/protobuf/proto"
@@ -155,6 +156,8 @@ func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeRe
 	where := models.Product{
 		ProductID: req.ProductId,
 	}
+
+	var curSubType int
 	if err := s.db.Model(&models.Product{}).Where(&where).First(product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			//记录找不到也会触发错误 记录不存在
@@ -163,15 +166,20 @@ func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeRe
 			return errors.Wrapf(err, "Get Product info error[productID=%s]", req.ProductId)
 		}
 
+	} else {
+		curSubType = product.SubType
 	}
 
-	result := s.db.Model(&models.User{}).Where(&where).Update("sub_type", req.SubType)
+	result := s.db.Model(&models.Product{}).Where(&where).Update("sub_type", req.SubType)
 	//updated records count
 	s.logger.Debug("SetProductSubType result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
 
 	if result.Error != nil {
 		s.logger.Error("设置商品的子类型失败", zap.Error(result.Error))
 		return result.Error
+	} else {
+		mtxt := fmt.Sprintf("设置商品的子类型成功:  旧的子类型: %d, 新的子类型", curSubType, req.SubType)
+		s.logger.Debug(mtxt)
 	}
 
 	return nil

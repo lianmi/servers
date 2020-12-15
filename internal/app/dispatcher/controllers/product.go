@@ -99,6 +99,7 @@ func (pc *LianmiApisController) SetProductSubType(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "商品ID不能为空")
 			return
 		}
+		
 
 		err := pc.service.SetProductSubType(&req)
 		if err != nil {

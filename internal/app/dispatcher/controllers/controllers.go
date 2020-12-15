@@ -414,16 +414,16 @@ func CreateInitControllersFn(
 		membershipGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-			membershipGroup.POST("/preorderforpaymembership", pc.PreOrderForPayMembership)
+			membershipGroup.POST("/prepay", pc.PreOrderForPayMembership)
 
 			//确认为自己或他人支付会员费
-			membershipGroup.POST("/confirmpayformembership", pc.ConfirmPayForMembership)
+			membershipGroup.POST("/confirmpay", pc.ConfirmPayForMembership)
 
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
-			membershipGroup.GET("/getbusinessmembership", pc.GetBusinessMembership)
+			membershipGroup.GET("/getall", pc.GetBusinessMembership)
 
 			//普通用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-			membershipGroup.GET("/getnormalmembership", pc.GetNormalMembership)
+			membershipGroup.GET("/normalgetall", pc.GetNormalMembership)
 
 			//提交佣金提现申请
 			membershipGroup.POST("/submitcommssionwithdraw", pc.SubmitCommssionWithdraw)
