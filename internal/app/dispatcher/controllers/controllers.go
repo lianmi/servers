@@ -366,9 +366,6 @@ func CreateInitControllersFn(
 			//查询通用商品的详情 by productid
 			productGroup.GET("/generalproduct/:productid", pc.GetGeneralProductByID)
 
-			//查询通用商品分页-按商品种类查询
-			productGroup.POST("/generalproductslist", pc.GetGeneralProductPage)
-
 			//根据商户注册号查询所有上架商品
 			productGroup.POST("/productslist", pc.GetProductsList)
 
@@ -454,6 +451,9 @@ func CreateInitControllersFn(
 
 			//解封群组
 			adminGroup.POST("/disblockteam/:teamid", pc.DisBlockTeam)
+
+			//查询通用商品分页-按商品种类查询
+			adminGroup.POST("/generalproductslist", pc.GetGeneralProductPage)
 
 			//增加通用商品
 			adminGroup.POST("/addgeneralproduct", pc.AddGeneralProduct)

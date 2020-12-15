@@ -45,24 +45,7 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 
-	code := codes.InvalidParams
-	var req Order.GetGeneralProductPageReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
-	} else {
-		resp, err := pc.service.GetGeneralProductPage(&req)
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取通用商品列表错误")
-			return
-		}
-
-		RespData(c, http.StatusOK, 200, resp)
-
-	}
-}
 
 //获取某个商户的所有商品列表
 func (pc *LianmiApisController) GetProductsList(c *gin.Context) {

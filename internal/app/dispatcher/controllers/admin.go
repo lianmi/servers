@@ -19,7 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	// "github.com/lianmi/servers/internal/app/dispatcher/services"
 	"github.com/lianmi/servers/internal/common"
-	// "github.com/lianmi/servers/internal/common/codes"
+	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/pkg/models"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -165,6 +165,27 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 
 	}
 
+}
+
+func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
+	if !pc.CheckIsAdmin(c) {
+		return
+	}
+	code := codes.InvalidParams
+	var req Order.GetGeneralProductPageReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+		resp, err := pc.service.GetGeneralProductPage(&req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "获取店铺商品列表错误")
+			return
+		}
+
+		RespData(c, http.StatusOK, 200, resp)
+
+	}
 }
 
 //增加通用商品
