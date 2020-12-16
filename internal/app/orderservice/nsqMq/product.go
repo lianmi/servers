@@ -2006,14 +2006,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		//获取当前订单的状态
 		curState, err := redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
 
-		//如果当前状态与即将更改的状态一样，则直接返回
-		if Global.OrderState(curState) == req.State {
-			nc.logger.Warn("警告: 当前状态与即将更改的状态一样")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Order state is the same as current state")
-			goto COMPLETE
-		}
-
 		//根据当前订单的状态做逻辑，某些状态不能更新
 		switch Global.OrderState(curState) {
 
