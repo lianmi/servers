@@ -465,6 +465,8 @@ func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (in
 	var err error
 	var totalLikeCount int64
 
+	s.logger.Debug("ClickLike start ...")
+
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
