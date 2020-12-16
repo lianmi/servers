@@ -504,12 +504,12 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 
 	userlikeKey := fmt.Sprintf("UserLike:%s", username)
 	if _, err = redisConn.Do("SREM", userlikeKey, businessUsername); err != nil {
-		s.logger.Error("SREM Error", zap.Error(err))
-		return 0, err	
+		s.logger.Error("SREM UserLike Error", zap.Error(err))
+		return 0, err
 	}
 
 	//删除店铺点赞用户列表
-	storelikeKey := fmt.Sprintf("StoreLike:%s", username)
+	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
 	if _, err = redisConn.Do("SREM", storelikeKey); err != nil {
 		s.logger.Error("SREM StoreLike Error", zap.Error(err))
 		return 0, err
