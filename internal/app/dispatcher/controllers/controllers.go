@@ -340,7 +340,7 @@ func CreateInitControllersFn(
 			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
 			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
 			storeGroup.GET("/likes/:id", pc.StoreLikes)          //获取店铺的所有点赞用户列表
-			storeGroup.POST("/like/:id", pc.ClickLike)           //对某个店铺点赞
+			storeGroup.POST("/like/:id", pc.ClickLike)           //对某个店铺进行点赞
 			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)   //取消对某个店铺点赞
 		}
 

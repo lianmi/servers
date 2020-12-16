@@ -23,12 +23,11 @@ import (
 
 //定义用户的数据结构, id+ Username 构成复合主键 , Mobile 是唯一索引
 type User struct {
-	ID        uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt int64  `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
-	UpdatedAt int64  `form:"updated_at" json:"updated_at,omitempty"`   //更新时刻,毫秒
-	Username  string `gorm:"primarykey" json:"username" `              //用户注册号，自动生成，字母 + 数字
-	Password  string `json:"password" validate:"required"`             //用户密码，md5加密
-	// SmsCode            string `json:"smscode" validate:"required"`                                 //校验码
+	ID                 uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`                    //自动递增id
+	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
+	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`                      //更新时刻,毫秒
+	Username           string `gorm:"primarykey" json:"username" `                                 //用户注册号，自动生成，字母 + 数字
+	Password           string `json:"password" validate:"required"`                                //用户密码，md5加密
 	Nick               string `json:"nick" validate:"required"`                                    //用户呢称，必填
 	Gender             int    `form:"gender" json:"gender" binding:"required"`                     //性别
 	Avatar             string `form:"avatar" json:"avatar,omitempty"`                              //头像url
@@ -40,7 +39,7 @@ type User struct {
 	BankCard           string `form:"bank_card" json:"bank_card,omitempty" `                       //银行卡账号
 	Bank               string `form:"bank" json:"bank,omitempty" `                                 //开户银行
 	TrueName           string `form:"true_name" json:"true_name,omitempty" `                       //用户实名
-	Deleted            int    `form:"deteled" json:"deteled"`                                      //软删除开关
+	Deleted            int    `form:"deleted" json:"deleted"`                                      //软删除开关
 	State              int    `form:"state" json:"state"`                                          //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 	Extend             string `form:"extend" json:"extend,omitempty" `                             //扩展字段
 	ContactPerson      string `form:"contact_person" json:"contact_person" binding:"required"`     //联系人
@@ -48,6 +47,7 @@ type User struct {
 	BelongBusinessUser string `form:"belong_business_user" json:"belong_business_user,omitempty" ` //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
 	CreatedBy          string `form:"created_by" json:"created_by,omitempty"`                      //由谁创建， 分为注册或后台添加
 	ModifiedBy         string `form:"modified_by" json:"modified_by,omitempty"`                    //最后由哪个操作员修改
+	VipEndDate         int64  `form:"vip_end_date" json:"v,omitempty"`                             //VIP用户到期时间
 }
 
 //BeforeCreate CreatedAt赋值
