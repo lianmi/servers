@@ -436,6 +436,7 @@ func (s *MysqlLianmiRepository) UserLikes(username string) (*User.UserLikesResp,
 
 //获取店铺的所有点赞的用户列表
 func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.StoreLikesResp, error) {
+	s.logger.Debug("StoreLikes start ...")
 	var err error
 	var users []string
 	rsp := &User.StoreLikesResp{
@@ -446,6 +447,7 @@ func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.Store
 	defer redisConn.Close()
 
 	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
+	s.logger.Debug("StoreLikes", zap.String("storelikeKey", storelikeKey))
 
 	if users, err = redis.Strings(redisConn.Do("SMEMBERS", storelikeKey)); err != nil {
 		s.logger.Error("SMEMBERS Error", zap.Error(err))
