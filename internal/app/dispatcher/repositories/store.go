@@ -455,7 +455,10 @@ func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.Store
 	}
 
 	for _, user := range users {
-		rsp.Usernames = append(rsp.Usernames, user)
+		if strings.HasPrefix(user, "id") {
+			rsp.Usernames = append(rsp.Usernames, user)
+
+		}
 	}
 
 	return rsp, nil
