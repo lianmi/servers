@@ -151,7 +151,7 @@ enum OrderSubType {
 enum WalletSubType {
     WST_undefined               =  0;    //proto3必须从0开始
     RegisterWallet              =  1;     /**< 10-1 钱包账号注册*/
-    Deposit                     =  2;     /**< 10-2 充值*/
+    //Deposit                     =  2;     /**< 取消 10-2 充值*/
     PreTransfer                 =  3;     /**< 10-3 发起转账*/
     ConfirmTransfer             =  4;     /**< 10-4 确认转账*/
     Balance                     =  5;     /**< 10-5 查询账号余额*/

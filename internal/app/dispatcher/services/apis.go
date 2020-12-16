@@ -175,10 +175,10 @@ type LianmiApisService interface {
 	AddUserLike(username, businessUser string) error
 
 	//支付宝预支付
-	PreAlipay(username, totalAmount string) (*Wallet.PreAlipayRsp, error)
+	PreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
 
 	//支付宝付款成功
-	AlipayDone(outTradeNo string) error
+	AlipayDone(ctx context.Context, outTradeNo string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -770,11 +770,41 @@ func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.Do
 }
 
 //支付宝预支付
-func (s *DefaultLianmiApisService) PreAlipay(username, totalAmount string) (*Wallet.PreAlipayRsp, error) {
-	return s.Repository.PreAlipay(username, totalAmount)
+func (s *DefaultLianmiApisService) PreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
+	//调用钱包微服务
+	rsp, err := s.walletGrpcClientSvc.DoPreAlipay(ctx, req)
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
+		return nil, err
+	} else {
+		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功")
+		return rsp, nil
+	}
 }
 
 //支付宝付款成功
-func (s *DefaultLianmiApisService) AlipayDone(outTradeNo string) error {
-	return s.Repository.AlipayDone(outTradeNo)
+func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo string) error {
+
+	username, totalAmount, err := s.Repository.GetAlipayInfoByTradeNo(outTradeNo)
+	if err != nil {
+		s.logger.Error("GetAlipayInfoByTradeNo 失败", zap.Error(err))
+		return err
+	}
+	//调用钱包微服务
+	rsp, err := s.walletGrpcClientSvc.DepositForPay(ctx, &Wallet.DepositForPayReq{
+		TradeNo:     outTradeNo,
+		Username:    username,
+		TotalAmount: totalAmount,
+	})
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功",
+			zap.Uint64("BalanceLNMC", rsp.BalanceLNMC),
+			zap.Uint64("BlockNumber", rsp.BlockNumber),
+			zap.String("Hash", rsp.Hash),
+		)
+		return nil
+	}
 }

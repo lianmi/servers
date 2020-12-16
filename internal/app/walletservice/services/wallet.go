@@ -37,6 +37,12 @@ type WalletService interface {
 
 	//订单图片上链
 	OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error)
+
+	//支付宝预支付
+	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
+
+	//支付宝回调处理，用户充值
+	DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error)
 }
 
 type DefaultApisService struct {
@@ -331,8 +337,9 @@ func (s *DefaultApisService) GetUserBalance(ctx context.Context, req *Wallet.Get
 	}
 
 	resp := &Wallet.GetUserBalanceResp{
-		BalanceEth:  balanceEth,
-		BalanceLNMC: balanceLNMC,
+		BalanceEth:    balanceEth,
+		BalanceLNMC:   balanceLNMC,
+		WalletAddress: userWalletAddress,
 	}
 
 	return resp, nil
@@ -593,7 +600,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	}
 	amount := int64(orderTotalAmount * 100)
 
-	//Grpc
+	//调用ETH接口
 	blockNumber, hash, err := s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
 	if err != nil {
 		return nil, err
@@ -603,5 +610,56 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 		BlockNumber: blockNumber,
 		Hash:        hash,
 		Time:        uint64(time.Now().UnixNano() / 1e6),
+	}, nil
+}
+
+//支付宝预支付
+func (s *DefaultApisService) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
+	return s.Repository.DoPreAlipay(ctx, req)
+}
+
+//支付宝回调处理，用户充值
+func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error) {
+	//TODO
+	//通过grpc获取发起购买者用户的余额
+	//当前用户的代币余额
+	getUserBalanceResp, err := s.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
+		Username: req.Username,
+	})
+	if err != nil {
+		s.logger.Error("GetUserBalance 错误", zap.Error(err))
+		return nil, err
+	}
+
+	//调用eth接口， 给用户钱包充值连米币
+	amount := int64(req.TotalAmount * 100)
+	blockNumber, hash, balanceAfter, err := s.ethService.TransferLNMCFromLeaf1ToNormalAddress(getUserBalanceResp.WalletAddress, amount)
+	if err != nil {
+		s.logger.Error("TransferLNMCFromLeaf1ToNormalAddress 错误", zap.Error(err))
+		return nil, err
+	}
+
+	s.logger.Info("充值前后的钱包信息",
+		zap.String("username", req.Username),
+		zap.Float64("支付成功的人民币", req.TotalAmount),
+		zap.Int64("充值连米币", amount),
+		zap.String("walletAddress", getUserBalanceResp.WalletAddress),
+		zap.Uint64("充值前余额", getUserBalanceResp.BalanceLNMC),
+		zap.Uint64("充值后余额", balanceAfter),
+	)
+
+	if err := s.Repository.SaveDepositForPay(req.TradeNo, hash, blockNumber, balanceAfter); err != nil {
+		return nil, err
+	}
+
+	return &Wallet.DepositForPayResp{
+		//充值之后的连米币余额
+		BalanceLNMC: balanceAfter,
+		// 区块高度
+		BlockNumber: blockNumber,
+		// 交易哈希hex
+		Hash: hash,
+		//时间
+		Time: uint64(time.Now().UnixNano() / 1e6),
 	}, nil
 }

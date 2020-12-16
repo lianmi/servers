@@ -9,7 +9,7 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
@@ -202,10 +202,8 @@ type LianmiRepository interface {
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
 
-	//支付宝预支付
-	PreAlipay(username, totalAmount string) (*Wallet.PreAlipayRsp, error)
-	//支付宝付款成功
-	AlipayDone(outTradeNo string) error
+	//根据订单号获取支付用户及金额
+	GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, error)
 }
 
 type MysqlLianmiRepository struct {

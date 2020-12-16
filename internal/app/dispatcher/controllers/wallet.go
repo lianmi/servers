@@ -4,9 +4,10 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	// "time"
+	"time"
 
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 
@@ -18,14 +19,12 @@ import (
 	"go.uber.org/zap"
 )
 
-//根据用户注册id获取用户资料
+//支付宝预支付
 func (pc *LianmiApisController) PreAlipay(c *gin.Context) {
 	pc.logger.Debug("PreAlipay start ...")
 
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[LMCommon.IdentityKey].(string)
-	// deviceID := claims["deviceID"].(string)
-	// token := jwt_v2.GetToken(c)
 
 	code := codes.InvalidParams
 	var req Wallet.PreAlipayReq
@@ -33,10 +32,13 @@ func (pc *LianmiApisController) PreAlipay(c *gin.Context) {
 		pc.logger.Error("PreAlipay, binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
-		if req.TotalAmount == "" {
+		if req.TotalAmount <= 0.00 {
 			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段: TotalAmount")
 		}
-		if resp, err := pc.service.PreAlipay(userName, req.TotalAmount); err != nil {
+		req.Username = userName
+
+		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+		if resp, err := pc.service.PreAlipay(ctx, &req); err != nil {
 			code = codes.ERROR
 			RespFail(c, http.StatusBadRequest, code, "PreAlipay error")
 			return
@@ -49,7 +51,6 @@ func (pc *LianmiApisController) PreAlipay(c *gin.Context) {
 }
 
 //支付回调
-
 func (pc *LianmiApisController) AlipayCallback(c *gin.Context) {
 	pc.logger.Debug("AlipayCallback start ...")
 	var err error
@@ -89,7 +90,8 @@ func (pc *LianmiApisController) AlipayCallback(c *gin.Context) {
 	c.String(http.StatusOK, "AlipayCallback, 订单 %s 支付成功", outTradeNo)
 
 	//TODO
-	pc.service.AlipayDone(outTradeNo)
+	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+	pc.service.AlipayDone(ctx, outTradeNo)
 
 }
 

@@ -1,5 +1,6 @@
 syntax = "proto3";
 import 'api/proto/wallet/PreTransfer.proto';
+import 'api/proto/wallet/Alipay.proto';
 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
@@ -25,8 +26,13 @@ service LianmiWallet {
     //订单图片上链
     rpc OrderImagesOnBlockchain(OrderImagesOnBlockchainReq) returns  (OrderImagesOnBlockchainResp);
 
-}
+    //支付宝发起预支付
+    rpc DoPreAlipay(PreAlipayReq) returns (PreAlipayResp);
 
+    //充值，从ERC20代币总账号转账到目标普通账号
+    rpc DepositForPay(DepositForPayReq) returns  (DepositForPayResp);
+
+}
 
 
 //==== 订单的转账(完成，退款) =====//
@@ -54,6 +60,7 @@ message GetUserBalanceReq {
 message GetUserBalanceResp {
     fixed64 balanceEth  =1;
     fixed64 balanceLNMC =2;
+    string walletAddress =3;
 }
 
 //======根据HD的索引号，获取对应的钱包地址 ======//
@@ -139,6 +146,33 @@ message OrderImagesOnBlockchainReq{
 message OrderImagesOnBlockchainResp{
      // 订单ID
     string orderID =1;
+
+    // 区块高度 
+    fixed64 blockNumber=2;
+
+    // 交易哈希hex
+    string hash=3;
+
+    //时间
+    fixed64 time=4;
+}
+
+message DepositForPayReq{
+    //订单号
+    string tradeNo =1;
+
+    //用户账号
+    string username =2;
+
+    //充值金额，人民币格式
+    double totalAmount=3;
+
+
+}
+
+message DepositForPayResp{
+    //充值之后的连米币余额
+    fixed64 balanceLNMC =1;
 
     // 区块高度 
     fixed64 blockNumber=2;

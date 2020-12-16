@@ -1,15 +1,27 @@
 package repositories
 
 import (
+	"context"
+	"fmt"
 	"github.com/gomodule/redigo/redis"
+	Wallet "github.com/lianmi/servers/api/proto/wallet"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
+	"github.com/smartwalle/alipay/v3"
+	"github.com/smartwalle/xid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	// "strconv"
+	uuid "github.com/satori/go.uuid"
 )
 
 type WalletRepository interface {
+	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
+
+	SaveDepositForPay(tradeNo, hash string, blockNumber, balanceLNMC uint64) error
+
 	AddLnmcOrderTransferHistory(lnmcOrderTransferHistory *models.LnmcOrderTransferHistory) error
 
 	AddUserWallet(username, walletAddress, amountETHString string) (err error)
@@ -62,6 +74,139 @@ func NewMysqlWalletRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		redisPool: redisPool,
 		base:      NewBaseRepository(logger, db),
 	}
+}
+
+//调用支付宝SDK生成签名支付信息数据
+func (m *MysqlWalletRepository) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
+	var err error
+	var aliClient *alipay.Client
+
+	var tradeNo = fmt.Sprintf("%d", xid.Next())
+
+	redisConn := m.redisPool.Get()
+	defer redisConn.Close()
+
+	// 第三个参数是沙箱(false) , 正式环境是 true
+	if aliClient, err = alipay.New(LMCommon.AlipayAppId, LMCommon.AppPrivateKey, true); err != nil {
+		m.logger.Error("初始化支付宝失败", zap.Error(err))
+		return nil, err
+	}
+
+	//使用支付宝公钥, 只能二选一 , 所以我选了支付宝公钥
+	if err = aliClient.LoadAliPayPublicKey(LMCommon.AlipayPublicKey); err != nil {
+		m.logger.Error("加载支付宝公钥发生错误", zap.Error(err))
+		return nil, err
+	} else {
+		m.logger.Debug("加载支付宝公钥成功")
+	}
+
+	var productCode = "deposit_" + fmt.Sprintf("%f", req.TotalAmount)
+	var subject = "支付充值:" + tradeNo + "_" + fmt.Sprintf("%f", req.TotalAmount)
+	var p = alipay.TradeAppPay{}
+	p.NotifyURL = LMCommon.ServerDomain + "/v1/wallet/alipay/notify"
+	p.ReturnURL = LMCommon.ServerDomain + "/v1/wallet/alipay/callback"
+	p.Body = req.Username //body保存用户的注册账号
+	p.Subject = subject
+	p.OutTradeNo = tradeNo
+	p.TotalAmount = fmt.Sprintf("%f", req.TotalAmount)
+	p.ProductCode = productCode
+
+	param, err := aliClient.TradeAppPay(p)
+	if err != nil {
+		m.logger.Error("TradeAppPay发生错误", zap.Error(err))
+		return nil, err
+	}
+	m.logger.Debug("TradeAppPay param", zap.String("param", param))
+
+	//将订单号保存到redis里，以便支付宝服务器回调后查找出支付内容
+	preAlipayKey := fmt.Sprintf("PreAlipay:%s", tradeNo)
+
+	_, err = redisConn.Do("HMSET",
+		preAlipayKey,
+		"Username", req.Username,
+		"Subject", subject,
+		"TotalAmount", req.TotalAmount,
+		"ProductCode", productCode,
+		"IsPayed", false,
+	)
+
+	//保存到MySQL AliPayHistory表
+	aliPayHistory := &models.AliPayHistory{
+		TradeNo:     tradeNo,
+		Username:    req.Username,
+		Subject:     subject,
+		ProductCode: productCode,
+		TotalAmount: req.TotalAmount,
+		Fee:         req.TotalAmount * 0.06,
+		IsPayed:     false,
+	}
+	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(aliPayHistory).Error; err != nil {
+		m.logger.Error("增加AliPayHistory表失败", zap.Error(err))
+		return nil, err
+	} else {
+		m.logger.Debug("增加AliPayHistory表成功")
+	}
+	return &Wallet.PreAlipayResp{
+		TradeNo:    tradeNo,
+		Signedinfo: param,
+	}, nil
+
+}
+
+func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNumber, balanceLNMC uint64) error {
+	var err error
+	var username string
+	var walletAddress string
+	var totalAmount float64
+
+	redisConn := m.redisPool.Get()
+	defer redisConn.Close()
+
+	preAlipayKey := fmt.Sprintf("PreAlipay:%s", tradeNo)
+
+	//获取username
+	username, err = redis.String(redisConn.Do("HGET", preAlipayKey, "Username"))
+
+	//获取充值金额
+	totalAmount, err = redis.Float64(redisConn.Do("HGET", preAlipayKey, "TotalAmount"))
+
+	result := m.db.Model(&models.AliPayHistory{}).Where(&models.AliPayHistory{
+		TradeNo: tradeNo,
+	}).Update("is_payed", true) //将Status变为true
+	if result.Error != nil {
+		m.logger.Error("将Status变为已支付", zap.Error(result.Error))
+		return result.Error
+	}
+
+	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
+	if err != nil {
+		m.logger.Error("HGET失败", zap.Error(result.Error))
+		return err
+	}
+
+	//保存充值记录到 MySQL
+	lnmcDepositHistory := &models.LnmcDepositHistory{
+		UUID:              uuid.NewV4().String(),
+		Username:          username,
+		WalletAddress:     walletAddress,
+		BalanceLNMCBefore: int64(balanceLNMC),
+		RechargeAmount:    totalAmount, //充值金额，单位是人民币
+		PaymentType:       1,           //第三方支付方式 1- 支付宝， 2-微信 3-银行卡
+
+		BalanceLNMCAfter: int64(balanceLNMC),
+		BlockNumber:      blockNumber,
+		TxHash:           hash,
+	}
+
+	m.AddDepositHistory(lnmcDepositHistory)
+
+	//更新redis里用户钱包的代币余额
+	redisConn.Do("HSET",
+		fmt.Sprintf("userWallet:%s", username),
+		"LNMCAmount",
+		balanceLNMC)
+
+	return nil
 }
 
 //数据库操作，将订单到账及退款记录到 MySQL

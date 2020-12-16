@@ -52,3 +52,13 @@ func (s *WalletServer) SendConfirmPayForMembership(ctx context.Context, req *Wal
 func (s *WalletServer) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
 	return s.service.OrderImagesOnBlockchain(ctx, req)
 }
+
+//支付宝发起预支付
+func (s *WalletServer) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
+	return s.service.DoPreAlipay(ctx, req)
+}
+
+//支付宝支付成功的回调处理
+func (s *WalletServer) DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error) {
+	return s.service.DepositForPay(ctx, req)
+}
