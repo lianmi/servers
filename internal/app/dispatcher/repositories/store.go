@@ -485,12 +485,11 @@ func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (in
 	}
 
 	//此店铺的总点赞数， 包括其他用户的点赞
-	totalLikeKey := fmt.Sprintf("TotalLikeCount:%s", businessUsername)
-	if totalLikeCount, err = redis.Int64(redisConn.Do("INCR", totalLikeKey)); err != nil {
-		s.logger.Error("INCR TotalLike Error", zap.Error(err))
+	// Scard 命令返回集合中元素的数量。
+	if totalLikeCount, err = redis.Int64(redisConn.Do("SCARD", storelikeKey)); err != nil {
+		s.logger.Error("SCARD TotalLike Error", zap.Error(err))
 		return 0, err
 	}
-
 	return totalLikeCount, nil
 }
 
@@ -510,15 +509,15 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 
 	//删除店铺点赞用户列表
 	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
-	if _, err = redisConn.Do("SREM", storelikeKey); err != nil {
+	if _, err = redisConn.Do("SREM", storelikeKey, username); err != nil {
 		s.logger.Error("SREM StoreLike Error", zap.Error(err))
 		return 0, err
 	}
 
 	//此店铺的总点赞数
-	totalLikeKey := fmt.Sprintf("TotalLikeCount:%s", businessUsername)
-	if totalLikeCount, err = redis.Int64(redisConn.Do("DECR", totalLikeKey)); err != nil {
-		s.logger.Error("DECR TotalLike Error", zap.Error(err))
+	// Scard 命令返回集合中元素的数量。
+	if totalLikeCount, err = redis.Int64(redisConn.Do("SCARD", storelikeKey)); err != nil {
+		s.logger.Error("SCARD TotalLike Error", zap.Error(err))
 		return 0, err
 	}
 	return totalLikeCount, nil
