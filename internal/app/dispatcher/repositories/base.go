@@ -203,7 +203,7 @@ type LianmiRepository interface {
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
 
 	//根据订单号获取支付用户及金额
-	GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, error)
+	GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, bool, error)
 }
 
 type MysqlLianmiRepository struct {

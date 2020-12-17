@@ -6,7 +6,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-func (s *MysqlLianmiRepository) GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, error) {
+func (s *MysqlLianmiRepository) GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, bool, error) {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
@@ -18,6 +18,8 @@ func (s *MysqlLianmiRepository) GetAlipayInfoByTradeNo(outTradeNo string) (strin
 	//获取充值金额
 	totalAmount, err := redis.Float64(redisConn.Do("HGET", preAlipayKey, "TotalAmount"))
 
-	return username, totalAmount, err
-}
+	//获取充值状态
+	IsPayed, err := redis.Bool(redisConn.Do("HGET", preAlipayKey, "IsPayed"))
 
+	return username, totalAmount, IsPayed, err
+}

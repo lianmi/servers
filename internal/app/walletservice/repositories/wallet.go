@@ -176,6 +176,8 @@ func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNum
 	if result.Error != nil {
 		m.logger.Error("将Status变为已支付", zap.Error(result.Error))
 		return result.Error
+	} else {
+		
 	}
 
 	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))

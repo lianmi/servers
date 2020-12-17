@@ -47,7 +47,8 @@ type User struct {
 	BelongBusinessUser string `form:"belong_business_user" json:"belong_business_user,omitempty" ` //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
 	CreatedBy          string `form:"created_by" json:"created_by,omitempty"`                      //由谁创建， 分为注册或后台添加
 	ModifiedBy         string `form:"modified_by" json:"modified_by,omitempty"`                    //最后由哪个操作员修改
-	VipEndDate         int64  `form:"vip_end_date" json:"v,omitempty"`                             //VIP用户到期时间
+	VipEndDate         int64  `form:"vip_end_date" json:"vip_end_date,omitempty"`                  //VIP用户到期时间
+	ECouponCardUsed    bool   `form:"ecoupon_card_used" json:"ecoupon_card_used,omitempty"`        //VIP7天体验卡
 }
 
 //BeforeCreate CreatedAt赋值

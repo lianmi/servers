@@ -620,7 +620,10 @@ func (s *DefaultApisService) DoPreAlipay(ctx context.Context, req *Wallet.PreAli
 
 //支付宝回调处理，用户充值
 func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error) {
-	//TODO
+	//TODO 检测TradeNo是否已经充值过了，避免刷币
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	
 	//通过grpc获取发起购买者用户的余额
 	//当前用户的代币余额
 	getUserBalanceResp, err := s.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{

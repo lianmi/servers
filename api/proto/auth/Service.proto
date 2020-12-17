@@ -265,8 +265,12 @@ message SubmitGradeResp {
 
 //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 message PreOrderForPayMembershipReq {
-    //要给谁付费
+    //要给谁付费, 如果是给自己，则留空或填自己的注册账号  
     string PayForUsername =1; 
+
+    //枚举 购买的会员类型，月卡或年卡  
+    global.VipUseerPayType PayType=2;
+
 }
 
 message PreOrderForPayMembershipResp {

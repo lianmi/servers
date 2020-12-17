@@ -325,7 +325,7 @@ func CreateInitControllersFn(
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser) //根据id获取用户信息
+			userGroup.GET("/getuser/:id", pc.GetUser) //根据用户注册号获取用户详细 信息
 			userGroup.POST("/list", pc.QueryUsers)    //多条件不定参数批量分页获取用户列表
 			userGroup.GET("/likes", pc.UserLikes)     //获取当前用户对所有店铺点赞情况
 		}
@@ -365,13 +365,10 @@ func CreateInitControllersFn(
 
 			//查询通用商品的详情 by productid
 			productGroup.GET("/generalproduct/:productid", pc.GetGeneralProductByID)
-
 			//根据商户注册号查询所有上架商品
 			productGroup.POST("/productslist", pc.GetProductsList)
-
 			//根据商品ID获取商品详情
 			productGroup.GET("/info/:productid", pc.GetProductInfo)
-
 			//设置商品的子类型
 			productGroup.POST("/setsubtype", pc.SetProductSubType)
 

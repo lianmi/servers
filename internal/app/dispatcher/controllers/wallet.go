@@ -91,7 +91,11 @@ func (pc *LianmiApisController) AlipayCallback(c *gin.Context) {
 
 	//TODO
 	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-	pc.service.AlipayDone(ctx, outTradeNo)
+	if err := pc.service.AlipayDone(ctx, outTradeNo); err != nil {
+		pc.logger.Error("AlipayDone", zap.Error(err))
+	} else {
+		pc.logger.Debug("AlipayDone succeed,  支付成功", zap.String("订单", outTradeNo))
+	}
 
 }
 

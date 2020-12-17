@@ -785,11 +785,19 @@ func (s *DefaultLianmiApisService) PreAlipay(ctx context.Context, req *Wallet.Pr
 //支付宝付款成功
 func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo string) error {
 
-	username, totalAmount, err := s.Repository.GetAlipayInfoByTradeNo(outTradeNo)
+	//从redis里获取当前支付订单状态
+	username, totalAmount, isPayed, err := s.Repository.GetAlipayInfoByTradeNo(outTradeNo)
 	if err != nil {
 		s.logger.Error("GetAlipayInfoByTradeNo 失败", zap.Error(err))
 		return err
 	}
+
+	//不能重复支付
+	if isPayed {
+		s.logger.Warn("不能重复支付", zap.String("outTradeNo", outTradeNo), zap.String("username", username), zap.Float64("totalAmount", totalAmount))
+		return errors.Wrap(err, "The outTradeNo have already payed")
+	}
+
 	//调用钱包微服务
 	rsp, err := s.walletGrpcClientSvc.DepositForPay(ctx, &Wallet.DepositForPayReq{
 		TradeNo:     outTradeNo,

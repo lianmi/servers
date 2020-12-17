@@ -10,7 +10,6 @@ import (
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	// Global "github.com/lianmi/servers/api/proto/global"
-	
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -56,6 +55,7 @@ func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
 			zap.String("userName", userName),
 			zap.String("deviceID", deviceID),
 			zap.String("payForUsername", req.PayForUsername),
+			zap.Int("PayType", int(req.PayType)),
 			zap.String("token", token))
 
 		//如果目标用户是空，这为自己购买
