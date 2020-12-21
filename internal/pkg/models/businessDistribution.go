@@ -68,7 +68,7 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 /*
 普通用户的佣金月统计, 每月生成一条记录
 */
-type NormalUserCommissionStatistics struct {
+type CommissionStatistics struct {
 	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
 	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`   //修改时间
 	Username        string  `json:"username" validate:"required"`             //用户户注册账号id
@@ -79,13 +79,13 @@ type NormalUserCommissionStatistics struct {
 }
 
 //BeforeCreate CreatedAt赋值
-func (n *NormalUserCommissionStatistics) BeforeCreate(tx *gorm.DB) error {
+func (n *CommissionStatistics) BeforeCreate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
 //BeforeUpdate UpdatedAt赋值
-func (n *NormalUserCommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
+func (n *CommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

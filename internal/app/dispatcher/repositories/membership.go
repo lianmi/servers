@@ -172,13 +172,13 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			s.logger.Debug("增加commissionOne成功, upsert Commission succeed")
 		}
 
-		//普通用户的佣金月统计  NormalUserCommissionStatistics
-		nucs := &models.NormalUserCommissionStatistics{
+		//普通用户的佣金月统计  CommissionStatistics
+		nucs := &models.CommissionStatistics{
 			Username:  distribution.UsernameLevelOne,
 			YearMonth: currYearMonth,
 			IsRebate:  true,
 		}
-		ncs := &models.NormalUserCommissionStatistics{}
+		ncs := &models.CommissionStatistics{}
 		if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelOne))
 		} else {
@@ -194,7 +194,7 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			amount := Amount{}
 			db.Select("SUM(commission) AS total").Scan(&amount)
 
-			newnucs := &models.NormalUserCommissionStatistics{
+			newnucs := &models.CommissionStatistics{
 				Username:        distribution.UsernameLevelOne,
 				YearMonth:       currYearMonth,
 				TotalCommission: amount.Total, //本月返佣总金额
@@ -247,13 +247,13 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			s.logger.Debug("增加commissionTwo成功, upsert Commission succeed")
 		}
 
-		//普通用户的佣金月统计  NormalUserCommissionStatistics
-		nucs := &models.NormalUserCommissionStatistics{
+		//普通用户的佣金月统计  CommissionStatistics
+		nucs := &models.CommissionStatistics{
 			Username:  distribution.UsernameLevelTwo,
 			YearMonth: currYearMonth,
 			IsRebate:  true,
 		}
-		ncs := &models.NormalUserCommissionStatistics{}
+		ncs := &models.CommissionStatistics{}
 		if err = s.db.Model(nucs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelTwo))
 		} else {
@@ -268,7 +268,7 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			amount := Amount{}
 			db.Select("SUM(commission) AS total").Scan(&amount)
 
-			newnucs := &models.NormalUserCommissionStatistics{
+			newnucs := &models.CommissionStatistics{
 				Username:        distribution.UsernameLevelTwo,
 				YearMonth:       currYearMonth,
 				TotalCommission: amount.Total, //本月返佣总金额
@@ -320,13 +320,13 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			s.logger.Debug("增加commissionThree成功, upsert Commission succeed")
 		}
 
-		//普通用户的佣金月统计  NormalUserCommissionStatistics
-		nucs := &models.NormalUserCommissionStatistics{
+		//普通用户的佣金月统计  CommissionStatistics
+		nucs := &models.CommissionStatistics{
 			Username:  distribution.UsernameLevelThree,
 			YearMonth: currYearMonth,
 			IsRebate:  true,
 		}
-		ncs := &models.NormalUserCommissionStatistics{}
+		ncs := &models.CommissionStatistics{}
 		if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
 			s.logger.Error("NormalUserCommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelThree))
 		} else {
@@ -341,7 +341,7 @@ func (s *MysqlLianmiRepository) AddCommission(orderTotalAmount float64, username
 			amount := Amount{}
 			db.Select("SUM(commission) AS total").Scan(&amount)
 
-			newnucs := &models.NormalUserCommissionStatistics{
+			newnucs := &models.CommissionStatistics{
 				Username:        distribution.UsernameLevelThree,
 				YearMonth:       currYearMonth,
 				TotalCommission: amount.Total, //本月返佣总金额
@@ -415,10 +415,10 @@ func (s *MysqlLianmiRepository) GetNormalMembership(username string) (*Auth.GetM
 	var err error
 	total := new(int64)
 
-	var bucss []*models.NormalUserCommissionStatistics
-	where := models.NormalUserCommissionStatistics{Username: username}
+	var bucss []*models.CommissionStatistics
+	where := models.CommissionStatistics{Username: username}
 	orderStr := "year_month desc" //按照年月降序
-	if err = s.base.GetPages(&models.NormalUserCommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
+	if err = s.base.GetPages(&models.CommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取NormalUserCommissionStatistics信息失败", zap.Error(err))
 	}
 	rsp := &Auth.GetMembershipResp{}
@@ -450,8 +450,8 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 
 	//获取 yearMonth对应的 withdrawCommission
 
-		nucs := new(models.NormalUserCommissionStatistics)
-		if err = s.db.Model(nucs).Where(&models.NormalUserCommissionStatistics{
+		nucs := new(models.CommissionStatistics)
+		if err = s.db.Model(nucs).Where(&models.CommissionStatistics{
 			Username:  username,
 			YearMonth: yearMonth,
 		}).First(nucs).Error; err != nil {
