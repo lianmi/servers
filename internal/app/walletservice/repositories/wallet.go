@@ -58,6 +58,9 @@ type WalletRepository interface {
 	GetWithdrawInfo(txHash string) (*models.LnmcWithdrawHistory, error)
 
 	GetTransferInfo(txHash string) (*models.LnmcTransferHistory, error)
+
+	//根据PayType获取到VIP价格
+	GetVipUserPrice(payType int) (*models.VipPrice, error)
 }
 
 type MysqlWalletRepository struct {
@@ -177,7 +180,7 @@ func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNum
 		m.logger.Error("将Status变为已支付", zap.Error(result.Error))
 		return result.Error
 	} else {
-		
+
 	}
 
 	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
@@ -460,4 +463,16 @@ func (m *MysqlWalletRepository) GetTransferInfo(txHash string) (*models.LnmcTran
 		return nil, errors.Wrapf(err, "Get LnmcTransferHistory info error[txHash=%s]", txHash)
 	}
 	return tr, nil
+}
+
+//根据PayType获取到VIP价格
+func (m *MysqlWalletRepository) GetVipUserPrice(payType int) (*models.VipPrice, error) {
+	p := new(models.VipPrice)
+	where := models.VipPrice{
+		PayType: payType,
+	}
+	if err := m.db.Model(p).Where(&where).First(p).Error; err != nil {
+		return nil, errors.Wrapf(err, "PayType not found[payType=%d]", payType)
+	}
+	return p, nil
 }

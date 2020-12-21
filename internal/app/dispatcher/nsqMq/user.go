@@ -111,6 +111,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 					nc.logger.Error("错误：HMSET", zap.Error(err))
 				}
 			}
+			
 			user := &User.User{
 				Username:      userData.Username,
 				Nick:          userData.Nick,

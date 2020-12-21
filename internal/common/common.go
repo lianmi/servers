@@ -139,13 +139,11 @@ const (
 	FEERATE float64 = 0.002
 )
 
-//会员相关
+//会员返佣比例相关， 比例是49%
 const (
-	MEMBERSHIPPRICE    = 99.00
-	CommissionOne      = 35.0
-	CommissionTwo      = 10.0
-	CommissionThree    = 5.0
-	CommissionBusiness = 11.0
+	CommissionOne   = float64(0.3)
+	CommissionTwo   = float64(0.1)
+	CommissionThree = float64(0.09)
 )
 
 //订单相关

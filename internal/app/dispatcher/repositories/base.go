@@ -127,8 +127,11 @@ type LianmiRepository interface {
 
 	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
 
-	//会员付费成功后，需要新增4条佣金记录
-	AddCommission(username, orderID, content string, blockNumber uint64, txHash string) error
+	//根据PayType获取到VIP价格
+	GetVipUserPrice(payType int) (*models.VipPrice, error)
+
+	//会员付费成功后，按系统设定的比例进行佣金计算及写库， 需要新增3条佣金amount记录
+	AddCommission(orderTotalAmount float64, username, orderID, content string, blockNumber uint64, txHash string) error
 
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
@@ -204,6 +207,9 @@ type LianmiRepository interface {
 
 	//根据订单号获取支付用户及金额
 	GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, bool, error)
+
+	//查询VIP会员价格表
+	GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error)
 }
 
 type MysqlLianmiRepository struct {

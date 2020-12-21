@@ -98,13 +98,16 @@ type LianmiApisService interface {
 
 	SubmitGrade(req *Auth.SubmitGradeReq) error
 
+	//查询VIP会员价格表
+	GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error)
+
 	//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
 	//普通用户佣金返佣统计
 	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
 
-	PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error)
+	PreOrderForPayMembership(ctx context.Context, username, deviceID string, req *Auth.PreOrderForPayMembershipReq) (*Auth.PreOrderForPayMembershipResp, error)
 
 	ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error)
 
@@ -450,30 +453,22 @@ func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.G
 
 //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 //payForUsername  - 要给谁付费
-func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID, payForUsername string) (*Auth.PreOrderForPayMembershipResp, error) {
+func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID string, req *Auth.PreOrderForPayMembershipReq) (*Auth.PreOrderForPayMembershipResp, error) {
+	// redisConn := s.redisPool.Get()
+	// defer redisConn.Close()
 
-	//查询当前用户是否已经付费
-	userInfo, err := s.Repository.GetUser(username)
-	if err != nil {
-		s.logger.Error("s.Repository.GetUser 错误", zap.Error(err))
-		return nil, err
-	}
-	//用户不是付费会员
-	if userInfo.State == 0 || userInfo.State == 2 {
-		return nil, errors.Wrap(err, "用户不是付费会员")
-	}
+	// // 判断username 是否存在
+	// userKey := fmt.Sprintf("userData:%s", req.PayForUsername)
 
-	//查询payForUsername是否已经付费
-	payForUsernameInfo, err := s.Repository.GetUser(payForUsername)
-	if err != nil {
-		s.logger.Error("s.Repository.GetUser 错误", zap.Error(err))
-		return nil, err
-	}
-
-	//接受支付的用户已经是付费会员， 不能重复支付
-	if payForUsernameInfo.State == 1 {
-		return nil, errors.Wrapf(err, "接受支付的用户已经是付费会员[%s]", payForUsername)
-	}
+	// if isExists, err = redis.Bool(redisConn.Do("EXISTS", userKey)); err != nil {
+	// 	s.logger.Error("EXISTS Error", zap.Error(err), zap.String("PayForUsername", req.PayForUsername))
+	// 	return nil, err
+	// } else {
+	// 	if !isExists {
+	// 		s.logger.Warn("PayForUsername is not exists", zap.String("PayForUsername", req.PayForUsername))
+	// 		return nil, err
+	// 	}
+	// }
 
 	//通过grpc获取发起购买者用户的余额
 	//当前用户的代币余额
@@ -485,27 +480,34 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 		return nil, err
 	}
 
-	//由于会员价格是99元，是人民币，以元为单位，因此，需要乘以100
-	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+	//根据用户选择的VIP价格类型获得需要支付的金额
+	priceInfo, err := s.Repository.GetVipUserPrice(int(req.PayType))
+
+	//由于会员价格是人民币定价，以元为单位，因此，需要乘以100
+	amountLNMC := uint64(priceInfo.Price * 100)
 
 	s.logger.Info("当前用户的钱包信息",
 		zap.String("username", username),
 		zap.Uint64("当前代币余额 balanceLNMC", getUserBalanceResp.BalanceLNMC),
 		zap.Uint64("当前ETH余额 balanceETH", getUserBalanceResp.BalanceEth),
 	)
+
+	//TODO
 	if getUserBalanceResp.BalanceEth < LMCommon.GASLIMIT {
 		return nil, errors.Wrap(err, "gas余额不足")
 	}
 
 	//判断是否有足够代币数量
 	if getUserBalanceResp.BalanceLNMC < amountLNMC {
-		return nil, errors.Wrap(err, "LNMC余额不足")
+		s.logger.Warn("当前用户LNMC余额不足", zap.String("Username", username))
+		return nil, errors.Wrap(err, "当前用户LNMC余额不足")
 	}
 
 	//调用钱包Grpcserver，生成一个类似 10-3 的预支付裸交易
 	sendPrePayForMembershipResp, err := s.walletGrpcClientSvc.SendPrePayForMembership(ctx, &Wallet.SendPrePayForMembershipReq{
-		Username:       username,
-		PayForUsername: payForUsername,
+		Username:       username,           //支付方
+		PayForUsername: req.PayForUsername, //购买vip的用户，可以两者一样
+		PayType:        req.PayType,        //会员卡类型
 	})
 	if err != nil {
 		s.logger.Error("walletGrpcClientSvc.SendPrePayForMembership 错误", zap.Error(err))
@@ -513,8 +515,8 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 	}
 
 	return &Auth.PreOrderForPayMembershipResp{
-		//订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-		OrderTotalAmount: LMCommon.MEMBERSHIPPRICE,
+		//订单的实际总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
+		OrderTotalAmount: sendPrePayForMembershipResp.OrderTotalAmount,
 		//服务端生成的订单id
 		OrderID: sendPrePayForMembershipResp.OrderID,
 		//向收款方转账的裸交易结构体
@@ -527,14 +529,11 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error) {
 
 	//调用钱包的GrpcServer接口，进行类似 10-4 的确认交易
-	resp, err := s.walletGrpcClientSvc.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
-		Username: username,
-		//订单ID（ 非空的时候，targetUserName 必须是空
-		OrderID: req.OrderID,
-		//签名后的转给目标接收者的Tx(A签) hex格式
-		SignedTxToTarget: req.SignedTxToTarget,
-		//附言
-		Content: req.Content,
+	sendConfirmPayForMembershipResp, err := s.walletGrpcClientSvc.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
+		Username:         username,
+		OrderID:          req.OrderID,          //订单ID
+		SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
+		Content:          req.Content,          //附言
 	})
 	if err != nil {
 		s.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
@@ -542,19 +541,19 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 	}
 
 	//确认支付成功后，就需要分配佣金
-	s.Repository.AddCommission(username, req.OrderID, req.Content, resp.BlockNumber, resp.Hash)
+	s.Repository.AddCommission(sendConfirmPayForMembershipResp.OrderTotalAmount, username, req.OrderID, req.Content, sendConfirmPayForMembershipResp.BlockNumber, sendConfirmPayForMembershipResp.Hash)
 
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费
-		PayForUsername: resp.PayForUsername,
+		PayForUsername: sendConfirmPayForMembershipResp.PayForUsername,
 		//订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-		OrderTotalAmount: LMCommon.MEMBERSHIPPRICE,
+		OrderTotalAmount: sendConfirmPayForMembershipResp.OrderTotalAmount,
 		// 区块高度
-		BlockNumber: resp.BlockNumber,
+		BlockNumber: sendConfirmPayForMembershipResp.BlockNumber,
 		// 交易哈希hex
-		Hash: resp.Hash,
+		Hash: sendConfirmPayForMembershipResp.Hash,
 		//交易时间
-		Time: resp.Time,
+		Time: sendConfirmPayForMembershipResp.Time,
 	}, nil
 }
 
@@ -815,4 +814,9 @@ func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo st
 		)
 		return nil
 	}
+}
+
+//查询VIP会员价格表
+func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error) {
+	return s.Repository.GetVipPriceList(payType)
 }

@@ -496,7 +496,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		//保存预审核转账记录到 redis
 		_, err = redisConn.Do("HMSET",
 			fmt.Sprintf("PreTransfer:%s", uuidStr),
-			"Username", username, // 发起转账的注册号
+			"Username", username, // 发起转账的注册号, 非空
 			"OrderID", req.OrderID, //如果是为订单支付的，则非空
 			"ToUsername", toUsername, //转账目标
 			"WalletAddress", walletAddress, //发起者的钱包地址
@@ -627,7 +627,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
 
 		if preUsername != username {
-			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配")
+			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配", zap.String("Uuid", req.Uuid))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Error:  preUsername(%s) is not equal to current username(%s)", preUsername, username)
 			goto COMPLETE

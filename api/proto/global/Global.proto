@@ -276,14 +276,15 @@ enum DepositRecharge {
 enum CustomerServiceType {
       CS_Undefined         = 0;      //proto3必须从0开始
       CS_CustomerService   =1;       //客服
-      CS_TechnologyService =2;       // 技术支持
+      CS_TechnologyService =2;       //技术支持
 }
 
 //会员时间类型，有包年，包季，包月
-enum VipUseerPayType {
-    VUP_Undefined   = 0;          //proto3必须从0开始
-    VUP_Year        = 1;          //包年
-    VUP_Season      = 2;          //包季
-    VUP_Month       = 4;          //包月
+enum VipUserPayType {
+    VIP_Undefined   = 0;          //proto3必须从0开始
+    VIP_Year        = 1;          //包年
+    VIP_Season      = 2;          //包季
+    VIP_Month       = 3;          //包月
+    VIP_Week        = 4;          //包周，体验卡
 
 }

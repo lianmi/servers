@@ -268,8 +268,8 @@ message PreOrderForPayMembershipReq {
     //要给谁付费, 如果是给自己，则留空或填自己的注册账号  
     string PayForUsername =1; 
 
-    //枚举 购买的会员类型，月卡或年卡  
-    global.VipUseerPayType PayType=2;
+    //枚举 购买的会员类型，月卡、 季卡或年卡  
+    global.VipUserPayType PayType=2;
 
 }
 
@@ -330,19 +330,31 @@ message BusinessUserMonthDetail {
     //月份 2020-10
     string yearMonth =2;
 
-    //当月付费会员数量
+    //当月下属会员数量
     fixed64 total =3;
-
-    //当月返佣金额
-    double totalCommission =4;
-
-    //是否已经返佣
-    bool isRebate =5;
-
-    //操作时间
-    fixed64 rebateTime =6;
 }
 
+//VIP会员价格
+message VipPrice {
+    
+    //VIP类型，1-包年，2-包季， 3-包月
+    global.VipUserPayType payType=1;
+
+    //价格标题说明
+    string title=2;
+    
+    //价格, 单位: 元
+    float price=3;
+
+    //开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天
+    int32 days=4;
+    
+}
+
+//VIP会员价格表
+message GetVipPriceResp {
+   repeated VipPrice pricelist =1;
+}
 
 message GetBusinessMembershipResp {
     // 当前商户所属的会员总数
@@ -380,7 +392,6 @@ message GetMembershipResp{
     repeated UserMonthCommssionDetail commssionDetails=1;
 }
 
-
 message NormalMembershipReq {
     //页数,第几页
     //默认1
@@ -400,7 +411,7 @@ message NormalMembershipReq {
 }
 
 
-//用户三级分销的按月统计记录
+//购买会员奖励佣金的按月统计记录
 message PerLevelSummary{
     //月份 2020-10
     string month =1;
@@ -474,4 +485,4 @@ message AuditStoreReq {
 
 message AuditStoreResp {
 
-}
+}   

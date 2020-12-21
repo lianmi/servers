@@ -21,7 +21,6 @@ type Product struct {
 	ProductPic1Large string `form:"product_pic1_large" json:"product_pic1_large,omitempty"` //商品图片1-大图
 	ProductPic2Large string `form:"product_pic2_large" json:"product_pic2_large,omitempty"` //商品图片2-大图
 	ProductPic3Large string `form:"product_pic3_large" json:"product_pic3_large,omitempty"` //商品图片3-大图
-	// Thumbnail         string  `form:"thumbnail" json:"thumbnail,omitempty"`                   //商品短视频缩略图
 	ShortVideo        string  `form:"short_video" json:"short_video,omitempty"`               //商品短视频
 	Price             float32 `form:"price" json:"price,omitempty"`                           //价格
 	LeftCount         uint64  `form:"left_count" json:"left_count,omitempty"`                 //库存数量

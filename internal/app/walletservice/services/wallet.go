@@ -97,7 +97,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	buyUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 	businessUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	attachHash, err := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
-	orderTotalAmount, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+	orderTotalAmount, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount")) //人民币
 
 	if isPayed == false {
 		return &Wallet.TransferResp{
@@ -372,7 +372,17 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 		return nil, err
 	}
 
-	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+	//根据PayType获取到VIP价格
+	vipPrice, err := s.Repository.GetVipUserPrice(int(req.PayType))
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO 暂时不用理会优惠券, 人民币
+	orderTotalAmount := float64(vipPrice.Price)
+
+	//转换为连米币
+	amountLNMC := uint64(orderTotalAmount * 100)
 
 	//生成一个OrderID, 发起一个预支付
 	orderID := uuid.NewV4().String()
@@ -385,8 +395,8 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 	//保存预审核转账记录到 MySQL
 	lnmcTransferHistory := &models.LnmcTransferHistory{
 		Username:          req.Username,      //发起支付
-		ToUsername:        "",                //如果是普通转账，toUsername非空
-		OrderID:           orderID,           //如果是订单支付 ，非空
+		ToUsername:        "",                //空
+		OrderID:           orderID,           //非空
 		WalletAddress:     userWalletAddress, //发起方钱包账户
 		ToWalletAddress:   toWalletAddress,   //接收者钱包账户
 		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
@@ -411,7 +421,7 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 		"PayForUsername", req.PayForUsername,
 		"WalletAddress", userWalletAddress,
 		"ToWalletAddress", toWalletAddress,
-		"AmountLNMC", amountLNMC,
+		"AmountLNMC", amountLNMC, //真实的花费, 连米币
 		"BalanceLNMCBefore", balanceLNMC,
 		"Bip32Index", bip32Index,
 		"State", 0,
@@ -431,8 +441,9 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 			Value:           amountLNMC, //要转账的代币数量
 			TxHash:          rawDescToTarget.TxHash,
 		},
-		OrderID: orderID,
-		Time:    uint64(time.Now().UnixNano() / 1e6),
+		OrderID:          orderID,
+		OrderTotalAmount: orderTotalAmount,
+		Time:             uint64(time.Now().UnixNano() / 1e6),
 	}, nil
 }
 
@@ -451,8 +462,8 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
 	toWalletAddress := newKeyPair.AddressHex //中转账号
 
-	//本次购买会员的代币数量
-	amountLNMC := uint64(LMCommon.MEMBERSHIPPRICE * 100)
+	amountLNMC, err := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "AmountLNMC"))
+	orderTotalAmount := float64(amountLNMC / 100)
 
 	//获得会员的账号
 	payForUsername, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "PayForUsername"))
@@ -548,17 +559,16 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 	}
 
 	return &Wallet.SendConfirmPayForMembershipResp{
-		PayForUsername: payForUsername,
-		BlockNumber:    blockNumber,
-		Hash:           hash,
-		Time:           uint64(time.Now().UnixNano() / 1e6),
+		OrderTotalAmount: orderTotalAmount,
+		PayForUsername:   payForUsername,
+		BlockNumber:      blockNumber,
+		Hash:             hash,
+		Time:             uint64(time.Now().UnixNano() / 1e6),
 	}, nil
 }
 
 //订单图片上链
 func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
-
-	//TODO
 
 	var data []byte
 
@@ -623,7 +633,7 @@ func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.Depo
 	//TODO 检测TradeNo是否已经充值过了，避免刷币
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
-	
+
 	//通过grpc获取发起购买者用户的余额
 	//当前用户的代币余额
 	getUserBalanceResp, err := s.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{

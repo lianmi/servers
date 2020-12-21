@@ -1,6 +1,7 @@
 syntax = "proto3";
 import 'api/proto/wallet/PreTransfer.proto';
 import 'api/proto/wallet/Alipay.proto';
+import 'api/proto/global/Global.proto';
 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
@@ -78,17 +79,22 @@ message SendPrePayForMembershipReq {
     string username =1;
     //为谁购买
     string payForUsername=2;
+    //购买的VIP用户类型，包年、包季、包月
+    global.VipUserPayType payType=3;
 }
 
 message SendPrePayForMembershipResp {
     //订单ID
     string orderID =1;
 
+    //人民币格式
+    double orderTotalAmount=2;
+
     //裸交易结构体
-    RawDesc rawDescToTarget=2;
+    RawDesc rawDescToTarget=3;
 
     //时间
-    fixed64 time=3;
+    fixed64 time=4;
 
 }
 
@@ -107,17 +113,21 @@ message SendConfirmPayForMembershipReq{
 }
 
 message SendConfirmPayForMembershipResp{
+
+    //人民币格式，订单实际金额
+    double orderTotalAmount =1;
+
     //要给谁付费
-    string payForUsername =1;
+    string payForUsername =2;
 
     // 区块高度 
-    fixed64 blockNumber=2;
+    fixed64 blockNumber=3;
 
     // 交易哈希hex
-    string hash=3;
+    string hash=4;
 
     //时间
-    fixed64 time=4;
+    fixed64 time=5;
 }
 
 message OrderImagesOnBlockchainReq{

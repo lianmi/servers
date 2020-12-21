@@ -178,7 +178,7 @@ func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeRe
 		s.logger.Error("设置商品的子类型失败", zap.Error(result.Error))
 		return result.Error
 	} else {
-		mtxt := fmt.Sprintf("设置商品的子类型成功:  旧的子类型: %d, 新的子类型", curSubType, req.SubType)
+		mtxt := fmt.Sprintf("设置商品的子类型成功:  旧的子类型: %d, 新的子类型: %d", curSubType, req.SubType)
 		s.logger.Debug(mtxt)
 	}
 

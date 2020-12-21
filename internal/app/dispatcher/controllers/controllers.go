@@ -401,6 +401,10 @@ func CreateInitControllersFn(
 		membershipGroup := r.Group("/v1/membership")
 		membershipGroup.Use(authMiddleware.MiddlewareFunc())
 		{
+
+			//查询VIP会员价格表
+			membershipGroup.GET("/pricelist", pc.GetVipPriceList)
+
 			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 			membershipGroup.POST("/prepay", pc.PreOrderForPayMembership)
 

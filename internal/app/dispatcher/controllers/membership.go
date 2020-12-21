@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"time"
+	"strconv"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	// Global "github.com/lianmi/servers/api/proto/global"
@@ -16,6 +17,23 @@ import (
 	"github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
 )
+
+//查询VIP会员价格表
+func (pc *LianmiApisController) GetVipPriceList(c *gin.Context) {
+	var payType int
+	payTypeStr := c.DefaultQuery("pay_type", "0")
+	payType, _ = strconv.Atoi(payTypeStr)
+	pc.logger.Debug("GetVipPriceList", zap.String("payTypeStr", payTypeStr))
+
+	resp, err := pc.service.GetVipPriceList(payType)
+
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 400, "GetVipPriceList failed")
+	} else {
+
+		RespData(c, http.StatusOK, 200, resp)
+	}
+}
 
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
@@ -45,26 +63,24 @@ func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
 	token := jwt_v2.GetToken(c)
 
 	var req Auth.PreOrderForPayMembershipReq
-	var payForUsername string
 
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+		//如果目标用户是空，这为自己购买
+		if req.PayForUsername == "" {
+			req.PayForUsername = userName
+		}
 		pc.logger.Debug("PreOrderForPayMembership",
 			zap.String("userName", userName),
 			zap.String("deviceID", deviceID),
-			zap.String("payForUsername", req.PayForUsername),
-			zap.Int("PayType", int(req.PayType)),
+			zap.String("payForUsername", req.PayForUsername), //要给谁付费, 如果是给自己，则留空或填自己的注册账号
+			zap.Int("PayType", int(req.PayType)),             //枚举 购买的会员类型，月卡、 季卡或年卡
 			zap.String("token", token))
 
-		//如果目标用户是空，这为自己购买
-		if req.PayForUsername == "" {
-			payForUsername = userName
-		}
-
 		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-		resp, err := pc.service.PreOrderForPayMembership(ctx, userName, deviceID, payForUsername)
+		resp, err := pc.service.PreOrderForPayMembership(ctx, userName, deviceID, &req)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "PreOrderForPayMembership failed")
