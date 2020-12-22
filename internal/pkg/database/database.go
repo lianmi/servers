@@ -94,7 +94,7 @@ func New(o *Options) (*gorm.DB, error) {
 		PayType:  2,
 		Title:    "包季",
 		Price:    38.0,
-		Days:     30,
+		Days:     90,
 		IsActive: true,
 	}
 
@@ -104,7 +104,7 @@ func New(o *Options) (*gorm.DB, error) {
 	vipPrice3 := &models.VipPrice{
 		ID:       3,
 		PayType:  3,
-		Title:    "包季",
+		Title:    "包月",
 		Price:    9.9,
 		Days:     30,
 		IsActive: true,
