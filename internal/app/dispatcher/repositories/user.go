@@ -147,7 +147,7 @@ func (s *MysqlLianmiRepository) DisBlockUser(username string) (err error) {
 func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	//获取redis里最新id， 生成唯一的username
 	var newIndex uint64
-	var businessUserType int
+	var userType int
 	var belongBusinessUser string
 
 	redisConn := s.redisPool.Get()
@@ -165,59 +165,60 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 
 	}
 
-	//如果是普通用户注册，需要查找推荐人及种子商户
-	if user.GetUserType() == User.UserType_Ut_Normal {
-		if user.ReferrerUsername != "" {
-			//查询出邀请人的类型
-			referrerKey := fmt.Sprintf("userData:%s", user.ReferrerUsername)
-			businessUserType, _ = redis.Int(redisConn.Do("HGET", referrerKey, "UserType"))
+	// 判断推荐人是否为空
+	if user.ReferrerUsername != "" {
+		//查询出推荐人的类型
+		referrerKey := fmt.Sprintf("userData:%s", user.ReferrerUsername)
+		userType, _ = redis.Int(redisConn.Do("HGET", referrerKey, "UserType"))
 
-			if businessUserType == int(User.UserType_Ut_Normal) { //如果是用户，则查出对应的商户
-				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "BelongBusinessUser"))
+		if userType == int(User.UserType_Ut_Normal) { //如果是用户，则查出对应的商户
+			belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "BelongBusinessUser"))
 
-			} else if businessUserType == int(User.UserType_Ut_Business) { //商户
-				belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "Username"))
-
-			}
-
-			if belongBusinessUser != "" {
-				user.BelongBusinessUser = belongBusinessUser
-			}
-
-			//查出user.ReferrerUsername对应的 ReferrerUsername, 即推荐人的推荐人
-			userLevelTwo, _ := redis.String(redisConn.Do("HGET", referrerKey, "ReferrerUsername"))
-
-			//查出userLevelTwo对应的 ReferrerUsername, 即推荐人的推荐人的推荐人
-			userLevelThree, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userLevelTwo), "ReferrerUsername"))
-
-			//会员层级表
-			distribution := &models.Distribution{
-				Username:           user.Username,         //用户注册账号id
-				BusinessUsername:   belongBusinessUser,    //归属的商户注册账号id
-				UsernameLevelOne:   user.ReferrerUsername, //向后的一级, 即推荐人
-				UsernameLevelTwo:   userLevelTwo,          //向后的二级, 即推荐人的推荐人
-				UsernameLevelThree: userLevelThree,        //向后的三级, 即推荐人的推荐人的推荐人
-			}
-			s.logger.Debug("distribution的值",
-				zap.String("Username", user.Username),
-				zap.String("BusinessUsername", belongBusinessUser),
-				zap.String("UsernameLevelOne", user.ReferrerUsername),
-				zap.String("UsernameLevelTwo", userLevelTwo),
-				zap.String("UsernameLevelThree", userLevelThree),
-			)
-
-			//如果没有记录，则增加，如果有记录，则更新全部字段
-			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(distribution).Error; err != nil {
-				s.logger.Error("增加Distribution表失败", zap.Error(err))
-				return err
-			} else {
-				s.logger.Debug("增加Distribution表成功")
-			}
+		} else if userType == int(User.UserType_Ut_Business) { //商户
+			belongBusinessUser, _ = redis.String(redisConn.Do("HGET", referrerKey, "Username"))
 
 		}
-	} else if user.GetUserType() == User.UserType_Ut_Business {
 
-		//如果是商户注册，则无须记录推荐人，种子商户是自己
+		if belongBusinessUser != "" {
+			user.BelongBusinessUser = belongBusinessUser
+		}
+
+		//查出user.ReferrerUsername对应的 ReferrerUsername, 即推荐人的推荐人
+		userLevelTwo, _ := redis.String(redisConn.Do("HGET", referrerKey, "ReferrerUsername"))
+
+		//查出userLevelTwo对应的 ReferrerUsername, 即推荐人的推荐人的推荐人
+		userLevelThree, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", userLevelTwo), "ReferrerUsername"))
+
+		//会员层级表
+		distribution := &models.Distribution{
+			Username:           user.Username,         //用户注册账号id
+			BusinessUsername:   belongBusinessUser,    //归属的商户注册账号id
+			UsernameLevelOne:   user.ReferrerUsername, //向后的一级, 即推荐人
+			UsernameLevelTwo:   userLevelTwo,          //向后的二级, 即推荐人的推荐人
+			UsernameLevelThree: userLevelThree,        //向后的三级, 即推荐人的推荐人的推荐人
+		}
+		s.logger.Debug("Distribution表",
+			zap.String("用户注册账号id, Username", user.Username),
+			zap.String("归属的商户注册账号id, BusinessUsername", belongBusinessUser),
+			zap.String("向后的一级, 即推荐人, UsernameLevelOne", user.ReferrerUsername),
+			zap.String("向后的二级, 即推荐人的推荐人, UsernameLevelTwo", userLevelTwo),
+			zap.String("向后的三级, 即推荐人的推荐人的推荐人,   UsernameLevelThree", userLevelThree),
+		)
+
+		//如果没有记录，则增加，如果有记录，则更新全部字段
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(distribution).Error; err != nil {
+			s.logger.Error("增加Distribution表失败", zap.Error(err))
+			return err
+		} else {
+			s.logger.Debug("增加Distribution表成功")
+		}
+
+	}
+
+	//如果是商户注册
+	if user.GetUserType() == User.UserType_Ut_Business {
+
+		//商户的下属是自己
 		user.BelongBusinessUser = user.Username
 
 		//网点商户自动建群

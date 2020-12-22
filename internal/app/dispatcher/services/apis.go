@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	// "fmt"
-	// "github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -454,21 +453,6 @@ func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.G
 //预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
 //payForUsername  - 要给谁付费
 func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID string, req *Auth.PreOrderForPayMembershipReq) (*Auth.PreOrderForPayMembershipResp, error) {
-	// redisConn := s.redisPool.Get()
-	// defer redisConn.Close()
-
-	// // 判断username 是否存在
-	// userKey := fmt.Sprintf("userData:%s", req.PayForUsername)
-
-	// if isExists, err = redis.Bool(redisConn.Do("EXISTS", userKey)); err != nil {
-	// 	s.logger.Error("EXISTS Error", zap.Error(err), zap.String("PayForUsername", req.PayForUsername))
-	// 	return nil, err
-	// } else {
-	// 	if !isExists {
-	// 		s.logger.Warn("PayForUsername is not exists", zap.String("PayForUsername", req.PayForUsername))
-	// 		return nil, err
-	// 	}
-	// }
 
 	//通过grpc获取发起购买者用户的余额
 	//当前用户的代币余额
@@ -540,9 +524,7 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 		return nil, err
 	}
 
-	//确认支付成功后，就需要分配佣金
-	s.Repository.AddCommission(sendConfirmPayForMembershipResp.OrderTotalAmount, username, req.OrderID, req.Content, sendConfirmPayForMembershipResp.BlockNumber, sendConfirmPayForMembershipResp.Hash)
-
+	
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费
 		PayForUsername: sendConfirmPayForMembershipResp.PayForUsername,

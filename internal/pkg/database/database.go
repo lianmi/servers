@@ -66,7 +66,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.Distribution{})             // 用户层级表
 	db.AutoMigrate(&models.Commission{})               // 用户佣金表
 	db.AutoMigrate(&models.CommissionWithdraw{})       // 佣金提现申请表表
-	db.AutoMigrate(&models.CommissionStatistics{})     // 用户佣金月统计表
+	db.AutoMigrate(&models.CommissionStatistics{})     // 商户/用户佣金月统计表
 	db.AutoMigrate(&models.BusinessUnderling{})        // 商户下属的会员表
 	db.AutoMigrate(&models.BusinessUserStatistics{})   // 商户下属的月会员统计表
 	db.AutoMigrate(&models.Store{})                    // 商户店铺表

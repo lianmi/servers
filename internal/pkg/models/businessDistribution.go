@@ -13,9 +13,10 @@ import (
 Three->Two-One->User
 */
 type Distribution struct {
-	Username           string `gorm:"primarykey" json:"username"  validate:"required"` //用户注册账号id
+	ID                 uint64 `form:"id" json:"id,omitempty"`
 	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`          //创建时刻,毫秒
 	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`          //修改时间
+	Username           string `gorm:"primarykey" json:"username"  validate:"required"` //用户注册账号id
 	BusinessUsername   string `json:"business_username"  validate:"required"`          //归属的商户注册账号id
 	UsernameLevelOne   string `json:"username_level_one" `                             //向后的一级
 	UsernameLevelTwo   string `json:"username_level_two" `                             //向后的二级
@@ -40,17 +41,14 @@ func (d *Distribution) BeforeUpdate(tx *gorm.DB) error {
 Commission:  One:35, Two:10, Three: 5
 */
 type Commission struct {
-	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`                      //创建时刻,毫秒
-	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`                      //修改时间
-	YearMonth        string  `json:"year_month" validate:"required"`                              //统计月份
-	UsernameLevel    string  `json:"username_level" validate:"required"`                          //One Two Three
-	BusinessUsername string  `json:"business_username" validate:"required"`                       //归属的商户注册账号id
-	Amount           float64 `json:"amount" validate:"required"`                                  //会员费用金额，单位是人民币
-	OrderID          string  `json:"order_id" validate:"required"`                                //订单ID
-	BlockNumber      uint64  `json:"block_number" validate:"required"`                            //交易成功打包的区块高度
-	TxHash           string  `json:"tx_hash" validate:"required"`                                 //交易成功打包的区块哈希
-	Content          string  `gorm:"type:longtext;null" form:"content" json:"content,omitempty" ` //附言 Text文本类型
-	Commission       float64 `json:"commission" validate:"required"`                              //本次佣金提成5 10 35
+	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
+	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"` //修改时间
+	YearMonth        string  `json:"year_month" validate:"required"`         //统计月份
+	UsernameLevel    string  `json:"username_level" validate:"required"`     //One Two Three
+	BusinessUsername string  `json:"business_username" validate:"required"`  //归属的商户注册账号id
+	Amount           float64 `json:"amount" validate:"required"`             //会员费用金额，单位是人民币
+	OrderID          string  `json:"order_id" validate:"required"`           //订单ID
+	Commission       float64 `json:"commission" validate:"required"`         //本次佣金提成金额，人民币
 }
 
 //BeforeCreate CreatedAt赋值

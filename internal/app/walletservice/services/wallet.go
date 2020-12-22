@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	LMCommon "github.com/lianmi/servers/internal/common"
@@ -414,10 +415,12 @@ func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *W
 	}
 
 	//保存预审核转账记录到 redis
+	prePayForMembershipKey := fmt.Sprintf("PrePayForMembership:%s", orderID)
 	_, err = redisConn.Do("HMSET",
-		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		prePayForMembershipKey,
 		"Username", username,
 		"OrderID", orderID,
+		"PayType", int(req.PayType), //包月、包季、包年
 		"PayForUsername", req.PayForUsername,
 		"WalletAddress", userWalletAddress,
 		"ToWalletAddress", toWalletAddress,
@@ -462,29 +465,35 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
 	toWalletAddress := newKeyPair.AddressHex //中转账号
 
-	amountLNMC, err := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "AmountLNMC"))
-	orderTotalAmount := float64(amountLNMC / 100)
+	prePayForMembershipKey := fmt.Sprintf("PrePayForMembership:%s", orderID)
+	amountLNMC, err := redis.Uint64(redisConn.Do("HGET", prePayForMembershipKey, "AmountLNMC"))
+	orderTotalAmount := float64(amountLNMC / 100) //实际花费，人民币格式
+
+	//获得付费类型- 包月，包季，包年
+	payType, err := redis.Int(redisConn.Do("HGET", prePayForMembershipKey, "PayType"))
+	if err != nil {
+		return nil, err
+	}
 
 	//获得会员的账号
-	payForUsername, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "PayForUsername"))
+	payForUsername, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "PayForUsername"))
 	if err != nil {
 		return nil, err
 	}
 
 	//发起支付的用户钱包地址
-	userWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "WalletAddress"))
+	userWalletAddress, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "WalletAddress"))
 	if err != nil {
 		return nil, err
 	}
 
 	//附言
-	content, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("PrePayForMembership:%s", orderID), "Content"))
+	content, err = redis.String(redisConn.Do("HGET", prePayForMembershipKey, "Content"))
 	if err != nil {
 		return nil, err
 	}
 
 	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
-	// toBalanceLNMC, err := s.ethService.GetLNMCTokenBalance(toWalletAddress)
 
 	//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
 	blockNumber, hash, err := s.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
@@ -532,24 +541,47 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 	}
 	s.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
-	//更新转账记录到 redis  HSET
+	//更新State到 redis  HSET
 	_, err = redisConn.Do("HSET",
-		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		prePayForMembershipKey,
 		"State", 1,
 	)
 
 	_, err = redisConn.Do("HSET",
-		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		prePayForMembershipKey,
 		"SignedTx", req.GetSignedTxToTarget(),
 	)
 	_, err = redisConn.Do("HSET",
-		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		prePayForMembershipKey,
 		"BlockNumber", blockNumber,
 	)
 	_, err = redisConn.Do("HSET",
-		fmt.Sprintf("PrePayForMembership:%s", orderID),
+		prePayForMembershipKey,
 		"Hash", hash,
 	)
+
+	//到期时间, ms
+	curVipEndDate, err := redis.Int64(redisConn.Do("HGET", userKey, "VipEndDate"))
+
+	if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
+		curVipEndDate = time.Now().UnixNano() / 1e6
+	}
+	curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
+
+	//增加到期时间
+	var endTime int64
+
+	switch Global.VipUserPayType(payType) {
+	case Global.VipUserPayType_VIP_Year: //包年
+		endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
+	case Global.VipUserPayType_VIP_Season: //包季
+		endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
+	case Global.VipUserPayType_VIP_Month: //包月
+		endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
+		// case Global.VipUserPayType_VIP_Week: //包周，体验卡
+
+	}
+	_, err = redisConn.Do("HSET", userKey, "VipEndDate", endTime)
 
 	//如果替他人支付，通知对方
 	if username != payForUsername {
@@ -557,6 +589,9 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 		//TODO
 
 	}
+
+	//确认支付成功后，就需要分配佣金
+	s.Repository.AddCommission(orderTotalAmount, username, req.OrderID, req.Content, blockNumber, hash)
 
 	return &Wallet.SendConfirmPayForMembershipResp{
 		OrderTotalAmount: orderTotalAmount,

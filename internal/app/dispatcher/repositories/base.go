@@ -130,9 +130,6 @@ type LianmiRepository interface {
 	//根据PayType获取到VIP价格
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 
-	//会员付费成功后，按系统设定的比例进行佣金计算及写库， 需要新增3条佣金amount记录
-	AddCommission(orderTotalAmount float64, username, orderID, content string, blockNumber uint64, txHash string) error
-
 	//提交佣金提现申请(商户，用户)
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 
