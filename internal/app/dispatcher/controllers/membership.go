@@ -6,8 +6,8 @@ package controllers
 import (
 	"context"
 	"net/http"
-	"time"
 	"strconv"
+	"time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	// Global "github.com/lianmi/servers/api/proto/global"
@@ -71,6 +71,9 @@ func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
 		//如果目标用户是空，这为自己购买
 		if req.PayForUsername == "" {
 			req.PayForUsername = userName
+		}
+		if req.PayType == 0 {
+			RespFail(c, http.StatusBadRequest, 500, "PayType is zero")
 		}
 		pc.logger.Debug("PreOrderForPayMembership",
 			zap.String("userName", userName),

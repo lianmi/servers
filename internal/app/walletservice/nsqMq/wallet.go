@@ -312,13 +312,13 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		}
 
 		if req.OrderID != "" && req.TargetUserName != "" {
-			nc.logger.Warn("订单ID与收款方的用户账号只能两者选一 ", zap.String("orderID", req.OrderID), zap.String("targetUserName", req.TargetUserName))
+			nc.logger.Warn("订单ID与收款方的用户账号只能两者选一", zap.String("orderID", req.OrderID), zap.String("targetUserName", req.TargetUserName))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("orderID and targetUserName, 2 choice  1")
 			goto COMPLETE
 		}
 		if req.OrderID == "" && req.TargetUserName == "" {
-			nc.logger.Warn("订单ID与收款方的用户账号不能都是空 ", zap.String("orderID", req.OrderID), zap.String("targetUserName", req.TargetUserName))
+			nc.logger.Warn("订单ID与收款方的用户账号不能都是空", zap.String("orderID", req.OrderID), zap.String("targetUserName", req.TargetUserName))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("orderID and targetUserName cannot both empty")
 			goto COMPLETE
@@ -326,7 +326,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 		if req.Amount <= 0 {
 
-			nc.logger.Warn("金额错误，必须大于0 ", zap.Float64("amount", req.Amount))
+			nc.logger.Warn("金额错误，必须大于0", zap.Float64("amount", req.Amount))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("amount must gather than 0")
 			goto COMPLETE
@@ -729,7 +729,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			errorMsg = fmt.Sprintf("A签 SendSignedTxToGeth error")
 			goto COMPLETE
 		} else {
-			nc.logger.Info("发起方转到目标接收者的交易数据广播到链上  A签成功 ",
+			nc.logger.Info("发起方转到目标接收者的交易数据广播到链上  A签成功",
 				zap.String("username", username),
 				zap.String("toUsername", toUsername),
 				zap.String("toWalletAddress", toWalletAddress),
@@ -1613,7 +1613,7 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	nc.logger.Debug("HandleSyncCollectionHistoryPage ",
+	nc.logger.Debug("HandleSyncCollectionHistoryPage",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),

@@ -466,6 +466,10 @@ func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context,
 
 	//根据用户选择的VIP价格类型获得需要支付的金额
 	priceInfo, err := s.Repository.GetVipUserPrice(int(req.PayType))
+	if err != nil {
+		s.logger.Error("wGetVipUserPrice 错误", zap.Error(err))
+		return nil, err
+	}
 
 	//由于会员价格是人民币定价，以元为单位，因此，需要乘以100
 	amountLNMC := uint64(priceInfo.Price * 100)
@@ -524,7 +528,6 @@ func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, 
 		return nil, err
 	}
 
-	
 	return &Auth.ConfirmPayForMembershipResp{
 		//要给谁付费
 		PayForUsername: sendConfirmPayForMembershipResp.PayForUsername,

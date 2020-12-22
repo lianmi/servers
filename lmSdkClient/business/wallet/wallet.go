@@ -298,7 +298,7 @@ func RegisterWallet(walletAddress string) error {
 
 }
 
-//10-2 充值
+//10-2 充值 -- 此接口已经废弃
 func Deposit(rechargeAmount float64) error {
 	if rechargeAmount < 0 {
 		return errors.New("rechargeAmount must gather than 0")
@@ -358,7 +358,7 @@ func Deposit(rechargeAmount float64) error {
 			User: map[string]string{
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
-				"businessSubType": "2",           //  业务子号
+				"businessSubType": "2",           // 业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",
@@ -405,10 +405,10 @@ func Deposit(rechargeAmount float64) error {
 				} else {
 
 					log.Println("回包内容---------------------")
-					log.Println("blockNumber: ", rsq.BlockNumber)
-					log.Println("hash: ", rsq.Hash)
-					log.Println("AmountLNMC: ", rsq.AmountLNMC)
-					log.Println("Time: ", rsq.Time)
+					// log.Println("blockNumber: ", rsq.BlockNumber)
+					// log.Println("hash: ", rsq.Hash)
+					// log.Println("AmountLNMC: ", rsq.AmountLNMC)
+					// log.Println("Time: ", rsq.Time)
 
 				}
 
