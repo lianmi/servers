@@ -110,6 +110,7 @@ func New(o *Options) (*gorm.DB, error) {
 		IsActive: true,
 	}
 
+	
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice3).Error; err != nil {
 		// return nil, err
 	}
