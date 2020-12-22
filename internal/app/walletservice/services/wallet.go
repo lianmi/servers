@@ -561,7 +561,7 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 	)
 
 	//到期时间, ms
-	curVipEndDate, err := redis.Int64(redisConn.Do("HGET", userKey, "VipEndDate"))
+	curVipEndDate, err := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
 
 	if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
 		curVipEndDate = time.Now().UnixNano() / 1e6
@@ -581,7 +581,7 @@ func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, re
 		// case Global.VipUserPayType_VIP_Week: //包周，体验卡
 
 	}
-	_, err = redisConn.Do("HSET", userKey, "VipEndDate", endTime)
+	_, err = redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime)
 
 	//如果替他人支付，通知对方
 	if username != payForUsername {
