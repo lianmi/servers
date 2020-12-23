@@ -1160,6 +1160,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		if req.UserName == LMCommon.VipBusinessUsername {
 			//TODO 当购买Vip会员时，不需要 opk
+			nc.logger.Debug("当购买Vip会员时", zap.String("商户注册id", req.UserName))
 		} else {
 
 			//从商户的prekeys有序集合取出一个opk
