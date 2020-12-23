@@ -1659,12 +1659,12 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				// 判断买家的OPK不能为空
-				if orderProductBody.OpkBuyUser == "" {
-					nc.logger.Error("OpkBuyUser is empty")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("OpkBuyUser is empty")
-					goto COMPLETE
-				}
+				// if orderProductBody.OpkBuyUser == "" {
+				// 	nc.logger.Error("OpkBuyUser is empty")
+				// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				// 	errorMsg = fmt.Sprintf("OpkBuyUser is empty")
+				// 	goto COMPLETE
+				// }
 
 				//判断商户的账号id不能为空
 				if orderProductBody.BusinessUser == "" {

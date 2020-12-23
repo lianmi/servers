@@ -21,10 +21,8 @@ import (
 	"time"
 )
 
-//9-3 下单
-func AddOrder(orderID, productID string) error {
-	var attach string
-	// var imageFile = "/Users/mac/developments/lianmi/产品/图片/双色球彩票.jpeg"
+//向商户id3 购买Vip会员
+func BuyVipUser(price float64, orderID, productID string) error {
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
@@ -80,49 +78,22 @@ func AddOrder(orderID, productID string) error {
 		log.Println("productID:", productID)
 	}
 
-	ssqOrder := ShuangSeQiuOrder{
-		BuyUser:          "id1",     //买家
-		BusinessUsername: "id3",     //商户注册账号
-		ProductID:        productID, //商品ID
-		OrderID:          orderID,   //订单ID
-		// LotteryPicHash:   "",                          //彩票拍照的照片md5
-		// LotteryPicURL:    "",                          //彩票拍照的照片原图 oss objectID
-		TicketType:  1,                           //彩票投注类型，1-单式\2-复式\3-胆拖
-		Count:       1,                           //总注数
-		Cost:        2.0,                         //花费, 每注2元, 乘以总注数
-		TxHash:      "",                          //上链的哈希
-		BlockNumber: 0,                           //区块高度
-		CreatedAt:   time.Now().UnixNano() / 1e6, //创建订单的时刻，服务端为准
-	}
-
-	//单式
-	ssqOrder.Straws = append(ssqOrder.Straws, &ShuangSeQiu{
-		DantuoBall: nil,
-		RedBall:    []int{1, 2, 3, 4, 5, 6},
-		BlueBall:   []int{9},
-	})
-
-	attach, err = ssqOrder.ToJson()
-	if err != nil {
-		return errors.New("ssqOrder.ToJson error")
-	}
-
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
 		ProductID: productID,
 		//买家账号
 		BuyUser: "id1",
-		//买家的协商公钥, 必填
-		OpkBuyUser: "bbbbb",
+		//买家的协商公钥
+		OpkBuyUser: "",
 		//商户账号
 		BusinessUser: "id3",
 		//商户的协商公钥
 		OpkBusinessUser: "",
 		// 订单的总金额, 支付的时候以这个金额 计算
-		OrderTotalAmount: 2.00,
+		OrderTotalAmount: price,
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
 		// 传输会进过sdk 处理
-		Attach: attach,
+		Attach: "",
 		// 透传信息 , 不加密 ，直接传过去 不处理
 		Userdata: nil,
 		//订单的状态;
@@ -196,7 +167,7 @@ func AddOrder(orderID, productID string) error {
 
 				} else {
 
-					log.Println("回包内容 ---------------------")
+					log.Println("购买Vip会员预下单 回包内容 ---------------------")
 
 					//
 					array.PrintPretty(rsq)
@@ -204,7 +175,7 @@ func AddOrder(orderID, productID string) error {
 				}
 
 			} else {
-				log.Println("AddOrder failed")
+				log.Println("BuyVipUser failed")
 			}
 
 		}),
@@ -242,7 +213,7 @@ func AddOrder(orderID, productID string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
+	ticker := time.NewTicker(5 * time.Second) // 5s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -251,7 +222,7 @@ func AddOrder(orderID, productID string) error {
 		}
 
 	}
-	log.Println("AddOrder is Done.")
+	log.Println("BuyVipUser is Done.")
 
 	return nil
 }
