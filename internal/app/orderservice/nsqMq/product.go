@@ -1694,70 +1694,76 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					goto COMPLETE
 				}
 
-				//将订单转发到商户
-				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err != nil {
-					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "INCR Error"
-					goto COMPLETE
+				//TODO 如果是购买Vip
+				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
+					nc.logger.Warn("如果是购买Vip", zap.String("购买者", orderProductBody.BuyUser), zap.String(" 商户 ", orderProductBody.BusinessUser))
+				} else {
+					//将订单转发到商户
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err != nil {
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = "INCR Error"
+						goto COMPLETE
+					}
+					orderProductBody.State = Global.OrderState_OS_SendOK
+					orderProductBodyData, _ = proto.Marshal(orderProductBody)
+
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+						Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+						Body:         orderProductBodyData,               //订单载体 OrderProductBody
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
+						Recv:         req.To,                             //商户账户id
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
+
+					//对attach进行哈希计算，以便获知订单内容是否发生改变
+					attachHash := crypt.Sha1(orderProductBody.Attach)
+
+					// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+					orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
+					_, err = redisConn.Do("HMSET",
+						orderProductBodyKey,
+						"Username", username,
+						"OrderID", orderProductBody.OrderID,
+						"ProductID", orderProductBody.ProductID,
+						"BuyUser", orderProductBody.BuyUser,
+						"OpkBuyUser", orderProductBody.OpkBuyUser,
+						"BusinessUser", orderProductBody.BusinessUser,
+						"OpkBusinessUser", orderProductBody.OpkBusinessUser,
+						"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
+						"Attach", orderProductBody.Attach, //订单内容，UI负责构造
+						"AttachHash", attachHash, //订单内容的哈希值
+						"UserData", orderProductBody.Userdata, //透传数据
+						"State", orderProductBody.State, //订单状态
+					)
+
+					// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
+					orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
+					_, err = redisConn.Do("HMSET",
+						orderIDKey,
+						// "OrderID", orderProductBody.OrderID, //不能写入，在创建的时候已经有值
+						"ProductID", orderProductBody.ProductID, //商品id
+						"BuyUser", orderProductBody.BuyUser, //买家
+						"OpkBuyUser", orderProductBody.OpkBuyUser,
+						"BusinessUser", orderProductBody.BusinessUser, //商户
+						"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+						"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
+						"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
+						"AttachHash", attachHash, //订单内容的哈希值
+						"UserData", orderProductBody.GetUserdata(), //透传数据
+						"State", orderProductBody.GetState(), //订单状态
+					)
+
+					//向商户发送订单消息
+					//TODO  当商户离线时，无法再次获取到此订单推送
+					go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+
 				}
-				orderProductBody.State = Global.OrderState_OS_SendOK
-				orderProductBodyData, _ = proto.Marshal(orderProductBody)
-
-				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-					Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-					Body:         orderProductBodyData,               //订单载体 OrderProductBody
-					From:         username,                           //谁发的
-					FromDeviceId: deviceID,                           //哪个设备发的
-					Recv:         req.To,                             //商户账户id
-					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-					Time:         uint64(time.Now().UnixNano() / 1e6),
-				}
-
-				//对attach进行哈希计算，以便获知订单内容是否发生改变
-				attachHash := crypt.Sha1(orderProductBody.Attach)
-
-				// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
-				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
-				_, err = redisConn.Do("HMSET",
-					orderProductBodyKey,
-					"Username", username,
-					"OrderID", orderProductBody.OrderID,
-					"ProductID", orderProductBody.ProductID,
-					"BuyUser", orderProductBody.BuyUser,
-					"OpkBuyUser", orderProductBody.OpkBuyUser,
-					"BusinessUser", orderProductBody.BusinessUser,
-					"OpkBusinessUser", orderProductBody.OpkBusinessUser,
-					"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
-					"Attach", orderProductBody.Attach, //订单内容，UI负责构造
-					"AttachHash", attachHash, //订单内容的哈希值
-					"UserData", orderProductBody.Userdata, //透传数据
-					"State", orderProductBody.State, //订单状态
-				)
-
-				// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
-				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
-				_, err = redisConn.Do("HMSET",
-					orderIDKey,
-					// "OrderID", orderProductBody.OrderID, //不能写入，在创建的时候已经有值
-					"ProductID", orderProductBody.ProductID, //商品id
-					"BuyUser", orderProductBody.BuyUser, //买家
-					"OpkBuyUser", orderProductBody.OpkBuyUser,
-					"BusinessUser", orderProductBody.BusinessUser, //商户
-					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
-					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
-					"AttachHash", attachHash, //订单内容的哈希值
-					"UserData", orderProductBody.GetUserdata(), //透传数据
-					"State", orderProductBody.GetState(), //订单状态
-				)
-
-				//向商户发送订单消息
-				//TODO  当商户离线时，无法再次获取到此订单推送
-				go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 
 			default:
 
