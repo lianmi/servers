@@ -17,6 +17,9 @@ type OrderService interface {
 	AddPreKeys(prekeys []*models.Prekey) error
 	//订单完成或退款
 	TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error)
+
+	//购买Vip会员确认
+	SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error)
 }
 
 type DefaultApisService struct {
@@ -37,6 +40,11 @@ func NewApisService(logger *zap.Logger, repository repositories.OrderRepository,
 
 func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error) {
 	return s.walletSvc.TransferByOrder(ctx, req)
+}
+
+//购买Vip会员确认
+func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
+	return s.walletSvc.SendConfirmPayForMembership(ctx, req)
 }
 
 func (s *DefaultApisService) AddProduct(product *models.Product) error {

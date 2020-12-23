@@ -2,6 +2,11 @@
 10-3 发起转账
 向id4转账 1 元
 ./lmSdkClient wallet PreTransfer -t id4 -a 1.00
+
+购买Vip会员
+./lmSdkClient order BuyVipUser  -p ada166df-bb9f-4274-ab8d-e369a68d69ce -I 9.9
+./lmSdkClient wallet PreTransfer -t id3 -a 9.9 -o 959bb0ae-1c12-4b60-8741-173361ceba8a
+
 */
 package cmd
 

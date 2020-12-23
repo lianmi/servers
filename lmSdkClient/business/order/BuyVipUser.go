@@ -1,3 +1,7 @@
+/*
+
+*/
+
 package order
 
 import (
@@ -23,6 +27,7 @@ import (
 
 //向商户id3 购买Vip会员
 func BuyVipUser(price float64, orderID, productID string) error {
+	var attach string
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
@@ -77,6 +82,14 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 		log.Println("productID:", productID)
 	}
+	vipUser := VipUser{
+		PayType: 3, //包月
+	}
+
+	attach, err = vipUser.ToJson()
+	if err != nil {
+		return errors.New("ssqOrder.ToJson error")
+	}
 
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
@@ -93,7 +106,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		OrderTotalAmount: price,
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
 		// 传输会进过sdk 处理
-		Attach: "",
+		Attach: attach,
 		// 透传信息 , 不加密 ，直接传过去 不处理
 		Userdata: nil,
 		//订单的状态;
@@ -105,7 +118,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		Scene: Msg.MessageScene_MsgScene_C2C, //个人
 		Type:  Msg.MessageType_MsgType_Order, //订单消息
 		To:    "id3",                         //商户
-		Uuid:  "aaaaaaa",                     //本地uuid
+		Uuid:  "buyvipuser",                  //本地uuid
 		Body:  orderContent,                  //订单包体
 	}
 
@@ -161,15 +174,15 @@ func BuyVipUser(price float64, orderID, productID string) error {
 				log.Println("response succeed")
 				// 回包
 				//解包负载 m.Payload
-				var rsq Order.GetPreKeyOrderIDRsp
+				var rsq Msg.SendMsgRsp
 				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
 					log.Println("Protobuf Unmarshal Error", err)
 
 				} else {
 
-					log.Println("购买Vip会员预下单 回包内容 ---------------------")
+					log.Println("购买Vip会员下单 回包内容 ---------------------")
 
-					//
+					//解包body
 					array.PrintPretty(rsq)
 
 				}

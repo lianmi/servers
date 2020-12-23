@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	"encoding/json"
 	"gorm.io/gorm"
+	"time"
 )
 
 /*
@@ -62,4 +62,17 @@ func (user *ECoupon) BeforeCreate(tx *gorm.DB) error {
 func (user *ECoupon) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
+}
+
+//UI构造attach数据结构
+type VipUser struct {
+	PayType int `form:"pay_type" json:"pay_type"` //VIP类型，1-包年，2-包季， 3-包月
+}
+
+func (m *VipUser) ToJson() (string, error) {
+	jsonBytes, err := json.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
 }

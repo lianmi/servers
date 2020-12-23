@@ -504,8 +504,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 }
 
 /*
-10-3 发起转账
-
+10-3 发起转账 
 */
 func PreTransfer(orderID, targetUserName string, amount float64) error {
 

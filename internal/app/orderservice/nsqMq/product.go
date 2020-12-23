@@ -1596,7 +1596,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//解包出 OrderProductBody
-
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.Body, orderProductBody); err != nil {
 			nc.logger.Error("Protobuf Unmarshal OrderProductBody Error", zap.Error(err))
@@ -1637,9 +1636,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				//总金额不能小于或等于0
 				if orderProductBody.OrderTotalAmount <= 0 {
-					nc.logger.Error("OrderTotalAmount is less than  0")
+					nc.logger.Error("OrderTotalAmount is less than 0")
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
+					errorMsg = fmt.Sprintf("OrderTotalAmount is less than 0")
 					goto COMPLETE
 				}
 
@@ -1694,9 +1693,42 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					goto COMPLETE
 				}
 
-				//TODO 如果是购买Vip
+				//TODO 如果是购买Vip, 自动接单，并增加到期时间
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
-					nc.logger.Warn("如果是购买Vip", zap.String("购买者", orderProductBody.BuyUser), zap.String(" 商户 ", orderProductBody.BusinessUser))
+					nc.logger.Warn("购买Vip", zap.String("购买者", orderProductBody.BuyUser), zap.String(" 商户 ", orderProductBody.BusinessUser))
+
+					//调用钱包的GrpcServer接口，进行增加到期时间等操作
+					ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+					sendConfirmPayForMembershipResp, err := nc.service.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
+						// Username:         username,
+						// OrderID:          req.OrderID,          //订单ID
+						// SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
+						// Content:          req.Content,          //附言
+					})
+					if err != nil {
+						nc.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("wallet Grpc error")
+						goto COMPLETE
+					}
+					orderProductBody.State = Global.OrderState_OS_Done
+					orderProductBodyData, _ = proto.Marshal(orderProductBody)
+
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+						Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+						Body:         orderProductBodyData,               //订单载体 OrderProductBody
+						From:         username,                           //谁发的
+						FromDeviceId: deviceID,                           //哪个设备发的
+						Recv:         req.To,                             //商户账户id
+						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
+					//向购买vip的用户返回成功消息
+					go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+
 				} else {
 					//将订单转发到商户
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err != nil {

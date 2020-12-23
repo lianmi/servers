@@ -791,7 +791,9 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			orderIDKey := fmt.Sprintf("Order:%s", orderID)
 			productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
 			if productID != "" {
-				//查询出vipPrice对应的数据
+				//根据 productID  查询出vipPrice对应的数据
+				nc.logger.Debug("根据 productID  查询出vipPrice对应的数据", zap.String("productID", productID))
+				// nc.Repository.GetVipUserPrice(payType)
 				// nc.Repository.AddCommission(orderTotalAmount, username, orderID, content, blockNumber, txHash)
 			}
 

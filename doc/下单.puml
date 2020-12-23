@@ -1,0 +1,158 @@
+@startuml
+
+== 下单 ==
+user -> server : 发起下单 状态 OS_Prepare
+server -> business : 修改 状态 为 OS_SendOK 给商户
+business-> server : 接受订单的ack
+server -> user: 推送 订单接受成功 事件 修改状态 OS_RecvOK 给用户
+
+note left
+此时订单未支付
+
+如果价格不满意
+
+可以进行普通聊天
+
+和商家修改成满意的价格
+
+end note
+=== 商量价格开始===
+user -> server: 发送普通消息进行和商户沟通
+note left
+如果商品价格是不可修改的
+
+可以跳过这一步
+
+end note
+server-> business : 普通聊天 进行 和商户沟通 价格
+
+business -> server : 价格商定差不多了 ， 商户发起 订单修改接口 将订单的金额 进行修改
+
+business-> business : 本地修改订单状态为OS_AttachChange
+
+server -> user : 修改 OS_AttachChange 给用户
+
+user -> user : 查看价格是否满意 ， 满意则去支付
+
+note left
+如果不满意可以拒绝支付
+
+不商谈也可以直接支付
+end note
+
+=== 商量价格结束===
+
+== 用户发起支付 ==
+
+user -> server : 调用预知付接口
+server ->server : 服务端 将 商品状态改成订单为 OS_Paying
+note left
+此时 商户 不能进行订单修改
+商户发起的订单修改 将会
+发送失败 没有权限修改这个订单
+end note
+user -> server : 调用支付接口 支付  服务端 将 商品状态改成订 单处理中 OS_Paying
+server -> user: 推送 OrderPayDoneEvent
+server -> business : 推送 OrderPayDoneEvent
+
+note left
+之后发送的订单消息 , 内容不能进行修改
+只能变更状态 body 只有 orderid 和 status ，其他字段为空
+
+客户端会通过状态 选择性更新 订单表
+
+end note
+business -> server: 调用发送订单接口 状态为 OS_Taked
+server -> user : 修改 订单状态为 OS_Taked
+
+note left
+此时 商品支付 后
+用户可以选择 催单 完成订单 和 申请撤单
+但不能直接取消订单
+
+支付后 取消订单的能力 由 商家决定
+end note
+
+== 拒单 ==
+
+business -> server: 调用发送订单接口 状态为 OS_Refuse
+note left
+如果商家发现用户支付的金额不满意
+商家可以选择 调用拒单接口 取消这个订单
+此时退款回用户
+
+end note
+server -> user : 修改 订单状态为 OS_Refuse
+
+== 催单 ==
+user -> server : 修改 订单状态为 OS_Urge
+
+server -> business : 向商家推送 OS_Urge
+
+== 发货和处理 ==
+
+business -> business : 拍照发货
+note left
+这个接口没有提供 ，需要一个http 接口
+
+参数是 订单id 和 当前 上传的图片的 ossobjectid 地址
+
+Post 到 http 服务器进行处理
+
+在提供url 一个接口 通过 订单id 查看 链上数据 ， 或者这张图片
+
+ui 展示 这个 商品的 发货图片
+
+end note
+business -> server : 上传 发货时图片
+business -> server : 调用 OS_Processing 更新一次处理
+
+=== 确认收货流程 ===
+
+
+
+business -> business : 快递出去后 将订单号 发私聊给用户 / 调用快递系统 绑定订单
+note left
+如果是有快递等运输的需要提供 物流信息等
+然后通过 普通聊天 将订单号 发给 用户
+然后用户通过订单号查询物流状态
+end note
+
+business -> server : 修改订单 状态 为 OS_Processing/ 运输中 。。。
+
+server -> user : 推送新的订单状态
+
+note left
+如果 接受到 订单 则用户可以通过
+确认收货完成 订单
+end note
+user -> server : 确认收货流程 修改 状态  OS_Confirm
+
+note left
+订单完成
+可以向服务端 上传一个 收货图片 上链
+end note
+server -> business : 订单完成
+
+==退货  ==
+
+
+user -> server : 任何时间发送 订单Id 和 状态 OS_ApplyCancel 即可 进行撤单 退货 操作
+
+server -> server : 标记 订单状态为 订单内容发生更改 OS_AttachChange
+
+server -> business : 推送 订单最新状态 OS_AttachChange 与商户协商
+
+business -> server : 同意 撤单 发送 OS_Cancel 状态和 订单Id 取消订单
+
+==  逾期 ==
+
+user -> server : 服务端 判断 订单的有效期 ， 如果是下单流程 直接不给用户发送
+
+note left
+如果 订单长时间没支付
+由服务端判断直接向双方 发送 预期事件
+end note
+
+
+@enduml

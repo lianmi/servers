@@ -1,0 +1,23 @@
+@startuml
+
+==  购买Vip会员,挑选Vip类型 ==
+user -> server : 发起Vip价格查询
+server -> user : 将当前Vip价格（ 包年、包季、包月）返回给用户， 其中有商户id及商品id是需要下一步用到的 
+
+note left
+此时在UI展示每个不同时间的价格，让用户选择
+end note
+
+== 用户发起下单 ==
+user -> server : 调用PreTransfer接口，构造attach， 里面是 payType
+
+== 用户发起支付 ==
+user -> server : 发起购买会员预支付请求，传入payType、价格、商户注册账号及商品id
+server ->user : 服务端生成支付流水号，并将裸交易数据返回
+user -> server : 向服务端发送交易签名数据
+server ->user : 服务端调用eth接口对交易签名数据确认并返回区块高度及交易哈希, 并进行到期日期操作 
+
+== 用户更新本地用户信息 ==
+user -> server : 用户利用http getuser接口查询最新的到期时间及Vip状态
+server ->user : 返回VipEndDate及刷新State 
+@enduml

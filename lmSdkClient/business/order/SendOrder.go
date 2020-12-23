@@ -134,7 +134,7 @@ func AddOrder(orderID, productID string) error {
 		Scene: Msg.MessageScene_MsgScene_C2C, //个人
 		Type:  Msg.MessageType_MsgType_Order, //订单消息
 		To:    "id3",                         //商户
-		Uuid:  "aaaaaaa",                     //本地uuid
+		Uuid:  "aaaaaa",                //本地uuid，随机
 		Body:  orderContent,                  //订单包体
 	}
 
