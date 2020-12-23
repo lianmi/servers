@@ -5,8 +5,8 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 
 //请求参数
 message GetPreKeyOrderIDReq {
-    //商户账号
-    string userName =1;
+    //商户账号,  约定当userName=从获取Vip会员接口返回的商户id时，表示购买VIP会员 
+    string userName = 1;
     //订单类型
     global.OrderType orderType =2;
     //商品id

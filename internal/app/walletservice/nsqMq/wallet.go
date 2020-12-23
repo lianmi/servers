@@ -785,6 +785,18 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			"Hash", hash,
 		)
 
+		//TODO 判断是否是购买Vip会员
+		if username == LMCommon.VipBusinessUsername {
+			// 根据 ProductID 获取到VIP类型
+			orderIDKey := fmt.Sprintf("Order:%s", orderID)
+			productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+			if productID != "" {
+				//查询出vipPrice对应的数据
+				// nc.Repository.AddCommission(orderTotalAmount, username, orderID, content, blockNumber, txHash)
+			}
+
+		}
+
 		//对用户转账
 		if toUsername != "" {
 			//更新接收者的收款历史记录

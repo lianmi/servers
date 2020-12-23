@@ -334,20 +334,25 @@ message BusinessUserMonthDetail {
     fixed64 total =3;
 }
 
-//VIP会员价格
+//VIP会员价格,作为一个特殊商品的存在
 message VipPrice {
+    //Vip会员的商户id
+    string businessUsername=1;
+
+    //对应的商品id
+     string productID=2;
     
     //VIP类型，1-包年，2-包季， 3-包月
-    global.VipUserPayType payType=1;
+    global.VipUserPayType payType=3;
 
     //价格标题说明
-    string title=2;
+    string title=4;
     
     //价格, 单位: 元
-    float price=3;
+    float price=5;
 
     //开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天
-    int32 days=4;
+    int32 days=6;
     
 }
 

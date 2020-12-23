@@ -116,6 +116,9 @@ func (pc *LianmiApisController) ConfirmPayForMembership(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
+		if req.OrderID == "" || req.SignedTxToTarget == "" {
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填OrderID,SignedTxToTarget字段")
+		}
 		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 		resp, err := pc.service.ConfirmPayForMembership(ctx, userName, &req)
 

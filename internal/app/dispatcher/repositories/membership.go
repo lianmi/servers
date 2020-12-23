@@ -7,7 +7,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Global "github.com/lianmi/servers/api/proto/global"
-	// LMCommon "github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/dateutil"
 	"github.com/pkg/errors"
@@ -152,6 +152,9 @@ func (s *MysqlLianmiRepository) GetVipPriceList(payType int) (*Auth.GetVipPriceR
 		if vipPrice.IsActive {
 
 			resp.Pricelist = append(resp.Pricelist, &Auth.VipPrice{
+				BusinessUsername: LMCommon.VipBusinessUsername,
+
+				ProductID: vipPrice.ProductID,
 
 				PayType: Global.VipUserPayType(vipPrice.PayType), //VIP类型，1-包年，2-包季， 3-包月
 

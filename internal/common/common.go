@@ -141,9 +141,10 @@ const (
 
 //会员返佣比例相关， 比例是49%
 const (
-	CommissionOne   = float64(0.3)
-	CommissionTwo   = float64(0.1)
-	CommissionThree = float64(0.09)
+	VipBusinessUsername = "id3" //Vip会员的商户id
+	CommissionOne       = float64(0.3)
+	CommissionTwo       = float64(0.1)
+	CommissionThree     = float64(0.09)
 )
 
 //订单相关

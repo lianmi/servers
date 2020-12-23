@@ -32,7 +32,7 @@ type GetPreKeyOrderIDReq struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	//商户账号
+	//商户账号,  约定当userName=从获取Vip会员接口返回的商户id时，表示购买VIP会员
 	UserName string `protobuf:"bytes,1,opt,name=userName,proto3" json:"userName,omitempty"`
 	//订单类型
 	OrderType global.OrderType `protobuf:"varint,2,opt,name=orderType,proto3,enum=cloud.lianmi.im.global.OrderType" json:"orderType,omitempty"`

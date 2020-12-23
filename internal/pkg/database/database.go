@@ -8,6 +8,8 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -77,40 +79,46 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.AliPayHistory{})            //  支付宝充值历史表
 	db.AutoMigrate(&models.VipPrice{})                 //  VIP会员价格表
 	db.AutoMigrate(&models.ECoupon{})                  //  系统电子优惠券表
+
 	vipPrice := &models.VipPrice{
-		ID:       1,
-		PayType:  1,
-		Title:    "包年",
-		Price:    99.0,
-		Days:     365,
-		IsActive: true,
+		ID:        1,
+		BusinessUsername: LMCommon.VipBusinessUsername,
+		ProductID: uuid.NewV4().String(),
+		PayType:   1,
+		Title:     "包年",
+		Price:     99.0,
+		Days:      365,
+		IsActive:  true,
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice2 := &models.VipPrice{
-		ID:       2,
-		PayType:  2,
-		Title:    "包季",
-		Price:    38.0,
-		Days:     90,
-		IsActive: true,
+		ID:        2,
+		BusinessUsername: LMCommon.VipBusinessUsername,
+		ProductID: uuid.NewV4().String(),
+		PayType:   2,
+		Title:     "包季",
+		Price:     38.0,
+		Days:      90,
+		IsActive:  true,
 	}
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice2).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice3 := &models.VipPrice{
-		ID:       3,
-		PayType:  3,
-		Title:    "包月",
-		Price:    9.9,
-		Days:     30,
-		IsActive: true,
+		ID:        3,
+		BusinessUsername: LMCommon.VipBusinessUsername,
+		ProductID: uuid.NewV4().String(),
+		PayType:   3,
+		Title:     "包月",
+		Price:     9.9,
+		Days:      30,
+		IsActive:  true,
 	}
 
-	
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice3).Error; err != nil {
 		// return nil, err
 	}

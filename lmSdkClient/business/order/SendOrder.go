@@ -132,9 +132,9 @@ func AddOrder(orderID, productID string) error {
 	msgReq := &Msg.SendMsgReq{
 		Scene: Msg.MessageScene_MsgScene_C2C, //个人
 		Type:  Msg.MessageType_MsgType_Order, //订单消息
-		To:    "id3",
-		Uuid:  "aaaaaaa",
-		Body:  orderContent,
+		To:    "id3",                         //商户
+		Uuid:  "aaaaaaa",                     //本地uuid
+		Body:  orderContent,                  //订单包体
 	}
 
 	content, _ := proto.Marshal(msgReq)

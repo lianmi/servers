@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GetPreKeyOrderIDCmd represents the GetPreKeyOrderID command
 var GetPreKeyOrderIDCmd = &cobra.Command{
 	Use:   "GetPreKeyOrderID",
 	Short: "",

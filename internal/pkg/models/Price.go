@@ -10,14 +10,16 @@ import (
 VIP会员价格表及优惠设定，计算分佣时需要考虑是否有折扣
 */
 type VipPrice struct {
-	ID        uint64  `gorm:"primarykey" form:"id" json:"id,omitempty"`
-	CreatedAt int64   `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
-	UpdatedAt int64   `form:"updated_at" json:"updated_at,omitempty"` //更新时刻,毫秒
-	PayType   int     `form:"pay_type" json:"pay_type"`               //VIP类型，1-包年，2-包季， 3-包月
-	Title     string  `form:"title" json:"title,omitempty" `          //价格标题说明
-	Price     float32 `form:"price" json:"price,omitempty"`           //价格, 单位: 元
-	Days      int     `form:"days" json:"days,omitempty"`             //开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天
-	IsActive  bool    `form:"is_active" json:"is_active"`             //此价格是否激活，true的状态才可用
+	ID               uint64  `gorm:"primarykey" form:"id" json:"id,omitempty"`
+	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`     //创建时刻,毫秒
+	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`     //更新时刻,毫秒
+	BusinessUsername string  `form:"business_username" json:"business_username"` //购买会员的商户账号，一般都是预先注册，然后再写死
+	ProductID        string  `form:"product_id" json:"product_id"`               //商品ID
+	PayType          int     `form:"pay_type" json:"pay_type"`                   //VIP类型，1-包年，2-包季， 3-包月
+	Title            string  `form:"title" json:"title,omitempty" `              //价格标题说明
+	Price            float32 `form:"price" json:"price,omitempty"`               //价格, 单位: 元
+	Days             int     `form:"days" json:"days,omitempty"`                 //开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天
+	IsActive         bool    `form:"is_active" json:"is_active"`                 //此价格是否激活，true的状态才可用
 }
 
 //BeforeCreate CreatedAt赋值

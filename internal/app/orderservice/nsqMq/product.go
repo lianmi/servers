@@ -1071,22 +1071,23 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("GetPreKeyOrderID  payload",
-			zap.String("UserName", req.UserName),     //商户
+		nc.logger.Debug("GetPreKeyOrderID payload",
+			zap.String("UserName", req.UserName),     //商户, 当userName=id3时，表示购买VIP会员
 			zap.Int("OrderType", int(req.OrderType)), //订单类型
 			zap.String("ProducctID", req.ProductID),  //商品id
 		)
+
+		if req.ProductID == "" {
+			nc.logger.Warn("商品id不能为空")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.ProductID)
+			goto COMPLETE
+		}
 
 		if req.UserName == "" {
 			nc.logger.Warn("商户用户账号不能为空")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", req.UserName)
-			goto COMPLETE
-		}
-		if req.ProductID == "" {
-			nc.logger.Warn("商品id不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.ProductID)
 			goto COMPLETE
 		}
 
@@ -1157,21 +1158,91 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		opk := ""
 
-		//从商户的prekeys有序集合取出一个opk
-		prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.UserName), 0, 0))
-		if len(prekeySlice) > 0 {
-			opk = prekeySlice[0]
+		if req.UserName == LMCommon.VipBusinessUsername {
+			//TODO 当购买Vip会员时，不需要 opk
+		} else {
 
-			//取出后就删除此OPK
-			if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.UserName), opk); err != nil {
-				nc.logger.Error("ZREM Error", zap.Error(err))
+			//从商户的prekeys有序集合取出一个opk
+			prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.UserName), 0, 0))
+			if len(prekeySlice) > 0 {
+				opk = prekeySlice[0]
+
+				//取出后就删除此OPK
+				if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.UserName), opk); err != nil {
+					nc.logger.Error("ZREM Error", zap.Error(err))
+				}
+
+			} else {
+				nc.logger.Warn("商户的prekeys有序集合无法取出")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Business opks is empty[Username=%s]", req.UserName)
+				goto COMPLETE
 			}
 
-		} else {
-			nc.logger.Warn("商户的prekeys有序集合无法取出")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Business opks is empty[Username=%s]", req.UserName)
-			goto COMPLETE
+			//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
+			if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.UserName), "-inf", "+inf")); err != nil {
+				nc.logger.Error("ZCOUNT Error", zap.Error(err))
+			} else {
+
+				if count < 10 {
+					nc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
+
+					//查询出商户主设备
+					deviceListKey := fmt.Sprintf("devices:%s", req.UserName)
+					deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+					for index, eDeviceID := range deviceIDSlice {
+						if index == 0 {
+							nc.logger.Debug("查询出商户主设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
+							deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+							jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
+							nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+
+							//向商户主设备推送9-10OPK存量不足事件
+							opkAlertMsg := &models.Message{}
+							now := time.Now().UnixNano() / 1e6 //毫秒
+							opkAlertMsg.UpdateID()
+
+							//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+							opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
+							opkAlertMsg.SetJwtToken(jwtToken)
+							opkAlertMsg.SetUserName(req.UserName)
+							opkAlertMsg.SetDeviceID(string(eDeviceID))
+							// opkAlertMsg.SetTaskID(uint32(taskId))
+							opkAlertMsg.SetBusinessTypeName("Order")
+							opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
+							opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
+
+							opkAlertMsg.BuildHeader("OrderService", now)
+
+							//构造负载数据
+							resp := &Order.OPKLimitAlertRsp{
+								Count: int32(count),
+							}
+							data, _ := proto.Marshal(resp)
+							opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+							opkAlertMsg.SetCode(200) //成功的状态码
+
+							//构建数据完成，向dispatcher发送
+							topic := "Order.Frontend"
+							rawData, _ := json.Marshal(opkAlertMsg)
+							if err := nc.Producer.Public(topic, rawData); err == nil {
+								nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+							} else {
+								nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+							}
+
+							//跳出，不用管从设备
+							break
+
+						}
+					}
+
+				} else {
+					nc.logger.Debug("商户的prekeys存量", zap.Int("count", count))
+				}
+
+			}
 		}
 
 		rsp.UserName = req.UserName
@@ -1191,7 +1262,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"BuyUser", username, //发起订单的用户id
 			"BusinessUser", req.UserName, //商户的用户id
 			"OrderID", orderID, //订单id
-			"ProductID", req.ProductID, //商品id，默认是空
+			"ProductID", req.ProductID, //商品id
 			"Type", req.OrderType, //订单类型
 			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
 			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
@@ -1199,70 +1270,6 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"CreateAt", uint64(time.Now().UnixNano()/1e6), //秒
 		)
 
-		//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
-		if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.UserName), "-inf", "+inf")); err != nil {
-			nc.logger.Error("ZCOUNT Error", zap.Error(err))
-		} else {
-
-			if count < 10 {
-				nc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
-
-				//查询出商户主设备
-				deviceListKey := fmt.Sprintf("devices:%s", req.UserName)
-				deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-				for index, eDeviceID := range deviceIDSlice {
-					if index == 0 {
-						nc.logger.Debug("查询出商户主设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-						deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-						jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
-						nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
-
-						//向商户主设备推送9-10OPK存量不足事件
-						opkAlertMsg := &models.Message{}
-						now := time.Now().UnixNano() / 1e6 //毫秒
-						opkAlertMsg.UpdateID()
-
-						//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-						opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
-						opkAlertMsg.SetJwtToken(jwtToken)
-						opkAlertMsg.SetUserName(req.UserName)
-						opkAlertMsg.SetDeviceID(string(eDeviceID))
-						// opkAlertMsg.SetTaskID(uint32(taskId))
-						opkAlertMsg.SetBusinessTypeName("Order")
-						opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
-						opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
-
-						opkAlertMsg.BuildHeader("OrderService", now)
-
-						//构造负载数据
-						resp := &Order.OPKLimitAlertRsp{
-							Count: int32(count),
-						}
-						data, _ := proto.Marshal(resp)
-						opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-						opkAlertMsg.SetCode(200) //成功的状态码
-
-						//构建数据完成，向dispatcher发送
-						topic := "Order.Frontend"
-						rawData, _ := json.Marshal(opkAlertMsg)
-						if err := nc.Producer.Public(topic, rawData); err == nil {
-							nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-						} else {
-							nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-						}
-
-						//跳出，不用管从设备
-						break
-
-					}
-				}
-
-			} else {
-				nc.logger.Debug("商户的prekeys存量", zap.Int("count", count))
-			}
-
-		}
 	}
 
 COMPLETE:
