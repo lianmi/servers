@@ -220,6 +220,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			Extend:           fUserData.Extend,
 			ContactPerson:    fUserData.ContactPerson,
 			ReferrerUsername: fUserData.ReferrerUsername,
+			VipEndDate:       uint64(fUserData.VipEndDate),
 		},
 	}, nil
 }

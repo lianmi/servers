@@ -2084,7 +2084,7 @@ func (x *BusinessUserMonthDetail) GetTotal() uint64 {
 	return 0
 }
 
-//VIP会员价格
+//VIP会员价格,作为一个特殊商品的存在
 type VipPrice struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

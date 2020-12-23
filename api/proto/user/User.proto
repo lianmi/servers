@@ -60,8 +60,9 @@ message User {
     string extend        = 13;
     string contact_person = 14;
     string referrer_username = 15; //推荐人
-    fixed64 createdAt = 16;     //用户注册时间,Unix时间戳
-    fixed64 updatedaAt = 17;     //用户资料最后更新时间,Unix时间戳
+    fixed64 vipEndDate = 16;  //VIP用户到期时间
+    fixed64 createdAt = 18;     //用户注册时间,Unix时间戳
+    fixed64 updatedaAt = 19;     //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表
