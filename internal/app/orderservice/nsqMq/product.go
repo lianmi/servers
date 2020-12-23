@@ -1695,22 +1695,36 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				//TODO 如果是购买Vip, 自动接单，并增加到期时间
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
-					nc.logger.Warn("购买Vip", zap.String("购买者", orderProductBody.BuyUser), zap.String(" 商户 ", orderProductBody.BusinessUser))
+
+					//从attach里解析PayType
+					vipUser := new(models.VipUser)
+					if err := json.Unmarshal([]byte(orderProductBody.Attach), vipUser); err != nil {
+						nc.logger.Error("从attach里解析PayType失败", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Attach Unmarshal error")
+						goto COMPLETE
+					} else {
+						nc.logger.Debug("购买Vip",
+							zap.String("购买者", orderProductBody.BuyUser),
+							zap.String(" 商户 ", orderProductBody.BusinessUser),
+							zap.Int(" PayType ", vipUser.PayType),
+						)
+					}
 
 					//调用钱包的GrpcServer接口，进行增加到期时间等操作
-					ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-					sendConfirmPayForMembershipResp, err := nc.service.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
-						// Username:         username,
-						// OrderID:          req.OrderID,          //订单ID
-						// SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
-						// Content:          req.Content,          //附言
-					})
-					if err != nil {
-						nc.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("wallet Grpc error")
-						goto COMPLETE
-					}
+					// ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+					// sendConfirmPayForMembershipResp, err := nc.service.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
+					// 	// Username:         username,
+					// 	// OrderID:          req.OrderID,          //订单ID
+					// 	// SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
+					// 	// Content:          req.Content,          //附言
+					// })
+					// if err != nil {
+					// 	nc.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
+					// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					// 	errorMsg = fmt.Sprintf("wallet Grpc error")
+					// 	goto COMPLETE
+					// }
 					orderProductBody.State = Global.OrderState_OS_Done
 					orderProductBodyData, _ = proto.Marshal(orderProductBody)
 

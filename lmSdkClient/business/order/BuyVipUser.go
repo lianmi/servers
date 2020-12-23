@@ -1,5 +1,5 @@
 /*
-
+./lmSdkClient order BuyVipUser  -p ada166df-bb9f-4274-ab8d-e369a68d69ce -I 9.9
 */
 
 package order
@@ -7,6 +7,7 @@ package order
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -88,8 +89,11 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 	attach, err = vipUser.ToJson()
 	if err != nil {
-		return errors.New("ssqOrder.ToJson error")
+		return errors.New("vipUser.ToJson error")
 	}
+	vu := new(VipUser)
+	json.Unmarshal([]byte(attach), vu)
+	log.Println("attach解析 payType:", vu.PayType)
 
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
@@ -174,7 +178,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 				log.Println("response succeed")
 				// 回包
 				//解包负载 m.Payload
-				var rsq Msg.SendMsgRsp
+				var rsq Msg.RecvMsgEventRsp
 				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
 					log.Println("Protobuf Unmarshal Error", err)
 

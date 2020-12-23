@@ -134,7 +134,7 @@ func AddOrder(orderID, productID string) error {
 		Scene: Msg.MessageScene_MsgScene_C2C, //个人
 		Type:  Msg.MessageType_MsgType_Order, //订单消息
 		To:    "id3",                         //商户
-		Uuid:  "aaaaaa",                //本地uuid，随机
+		Uuid:  "aaaaaa",                      //本地uuid，随机
 		Body:  orderContent,                  //订单包体
 	}
 
@@ -190,7 +190,7 @@ func AddOrder(orderID, productID string) error {
 				log.Println("response succeed")
 				// 回包
 				//解包负载 m.Payload
-				var rsq Order.GetPreKeyOrderIDRsp
+				var rsq Msg.RecvMsgEventRsp
 				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
 					log.Println("Protobuf Unmarshal Error", err)
 

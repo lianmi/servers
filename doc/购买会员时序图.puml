@@ -9,12 +9,15 @@ note left
 end note
 
 == 用户发起下单 ==
-user -> server : 调用PreTransfer接口，构造attach， 里面是 payType
+user -> server : 调用 SendOrder 接口，传入价格、商户注册账号及商品id, 构造attach， 里面是 payType
+server ->user : 生成 orderID
 
-== 用户发起支付 ==
-user -> server : 发起购买会员预支付请求，传入payType、价格、商户注册账号及商品id
+== 用户发起预支付 ==
+user -> server : 调用PreTransfer接口 , 传入orderID, 发起购买会员预支付请求，
 server ->user : 服务端生成支付流水号，并将裸交易数据返回
-user -> server : 向服务端发送交易签名数据
+
+== 用户确认支付 ==
+user -> server : 向服务端发送支付流水号及 交易签名数据
 server ->user : 服务端调用eth接口对交易签名数据确认并返回区块高度及交易哈希, 并进行到期日期操作 
 
 == 用户更新本地用户信息 ==
