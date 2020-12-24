@@ -348,7 +348,7 @@ func GetPreKeyOrderID(productId string) error {
 	}
 
 	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
+	ticker := time.NewTicker(5 * time.Second) // 5s后退出
 	for run == true {
 		select {
 		case <-ticker.C:

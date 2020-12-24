@@ -824,6 +824,18 @@ func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) er
 		Username: username,
 	}).Update("vip_end_date", endTime)
 
-	s.logger.Error("将Status变为已支付", zap.Error(result.Error))
-	return result.Error
+	//updated records counts
+	s.logger.Debug("AddVipEndDate result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("增加用户的到期时间失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("增加用户的到期时间成功")
+	}
+
+	return nil
+
 }

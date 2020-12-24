@@ -878,6 +878,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		//购买会员，进行佣金分配
 		if businessUsername == LMCommon.VipBusinessUsername {
+
 			//到期时间, ms
 			curVipEndDate, _ := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
 
@@ -899,6 +900,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				// case Global.VipUserPayType_VIP_Week: //包周，体验卡
 
 			}
+			nc.logger.Debug("购买会员，增加到期时间", zap.Int64("curVipEndDate", curVipEndDate), zap.Int64("endTime", endTime))
+
 			// 写入MySQL及Redis
 			if err := nc.Repository.AddVipEndDate(username, endTime); err != nil {
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -910,7 +913,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				errorMsg = fmt.Sprintf("HSET VipEndDate error")
 				goto COMPLETE
 			}
-
+			nc.logger.Debug("购买会员，进行佣金分配")
 			nc.Repository.AddCommission(orderTotalAmount, username, orderID)
 		}
 
