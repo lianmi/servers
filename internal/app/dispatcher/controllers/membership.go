@@ -4,17 +4,17 @@
 package controllers
 
 import (
-	"context"
+	// "context"
 	"net/http"
 	"strconv"
-	"time"
+	// "time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	// Global "github.com/lianmi/servers/api/proto/global"
 
-	jwt_v2 "github.com/appleboy/gin-jwt/v2"
+	// jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/lianmi/servers/internal/common"
+	// "github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
 )
 
@@ -55,80 +55,6 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 
 }
 
-//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-func (pc *LianmiApisController) PreOrderForPayMembership(c *gin.Context) {
-	claims := jwt_v2.ExtractClaims(c)
-	userName := claims[common.IdentityKey].(string)
-	deviceID := claims["deviceID"].(string)
-	token := jwt_v2.GetToken(c)
-
-	var req Auth.PreOrderForPayMembershipReq
-
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
-	} else {
-		//如果目标用户是空，这为自己购买
-		if req.PayForUsername == "" {
-			req.PayForUsername = userName
-		}
-		if req.PayType == 0 {
-			RespFail(c, http.StatusBadRequest, 500, "PayType is zero")
-		}
-		pc.logger.Debug("PreOrderForPayMembership",
-			zap.String("userName", userName),
-			zap.String("deviceID", deviceID),
-			zap.String("payForUsername", req.PayForUsername), //要给谁付费, 如果是给自己，则留空或填自己的注册账号
-			zap.Int("PayType", int(req.PayType)),             //枚举 购买的会员类型，月卡、 季卡或年卡
-			zap.String("token", token))
-
-		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-		resp, err := pc.service.PreOrderForPayMembership(ctx, userName, deviceID, &req)
-
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "PreOrderForPayMembership failed")
-		} else {
-			RespData(c, http.StatusOK, 200, resp)
-		}
-	}
-
-}
-
-//确认购买会员
-//调用此接口前，需要调用 PreOrderForPayMembership 发起会员付费转账,
-//在本地签名，然后携带签名后的交易数据提交到服务端，返回区块高度，交易哈希
-//会员付费， 可以他人代付， 如果他人代付，自动成为其推荐人, 强制归属同一个商户,
-//支付成功后，向用户发出通知
-//如果用户是自行注册的，提醒用户输入商户的推荐码
-func (pc *LianmiApisController) ConfirmPayForMembership(c *gin.Context) {
-	claims := jwt_v2.ExtractClaims(c)
-	userName := claims[common.IdentityKey].(string)
-	deviceID := claims["deviceID"].(string)
-	token := jwt_v2.GetToken(c)
-
-	pc.logger.Debug("ConfirmPayForMembership",
-		zap.String("userName", userName),
-		zap.String("deviceID", deviceID),
-		zap.String("token", token))
-
-	var req Auth.ConfirmPayForMembershipReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
-	} else {
-		if req.OrderID == "" || req.SignedTxToTarget == "" {
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填OrderID,SignedTxToTarget字段")
-		}
-		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-		resp, err := pc.service.ConfirmPayForMembership(ctx, userName, &req)
-
-		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "PayForMembership failed")
-		} else {
-			RespData(c, http.StatusOK, 200, resp)
-		}
-	}
-}
 
 func (pc *LianmiApisController) GetNormalMembership(c *gin.Context) {
 

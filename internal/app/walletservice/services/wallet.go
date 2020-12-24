@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	Global "github.com/lianmi/servers/api/proto/global"
+	// Global "github.com/lianmi/servers/api/proto/global"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	LMCommon "github.com/lianmi/servers/internal/common"
@@ -15,7 +15,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
 
-	uuid "github.com/satori/go.uuid"
+	// uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -29,12 +29,6 @@ type WalletService interface {
 
 	//根据HD的索引号，获取对应的钱包地址
 	GetWalletAddressbyBip32Index(ctx context.Context, req *Wallet.GetWalletAddressbyBip32IndexReq) (*Wallet.GetWalletAddressbyBip32IndexResp, error)
-
-	//发起一个购买会员的预支付，返回裸交易
-	SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error)
-
-	//确认购买会员的支付交易
-	SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error)
 
 	//订单图片上链
 	OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error)
@@ -355,252 +349,157 @@ func (s *DefaultApisService) GetWalletAddressbyBip32Index(ctx context.Context, r
 	}, nil
 }
 
-//发起一个购买会员的预支付，返回裸交易
-func (s *DefaultApisService) SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error) {
-	var err error
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
+// //确认购买会员的支付交易
+// func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
+// 	//发起购买会员的账号
+// 	username := req.Username
+// 	orderID := req.OrderID
+// 	content := req.Content
 
-	username := req.Username
-	userWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
-	if s.ethService.CheckIsvalidAddress(userWalletAddress) == false {
-		s.logger.Warn("user非法钱包地址", zap.String("username", username), zap.String("userWalletAddress", userWalletAddress))
-		return nil, errors.Wrap(err, "username wallet address is not valid")
-	}
+// 	redisConn := s.redisPool.Get()
+// 	defer redisConn.Close()
 
-	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
-	if err != nil {
-		return nil, err
-	}
+// 	//约定 凡是购买会员的接收钱包账户是叶子3
+// 	bip32Index := uint64(LMCommon.MEMBERSHIPINDEX)
+// 	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
+// 	toWalletAddress := newKeyPair.AddressHex //中转账号
 
-	//根据PayType获取到VIP价格
-	vipPrice, err := s.Repository.GetVipUserPrice(int(req.PayType))
-	if err != nil {
-		return nil, err
-	}
+// 	prePayForMembershipKey := fmt.Sprintf("PrePayForMembership:%s", orderID)
+// 	amountLNMC, err := redis.Uint64(redisConn.Do("HGET", prePayForMembershipKey, "AmountLNMC"))
+// 	orderTotalAmount := float64(amountLNMC / 100) //实际花费，人民币格式
 
-	//TODO 暂时不用理会优惠券, 人民币
-	orderTotalAmount := float64(vipPrice.Price)
+// 	//获得付费类型- 包月，包季，包年
+// 	payType, err := redis.Int(redisConn.Do("HGET", prePayForMembershipKey, "PayType"))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	//转换为连米币
-	amountLNMC := uint64(orderTotalAmount * 100)
+// 	//获得会员的账号
+// 	payForUsername, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "PayForUsername"))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	//生成一个OrderID, 发起一个预支付
-	orderID := uuid.NewV4().String()
+// 	//发起支付的用户钱包地址
+// 	userWalletAddress, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "WalletAddress"))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	//约定 凡是购买会员的接收钱包账户是叶子3
-	bip32Index := uint64(LMCommon.MEMBERSHIPINDEX)
-	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
-	toWalletAddress := newKeyPair.AddressHex //中转账号
+// 	//附言
+// 	content, err = redis.String(redisConn.Do("HGET", prePayForMembershipKey, "Content"))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	//保存预审核转账记录到 MySQL
-	lnmcTransferHistory := &models.LnmcTransferHistory{
-		Username:          req.Username,      //发起支付
-		ToUsername:        "",                //空
-		OrderID:           orderID,           //非空
-		WalletAddress:     userWalletAddress, //发起方钱包账户
-		ToWalletAddress:   toWalletAddress,   //接收者钱包账户
-		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
-		AmountLNMC:        amountLNMC,        //本次转账的用户连米币数量
-		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
-		State:             0,                 //执行状态，0-默认未执行，1-A签，2-全部完成
-	}
-	s.Repository.AddLnmcTransferHistory(lnmcTransferHistory)
+// 	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
 
-	//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
-	tokens := int64(amountLNMC)
-	rawDescToTarget, err := s.ethService.GenerateTransferLNMCTokenTx(userWalletAddress, toWalletAddress, tokens)
-	if err != nil {
-		s.logger.Error("构造购买会员的交易 失败", zap.String("userWalletAddress", userWalletAddress), zap.String("toWalletAddress", toWalletAddress), zap.Error(err))
-	}
+// 	//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
+// 	blockNumber, hash, err := s.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	//保存预审核转账记录到 redis
-	prePayForMembershipKey := fmt.Sprintf("PrePayForMembership:%s", orderID)
-	_, err = redisConn.Do("HMSET",
-		prePayForMembershipKey,
-		"Username", username,
-		"OrderID", orderID,
-		"PayType", int(req.PayType), //包月、包季、包年
-		"PayForUsername", req.PayForUsername,
-		"WalletAddress", userWalletAddress,
-		"ToWalletAddress", toWalletAddress,
-		"AmountLNMC", amountLNMC, //真实的花费, 连米币
-		"BalanceLNMCBefore", balanceLNMC,
-		"Bip32Index", bip32Index,
-		"State", 0,
-		"CreateAt", uint64(time.Now().UnixNano()/1e6),
-	)
+// 	s.logger.Info("发起方转到目标接收者的交易数据广播到链上 A签成功 ",
+// 		zap.String("username", username),
+// 		zap.String("toWalletAddress", toWalletAddress),
+// 		zap.Uint64("blockNumber", blockNumber),
+// 		zap.String("hash", hash),
+// 	)
 
-	return &Wallet.SendPrePayForMembershipResp{
-		//向收款方转账的裸交易结构体
-		RawDescToTarget: &Wallet.RawDesc{
-			ContractAddress: rawDescToTarget.ContractAddress, //发币智能合约地址
-			ToWalletAddress: toWalletAddress,                 //接收者钱包地址
-			Nonce:           rawDescToTarget.Nonce,
-			GasPrice:        rawDescToTarget.GasPrice,
-			GasLimit:        rawDescToTarget.GasLimit,
-			ChainID:         rawDescToTarget.ChainID,
-			Txdata:          rawDescToTarget.Txdata,
-			Value:           amountLNMC, //要转账的代币数量
-			TxHash:          rawDescToTarget.TxHash,
-		},
-		OrderID:          orderID,
-		OrderTotalAmount: orderTotalAmount,
-		Time:             uint64(time.Now().UnixNano() / 1e6),
-	}, nil
-}
+// 	// 获取发送者链上代币余额
+// 	balanceAfter, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	s.logger.Info("获取发送者链上代币余额",
+// 		zap.String("username", username),
+// 		zap.String("userWalletAddress", userWalletAddress),
+// 		zap.Uint64("balanceAfter", balanceAfter),
+// 	)
 
-//确认购买会员的支付交易
-func (s *DefaultApisService) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
-	//发起购买会员的账号
-	username := req.Username
-	orderID := req.OrderID
-	content := req.Content
+// 	//更新Redis里用户钱包的代币数量
+// 	redisConn.Do("HSET",
+// 		fmt.Sprintf("userWallet:%s", username),
+// 		"LNMCAmount",
+// 		balanceAfter)
 
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
+// 	//更新转账记录到 MySQL
+// 	lnmcTransferHistory := &models.LnmcTransferHistory{
+// 		Username:          username,          //发起支付
+// 		OrderID:           orderID,           //如果是订单支付 ，非空
+// 		WalletAddress:     userWalletAddress, //发起方钱包账户
+// 		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
+// 		AmountLNMC:        amountLNMC,        //本次转账的用户连米币数量
+// 		BalanceLNMCAfter:  balanceAfter,      //发送方用户在转账之后的连米币数量
+// 		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
+// 		State:             1,                 //执行状态，0-默认未执行，1-A签，2-全部完成
+// 		BlockNumber:       blockNumber,
+// 		TxHash:            hash,
+// 		Content:           content,
+// 	}
+// 	s.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
-	//约定 凡是购买会员的接收钱包账户是叶子3
-	bip32Index := uint64(LMCommon.MEMBERSHIPINDEX)
-	newKeyPair := s.ethService.GetKeyPairsFromLeafIndex(bip32Index)
-	toWalletAddress := newKeyPair.AddressHex //中转账号
+// 	//更新State到 redis  HSET
+// 	_, err = redisConn.Do("HSET",
+// 		prePayForMembershipKey,
+// 		"State", 1,
+// 	)
 
-	prePayForMembershipKey := fmt.Sprintf("PrePayForMembership:%s", orderID)
-	amountLNMC, err := redis.Uint64(redisConn.Do("HGET", prePayForMembershipKey, "AmountLNMC"))
-	orderTotalAmount := float64(amountLNMC / 100) //实际花费，人民币格式
+// 	_, err = redisConn.Do("HSET",
+// 		prePayForMembershipKey,
+// 		"SignedTx", req.GetSignedTxToTarget(),
+// 	)
+// 	_, err = redisConn.Do("HSET",
+// 		prePayForMembershipKey,
+// 		"BlockNumber", blockNumber,
+// 	)
+// 	_, err = redisConn.Do("HSET",
+// 		prePayForMembershipKey,
+// 		"Hash", hash,
+// 	)
 
-	//获得付费类型- 包月，包季，包年
-	payType, err := redis.Int(redisConn.Do("HGET", prePayForMembershipKey, "PayType"))
-	if err != nil {
-		return nil, err
-	}
+// 	//到期时间, ms
+// 	curVipEndDate, err := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
 
-	//获得会员的账号
-	payForUsername, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "PayForUsername"))
-	if err != nil {
-		return nil, err
-	}
+// 	if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
+// 		curVipEndDate = time.Now().UnixNano() / 1e6
+// 	}
+// 	curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
 
-	//发起支付的用户钱包地址
-	userWalletAddress, err := redis.String(redisConn.Do("HGET", prePayForMembershipKey, "WalletAddress"))
-	if err != nil {
-		return nil, err
-	}
+// 	//增加到期时间
+// 	var endTime int64
 
-	//附言
-	content, err = redis.String(redisConn.Do("HGET", prePayForMembershipKey, "Content"))
-	if err != nil {
-		return nil, err
-	}
+// 	switch Global.VipUserPayType(payType) {
+// 	case Global.VipUserPayType_VIP_Year: //包年
+// 		endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
+// 	case Global.VipUserPayType_VIP_Season: //包季
+// 		endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
+// 	case Global.VipUserPayType_VIP_Month: //包月
+// 		endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
+// 		// case Global.VipUserPayType_VIP_Week: //包周，体验卡
 
-	balanceLNMC, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
+// 	}
+// 	_, err = redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime)
 
-	//调用eth接口，将发起方签名的转到目标接收者的交易数据广播到链上- A签
-	blockNumber, hash, err := s.ethService.SendSignedTxToGeth(req.GetSignedTxToTarget())
-	if err != nil {
-		return nil, err
-	}
+// 	//如果替他人支付，通知对方
+// 	if username != payForUsername {
 
-	s.logger.Info("发起方转到目标接收者的交易数据广播到链上 A签成功 ",
-		zap.String("username", username),
-		zap.String("toWalletAddress", toWalletAddress),
-		zap.Uint64("blockNumber", blockNumber),
-		zap.String("hash", hash),
-	)
+// 		//TODO
 
-	// 获取发送者链上代币余额
-	balanceAfter, err := s.ethService.GetLNMCTokenBalance(userWalletAddress)
-	if err != nil {
-		return nil, err
-	}
-	s.logger.Info("获取发送者链上代币余额",
-		zap.String("username", username),
-		zap.String("userWalletAddress", userWalletAddress),
-		zap.Uint64("balanceAfter", balanceAfter),
-	)
+// 	}
 
-	//更新Redis里用户钱包的代币数量
-	redisConn.Do("HSET",
-		fmt.Sprintf("userWallet:%s", username),
-		"LNMCAmount",
-		balanceAfter)
+// 	//确认支付成功后，就需要分配佣金
+// 	s.Repository.AddCommission(orderTotalAmount, username, req.OrderID)
 
-	//更新转账记录到 MySQL
-	lnmcTransferHistory := &models.LnmcTransferHistory{
-		Username:          username,          //发起支付
-		OrderID:           orderID,           //如果是订单支付 ，非空
-		WalletAddress:     userWalletAddress, //发起方钱包账户
-		BalanceLNMCBefore: balanceLNMC,       //发送方用户在转账时刻的连米币数量
-		AmountLNMC:        amountLNMC,        //本次转账的用户连米币数量
-		BalanceLNMCAfter:  balanceAfter,      //发送方用户在转账之后的连米币数量
-		Bip32Index:        bip32Index,        //平台HD钱包Bip32派生索引号
-		State:             1,                 //执行状态，0-默认未执行，1-A签，2-全部完成
-		BlockNumber:       blockNumber,
-		TxHash:            hash,
-		Content:           content,
-	}
-	s.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
-
-	//更新State到 redis  HSET
-	_, err = redisConn.Do("HSET",
-		prePayForMembershipKey,
-		"State", 1,
-	)
-
-	_, err = redisConn.Do("HSET",
-		prePayForMembershipKey,
-		"SignedTx", req.GetSignedTxToTarget(),
-	)
-	_, err = redisConn.Do("HSET",
-		prePayForMembershipKey,
-		"BlockNumber", blockNumber,
-	)
-	_, err = redisConn.Do("HSET",
-		prePayForMembershipKey,
-		"Hash", hash,
-	)
-
-	//到期时间, ms
-	curVipEndDate, err := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
-
-	if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
-		curVipEndDate = time.Now().UnixNano() / 1e6
-	}
-	curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
-
-	//增加到期时间
-	var endTime int64
-
-	switch Global.VipUserPayType(payType) {
-	case Global.VipUserPayType_VIP_Year: //包年
-		endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
-	case Global.VipUserPayType_VIP_Season: //包季
-		endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
-	case Global.VipUserPayType_VIP_Month: //包月
-		endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
-		// case Global.VipUserPayType_VIP_Week: //包周，体验卡
-
-	}
-	_, err = redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime)
-
-	//如果替他人支付，通知对方
-	if username != payForUsername {
-
-		//TODO
-
-	}
-
-	//确认支付成功后，就需要分配佣金
-	s.Repository.AddCommission(orderTotalAmount, username, req.OrderID, req.Content, blockNumber, hash)
-
-	return &Wallet.SendConfirmPayForMembershipResp{
-		OrderTotalAmount: orderTotalAmount,
-		PayForUsername:   payForUsername,
-		BlockNumber:      blockNumber,
-		Hash:             hash,
-		Time:             uint64(time.Now().UnixNano() / 1e6),
-	}, nil
-}
+// 	return &Wallet.SendConfirmPayForMembershipResp{
+// 		OrderTotalAmount: orderTotalAmount,
+// 		PayForUsername:   payForUsername,
+// 		BlockNumber:      blockNumber,
+// 		Hash:             hash,
+// 		Time:             uint64(time.Now().UnixNano() / 1e6),
+// 	}, nil
+// }
 
 //订单图片上链
 func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {

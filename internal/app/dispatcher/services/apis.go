@@ -8,7 +8,7 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
-	LMCommon "github.com/lianmi/servers/internal/common"
+	// LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -105,10 +105,6 @@ type LianmiApisService interface {
 
 	//普通用户佣金返佣统计
 	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
-
-	PreOrderForPayMembership(ctx context.Context, username, deviceID string, req *Auth.PreOrderForPayMembershipReq) (*Auth.PreOrderForPayMembershipResp, error)
-
-	ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error)
 
 	UpdateUser(username string, user *models.User) error
 
@@ -449,98 +445,6 @@ func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string
 //普通用户佣金返佣统计
 func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.GetMembershipResp, error) {
 	return s.Repository.GetNormalMembership(username)
-}
-
-//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-//payForUsername  - 要给谁付费
-func (s *DefaultLianmiApisService) PreOrderForPayMembership(ctx context.Context, username, deviceID string, req *Auth.PreOrderForPayMembershipReq) (*Auth.PreOrderForPayMembershipResp, error) {
-
-	//通过grpc获取发起购买者用户的余额
-	//当前用户的代币余额
-	getUserBalanceResp, err := s.walletGrpcClientSvc.GetUserBalance(ctx, &Wallet.GetUserBalanceReq{
-		Username: username,
-	})
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.GetUserBalance 错误", zap.Error(err))
-		return nil, err
-	}
-
-	//根据用户选择的VIP价格类型获得需要支付的金额
-	priceInfo, err := s.Repository.GetVipUserPrice(int(req.PayType))
-	if err != nil {
-		s.logger.Error("wGetVipUserPrice 错误", zap.Error(err))
-		return nil, err
-	}
-
-	//由于会员价格是人民币定价，以元为单位，因此，需要乘以100
-	amountLNMC := uint64(priceInfo.Price * 100)
-
-	s.logger.Info("当前用户的钱包信息",
-		zap.String("username", username),
-		zap.Uint64("当前代币余额 balanceLNMC", getUserBalanceResp.BalanceLNMC),
-		zap.Uint64("当前ETH余额 balanceETH", getUserBalanceResp.BalanceEth),
-	)
-
-	//TODO
-	if getUserBalanceResp.BalanceEth < LMCommon.GASLIMIT {
-		return nil, errors.Wrap(err, "gas余额不足")
-	}
-
-	//判断是否有足够代币数量
-	if getUserBalanceResp.BalanceLNMC < amountLNMC {
-		s.logger.Warn("当前用户LNMC余额不足", zap.String("Username", username))
-		return nil, errors.Wrap(err, "当前用户LNMC余额不足")
-	}
-
-	//调用钱包Grpcserver，生成一个类似 10-3 的预支付裸交易
-	sendPrePayForMembershipResp, err := s.walletGrpcClientSvc.SendPrePayForMembership(ctx, &Wallet.SendPrePayForMembershipReq{
-		Username:       username,           //支付方
-		PayForUsername: req.PayForUsername, //购买vip的用户，可以两者一样
-		PayType:        req.PayType,        //会员卡类型
-	})
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.SendPrePayForMembership 错误", zap.Error(err))
-		return nil, err
-	}
-
-	return &Auth.PreOrderForPayMembershipResp{
-		//订单的实际总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-		OrderTotalAmount: sendPrePayForMembershipResp.OrderTotalAmount,
-		//服务端生成的订单id
-		OrderID: sendPrePayForMembershipResp.OrderID,
-		//向收款方转账的裸交易结构体
-		RawDescToTarget: sendPrePayForMembershipResp.RawDescToTarget,
-		//时间
-		Time: sendPrePayForMembershipResp.Time,
-	}, nil
-}
-
-func (s *DefaultLianmiApisService) ConfirmPayForMembership(ctx context.Context, username string, req *Auth.ConfirmPayForMembershipReq) (*Auth.ConfirmPayForMembershipResp, error) {
-
-	//调用钱包的GrpcServer接口，进行类似 10-4 的确认交易
-	sendConfirmPayForMembershipResp, err := s.walletGrpcClientSvc.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
-		Username:         username,
-		OrderID:          req.OrderID,          //订单ID
-		SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
-		Content:          req.Content,          //附言
-	})
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
-		return nil, err
-	}
-
-	return &Auth.ConfirmPayForMembershipResp{
-		//要给谁付费
-		PayForUsername: sendConfirmPayForMembershipResp.PayForUsername,
-		//订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-		OrderTotalAmount: sendConfirmPayForMembershipResp.OrderTotalAmount,
-		// 区块高度
-		BlockNumber: sendConfirmPayForMembershipResp.BlockNumber,
-		// 交易哈希hex
-		Hash: sendConfirmPayForMembershipResp.Hash,
-		//交易时间
-		Time: sendConfirmPayForMembershipResp.Time,
-	}, nil
 }
 
 //提交佣金提现申请(商户，用户)

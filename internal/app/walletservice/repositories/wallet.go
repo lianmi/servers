@@ -66,8 +66,14 @@ type WalletRepository interface {
 	//根据PayType获取到VIP价格
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 
+	//根据productID获取到VIP价格
+	GetVipUserPriceByProductID(productID string) (*models.VipPrice, error)
+
 	//会员付费成功后，按系统设定的比例进行佣金计算及写库， 需要新增3条佣金amount记录
-	AddCommission(orderTotalAmount float64, username, orderID, content string, blockNumber uint64, txHash string) error
+	AddCommission(orderTotalAmount float64, username, orderID string) error
+
+	//购买Vip后，增加用户的到期时间
+	AddVipEndDate(username string, endTime int64) error
 }
 
 type MysqlWalletRepository struct {
@@ -186,8 +192,6 @@ func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNum
 	if result.Error != nil {
 		m.logger.Error("将Status变为已支付", zap.Error(result.Error))
 		return result.Error
-	} else {
-
 	}
 
 	walletAddress, err = redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "WalletAddress"))
@@ -484,8 +488,20 @@ func (m *MysqlWalletRepository) GetVipUserPrice(payType int) (*models.VipPrice, 
 	return p, nil
 }
 
+//根据productID获取到VIP价格
+func (m *MysqlWalletRepository) GetVipUserPriceByProductID(productID string) (*models.VipPrice, error) {
+	p := new(models.VipPrice)
+	where := models.VipPrice{
+		ProductID: productID,
+	}
+	if err := m.db.Model(p).Where(&where).First(p).Error; err != nil {
+		return nil, errors.Wrapf(err, "PayType not found[productID=%s]", productID)
+	}
+	return p, nil
+}
+
 //会员付费成功后，按系统设定的比例进行佣金计算及写库， 需要新增3条佣金amount记录
-func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username, orderID, content string, blockNumber uint64, txHash string) error {
+func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username, orderID string) error {
 	var err error
 	currYearMonth := dateutil.GetYearMonthString()
 
@@ -800,4 +816,14 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 	}
 
 	return nil
+}
+
+//购买Vip后，增加用户的到期时间
+func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) error {
+	result := s.db.Model(&models.User{}).Where(&models.User{
+		Username: username,
+	}).Update("vip_end_date", endTime)
+
+	s.logger.Error("将Status变为已支付", zap.Error(result.Error))
+	return result.Error
 }

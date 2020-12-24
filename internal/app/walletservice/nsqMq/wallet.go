@@ -547,11 +547,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var errorMsg string
 	var data []byte
 
-	var walletAddress string   //用户钱包地址
-	var toWalletAddress string // 接收者钱包地址
-	var orderID string         // 预转账的订单id
-	var preUsername string     // 预转账的用户账号
-	var toUsername string      // 接收者用户账号
+	var walletAddress string    //用户钱包地址
+	var toWalletAddress string  // 接收者钱包地址
+	var orderID string          // 预转账的订单id
+	var preUsername string      // 预转账的用户账号
+	var toUsername string       // 接收者用户账号
+	var businessUsername string // 如果是订单支付，商户账号
 
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
@@ -560,6 +561,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var balanceAfter uint64                    //转账之后的代币数量, 无小数点
 	var toBalanceBefore, toBalanceAfter uint64 //接收者在AB签名前后的代币数量
 	var content string                         //附言
+	var orderTotalAmount float64
+	var payType int
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -634,6 +637,39 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		if orderID != "" && toUsername == "" {
 			nc.logger.Debug("本次转账是订单", zap.String("orderID", orderID))
+			orderIDKey := fmt.Sprintf("Order:%s", orderID)
+
+			//从订单redis里取出商户id
+			businessUsername, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+			orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+
+			//TODO 判断是否是购买Vip会员
+			if businessUsername == LMCommon.VipBusinessUsername {
+				// 根据 ProductID 获取到VIP类型
+				productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+				if productID != "" {
+					//根据 productID  查询出vipPrice对应的数据
+					nc.logger.Debug("根据 productID  查询出vipPrice对应的数据", zap.String("productID", productID))
+
+					vipPrice, err := nc.Repository.GetVipUserPriceByProductID(productID)
+					if err != nil {
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Error GetVipUserPriceByProductID: %s", productID)
+						goto COMPLETE
+					}
+
+					// 核对价格
+					if float64(vipPrice.Price) != orderTotalAmount {
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("核对价格: 支付金额(%f)不等于规定的Vip会员价格(%f)", orderTotalAmount, float64(vipPrice.Price))
+						goto COMPLETE
+					}
+					payType = vipPrice.PayType
+
+				}
+
+			}
+
 		}
 
 		if orderID == "" && toUsername != "" {
@@ -784,20 +820,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			"Hash", hash,
 		)
 
-		//TODO 判断是否是购买Vip会员
-		if username == LMCommon.VipBusinessUsername {
-			// 根据 ProductID 获取到VIP类型
-			orderIDKey := fmt.Sprintf("Order:%s", orderID)
-			productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
-			if productID != "" {
-				//根据 productID  查询出vipPrice对应的数据
-				nc.logger.Debug("根据 productID  查询出vipPrice对应的数据", zap.String("productID", productID))
-				// nc.Repository.GetVipUserPrice(payType)
-				// nc.Repository.AddCommission(orderTotalAmount, username, orderID, content, blockNumber, txHash)
-			}
-
-		}
-
 		//对用户转账
 		if toUsername != "" {
 			//更新接收者的收款历史记录
@@ -852,6 +874,44 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			}
 			nc.Repository.AddeCollectionHistory(lnmcCollectionHistory)
 
+		}
+
+		//购买会员，进行佣金分配
+		if businessUsername == LMCommon.VipBusinessUsername {
+			//到期时间, ms
+			curVipEndDate, _ := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
+
+			if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
+				curVipEndDate = time.Now().UnixNano() / 1e6
+			}
+			curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
+
+			//增加到期时间
+			var endTime int64
+
+			switch Global.VipUserPayType(payType) {
+			case Global.VipUserPayType_VIP_Year: //包年
+				endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
+			case Global.VipUserPayType_VIP_Season: //包季
+				endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
+			case Global.VipUserPayType_VIP_Month: //包月
+				endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
+				// case Global.VipUserPayType_VIP_Week: //包周，体验卡
+
+			}
+			// 写入MySQL及Redis
+			if err := nc.Repository.AddVipEndDate(username, endTime); err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("AddVipEndDate error")
+				goto COMPLETE
+			}
+			if _, err := redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime); err != nil {
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("HSET VipEndDate error")
+				goto COMPLETE
+			}
+
+			nc.Repository.AddCommission(orderTotalAmount, username, orderID)
 		}
 
 		// 10-16 连米币到账通知事件
@@ -938,7 +998,6 @@ COMPLETE:
 
 // 10-5 查询账号余额
 // 查询链上账号余额， 包括连米币及以太币, 将查询到的余额更新到redis
-
 func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 	var err error
 	errorCode := 200

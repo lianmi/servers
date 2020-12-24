@@ -38,16 +38,6 @@ func (s *WalletServer) GetWalletAddressbyBip32Index(ctx context.Context, req *Wa
 	return s.service.GetWalletAddressbyBip32Index(ctx, req)
 }
 
-//预支付购买会员
-func (s *WalletServer) SendPrePayForMembership(ctx context.Context, req *Wallet.SendPrePayForMembershipReq) (*Wallet.SendPrePayForMembershipResp, error) {
-	return s.service.SendPrePayForMembership(ctx, req)
-}
-
-//确认购买会员
-func (s *WalletServer) SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error) {
-	return s.service.SendConfirmPayForMembership(ctx, req)
-}
-
 //订单上链
 func (s *WalletServer) OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error) {
 	return s.service.OrderImagesOnBlockchain(ctx, req)

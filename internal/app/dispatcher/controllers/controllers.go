@@ -405,12 +405,6 @@ func CreateInitControllersFn(
 			//查询VIP会员价格表
 			membershipGroup.GET("/pricelist", pc.GetVipPriceList)
 
-			//预生成一个购买会员的订单， 返回OrderID及预转账裸交易数据
-			membershipGroup.POST("/prepay", pc.PreOrderForPayMembership)
-
-			//确认为自己或他人支付会员费
-			membershipGroup.POST("/confirmpay", pc.ConfirmPayForMembership)
-
 			//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 			membershipGroup.GET("/getall", pc.GetBusinessMembership)
 

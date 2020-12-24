@@ -1,7 +1,6 @@
 syntax = "proto3";
-import 'api/proto/wallet/PreTransfer.proto';
 import 'api/proto/wallet/Alipay.proto';
-import 'api/proto/global/Global.proto';
+//import 'api/proto/global/Global.proto';
 
 package cloud.lianmi.im.wallet;
 option go_package = "github.com/lianmi/servers/api/proto/wallet";
@@ -17,12 +16,6 @@ service LianmiWallet {
 
     //根据HD的索引号，获取对应的钱包地址 
     rpc GetWalletAddressbyBip32Index (GetWalletAddressbyBip32IndexReq) returns (GetWalletAddressbyBip32IndexResp);
-
-    //发起一个购买会员的预支付，返回裸交易
-    rpc SendPrePayForMembership (SendPrePayForMembershipReq) returns (SendPrePayForMembershipResp);
-    
-    //确认购买会员的支付交易
-    rpc SendConfirmPayForMembership (SendConfirmPayForMembershipReq) returns (SendConfirmPayForMembershipResp);
 
     //订单图片上链
     rpc OrderImagesOnBlockchain(OrderImagesOnBlockchainReq) returns  (OrderImagesOnBlockchainResp);
@@ -71,63 +64,6 @@ message GetWalletAddressbyBip32IndexReq {
 
 message GetWalletAddressbyBip32IndexResp {
     string walletAddress  =1;
-}
-
-//======发起一个购买会员的预支付，返回裸交易 ======//
-message SendPrePayForMembershipReq {
-    //发起购买的用户账号 
-    string username =1;
-    //为谁购买
-    string payForUsername=2;
-    //购买的VIP用户类型，包年、包季、包月
-    global.VipUserPayType payType=3;
-}
-
-message SendPrePayForMembershipResp {
-    //订单ID
-    string orderID =1;
-
-    //人民币格式
-    double orderTotalAmount=2;
-
-    //裸交易结构体
-    RawDesc rawDescToTarget=3;
-
-    //时间
-    fixed64 time=4;
-
-}
-
-message SendConfirmPayForMembershipReq{
-    //发起购买的用户账号 
-    string  username =1;
-
-    //订单ID（ 非空的时候，targetUserName 必须是空
-    string orderID=2;
-
-    //签名后的转给目标接收者的Tx(A签) hex格式 
-    string signedTxToTarget=3;
-
-    //附言
-    string content=4;
-}
-
-message SendConfirmPayForMembershipResp{
-
-    //人民币格式，订单实际金额
-    double orderTotalAmount =1;
-
-    //要给谁付费
-    string payForUsername =2;
-
-    // 区块高度 
-    fixed64 blockNumber=3;
-
-    // 交易哈希hex
-    string hash=4;
-
-    //时间
-    fixed64 time=5;
 }
 
 message OrderImagesOnBlockchainReq{
