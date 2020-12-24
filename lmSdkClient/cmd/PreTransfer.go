@@ -4,9 +4,9 @@
 ./lmSdkClient wallet PreTransfer -t id4 -a 1.00
 
 购买Vip会员步骤：
-./lmSdkClient order -p ada166df-bb9f-4274-ab8d-e369a68d69ce
+./lmSdkClient order GetPreKeyOrderID -p ada166df-bb9f-4274-ab8d-e369a68d69ce
 ./lmSdkClient order BuyVipUser  -p ada166df-bb9f-4274-ab8d-e369a68d69ce -I 9.9
-./lmSdkClient wallet PreTransfer  -a 9.9 -o 8df03e2f-d02e-4cdb-82dc-ec6bc69173a0
+./lmSdkClient wallet PreTransfer -a 9.9 -o ae3ba753-8a65-4377-a349-a98f697ad115
 
 */
 package cmd

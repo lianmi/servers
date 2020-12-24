@@ -20,6 +20,9 @@ type OrderService interface {
 
 	//购买Vip会员确认
 	SendConfirmPayForMembership(ctx context.Context, req *Wallet.SendConfirmPayForMembershipReq) (*Wallet.SendConfirmPayForMembershipResp, error)
+
+	//根据 PayType获取价格信息 
+	GetVipUserPrice(payType int) (*models.VipPrice, error) 
 }
 
 type DefaultApisService struct {
@@ -62,3 +65,7 @@ func (s *DefaultApisService) DeleteProduct(productID, username string) error {
 func (s *DefaultApisService) AddPreKeys(prekeys []*models.Prekey) error {
 	return s.Repository.AddPreKeys(prekeys)
 }
+	//根据 PayType获取价格信息 
+	func (s *DefaultApisService) GetVipUserPrice(payType int) (*models.VipPrice, error)  {
+		return s.Repository.GetVipUserPrice(payType)
+	}

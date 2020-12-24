@@ -100,3 +100,15 @@ func (m *MysqlOrderRepository) AddPreKeys(prekeys []*models.Prekey) error {
 
 	return nil
 }
+
+//根据 PayType获取价格信息
+func (m *MysqlOrderRepository) GetVipUserPrice(payType int) (*models.VipPrice, error) {
+	p := new(models.VipPrice)
+	where := models.VipPrice{
+		PayType: payType,
+	}
+	if err := m.db.Model(p).Where(&where).First(p).Error; err != nil {
+		return nil, errors.Wrapf(err, "PayType not found[payType=%d]", payType)
+	}
+	return p, nil
+}

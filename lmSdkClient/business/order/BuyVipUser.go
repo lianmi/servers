@@ -91,9 +91,6 @@ func BuyVipUser(price float64, orderID, productID string) error {
 	if err != nil {
 		return errors.New("vipUser.ToJson error")
 	}
-	vu := new(VipUser)
-	json.Unmarshal([]byte(attach), vu)
-	log.Println("attach解析 payType:", vu.PayType)
 
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
@@ -192,9 +189,12 @@ func BuyVipUser(price float64, orderID, productID string) error {
 						log.Println("Protobuf Unmarshal Error", err)
 					} else {
 						array.PrintPretty(orderProductBody)
+						vu := new(VipUser)
+						json.Unmarshal([]byte(orderProductBody.Attach), vu)
+						// log.Println("attach解析 payType:", vu.PayType)
 						if orderProductBody.State == 4 {
 							//OS_Taked        = 4;     /**< 已接单*/
-							log.Println("已接单,  下一步请发起支付")
+							log.Printf("已接单, Vip会员类型: %d,  价格是: %f, 下一步请发起支付", vu.PayType, vu.Price)
 						}
 					}
 

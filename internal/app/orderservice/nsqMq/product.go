@@ -1694,7 +1694,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					goto COMPLETE
 				}
 
-				//TODO 如果是购买Vip, 自动接单，并增加到期时间
+				//判断商户注册账号 是不是写死的系统商户id，如果是购买Vip, 自动接单，并返回给用户，让其发起支付操作
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
 
 					//从attach里解析PayType
@@ -1711,33 +1711,44 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							zap.Int(" PayType ", vipUser.PayType),
 						)
 					}
-
-					//接单成功，当用户收到后即可发起预支付
-					//将接单状态转发到用户
-					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err != nil {
-						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					//根据PayType获取到VIP价格
+					vipPrice, err := nc.service.GetVipUserPrice(vipUser.PayType)
+					if err != nil {
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = "INCR Error"
+						errorMsg = fmt.Sprintf("GetVipUserPrice error")
 						goto COMPLETE
 					}
+					//修改Attach，将价格填入
+					vipUser.Price = vipPrice.Price
+					attach, err := vipUser.ToJson()
+					if err != nil {
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("Attach ToJson error")
+						goto COMPLETE
+					}
+					orderProductBody.Attach = attach
 
+					//接单成功，当用户收到后即可发起预支付
 					orderProductBody.State = Global.OrderState_OS_Taked
 
+					//将接单状态转发到用户
 					toUser = orderProductBody.BuyUser
 
 				} else {
-					//将订单转发到商户
-					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err != nil {
-						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = "INCR Error"
-						goto COMPLETE
-					}
+
 					orderProductBody.State = Global.OrderState_OS_SendOK
+
+					//将订单转发到商户
 					toUser = orderProductBody.BusinessUser
 
 				}
 
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = "INCR Error"
+					goto COMPLETE
+				}
 				orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
 				eRsp := &Msg.RecvMsgEventRsp{
