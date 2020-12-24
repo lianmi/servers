@@ -14,6 +14,7 @@ type OrderRepository interface {
 	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
 	AddPreKeys(prekeys []*models.Prekey) error
+	GetVipUserPrice(payType int) (*models.VipPrice, error)
 }
 
 type MysqlOrderRepository struct {
