@@ -668,6 +668,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					if float64(vipPrice.Price) != orderTotalAmount {
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("核对价格: 支付金额(%f)不等于规定的Vip会员价格(%f)", orderTotalAmount, float64(vipPrice.Price))
+						nc.logger.Error(errorMsg)
 						goto COMPLETE
 					}
 					payType = vipPrice.PayType
