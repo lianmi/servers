@@ -551,6 +551,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var walletAddress string    //用户钱包地址
 	var toWalletAddress string  // 接收者钱包地址
 	var orderID string          // 预转账的订单id
+	var state int               //支付状态 0 - 未支付 1 - 已支付
 	var preUsername string      // 预转账的用户账号
 	var toUsername string       // 接收者用户账号
 	var businessUsername string // 如果是订单支付，商户账号
@@ -628,13 +629,21 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		toUsername, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToUsername")) //接收方
 		toWalletAddress, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToWalletAddress"))
 		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
+		state, _ = redis.Int(redisConn.Do("HGET", PreTransferKey, "State"))
 
 		nc.logger.Debug("PreTransferKey",
 			zap.String("PreTransferKey", PreTransferKey),
 			zap.String("preUsername", preUsername),
 			zap.String("SignedTxToTarget", req.SignedTxToTarget), //签名后的Tx(A签) hex
+			zap.Int("State", state),
 		)
 
+		if state == 1 {
+			nc.logger.Error("严重错误, 此转账已经支付成功，不能再次确认", zap.String("Uuid", req.Uuid))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("Error:  此转账已经支付成功，不能再次确认")
+			goto COMPLETE
+		}
 		if preUsername != username {
 			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配", zap.String("Uuid", req.Uuid))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -821,7 +830,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		//更新转账记录到 redis  HSET
 		_, err = redisConn.Do("HSET",
 			PreTransferKey,
-			"State", 1,
+			"State", 1, //0-未支付， 1-已支付
 		)
 
 		_, err = redisConn.Do("HSET",
