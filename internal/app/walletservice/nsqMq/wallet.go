@@ -555,12 +555,11 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 	var newBip32Index uint64 //自增的平台HD钱包派生索引号
 
-	var balanceLNMC uint64    //用户当前代币数量
-	var toBalanceLNMC uint64  //接收者在转账之前的代币数量
-	var amountLNMC uint64     //本次转账的代币数量, 无小数点
-	var balanceAfter uint64   //转账之后的代币数量, 无小数点
-	var toBalanceAfter uint64 //接收者在AB签名后的代币数量
-	var content string        //附言
+	var balanceLNMC uint64                     //用户当前代币数量
+	var amountLNMC uint64                      //本次转账的代币数量, 无小数点
+	var balanceAfter uint64                    //转账之后的代币数量, 无小数点
+	var toBalanceBefore, toBalanceAfter uint64 //接收者在AB签名前后的代币数量
+	var content string                         //附言
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -712,7 +711,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		}
 
 		//调用eth接口，获取目标钱包地址的余额
-		toBalanceLNMC, err = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
+		toBalanceBefore, err = nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 
 		//附言
 		content, err = redis.String(redisConn.Do("HGET", PreTransferKey, "Content"))
@@ -821,15 +820,15 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				zap.Uint64("发起者现在余额", balanceAfter),
 			)
 			nc.logger.Info("接收者转账之后钱包信息",
-				zap.String("username", username),
-				zap.String("walletAddress", walletAddress),
-				zap.Uint64("接收者之前余额", toBalanceAfter),
+				zap.String("toUsername", toUsername),
+				zap.String("toWalletAddress", toWalletAddress),
+				zap.Uint64("接收者之前余额", toBalanceBefore),
 				zap.Uint64("接收者现在余额", toBalanceAfter),
 			)
 
 			//代币减少的数量
 			exchangeLNMC := balanceLNMC - balanceAfter
-			addedLNMC := toBalanceAfter - toBalanceLNMC
+			addedLNMC := toBalanceAfter - toBalanceBefore
 
 			if exchangeLNMC != addedLNMC {
 				nc.logger.Error("转账发生严重错误, 发送者代币减少的数量不等于接收者增加的数量")
@@ -844,7 +843,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				FromWalletAddress: walletAddress,   //发送者钱包地址
 				ToUsername:        toUsername,      //接收者
 				ToWalletAddress:   toWalletAddress, //接收者钱包地址
-				BalanceLNMCBefore: toBalanceLNMC,   //接收方用户在转账时刻的连米币数量
+				BalanceLNMCBefore: toBalanceBefore, //接收方用户在转账时刻的连米币数量
 				AmountLNMC:        amountLNMC,      //本次转账的用户连米币数量
 				BalanceLNMCAfter:  toBalanceAfter,  //接收方用户在转账之后的连米币数量
 				Bip32Index:        newBip32Index,   //平台HD钱包Bip32派生索引号

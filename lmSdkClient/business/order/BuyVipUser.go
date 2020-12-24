@@ -192,6 +192,10 @@ func BuyVipUser(price float64, orderID, productID string) error {
 						log.Println("Protobuf Unmarshal Error", err)
 					} else {
 						array.PrintPretty(orderProductBody)
+						if orderProductBody.State == 4 {
+							//OS_Taked        = 4;     /**< 已接单*/
+							log.Println("已接单,  下一步请发起支付")
+						}
 					}
 
 				}
