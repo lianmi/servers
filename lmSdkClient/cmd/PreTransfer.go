@@ -5,7 +5,7 @@
 
 购买Vip会员
 ./lmSdkClient order BuyVipUser  -p ada166df-bb9f-4274-ab8d-e369a68d69ce -I 9.9
-./lmSdkClient wallet PreTransfer -t id3 -a 9.9 -o 959bb0ae-1c12-4b60-8741-173361ceba8a
+./lmSdkClient wallet PreTransfer -t id3 -a 9.9 -o 42dbc0bb-63a5-49a0-a4d9-9628e1352ab5
 
 */
 package cmd

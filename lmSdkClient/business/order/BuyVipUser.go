@@ -187,7 +187,12 @@ func BuyVipUser(price float64, orderID, productID string) error {
 					log.Println("购买Vip会员下单 回包内容 ---------------------")
 
 					//解包body
-					array.PrintPretty(rsq)
+					var orderProductBody = new(Order.OrderProductBody)
+					if err := proto.Unmarshal(rsq.Body, orderProductBody); err != nil {
+						log.Println("Protobuf Unmarshal Error", err)
+					} else {
+						array.PrintPretty(orderProductBody)
+					}
 
 				}
 

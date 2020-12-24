@@ -1499,6 +1499,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 	//经过服务端更改状态后的新的OrderProductBody字节流
 	var orderProductBodyData []byte
+	var toUser string
 
 	rsp := &Msg.SendMsgRsp{}
 
@@ -1711,37 +1712,18 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						)
 					}
 
-					//调用钱包的GrpcServer接口，进行增加到期时间等操作
-					// ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-					// sendConfirmPayForMembershipResp, err := nc.service.SendConfirmPayForMembership(ctx, &Wallet.SendConfirmPayForMembershipReq{
-					// 	// Username:         username,
-					// 	// OrderID:          req.OrderID,          //订单ID
-					// 	// SignedTxToTarget: req.SignedTxToTarget, //签名后的转给目标接收者的Tx(A签) hex格式
-					// 	// Content:          req.Content,          //附言
-					// })
-					// if err != nil {
-					// 	nc.logger.Error("walletGrpcClientSvc.SendConfirmPayForMembership 错误", zap.Error(err))
-					// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					// 	errorMsg = fmt.Sprintf("wallet Grpc error")
-					// 	goto COMPLETE
-					// }
-					orderProductBody.State = Global.OrderState_OS_Done
-					orderProductBodyData, _ = proto.Marshal(orderProductBody)
-
-					eRsp := &Msg.RecvMsgEventRsp{
-						Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-						Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-						Body:         orderProductBodyData,               //订单载体 OrderProductBody
-						From:         username,                           //谁发的
-						FromDeviceId: deviceID,                           //哪个设备发的
-						Recv:         req.To,                             //商户账户id
-						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano() / 1e6),
+					//接单成功，当用户收到后即可发起预支付
+					//将接单状态转发到用户
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err != nil {
+						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = "INCR Error"
+						goto COMPLETE
 					}
-					//向购买vip的用户返回成功消息
-					go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+
+					orderProductBody.State = Global.OrderState_OS_Taked
+
+					toUser = orderProductBody.BuyUser
 
 				} else {
 					//将订单转发到商户
@@ -1752,64 +1734,65 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						goto COMPLETE
 					}
 					orderProductBody.State = Global.OrderState_OS_SendOK
-					orderProductBodyData, _ = proto.Marshal(orderProductBody)
-
-					eRsp := &Msg.RecvMsgEventRsp{
-						Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-						Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-						Body:         orderProductBodyData,               //订单载体 OrderProductBody
-						From:         username,                           //谁发的
-						FromDeviceId: deviceID,                           //哪个设备发的
-						Recv:         req.To,                             //商户账户id
-						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-						Time:         uint64(time.Now().UnixNano() / 1e6),
-					}
-
-					//对attach进行哈希计算，以便获知订单内容是否发生改变
-					attachHash := crypt.Sha1(orderProductBody.Attach)
-
-					// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
-					orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
-					_, err = redisConn.Do("HMSET",
-						orderProductBodyKey,
-						"Username", username,
-						"OrderID", orderProductBody.OrderID,
-						"ProductID", orderProductBody.ProductID,
-						"BuyUser", orderProductBody.BuyUser,
-						"OpkBuyUser", orderProductBody.OpkBuyUser,
-						"BusinessUser", orderProductBody.BusinessUser,
-						"OpkBusinessUser", orderProductBody.OpkBusinessUser,
-						"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
-						"Attach", orderProductBody.Attach, //订单内容，UI负责构造
-						"AttachHash", attachHash, //订单内容的哈希值
-						"UserData", orderProductBody.Userdata, //透传数据
-						"State", orderProductBody.State, //订单状态
-					)
-
-					// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
-					orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
-					_, err = redisConn.Do("HMSET",
-						orderIDKey,
-						// "OrderID", orderProductBody.OrderID, //不能写入，在创建的时候已经有值
-						"ProductID", orderProductBody.ProductID, //商品id
-						"BuyUser", orderProductBody.BuyUser, //买家
-						"OpkBuyUser", orderProductBody.OpkBuyUser,
-						"BusinessUser", orderProductBody.BusinessUser, //商户
-						"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
-						"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
-						"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
-						"AttachHash", attachHash, //订单内容的哈希值
-						"UserData", orderProductBody.GetUserdata(), //透传数据
-						"State", orderProductBody.GetState(), //订单状态
-					)
-
-					//向商户发送订单消息
-					//TODO  当商户离线时，无法再次获取到此订单推送
-					go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+					toUser = orderProductBody.BusinessUser
 
 				}
+
+				orderProductBodyData, _ = proto.Marshal(orderProductBody)
+
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
+					Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
+					Body:         orderProductBodyData,               //订单载体 OrderProductBody
+					From:         username,                           //谁发的
+					FromDeviceId: deviceID,                           //哪个设备发的
+					Recv:         req.To,                             //商户账户id
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+
+				//对attach进行哈希计算，以便获知订单内容是否发生改变
+				attachHash := crypt.Sha1(orderProductBody.Attach)
+
+				// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
+				_, err = redisConn.Do("HMSET",
+					orderProductBodyKey,
+					"Username", username,
+					"OrderID", orderProductBody.OrderID,
+					"ProductID", orderProductBody.ProductID,
+					"BuyUser", orderProductBody.BuyUser,
+					"OpkBuyUser", orderProductBody.OpkBuyUser,
+					"BusinessUser", orderProductBody.BusinessUser,
+					"OpkBusinessUser", orderProductBody.OpkBusinessUser,
+					"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
+					"Attach", orderProductBody.Attach, //订单内容，UI负责构造
+					"AttachHash", attachHash, //订单内容的哈希值
+					"UserData", orderProductBody.Userdata, //透传数据
+					"State", orderProductBody.State, //订单状态
+				)
+				// 将订单信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
+				orderIDKey := fmt.Sprintf("Order:%s", orderProductBody.OrderID)
+				_, err = redisConn.Do("HMSET",
+					orderIDKey,
+					// "OrderID", orderProductBody.OrderID, //不能写入，在创建的时候已经有值
+					"ProductID", orderProductBody.ProductID, //商品id
+					"BuyUser", orderProductBody.BuyUser, //买家
+					"OpkBuyUser", orderProductBody.OpkBuyUser,
+					"BusinessUser", orderProductBody.BusinessUser, //商户
+					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
+					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
+					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
+					"AttachHash", attachHash, //订单内容的哈希值
+					"UserData", orderProductBody.GetUserdata(), //透传数据
+					"State", orderProductBody.GetState(), //订单状态
+				)
+
+				//向用户或商户 toUser 发送订单消息
+				//TODO  当商户离线时， 无法再次获取到此订单推送
+				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUser)
 
 			default:
 
