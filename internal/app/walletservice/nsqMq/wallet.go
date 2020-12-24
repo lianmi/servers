@@ -662,6 +662,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("Error GetVipUserPriceByProductID: %s", productID)
 						goto COMPLETE
+					} else {
+						nc.logger.Debug("vipPrice数据", zap.Int("PayType", vipPrice.PayType), zap.Float64("Price", float64(vipPrice.Price)))
 					}
 
 					// 核对价格
