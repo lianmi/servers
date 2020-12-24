@@ -628,6 +628,12 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 		toWalletAddress, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "ToWalletAddress"))
 		orderID, _ = redis.String(redisConn.Do("HGET", PreTransferKey, "OrderID"))
 
+		nc.logger.Debug("PreTransferKey",
+			zap.String("PreTransferKey", PreTransferKey),
+			zap.String("preUsername", preUsername),
+			zap.String("SignedTxToTarget", req.SignedTxToTarget), //签名后的Tx(A签) hex
+		)
+
 		if preUsername != username {
 			nc.logger.Error("严重错误, 此转账发起者与当前用户不匹配", zap.String("Uuid", req.Uuid))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -635,7 +641,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		if orderID != "" && toUsername == "" {
+		if orderID != "" {
 			nc.logger.Debug("本次转账是订单", zap.String("orderID", orderID))
 			orderIDKey := fmt.Sprintf("Order:%s", orderID)
 
@@ -876,47 +882,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		}
 
-		//购买会员，进行佣金分配
-		if businessUsername == LMCommon.VipBusinessUsername {
-
-			//到期时间, ms
-			curVipEndDate, _ := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
-
-			if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
-				curVipEndDate = time.Now().UnixNano() / 1e6
-			}
-			curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
-
-			//增加到期时间
-			var endTime int64
-
-			switch Global.VipUserPayType(payType) {
-			case Global.VipUserPayType_VIP_Year: //包年
-				endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
-			case Global.VipUserPayType_VIP_Season: //包季
-				endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
-			case Global.VipUserPayType_VIP_Month: //包月
-				endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
-				// case Global.VipUserPayType_VIP_Week: //包周，体验卡
-
-			}
-			nc.logger.Debug("购买会员，增加到期时间", zap.Int64("curVipEndDate", curVipEndDate), zap.Int64("endTime", endTime))
-
-			// 写入MySQL及Redis
-			if err := nc.Repository.AddVipEndDate(username, endTime); err != nil {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("AddVipEndDate error")
-				goto COMPLETE
-			}
-			if _, err := redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime); err != nil {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("HSET VipEndDate error")
-				goto COMPLETE
-			}
-			nc.logger.Debug("购买会员，进行佣金分配")
-			nc.Repository.AddCommission(orderTotalAmount, username, orderID)
-		}
-
 		// 10-16 连米币到账通知事件
 		lnmcReceivedEventRspData, _ := proto.Marshal(&Wallet.LNMCReceivedEventRsp{
 			BlockNumber: blockNumber,                         // 区块高度
@@ -929,6 +894,48 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 
 		//订单支付  9-12，通知双方
 		if orderID != "" {
+			//购买会员，进行佣金分配
+			if businessUsername == LMCommon.VipBusinessUsername {
+
+				//到期时间, ms
+				curVipEndDate, _ := redis.Int64(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "VipEndDate"))
+
+				if curVipEndDate == 0 || curVipEndDate < time.Now().UnixNano()/1e6 {
+					curVipEndDate = time.Now().UnixNano() / 1e6
+				}
+				curTime := time.Unix(curVipEndDate/1e3, 0) //将秒转换为time类型
+
+				//增加到期时间
+				var endTime int64
+
+				switch Global.VipUserPayType(payType) {
+				case Global.VipUserPayType_VIP_Year: //包年
+					endTime = curTime.AddDate(0, 0, 365).UnixNano() / 1e6
+				case Global.VipUserPayType_VIP_Season: //包季
+					endTime = curTime.AddDate(0, 0, 90).UnixNano() / 1e6
+				case Global.VipUserPayType_VIP_Month: //包月
+					endTime = curTime.AddDate(0, 0, 30).UnixNano() / 1e6
+					// case Global.VipUserPayType_VIP_Week: //包周，体验卡
+
+				}
+				nc.logger.Debug("购买会员，增加到期时间", zap.Int64("curVipEndDate", curVipEndDate), zap.Int64("endTime", endTime))
+
+				// 写入MySQL及Redis
+				if err := nc.Repository.AddVipEndDate(username, endTime); err != nil {
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("AddVipEndDate error")
+					goto COMPLETE
+				}
+				if _, err := redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime); err != nil {
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("HSET VipEndDate error")
+					goto COMPLETE
+				}
+				nc.logger.Debug("购买会员，进行佣金分配")
+				nc.Repository.AddCommission(orderTotalAmount, username, orderID)
+			} else {
+				nc.logger.Error("购买会员的订单严重错误")
+			}
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
 			orderIDKey := fmt.Sprintf("Order:%s", orderID)
