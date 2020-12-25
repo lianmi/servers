@@ -57,18 +57,18 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-func (pc *LianmiApisController) GetCommssions(c *gin.Context) {
+func (pc *LianmiApisController) GetCommissionStatistics(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	username := claims[LMCommon.IdentityKey].(string)
 	if username == "" {
 		RespFail(c, http.StatusBadRequest, 500, "username is empty")
 		return
 	} else {
-		pc.logger.Debug("GetCommssions", zap.String("username", username))
-		resp, err := pc.service.GetCommssions(username)
+		pc.logger.Debug("GetCommissionStatistics", zap.String("username", username))
+		resp, err := pc.service.GetCommissionStatistics(username)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "GetCommssions failed")
+			RespFail(c, http.StatusBadRequest, 400, "GetCommissionStatistics failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)

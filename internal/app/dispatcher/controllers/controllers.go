@@ -409,7 +409,7 @@ func CreateInitControllersFn(
 			membershipGroup.GET("/getall", pc.GetBusinessMembership)
 
 			//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-			membershipGroup.GET("/commssions", pc.GetCommssions)
+			membershipGroup.GET("/commssions", pc.GetCommissionStatistics)
 
 			//提交佣金提现申请		
 			membershipGroup.POST("/submitcommssionwithdraw", pc.SubmitCommssionWithdraw)

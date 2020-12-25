@@ -43,7 +43,7 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 	total := new(int64)
 	var bucss []*models.BusinessUserStatistics
 	where := models.BusinessUserStatistics{BusinessUsername: businessUsername}
-	orderStr := "year_month desc" //按照年月降序
+	orderStr := "yearmonth desc" //按照年月降序
 	if err := s.base.GetPages(&models.BusinessUserStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取BusinessUserStatistics信息失败", zap.Error(err))
 	}
@@ -62,13 +62,13 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-func (s *MysqlLianmiRepository) GetCommssions(username string) (*Auth.GetCommssionsResp, error) {
+func (s *MysqlLianmiRepository) GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error) {
 	var err error
 	total := new(int64)
 
 	var bucss []*models.CommissionStatistics
 	where := models.CommissionStatistics{Username: username}
-	orderStr := "year_month desc" //按照年月降序
+	orderStr := "updated_at desc" //按照年月降序
 	if err = s.base.GetPages(&models.CommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取CommissionStatistics信息失败", zap.Error(err))
 	}

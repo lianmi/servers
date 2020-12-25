@@ -104,7 +104,7 @@ type LianmiApisService interface {
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
 	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-	GetCommssions(username string) (*Auth.GetCommssionsResp, error)
+	GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error)
 
 	UpdateUser(username string, user *models.User) error
 
@@ -443,8 +443,8 @@ func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-func (s *DefaultLianmiApisService) GetCommssions(username string) (*Auth.GetCommssionsResp, error) {
-	return s.Repository.GetCommssions(username)
+func (s *DefaultLianmiApisService) GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error) {
+	return s.Repository.GetCommissionStatistics(username)
 }
 
 //提交佣金提现申请(商户，用户)
