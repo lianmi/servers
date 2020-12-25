@@ -55,8 +55,8 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 
 }
 
-
-func (pc *LianmiApisController) GetNormalMembership(c *gin.Context) {
+//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+func (pc *LianmiApisController) GetCommssions(c *gin.Context) {
 
 	var req Auth.GetMembershipReq
 	if c.BindJSON(&req) != nil {
@@ -64,7 +64,7 @@ func (pc *LianmiApisController) GetNormalMembership(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
 	} else {
 
-		resp, err := pc.service.GetNormalMembership(req.Username)
+		resp, err := pc.service.GetCommssions(req.Username)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Get Membership failed")

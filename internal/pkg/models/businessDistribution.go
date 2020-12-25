@@ -64,7 +64,7 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 }
 
 /*
-普通用户的佣金月统计, 每月生成一条记录
+普通用户的佣金月统计,  每个用户每月生成一条记录
 */
 type CommissionStatistics struct {
 	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒

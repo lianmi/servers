@@ -959,9 +959,11 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					goto COMPLETE
 				}
 				nc.logger.Debug("购买会员，进行佣金分配")
-				nc.Repository.AddCommission(orderTotalAmount, username, orderID)
+				if err := nc.Repository.AddCommission(orderTotalAmount, username, orderID); err != nil {
+					nc.logger.Error("AddCommission发生错误", zap.Error(err), zap.String("orderID", orderID))
+				}
 			}
-			
+
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
 			orderIDKey := fmt.Sprintf("Order:%s", orderID)
 			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_IsPayed))

@@ -103,8 +103,8 @@ type LianmiApisService interface {
 	//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
-	//普通用户佣金返佣统计
-	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
+	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+	GetCommssions(username string) (*Auth.GetMembershipResp, error)
 
 	UpdateUser(username string, user *models.User) error
 
@@ -442,9 +442,9 @@ func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string
 	return s.Repository.GetBusinessMembership(businessUsername)
 }
 
-//普通用户佣金返佣统计
-func (s *DefaultLianmiApisService) GetNormalMembership(username string) (*Auth.GetMembershipResp, error) {
-	return s.Repository.GetNormalMembership(username)
+//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+func (s *DefaultLianmiApisService) GetCommssions(username string) (*Auth.GetMembershipResp, error) {
+	return s.Repository.GetCommssions(username)
 }
 
 //提交佣金提现申请(商户，用户)

@@ -25,7 +25,7 @@ import (
 
 const (
 	// 用户账号id1的助记词
-	mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	// mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
 	//id3的助记词
 	// mnemonic = "someone author recipe spider ready exile occur volume relax song inner inform"
 	//服务端的id4助记词
@@ -41,10 +41,38 @@ type KeyPair struct {
 }
 
 //创建 用户 HD钱包
-func CreateHDWallet() string {
+func CreateHDWallet(localUserName string) string {
+	var mnemonic string
+	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	if err != nil {
+		log.Fatalln(err)
+		return ""
+	}
+
+	defer redisConn.Close()
+	
+	if localUserName == "id1" {
+		// 用户账号id1的助记词
+		mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
+	} else {
+		mnemonic, err = hdwallet.NewMnemonic(128)
+		if err != nil {
+			log.Println(err)
+			return ""
+		}
+
+	}
+	log.Println(mnemonic)
+
+	// 保存到redis
+	_, err = redisConn.Do("SET", fmt.Sprintf("Mnemonic:%s", localUserName), mnemonic)
+	if err != nil {
+		log.Fatalln(err)
+		return ""
+	}
 
 	// mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
-	log.Println("mnemonic:", mnemonic)
+	// log.Println("mnemonic:", mnemonic)
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
@@ -85,7 +113,7 @@ func CreateHDWallet() string {
 }
 
 //根据叶子索引号获取到公私钥对
-func GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
+func GetKeyPairsFromLeafIndex(mnemonic string, index uint64) *KeyPair {
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
 	if err != nil {
@@ -133,10 +161,8 @@ func GetKeyPairsFromLeafIndex(index uint64) *KeyPair {
 }
 
 //10-1 注册钱包
-func RegisterWallet(walletAddress string) error {
-	if walletAddress == "" {
-		walletAddress = CreateHDWallet()
-	}
+func RegisterWallet() error {
+	var walletAddress string
 
 	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
 	if err != nil {
@@ -146,10 +172,6 @@ func RegisterWallet(walletAddress string) error {
 
 	defer redisConn.Close()
 
-	req := &Wallet.RegisterWalletReq{
-		WalletAddress: walletAddress,
-	}
-	content, _ := proto.Marshal(req)
 	topic := "lianmi/cloud/dispatcher"
 	var localUserName string
 	var localDeviceID string
@@ -165,6 +187,13 @@ func RegisterWallet(walletAddress string) error {
 	}
 
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
+
+	walletAddress = CreateHDWallet(localUserName)
+
+	req := &Wallet.RegisterWalletReq{
+		WalletAddress: walletAddress,
+	}
+	content, _ := proto.Marshal(req)
 
 	//从本地redis里获取jwtToken，注意： 在auth模块的登录，登录成功后，需要写入，这里则读取
 	key := fmt.Sprintf("jwtToken:%s", localUserName)
@@ -190,7 +219,7 @@ func RegisterWallet(walletAddress string) error {
 			User: map[string]string{
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
-				"businessSubType": "1",           //  业务子号
+				"businessSubType": "1",           // 业务子号
 				"taskId":          taskIdStr,
 				"code":            "0",
 				"errormsg":        "",
@@ -504,7 +533,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 }
 
 /*
-10-3 发起转账 
+10-3 发起转账
 */
 func PreTransfer(orderID, targetUserName string, amount float64) error {
 
@@ -542,6 +571,11 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 	if localDeviceID == "" {
 		log.Println("localDeviceID is  empty")
 		return errors.New("localDeviceID is empty error")
+	}
+	mnemonic, err := redis.String(redisConn.Do("GET", fmt.Sprintf("Mnemonic:%s", localUserName)))
+	if mnemonic == "" {
+		log.Println(localUserName, " mnemonic is  empty")
+		return errors.New("mnemonic is empty error")
 	}
 
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
@@ -634,7 +668,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 					log.Println("=======")
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
-					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
+					privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
 					log.Println("privKeyHex", privKeyHex)
 
 					signedTxToTarget, err := buildTx(rsq.RawDescToTarget, privKeyHex)
@@ -968,6 +1002,7 @@ func Balance() error {
 
 				} else {
 					log.Println("10-5 查询账号余额,  回包内容---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("amountLNMC: ", rsq.AmountLNMC)
 					log.Println("amountETH: ", rsq.AmountETH)
 					log.Println("time: ", rsq.Time)
@@ -1013,7 +1048,7 @@ func Balance() error {
 	}
 
 	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
+	ticker := time.NewTicker(5 * time.Second) //5s后退出
 	for run == true {
 		select {
 		case <-ticker.C:
@@ -1125,6 +1160,7 @@ func UserSignIn() error {
 
 				} else {
 					log.Println("10-13 签到,  回包内容---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("count: ", rsq.Count)
 					log.Println("totalSignIn: ", rsq.TotalSignIn)
 
@@ -1229,6 +1265,11 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		log.Println("localDeviceID is  empty")
 		return errors.New("localDeviceID is empty error")
 	}
+	mnemonic, err := redis.String(redisConn.Do("GET", fmt.Sprintf("Mnemonic:%s", localUserName)))
+	if mnemonic == "" {
+		log.Println("mnemonic is  empty")
+		return errors.New("mnemonic is empty error")
+	}
 
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
 
@@ -1302,6 +1343,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 				} else {
 
 					log.Println("10-6 发起提现预审核 回包内容 : \n rawDescToPlatform---------------------")
+					log.Println("username: ", localUserName)
 					// log.Println(rsq.Time)
 					// log.Println(rsq.RawDescToPlatform)
 
@@ -1326,7 +1368,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 					// log.Println(rawTxToPlatform)
 
 					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
-					privKeyHex := GetKeyPairsFromLeafIndex(0).PrivateKeyHex
+					privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
 
 					rawTxHex, err := buildTx(rsq.RawDescToPlatform, privKeyHex)
 					if err != nil {
@@ -1502,6 +1544,7 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 				} else {
 
 					log.Println("10-7 确认提现回包内容 : ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("blockNumber: ", rsq.BlockNumber)
 					log.Println("hash: ", rsq.Hash)
 					log.Println("balanceLNMC: ", rsq.BalanceLNMC)
@@ -1675,6 +1718,7 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 				} else {
 
 					log.Println("10-10 同步充值历史 回包内容 : \n ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("total", rsq.Total)
 					log.Println(rsq.Deposits)
 
@@ -1845,6 +1889,7 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 				} else {
 
 					log.Println("10-11 同步提现历史 回包内容 : \n ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("total", rsq.Total)
 					log.Println(rsq.Withdraws)
 
@@ -2016,6 +2061,7 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 				} else {
 
 					log.Println("10-9 同步收款历史 回包内容 : \n ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("total", rsq.Total)
 					log.Println(rsq.Collections)
 
@@ -2186,6 +2232,7 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 				} else {
 
 					log.Println("10-12 同步转账历史 回包内容 : \n ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("total", rsq.Total)
 					log.Println(rsq.Transfers)
 
@@ -2353,6 +2400,7 @@ func DoTxHashInfo(txType int32, txHash string) error {
 				} else {
 
 					log.Println("10-14 查询交易哈希详情 回包内容 : \n ---------------------")
+					log.Println("username: ", localUserName)
 					log.Println("blockNumber", rsq.BlockNumber)
 					log.Println("gas", rsq.Gas)
 					log.Println("nonce", rsq.Nonce)

@@ -43,7 +43,7 @@ func init() {
 	//子命令
 	walletCmd.AddCommand(PreTransferCmd)
 	PreTransferCmd.PersistentFlags().StringP("orderID", "o", "", "订单ID")
-	PreTransferCmd.PersistentFlags().StringP("targetUserName", "t", "", "收款方的用户账号, like: 0x---------")
+	PreTransferCmd.PersistentFlags().StringP("targetUserName", "t", "", "收款方的用户账号, id3, id83...")
 	PreTransferCmd.PersistentFlags().Float64P("amount", "a", 0.00, "金额(单位是元，人民币格式), like: 4.05")
 
 }

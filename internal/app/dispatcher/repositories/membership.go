@@ -61,8 +61,8 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 
 }
 
-//用户按月统计付费会员总数及返佣金额，是否已经返佣
-func (s *MysqlLianmiRepository) GetNormalMembership(username string) (*Auth.GetMembershipResp, error) {
+//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+func (s *MysqlLianmiRepository) GetCommssions(username string) (*Auth.GetMembershipResp, error) {
 	var err error
 	total := new(int64)
 

@@ -125,7 +125,8 @@ type LianmiRepository interface {
 
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
-	GetNormalMembership(username string) (*Auth.GetMembershipResp, error)
+	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
+	GetCommssions(username string) (*Auth.GetMembershipResp, error)
 
 	//根据PayType获取到VIP价格
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
