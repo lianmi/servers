@@ -64,11 +64,11 @@ func (pc *LianmiApisController) GetCommssions(c *gin.Context) {
 		RespFail(c, http.StatusBadRequest, 500, "username is empty")
 		return
 	} else {
-
+		pc.logger.Debug("GetCommssions", zap.String("username", username))
 		resp, err := pc.service.GetCommssions(username)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Get Membership failed")
+			RespFail(c, http.StatusBadRequest, 400, "GetCommssions failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)
