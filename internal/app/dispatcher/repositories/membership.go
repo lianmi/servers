@@ -43,7 +43,7 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 	total := new(int64)
 	var bucss []*models.BusinessUserStatistics
 	where := models.BusinessUserStatistics{BusinessUsername: businessUsername}
-	orderStr := "yearmonth desc" //按照年月降序
+	orderStr := "`year_month` desc" //按照年月降序
 	if err := s.base.GetPages(&models.BusinessUserStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取BusinessUserStatistics信息失败", zap.Error(err))
 	}
