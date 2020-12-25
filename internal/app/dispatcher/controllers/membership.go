@@ -10,9 +10,10 @@ import (
 	// "time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	// Global "github.com/lianmi/servers/api/proto/global"
 
-	// jwt_v2 "github.com/appleboy/gin-jwt/v2"
+	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	// "github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
@@ -57,14 +58,14 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
 func (pc *LianmiApisController) GetCommssions(c *gin.Context) {
-
-	var req Auth.GetMembershipReq
-	if c.BindJSON(&req) != nil {
-		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
 	} else {
 
-		resp, err := pc.service.GetCommssions(req.Username)
+		resp, err := pc.service.GetCommssions(username)
 
 		if err != nil {
 			RespFail(c, http.StatusBadRequest, 400, "Get Membership failed")

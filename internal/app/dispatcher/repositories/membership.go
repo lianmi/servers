@@ -62,7 +62,7 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
-func (s *MysqlLianmiRepository) GetCommssions(username string) (*Auth.GetMembershipResp, error) {
+func (s *MysqlLianmiRepository) GetCommssions(username string) (*Auth.GetCommssionsResp, error) {
 	var err error
 	total := new(int64)
 
@@ -72,7 +72,7 @@ func (s *MysqlLianmiRepository) GetCommssions(username string) (*Auth.GetMembers
 	if err = s.base.GetPages(&models.CommissionStatistics{}, &bucss, 1, 100, total, &where, orderStr); err != nil {
 		s.logger.Error("获取CommissionStatistics信息失败", zap.Error(err))
 	}
-	rsp := &Auth.GetMembershipResp{}
+	rsp := &Auth.GetCommssionsResp{}
 	for _, record := range bucss {
 		rsp.CommssionDetails = append(rsp.CommssionDetails, &Auth.UserMonthCommssionDetail{
 			Username:        username,

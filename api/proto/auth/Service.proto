@@ -370,9 +370,9 @@ message GetBusinessMembershipResp {
 }
 
 
-message GetMembershipReq{
-    //用户账号
-    string username =1;
+message GetCommssionsReq{
+    //用户账号 不需要，从JWT里获取
+    //string username =1;
 }
 
 message UserMonthCommssionDetail{
@@ -392,7 +392,7 @@ message UserMonthCommssionDetail{
     fixed64 rebateTime =5;
 }
 
-message GetMembershipResp{
+message GetCommssionsResp{
     //按月统计佣金记录 
     repeated UserMonthCommssionDetail commssionDetails=1;
 }
