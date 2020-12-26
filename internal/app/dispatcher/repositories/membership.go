@@ -116,7 +116,7 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		//create
 		resultErr := db.Model(newnucs).Create(&newnucs).Error
 		if resultErr != nil {
-			if resultErr != gorm.ErrRecordNotFound {
+			if resultErr == gorm.ErrRecordNotFound {
 				s.logger.Debug("Record Not Found, start to create")
 			} else {
 				s.logger.Error("增加CommissionStatistics失败", zap.Error(resultErr))
