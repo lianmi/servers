@@ -96,7 +96,7 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 			zap.Float64("total", amount.Total),
 		)
 
-		newnucs := &models.CommissionStatistics{
+		newnucs := models.CommissionStatistics{
 			Username:        username,
 			YearMonth:       currYearMonth,
 			TotalCommission: amount.Total, //本月返佣总金额
@@ -114,7 +114,7 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		// tx2.Commit()
 
 		//create
-		resultErr := db.Save(newnucs).Error
+		resultErr := db.Save(&newnucs).Error
 		if resultErr != nil {
 			if resultErr == gorm.ErrRecordNotFound {
 				s.logger.Debug("Record Not Found, start to create")
