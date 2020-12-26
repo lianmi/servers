@@ -103,18 +103,18 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 			IsRebate:        false,        //默认返现的值是false
 		}
 
-		// tx2 := s.base.GetTransaction()
-		// if err := tx2.Create(newnucs).Error; err != nil {
-		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-		// 	tx2.Rollback()
-		// 	return nil, err
-		// }
+		tx2 := s.base.GetTransaction()
+		if err := tx2.Create(&newnucs).Error; err != nil {
+			s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
+			tx2.Rollback()
+			return nil, err
+		}
 
-		// //提交
-		// tx2.Commit()
+		//提交
+		tx2.Commit()
 
 		//Save
-		db.Save(&newnucs)
+		// db.Save(&newnucs)
 
 	}
 
