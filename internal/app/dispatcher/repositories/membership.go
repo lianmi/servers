@@ -12,7 +12,7 @@ import (
 	"github.com/lianmi/servers/util/dateutil"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	// "gorm.io/gorm"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -117,9 +117,21 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		//create
 		// db.Model(newnucs).Save(&newnucs)
 
-		if db.Model(newnucs).Save(&newnucs).Error != nil {
-			s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-			return nil, err
+		// if db.Model(newnucs).Save(&newnucs).Error != nil {
+		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
+		// 	return nil, err
+		// }
+
+		//create
+		resultErr := db.Model(newnucs).Save(&newnucs).Error
+		if resultErr != nil {
+			if resultErr != gorm.ErrRecordNotFound {
+				// log.Println("Record Not Found")
+				s.logger.Debug("Record Not Found, start to create")
+			} else {
+				s.logger.Error("增加CommissionStatistics失败", zap.Error(resultErr))
+				return nil, resultErr
+			}
 		}
 
 	}
