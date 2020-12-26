@@ -97,8 +97,8 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		)
 
 		newnucs := &models.CommissionStatistics{
-			Username:        "id1",        //username,
-			YearMonth:       "2020-12",    // currYearMonth,
+			Username:        username,
+			YearMonth:       currYearMonth,
 			TotalCommission: amount.Total, //本月返佣总金额
 			IsRebate:        false,        //默认返现的值是false
 		}
