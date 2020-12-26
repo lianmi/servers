@@ -115,12 +115,12 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		// tx2.Commit()
 
 		//create
-		db.Model(newnucs).Save(&newnucs)
+		// db.Model(newnucs).Save(&newnucs)
 
-		// if db.Model(newnucs).Save(&newnucs).Error != nil {
-		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-		// 	return nil, err
-		// }
+		if db.Model(newnucs).Save(&newnucs).Error != nil {
+			s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
+			return nil, err
+		}
 
 	}
 
