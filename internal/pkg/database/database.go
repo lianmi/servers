@@ -6,10 +6,10 @@ package database
 
 import (
 	"github.com/google/wire"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -81,47 +81,70 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.ECoupon{})                  //  系统电子优惠券表
 
 	vipPrice := &models.VipPrice{
-		ID:        1,
+		ID:               1,
 		BusinessUsername: LMCommon.VipBusinessUsername,
-		ProductID: uuid.NewV4().String(),
-		PayType:   1,
-		Title:     "包年",
-		Price:     99.0,
-		Days:      365,
-		IsActive:  true,
+		ProductID:        uuid.NewV4().String(),
+		PayType:          1,
+		Title:            "包年",
+		Price:            99.0,
+		Days:             365,
+		IsActive:         true,
 	}
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice2 := &models.VipPrice{
-		ID:        2,
+		ID:               2,
 		BusinessUsername: LMCommon.VipBusinessUsername,
-		ProductID: uuid.NewV4().String(),
-		PayType:   2,
-		Title:     "包季",
-		Price:     38.0,
-		Days:      90,
-		IsActive:  true,
+		ProductID:        uuid.NewV4().String(),
+		PayType:          2,
+		Title:            "包季",
+		Price:            38.0,
+		Days:             90,
+		IsActive:         true,
 	}
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice2).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice3 := &models.VipPrice{
-		ID:        3,
+		ID:               3,
 		BusinessUsername: LMCommon.VipBusinessUsername,
-		ProductID: uuid.NewV4().String(),
-		PayType:   3,
-		Title:     "包月",
-		Price:     9.9,
-		Days:      30,
-		IsActive:  true,
+		ProductID:        uuid.NewV4().String(),
+		PayType:          3,
+		Title:            "包月",
+		Price:            9.9,
+		Days:             30,
+		IsActive:         true,
 	}
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice3).Error; err != nil {
 		// return nil, err
 	}
+
+	currYearMonth := "2020-12"
+	username := "id1"
+	total := 120.22
+
+	newnucs := &models.CommissionStatistics{
+		Username:        username,
+		YearMonth:       currYearMonth,
+		TotalCommission: total, //本月返佣总金额
+		IsRebate:        false, //默认返现的值是false
+	}
+
+	//create
+	resultErr := db.Model(newnucs).Save(&newnucs).Error
+	if resultErr != nil {
+		if resultErr != gorm.ErrRecordNotFound {
+			// log.Println("Record Not Found")
+		} else {
+			// log.Println(resultErr)
+			// return
+		}
+	}
+
 	return db, nil
 }
 
