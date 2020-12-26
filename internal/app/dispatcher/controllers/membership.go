@@ -56,7 +56,7 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 
 }
 
-//对某个用户的推广会员佣金进行统计
+//PUT 方法  对某个用户的推广会员佣金进行统计
 func (pc *LianmiApisController) CommissonSatistics(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	username := claims[LMCommon.IdentityKey].(string)
