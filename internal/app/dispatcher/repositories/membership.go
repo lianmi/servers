@@ -113,16 +113,8 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		// //提交
 		// tx2.Commit()
 
-		//create
-		resultErr := db.Save(&newnucs).Error
-		if resultErr != nil {
-			if resultErr == gorm.ErrRecordNotFound {
-				s.logger.Debug("Record Not Found, start to create")
-			} else {
-				s.logger.Error("增加CommissionStatistics失败, ", zap.Error(resultErr))
-				return nil, resultErr
-			}
-		}
+		//Save
+		db.Save(&newnucs)
 
 	}
 
