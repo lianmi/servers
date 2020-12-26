@@ -69,16 +69,6 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 用户的佣金月统计,  每个用户每月生成一条记录
 利用复合主键（联合主键） username 及 year_month 控制Save方法, 这条数据如果在数据库中存在，就做更新操作；如果不存在就做插入操作。
 */
-// type CommissionStatistics struct {
-// 	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
-// 	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
-// 	Username        string  `gorm:"primarykey" json:"username" validate:"required"`   //用户户注册账号id
-// 	YearMonth       string  `gorm:"primarykey" json:"year_month" validate:"required"` //统计月份
-// 	TotalCommission float64 `json:"total_commission" validate:"required"`             //本月佣金合计
-// 	IsRebate        bool    `json:"is_rebate" `                                       //是否支付了佣金
-// 	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"`         //平台操作返佣时间
-// }
-
 type CommissionStatistics struct {
 	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
 	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
