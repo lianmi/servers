@@ -72,7 +72,7 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 type CommissionStatistics struct {
 	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
 	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
-	Username        string  `gorm:"primarykey" json:"username" validate:"required"`   //用户户注册账号id
+	Username        string  `json:"username" validate:"required"`                     //用户户注册账号id
 	YearMonth       string  `gorm:"primarykey" json:"year_month" validate:"required"` //统计月份
 	TotalCommission float64 `json:"total_commission" validate:"required"`             //本月佣金合计
 	IsRebate        bool    `json:"is_rebate" `                                       //是否支付了佣金

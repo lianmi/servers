@@ -119,7 +119,7 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 			if resultErr == gorm.ErrRecordNotFound {
 				s.logger.Debug("Record Not Found, start to create")
 			} else {
-				s.logger.Error("增加CommissionStatistics失败", zap.Error(resultErr))
+				s.logger.Error("增加CommissionStatistics失败, ", zap.Error(resultErr))
 				return nil, resultErr
 			}
 		}
