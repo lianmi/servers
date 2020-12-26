@@ -104,7 +104,6 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		}
 
 		// tx2 := s.base.GetTransaction()
-
 		// if err := tx2.Create(newnucs).Error; err != nil {
 		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
 		// 	tx2.Rollback()
@@ -115,18 +114,9 @@ func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.Commi
 		// tx2.Commit()
 
 		//create
-		// db.Model(newnucs).Save(&newnucs)
-
-		// if db.Model(newnucs).Save(&newnucs).Error != nil {
-		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-		// 	return nil, err
-		// }
-
-		//create
 		resultErr := db.Model(newnucs).Save(&newnucs).Error
 		if resultErr != nil {
 			if resultErr != gorm.ErrRecordNotFound {
-				// log.Println("Record Not Found")
 				s.logger.Debug("Record Not Found, start to create")
 			} else {
 				s.logger.Error("增加CommissionStatistics失败", zap.Error(resultErr))
