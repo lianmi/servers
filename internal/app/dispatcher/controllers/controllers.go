@@ -409,7 +409,7 @@ func CreateInitControllersFn(
 			membershipGroup.GET("/getall", pc.GetBusinessMembership)
 
 			//统计用户佣金统计
-			membershipGroup.POST("/statistics/:id", pc.CommissonSatistics)
+			membershipGroup.PUT("/statistics", pc.CommissonSatistics)
 
 			//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
 			membershipGroup.GET("/commssions", pc.GetCommissionStatistics)
