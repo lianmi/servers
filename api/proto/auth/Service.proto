@@ -415,45 +415,21 @@ message NormalMembershipReq {
     fixed64 endAt = 4;
 }
 
-
 //购买会员奖励佣金的按月统计记录
 message PerLevelSummary{
     //月份 2020-10
-    string month =1;
-
-    //5元返佣会员数量
-    int32 fiveCount =2;
-
-    //10元返佣会员数量
-    int32 tenCount =3;
-
-    //35元返佣会员数量
-    int32 ThirtyFiveCount =4;
+    string yearmonth =1;
 
     //当月返佣金额总计
-    double rebateTotalMoney =5;
+    double totalCommission =2;
 
     //是否已经返佣
-    bool isRebate =6;
-
-    //返佣的区块高度
-    fixed64 blockNumber =7;
-
-    //返佣的交易哈希
-    string txHash =8;
+    bool isRebate =3;
 
     //操作时间
-    fixed64 rebateTime =9;
+    fixed64 rebateTime =4;
 }
 
-message NormalMembershipResp {
-    
-    //总页数
-    fixed64 totalPage =1;
-
-    //按月统计各级返佣
-    repeated PerLevelSummary summary=2;
-}
 
 message AskedWithdrawReq {
 
@@ -491,3 +467,13 @@ message AuditStoreReq {
 message AuditStoreResp {
 
 }   
+
+
+message CommissonSatisticsResp {
+    
+    //总页数
+    fixed64 totalPage =1;
+
+    //按月统计各级返佣
+    repeated PerLevelSummary summary=2;
+}

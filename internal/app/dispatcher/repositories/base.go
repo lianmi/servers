@@ -125,6 +125,9 @@ type LianmiRepository interface {
 
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
+	//对某个用户的推广会员佣金进行统计
+	CommissonSatistics(username string) (*Auth.CommissonSatisticsResp, error)
+
 	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
 	GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error)
 

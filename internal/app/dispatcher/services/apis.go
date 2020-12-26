@@ -103,6 +103,9 @@ type LianmiApisService interface {
 	//商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 	GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error)
 
+	//对某个用户的推广会员佣金进行统计
+	CommissonSatistics(username string) (*Auth.CommissonSatisticsResp, error)
+
 	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
 	GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error)
 
@@ -440,6 +443,11 @@ func (s *DefaultLianmiApisService) SubmitGrade(req *Auth.SubmitGradeReq) error {
 //商户查询当前名下用户总数，按月统计付费会员总数及返佣金额，是否已经返佣
 func (s *DefaultLianmiApisService) GetBusinessMembership(businessUsername string) (*Auth.GetBusinessMembershipResp, error) {
 	return s.Repository.GetBusinessMembership(businessUsername)
+}
+
+//对某个用户的推广会员佣金进行统计
+func (s *DefaultLianmiApisService) CommissonSatistics(username string) (*Auth.CommissonSatisticsResp, error) {
+	return s.Repository.CommissonSatistics(username)
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣

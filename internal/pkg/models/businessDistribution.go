@@ -45,7 +45,7 @@ Commission:  One:35, Two:10, Three: 5
 type Commission struct {
 	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
 	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"` //修改时间
-	YearMonth        string  `json:"year_month" validate:"required"`          //统计月份
+	YearMonth        string  `json:"year_month" validate:"required"`         //统计月份
 	UsernameLevel    string  `json:"username_level" validate:"required"`     //One Two Three
 	BusinessUsername string  `json:"business_username" validate:"required"`  //归属的商户注册账号id
 	Amount           float64 `json:"amount" validate:"required"`             //会员费用金额，单位是人民币
@@ -67,15 +67,16 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 
 /*
 用户的佣金月统计,  每个用户每月生成一条记录
+利用复合主键（联合主键） username 及 year_month 控制Save方法, 这条数据如果在数据库中存在，就做更新操作；如果不存在就做插入操作。
 */
 type CommissionStatistics struct {
-	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
-	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`   //修改时间
-	Username        string  `json:"username" validate:"required"`             //用户户注册账号id
-	YearMonth       string  `json:"year_month" validate:"required"`            //统计月份
-	TotalCommission float64 `json:"total_commission" validate:"required"`     //本月佣金合计
-	IsRebate        bool    `json:"is_rebate" `                               //是否支付了佣金
-	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"` //平台操作返佣时间
+	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
+	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
+	Username        string  `gorm:"primarykey" json:"username" validate:"required"`   //用户户注册账号id
+	YearMonth       string  `gorm:"primarykey" json:"year_month" validate:"required"` //统计月份
+	TotalCommission float64 `json:"total_commission" validate:"required"`             //本月佣金合计
+	IsRebate        bool    `json:"is_rebate" `                                       //是否支付了佣金
+	RebateTime      int64   `form:"rebate_time" json:"rebate_time,omitempty"`         //平台操作返佣时间
 }
 
 //BeforeCreate CreatedAt赋值
@@ -124,7 +125,7 @@ type BusinessUserStatistics struct {
 	CreatedAt        int64  `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
 	UpdatedAt        int64  `form:"updated_at" json:"updated_at,omitempty"` //修改时间
 	BusinessUsername string `json:"business_username" validate:"required"`  //商户注册账号id
-	YearMonth        string `json:"year_month" validate:"required"`          //统计月份
+	YearMonth        string `json:"year_month" validate:"required"`         //统计月份
 	UnderlingTotal   int64  `json:"underling_total" validate:"required"`    //下属用户总数
 }
 
@@ -149,7 +150,7 @@ type CommissionWithdraw struct {
 	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
 	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`        //修改时间
 	UserType           int     `form:"user_type" json:"user_type" binding:"required"` //用户类型 1-普通，2-商户
-	YearMonth          string  `json:"year_month" validate:"required"`                 //统计月份
+	YearMonth          string  `json:"year_month" validate:"required"`                //统计月份
 	WithdrawCommission float64 `json:"withdraw_commission,omitempty"`                 //佣金提现金额
 	IsConfirm          bool    `json:"is_confirm,omitempty" `                         //审核是否通过
 	OpUsername         string  `json:"op_username,omitempty"`                         //操作员账号，谁审核

@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"fmt"
-	// "time"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
@@ -59,6 +59,79 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 
 	return rsp, err
 
+}
+
+//对某个用户的推广会员佣金进行统计
+func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.CommissonSatisticsResp, error) {
+	var err error
+	// total := new(int64)
+
+	type Amount struct{ Total float64 }
+	amount := Amount{}
+
+	currYearMonth := dateutil.GetYearMonthString()
+
+	//用户的佣金月统计  CommissionStatistics
+	nucsWhere := &models.CommissionStatistics{
+		Username:  username,
+		YearMonth: currYearMonth,
+		IsRebate:  true, //判断是否返现
+	}
+	ncs := &models.CommissionStatistics{}
+	if err = s.db.Model(ncs).Where(nucsWhere).First(ncs).Error; err == nil {
+		s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", username))
+	} else {
+
+		//统计d.UsernameLevelOne对应的用户在当月的所有佣金总额
+		where := models.Commission{
+			UsernameLevel: username,
+			YearMonth:     currYearMonth,
+		}
+		db := s.db.Model(&models.Commission{}).Where(&where)
+
+		db.Select("SUM(commission) AS total").Scan(&amount)
+		s.logger.Debug("SUM统计出当月的总佣金金额",
+			zap.String("username", username),
+			zap.String("currYearMonth", currYearMonth),
+			zap.Float64("total", amount.Total),
+		)
+
+		newnucs := &models.CommissionStatistics{
+			Username:        username,
+			YearMonth:       currYearMonth,
+			TotalCommission: amount.Total, //本月返佣总金额
+			IsRebate:        false,        //默认返现的值是false
+		}
+
+		// tx2 := s.base.GetTransaction()
+
+		// if err := tx2.Create(newnucs).Error; err != nil {
+		// 	s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
+		// 	tx2.Rollback()
+		// 	return nil, err
+		// }
+
+		// //提交
+		// tx2.Commit()
+
+		//create
+		if db.Model(newnucs).Save(&newnucs).Error != nil {
+			s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
+			return nil, err
+		}
+	}
+
+	//TODO
+	resp := &Auth.CommissonSatisticsResp{
+		TotalPage: 1,
+	}
+	resp.Summary = append(resp.Summary, &Auth.PerLevelSummary{
+		Yearmonth:       currYearMonth,
+		TotalCommission: amount.Total,
+		IsRebate:        false,
+		RebateTime:      uint64(time.Now().UnixNano() / 1e6),
+	})
+	return resp, nil
 }
 
 //用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
