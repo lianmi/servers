@@ -123,27 +123,6 @@ func New(o *Options) (*gorm.DB, error) {
 		// return nil, err
 	}
 
-	// currYearMonth := "2020-12"
-	// username := "id1"
-	// total := 120.22
-
-	// newnucs := &models.CommissionStatistics{
-	// 	Username:        username,
-	// 	YearMonth:       currYearMonth,
-	// 	TotalCommission: total, //本月返佣总金额
-	// 	IsRebate:        false, //默认返现的值是false
-	// }
-
-	// //create
-	// resultErr := db.Model(newnucs).Save(&newnucs).Error
-	// if resultErr != nil {
-	// 	if resultErr != gorm.ErrRecordNotFound {
-	// 		// log.Println("Record Not Found")
-	// 	} else {
-	// 		// log.Println(resultErr)
-	// 		// return
-	// 	}
-	// }
 
 	return db, nil
 }
