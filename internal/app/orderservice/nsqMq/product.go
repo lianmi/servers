@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	// "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
@@ -1486,6 +1487,23 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 	return nil
 }
 
+//根据用户是否是Vip计算手续费
+func (nc *NsqClient) CalculateCharge(isVip bool, orderTotalAmout float64) (float64, error) {
+	if isVip {
+
+		if orderTotalAmout < LMCommon.RateFreeAmout {
+			//免手续
+			return 0, nil
+		} else {
+			//手续减半
+			return orderTotalAmout * LMCommon.Rate / 2, nil
+		}
+	} else {
+		return orderTotalAmout * LMCommon.Rate, nil
+	}
+
+}
+
 // 9-3
 /*
 处理订单消息 5-1，是由ChatService转发过来的
@@ -1496,6 +1514,10 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	errorCode := 200
 	var errorMsg string
 	var newSeq uint64
+
+	var isVip bool
+
+	var charge float64
 
 	//经过服务端更改状态后的新的OrderProductBody字节流
 	var orderProductBodyData []byte
@@ -1574,6 +1596,18 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			}
 		}
 
+		//判断是否被封号
+		if userData.State == 2 {
+			nc.logger.Warn("警告: 此用户已被封号")
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
+			goto COMPLETE
+		} else if userData.State == 1 {
+			isVip = true
+		} else {
+			isVip = false
+		}
+
 		//从redis里获取目标商户的信息
 		businessUserData := new(models.User)
 		userKey = fmt.Sprintf("userData:%s", req.To)
@@ -1592,7 +1626,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		if businessUserData.State == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.To))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.To)
+			errorMsg = fmt.Sprintf("BusinessUser is blocked[Username=%s]", req.To)
 			goto COMPLETE
 		}
 
@@ -1633,7 +1667,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			//判断订单状态是不是 OS_Prepare, 如果是，则改为OS_SendOK
 			switch Global.OrderState(orderProductBody.State) {
 			case Global.OrderState_OS_Prepare:
-				//TODO
 
 				//总金额不能小于或等于0
 				if orderProductBody.OrderTotalAmount <= 0 {
@@ -1735,12 +1768,21 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					toUser = orderProductBody.BuyUser
 
 				} else {
-
 					orderProductBody.State = Global.OrderState_OS_SendOK
+					//彩票类型的订单，  但没付款的时候，不需要向商户转发
+					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
+						//根据用户是否是Vip计算手续费
+						charge, err = nc.CalculateCharge(isVip, orderProductBody.OrderTotalAmount)
 
-					//将订单转发到商户
-					toUser = orderProductBody.BusinessUser
+						orderProductBody.OrderTotalAmount = orderProductBody.OrderTotalAmount + charge
 
+						//将接单状态转发到用户
+						toUser = orderProductBody.BuyUser
+					} else {
+
+						//将订单转发到商户
+						toUser = orderProductBody.BusinessUser
+					}
 				}
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
@@ -1779,6 +1821,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					"BusinessUser", orderProductBody.BusinessUser,
 					"OpkBusinessUser", orderProductBody.OpkBusinessUser,
 					"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
+					"Charge", charge, //订单所需的服务费
 					"Attach", orderProductBody.Attach, //订单内容，UI负责构造
 					"AttachHash", attachHash, //订单内容的哈希值
 					"UserData", orderProductBody.Userdata, //透传数据
@@ -1795,6 +1838,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					"BusinessUser", orderProductBody.BusinessUser, //商户
 					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
 					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
+					"Charge", charge, //订单所需的服务费
 					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
 					"AttachHash", attachHash, //订单内容的哈希值
 					"UserData", orderProductBody.GetUserdata(), //透传数据
@@ -1806,16 +1850,12 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUser)
 
 			default:
-
 				nc.logger.Error("订单状态 Error", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "OrderProductBody state error, state must be prepare"
 				goto COMPLETE
-
 			}
-
 		}
-
 	}
 
 COMPLETE:
@@ -2008,6 +2048,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				goto COMPLETE
 
 			}
+		}
+		//判断用户是否被封号
+		if buyerData.State == 2 {
+			nc.logger.Warn("此y用户已被封号", zap.String("User", buyUser))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", buyUser)
+			goto COMPLETE
 		}
 
 		//从redis里获取商户的信息
@@ -2383,6 +2430,29 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				nc.logger.Error("买家催单, 只能催一次")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Order has already puged")
+				goto COMPLETE
+			}
+
+			//通知商户
+			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
+				OrderID:      orderID,
+				ProductID:    productID,
+				BuyUser:      buyUser,
+				BusinessUser: businessUser,
+				State:        Global.OrderState_OS_Urge,
+			})
+
+		case Global.OrderState_OS_Expedited:
+			if buyerData.State != 1 {
+				nc.logger.Error("买家加急, 但不是VIP用户")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("User is not VIP error.")
+				goto COMPLETE
+			}
+			if isPayed == false {
+				nc.logger.Error("买家加急, 但是未完成支付 ")
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Order is not payed error.")
 				goto COMPLETE
 			}
 

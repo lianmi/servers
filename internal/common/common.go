@@ -171,3 +171,10 @@ const (
 
 	ServerDomain = "https://api.lianmi.cloud"
 )
+
+//服务手续费费率， VIP用户减半
+const (
+	//VIP用户 免费的金额， 元
+	RateFreeAmout = 20
+	Rate = 0.08
+)

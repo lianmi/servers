@@ -93,6 +93,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	businessUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	attachHash, err := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	orderTotalAmount, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount")) //人民币
+	charge, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge"))                     //手续费
 
 	if isPayed == false {
 		return &Wallet.TransferResp{
@@ -108,8 +109,8 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 		}, errors.Wrap(err, "OrderTotalAmount is less than 0")
 	}
 
-	//本次转账的代币数量, 无小数点
-	amountLNMC := uint64(orderTotalAmount * 100)
+	//扣除手续费后，本次转账给商户的代币数量, 无小数点
+	amountLNMC := uint64((orderTotalAmount - charge) * 100)
 
 	buyUserWalletAddress, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", buyUser), "WalletAddress"))
 	if s.ethService.CheckIsvalidAddress(buyUserWalletAddress) == false {

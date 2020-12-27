@@ -109,7 +109,8 @@ message OrderProductBody {
     string businessUser=5;
     //商户的协商公钥
     string opkBusinessUser =6;
-    // 订单的总金额, 支付的时候以这个金额 计算
+    
+    // 订单的总金额, 支付的时候以这个金额 计算服务手续费
     double OrderTotalAmount = 7 ;
 
     // json 格式的内容 , 由 ui 层处理 sdk 仅透传
