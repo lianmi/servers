@@ -21,6 +21,8 @@ import (
 	"github.com/lianmi/servers/util/dateutil"
 )
 
+type Amount struct{ Total float64 }
+
 type WalletRepository interface {
 	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
 
@@ -378,14 +380,13 @@ func (m *MysqlWalletRepository) AddeCollectionHistory(lnmcCollectionHistory *mod
 
 // GetPages 分页返回数据
 func (m *MysqlWalletRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
-	db := m.db.Model(model).Where(model)
-	db = db.Where(where)
+	db2 := m.db.Model(model).Where(model).Where(where)
 	if len(orders) > 0 {
 		for _, order := range orders {
-			db = db.Order(order)
+			db2 = db2.Order(order)
 		}
 	}
-	err := db.Count(totalCount).Error
+	err := db2.Count(totalCount).Error
 	if err != nil {
 		m.logger.Error("查询总数出错", zap.Error(err))
 		return err
@@ -393,7 +394,7 @@ func (m *MysqlWalletRepository) GetPages(model interface{}, out interface{}, pag
 	if *totalCount == 0 {
 		return nil
 	}
-	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+	return db2.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
 }
 
 //分页获取收款历史
@@ -555,9 +556,9 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 			YearMonth:        currYearMonth,
 		}
 		//查询出该商户的全部下属用户总数
-		db := s.db.Model(&models.BusinessUnderling{}).Where(&where)
+		db2 := s.db.Model(&models.BusinessUnderling{}).Where(&where)
 		var totalCount *int64
-		err := db.Count(totalCount).Error
+		err := db2.Count(totalCount).Error
 		if err != nil {
 			s.logger.Error("查询BusinessUnderling总数出错",
 				zap.String("BusinessUsername", distribution.BusinessUsername),
@@ -636,9 +637,44 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 		} else {
 			s.logger.Debug("增加commissionOne成功, upsert Commission succeed")
 		}
-		/*
-			
-		*/
+
+		//用户的佣金月统计  CommissionStatistics
+		nucsWhere := &models.CommissionStatistics{
+			Username:  distribution.UsernameLevelOne,
+			YearMonth: currYearMonth,
+			IsRebate:  true, //判断是否返现
+		}
+		ncs := &models.CommissionStatistics{}
+		if err = s.db.Model(ncs).Where(nucsWhere).First(ncs).Error; err == nil {
+			s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelOne))
+		} else {
+
+			//统计d.UsernameLevelOne对应的用户在当月的所有佣金总额
+			where := models.Commission{
+				UsernameLevel: distribution.UsernameLevelOne,
+				YearMonth:     currYearMonth,
+			}
+			db2 := s.db.Model(&models.Commission{}).Where(&where)
+
+			amount := Amount{}
+			db2.Select("SUM(commission) AS total").Scan(&amount)
+			s.logger.Debug("SUM统计出当月的总佣金金额",
+				zap.String("username", distribution.UsernameLevelOne),
+				zap.String("currYearMonth", currYearMonth),
+				zap.Float64("total", amount.Total),
+			)
+
+			newnucs := models.CommissionStatistics{
+				Username:        distribution.UsernameLevelOne,
+				YearMonth:       currYearMonth,
+				TotalCommission: amount.Total, //本月返佣总金额
+				IsRebate:        false,        //默认返现的值是false
+			}
+
+			//Save
+			s.db.Save(&newnucs)
+
+		}
 
 	}
 
@@ -649,7 +685,7 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 			UsernameLevel: distribution.UsernameLevelTwo,
 			OrderID:       orderID,
 		}).First(e).Error; err == nil {
-			s.logger.Error("已经存在此用户的佣金记录，不能新增", zap.String("UsernameLevel", distribution.UsernameLevelTwo), zap.String("BusinessUsername", distribution.BusinessUsername))
+			s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("UsernameLevel", distribution.UsernameLevelTwo), zap.String("BusinessUsername", distribution.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because record is exists")
 		}
@@ -671,45 +707,34 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 			s.logger.Debug("增加commissionTwo成功, upsert Commission succeed")
 		}
 
-		/*
-			//用户的佣金月统计  CommissionStatistics
-			nucsWhere := &models.CommissionStatistics{
-				Username:  distribution.UsernameLevelTwo,
-				YearMonth: currYearMonth,
-				IsRebate:  true, //是否已经返现
+		//用户的佣金月统计  CommissionStatistics
+		nucsWhere := &models.CommissionStatistics{
+			Username:  distribution.UsernameLevelTwo,
+			YearMonth: currYearMonth,
+			IsRebate:  true, //是否已经返现
+		}
+		ncs := &models.CommissionStatistics{}
+		if err = s.db.Model(ncs).Where(nucsWhere).First(ncs).Error; err == nil {
+			s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelTwo))
+		} else {
+			//统计d.UsernameLevelTwo对应的用户在当月的所有佣金总额
+			where := models.Commission{
+				UsernameLevel: distribution.UsernameLevelTwo,
+				YearMonth:     currYearMonth,
 			}
-			ncs := &models.CommissionStatistics{}
-			if err = s.db.Model(ncs).Where(nucsWhere).First(ncs).Error; err == nil {
-				s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelTwo))
-			} else {
-				//统计d.UsernameLevelTwo对应的用户在当月的所有佣金总额
-				where := models.Commission{
-					UsernameLevel: distribution.UsernameLevelTwo,
-					YearMonth:     currYearMonth,
-				}
-				db := s.db.Model(&models.Commission{}).Where(&where)
-				type Amount struct{ Total float64 }
-				amount := Amount{}
-				db.Select("SUM(commission) AS total").Scan(&amount)
+			db2 := s.db.Model(&models.Commission{}).Where(&where)
+			amount := Amount{}
+			db2.Select("SUM(commission) AS total").Scan(&amount)
 
-				newnucs := &models.CommissionStatistics{
-					Username:        distribution.UsernameLevelTwo,
-					YearMonth:       currYearMonth,
-					TotalCommission: amount.Total, //本月返佣总金额
-				}
-
-				tx2 := s.base.GetTransaction()
-
-				if err := tx2.Create(newnucs).Error; err != nil {
-					s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-					tx2.Rollback()
-					return err
-				}
-
-				//提交
-				tx2.Commit()
+			newnucs := &models.CommissionStatistics{
+				Username:        distribution.UsernameLevelTwo,
+				YearMonth:       currYearMonth,
+				TotalCommission: amount.Total, //本月返佣总金额
+				IsRebate:        false,        //默认返现的值是false
 			}
-		*/
+			//Save
+			s.db.Save(&newnucs)
+		}
 
 	}
 
@@ -720,7 +745,7 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 			UsernameLevel: distribution.UsernameLevelThree,
 			OrderID:       orderID,
 		}).First(e).Error; err == nil {
-			s.logger.Error("已经存在此用户的佣金记录，不能新增", zap.String("UsernameLevel", distribution.UsernameLevelThree), zap.String("BusinessUsername", distribution.BusinessUsername))
+			s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("UsernameLevel", distribution.UsernameLevelThree), zap.String("BusinessUsername", distribution.BusinessUsername))
 			//记录不存在才能添加
 			return errors.Wrapf(err, "Can not Insert Commission, because record is exists")
 		}
@@ -741,44 +766,33 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 			s.logger.Debug("增加commissionThree成功, upsert Commission succeed")
 		}
 
-		/*
-			//用户的佣金月统计  CommissionStatistics
-			nucs := &models.CommissionStatistics{
-				Username:  distribution.UsernameLevelThree,
-				YearMonth: currYearMonth,
+		//用户的佣金月统计  CommissionStatistics
+		nucs := &models.CommissionStatistics{
+			Username:  distribution.UsernameLevelThree,
+			YearMonth: currYearMonth,
+		}
+		ncs := &models.CommissionStatistics{}
+		if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
+			s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("UsernameLevelThree", distribution.UsernameLevelThree))
+		} else {
+			//统计d.UsernameLevelThree对应的用户在当月的所有佣金总额
+			where := models.Commission{
+				UsernameLevel: distribution.UsernameLevelThree,
+				YearMonth:     currYearMonth,
 			}
-			ncs := &models.CommissionStatistics{}
-			if err = s.db.Model(ncs).Where(nucs).First(ncs).Error; err == nil {
-				s.logger.Error("CommissionStatistics表已经返现，不能新增记录 ", zap.String("YearMonth", currYearMonth), zap.String("Username", distribution.UsernameLevelThree))
-			} else {
-				//统计d.UsernameLevelThree对应的用户在当月的所有佣金总额
-				where := models.Commission{
-					UsernameLevel: distribution.UsernameLevelThree,
-					YearMonth:     currYearMonth,
-				}
-				db := s.db.Model(&models.Commission{}).Where(&where)
-				type Amount struct{ Total float64 }
-				amount := Amount{}
-				db.Select("SUM(commission) AS total").Scan(&amount)
+			db2 := s.db.Model(&models.Commission{}).Where(&where)
+			amount := Amount{}
+			db2.Select("SUM(commission) AS total").Scan(&amount)
 
-				newnucs := &models.CommissionStatistics{
-					Username:        distribution.UsernameLevelThree,
-					YearMonth:       currYearMonth,
-					TotalCommission: amount.Total, //本月返佣总金额
-				}
-
-				tx2 := s.base.GetTransaction()
-
-				if err := tx2.Create(newnucs).Error; err != nil {
-					s.logger.Error("增加CommissionStatistics失败", zap.Error(err))
-					tx2.Rollback()
-					return err
-				}
-
-				//提交
-				tx2.Commit()
+			newnucs := &models.CommissionStatistics{
+				Username:        distribution.UsernameLevelThree,
+				YearMonth:       currYearMonth,
+				TotalCommission: amount.Total, //本月返佣总金额
+				IsRebate:        false,        //默认返现的值是false
 			}
-		*/
+			//Save
+			s.db.Save(&newnucs)
+		}
 
 	}
 

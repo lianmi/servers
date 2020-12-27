@@ -51,13 +51,13 @@ func (s *MysqlLianmiRepository) UpdateFriend(pFriend *models.Friend) error {
 //删除好友
 func (s *MysqlLianmiRepository) DeleteFriend(userID, friendUserID uint64) error {
 	where := models.Friend{UserID: userID, FriendUserID: friendUserID}
-	db := s.db.Where(&where).Delete(models.Friend{})
-	err := db.Error
+	db2 := s.db.Where(&where).Delete(models.Friend{})
+	err := db2.Error
 	if err != nil {
 		s.logger.Error("DeleteFriend出错", zap.Error(err))
 		return err
 	}
-	count := db.RowsAffected
+	count := db2.RowsAffected
 	s.logger.Debug("DeleteFriend成功", zap.Int64("count", count))
 	return nil
 }

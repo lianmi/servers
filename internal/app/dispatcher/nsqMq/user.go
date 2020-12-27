@@ -111,7 +111,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 					nc.logger.Error("错误：HMSET", zap.Error(err))
 				}
 			}
-			
+
 			user := &User.User{
 				Username:      userData.Username,
 				Nick:          userData.Nick,
@@ -510,15 +510,15 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 			} else { //删除
 				where := models.Tag{Username: account, TagType: int(req.GetType())}
-				db := nc.db.Where(&where).Delete(models.Tag{})
-				err = db.Error
+				db2 := nc.db.Where(&where).Delete(models.Tag{})
+				err = db2.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
-				count := db.RowsAffected
+				count := db2.RowsAffected
 
 				//删除黑名单
 				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
@@ -585,15 +585,15 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 			} else { //删除
 				where := models.Tag{Username: account, TagType: int(req.GetType())}
-				db := nc.db.Where(&where).Delete(models.Tag{})
-				err = db.Error
+				db2 := nc.db.Where(&where).Delete(models.Tag{})
+				err = db2.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
-				count := db.RowsAffected
+				count := db2.RowsAffected
 
 				//删除免打扰
 				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
@@ -641,15 +641,15 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 			} else { //删除
 				where := models.Tag{Username: account, TagType: int(req.GetType())}
-				db := nc.db.Where(&where).Delete(models.Tag{})
-				err = db.Error
+				db2 := nc.db.Where(&where).Delete(models.Tag{})
+				err = db2.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
 					goto COMPLETE
 				}
-				count := db.RowsAffected
+				count := db2.RowsAffected
 
 				//删除免打扰，Redis缓存
 				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())

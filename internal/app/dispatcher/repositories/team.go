@@ -324,27 +324,26 @@ func (s *MysqlLianmiRepository) SetMuteTeamUser(teamID, dissMuteUser string, isM
 //删除群成员
 func (s *MysqlLianmiRepository) DeleteTeamUser(teamID, username string) error {
 	where := models.TeamUser{TeamID: teamID, Username: username}
-	db := s.db.Where(&where).Delete(models.TeamUser{})
-	err := db.Error
+	db2 := s.db.Where(&where).Delete(models.TeamUser{})
+	err := db2.Error
 	if err != nil {
 		s.logger.Error("DeleteTeamUser", zap.Error(err))
 		return err
 	}
-	count := db.RowsAffected
+	count := db2.RowsAffected
 	s.logger.Debug("DeleteTeamUser成功", zap.Int64("count", count))
 	return nil
 }
 
 // GetPages 分页返回数据
 func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
-	db := s.db.Model(model).Where(model)
-	db = db.Where(where)
+	db2 := s.db.Model(model).Where(model).Where(where)
 	if len(orders) > 0 {
 		for _, order := range orders {
-			db = db.Order(order)
+			db2 = db2.Order(order)
 		}
 	}
-	err := db.Count(totalCount).Error
+	err := db2.Count(totalCount).Error
 	if err != nil {
 		s.logger.Error("查询总数出错", zap.Error(err))
 		return err
@@ -352,7 +351,7 @@ func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pag
 	if *totalCount == 0 {
 		return nil
 	}
-	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+	return db2.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
 }
 
 //分页获取群成员

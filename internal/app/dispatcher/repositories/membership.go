@@ -26,9 +26,9 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 	model := &models.BusinessUnderling{
 		BusinessUsername: businessUsername,
 	}
-	db := s.db.Model(model).Where(model)
+	db2 := s.db.Model(model).Where(model)
 	var totalCount *int64
-	err = db.Count(totalCount).Error
+	err = db2.Count(totalCount).Error
 	if err != nil {
 		s.logger.Error("查询BusinessUnderling总数出错",
 			zap.String("BusinessUsername", businessUsername),
@@ -64,7 +64,6 @@ func (s *MysqlLianmiRepository) GetBusinessMembership(businessUsername string) (
 //对某个用户的推广会员佣金进行统计
 func (s *MysqlLianmiRepository) CommissonSatistics(username string) (*Auth.CommissonSatisticsResp, error) {
 	var err error
-	// total := new(int64)
 
 	type Amount struct{ Total float64 }
 	amount := Amount{}

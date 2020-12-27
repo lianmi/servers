@@ -55,13 +55,13 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.Use
 		[]interface{}{"user_type", "=", int(req.UserType)},
 	}
 
-	db := s.db
-	db, err = s.base.BuildWhere(db, where)
+	db2 := s.db
+	db2, err = s.base.BuildWhere(db2, where)
 	if err != nil {
 		s.logger.Error("BuildWhere错误", zap.Error(err))
 	}
 
-	db.Find(&list)
+	db2.Find(&list)
 
 	total = int64(len(list))
 

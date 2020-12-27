@@ -39,26 +39,26 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 		wheres = append(wheres, []interface{}{"username", "=", req.BusinessUsername})
 	}
 
-	db := s.db
-	db, err = s.base.BuildQueryList(db, wheres, columns, orderBy, pageIndex, pageSize)
+	db2 := s.db
+	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, pageIndex, pageSize)
 	if err != nil {
 		return nil, err
 	}
-	err = db.Find(&products).Error
+	err = db2.Find(&products).Error
 
 	if err != nil {
 		s.logger.Error("Find错误", zap.Error(err))
 		return nil, err
 	}
 
-	db, err = s.base.BuildWhere(db, wheres)
+	db2, err = s.base.BuildWhere(db2, wheres)
 	if err != nil {
 		s.logger.Error("BuildWhere错误", zap.Error(err))
 		return nil, err
 	}
 
-	db = s.db
-	db.Model(&mod).Count(total)
+	db2 = s.db
+	db2.Model(&mod).Count(total)
 
 	pages := math.Ceil(float64(*total) / float64(pageSize))
 

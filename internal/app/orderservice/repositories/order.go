@@ -75,13 +75,13 @@ func (m *MysqlOrderRepository) UpdateProduct(product *models.Product) error {
 //删除商品
 func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 	where := models.Product{ProductID: productID, Username: username}
-	db := m.db.Where(&where).Delete(models.Product{})
-	err := db.Error
+	db2 := m.db.Where(&where).Delete(models.Product{})
+	err := db2.Error
 	if err != nil {
 		m.logger.Error("DeleteProduct", zap.Error(err))
 		return err
 	}
-	count := db.RowsAffected
+	count := db2.RowsAffected
 	m.logger.Debug("DeleteProduct成功", zap.Int64("count", count))
 	return nil
 }

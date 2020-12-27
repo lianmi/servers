@@ -3,10 +3,10 @@ package repositories
 import (
 	// "github.com/lianmi/servers/internal/pkg/models"
 	// "github.com/pkg/errors"
-	"strings"
 	"fmt"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"strings"
 )
 
 //BaseRepository 注入db,Logger
@@ -14,7 +14,6 @@ type BaseRepository struct {
 	logger *zap.Logger
 	db     *gorm.DB
 }
-
 
 func NewBaseRepository(logger *zap.Logger, db *gorm.DB) *BaseRepository {
 	return &BaseRepository{
@@ -24,66 +23,66 @@ func NewBaseRepository(logger *zap.Logger, db *gorm.DB) *BaseRepository {
 }
 
 //构建查询条件
-func (b *BaseRepository)BuildCondition(where map[string]interface{}) (whereSql string,
-    values []interface{}, err error) {
-    for key, value := range where {
-        conditionKey := strings.Split(key, " ")
-        if len(conditionKey) > 2 {
-            return "", nil, fmt.Errorf("" +
-                "map构建的条件格式不对，类似于'age >'")
-        }
-        if whereSql != "" {
-            whereSql += " AND "
-        }
-        switch len(conditionKey) {
-        case 1:
-            whereSql += fmt.Sprint(conditionKey[0], " = ?")
-            values = append(values, value)
-            break
-        case 2:
-            field := conditionKey[0]
-            switch conditionKey[1] {
-            case "=":
-                whereSql += fmt.Sprint(field, " = ?")
-                values = append(values, value)
-                break
-            case ">":
-                whereSql += fmt.Sprint(field, " > ?")
-                values = append(values, value)
-                break
-            case ">=":
-                whereSql += fmt.Sprint(field, " >= ?")
-                values = append(values, value)
-                break
-            case "<":
-                whereSql += fmt.Sprint(field, " < ?")
-                values = append(values, value)
-                break
-            case "<=":
-                whereSql += fmt.Sprint(field, " <= ?")
-                values = append(values, value)
-                break
-            case "in":
-                whereSql += fmt.Sprint(field, " in (?)")
-                values = append(values, value)
-                break
-            case "like":
-                whereSql += fmt.Sprint(field, " like ?")
-                values = append(values, value)
-                break
-            case "<>":
-                whereSql += fmt.Sprint(field, " != ?")
-                values = append(values, value)
-                break
-            case "!=":
-                whereSql += fmt.Sprint(field, " != ?")
-                values = append(values, value)
-                break
-            }
-            break
-        }
-    }
-    return
+func (b *BaseRepository) BuildCondition(where map[string]interface{}) (whereSql string,
+	values []interface{}, err error) {
+	for key, value := range where {
+		conditionKey := strings.Split(key, " ")
+		if len(conditionKey) > 2 {
+			return "", nil, fmt.Errorf("" +
+				"map构建的条件格式不对，类似于'age >'")
+		}
+		if whereSql != "" {
+			whereSql += " AND "
+		}
+		switch len(conditionKey) {
+		case 1:
+			whereSql += fmt.Sprint(conditionKey[0], " = ?")
+			values = append(values, value)
+			break
+		case 2:
+			field := conditionKey[0]
+			switch conditionKey[1] {
+			case "=":
+				whereSql += fmt.Sprint(field, " = ?")
+				values = append(values, value)
+				break
+			case ">":
+				whereSql += fmt.Sprint(field, " > ?")
+				values = append(values, value)
+				break
+			case ">=":
+				whereSql += fmt.Sprint(field, " >= ?")
+				values = append(values, value)
+				break
+			case "<":
+				whereSql += fmt.Sprint(field, " < ?")
+				values = append(values, value)
+				break
+			case "<=":
+				whereSql += fmt.Sprint(field, " <= ?")
+				values = append(values, value)
+				break
+			case "in":
+				whereSql += fmt.Sprint(field, " in (?)")
+				values = append(values, value)
+				break
+			case "like":
+				whereSql += fmt.Sprint(field, " like ?")
+				values = append(values, value)
+				break
+			case "<>":
+				whereSql += fmt.Sprint(field, " != ?")
+				values = append(values, value)
+				break
+			case "!=":
+				whereSql += fmt.Sprint(field, " != ?")
+				values = append(values, value)
+				break
+			}
+			break
+		}
+	}
+	return
 }
 
 // Create 创建实体
@@ -103,13 +102,13 @@ func (b *BaseRepository) Save(value interface{}) error {
 
 // DeleteByWhere 根据条件删除实体
 func (b *BaseRepository) DeleteByWhere(model, where interface{}) (count int64, err error) {
-	db := b.db.Where(where).Delete(model)
-	err = db.Error
+	db2 := b.db.Where(where).Delete(model)
+	err = db2.Error
 	if err != nil {
 		b.logger.Error("删除实体出错", zap.Error(err))
 		return
 	}
-	count = db.RowsAffected
+	count = db2.RowsAffected
 	return
 }
 
@@ -120,26 +119,25 @@ func (b *BaseRepository) DeleteByID(model interface{}, id int) error {
 
 // DeleteByIDS 根据多个id删除多个实体
 func (b *BaseRepository) DeleteByIDS(model interface{}, ids []int) (count int64, err error) {
-	db := b.db.Where("id in (?)", ids).Delete(model)
-	err = db.Error
+	db2 := b.db.Where("id in (?)", ids).Delete(model)
+	err = db2.Error
 	if err != nil {
 		b.logger.Error("删除多个实体出错", zap.Error(err))
 		return
 	}
-	count = db.RowsAffected
+	count = db2.RowsAffected
 	return
 }
 
 // First 根据条件获取一个实体
 func (b *BaseRepository) First(where interface{}, out interface{}, selects ...string) error {
-	// db := b.db.Where(condition, values)
-	db := b.db.Where(where)
+	db2 := b.db.Where(where)
 	if len(selects) > 0 {
 		for _, sel := range selects {
-			db = db.Select(sel)
+			db2 = db2.Select(sel)
 		}
 	}
-	return db.First(out).Error
+	return db2.First(out).Error
 }
 
 // FirstByID 根据条件获取一个实体
@@ -149,28 +147,28 @@ func (b *BaseRepository) FirstByID(out interface{}, id int) error {
 
 // Find 根据条件返回数据
 func (b *BaseRepository) Find(where interface{}, out interface{}, sel string, orders ...string) error {
-	db := b.db.Where(where)
+	db2 := b.db.Where(where)
 	if sel != "" {
-		db = db.Select(sel)
+		db2 = db2.Select(sel)
 	}
 	if len(orders) > 0 {
 		for _, order := range orders {
-			db = db.Order(order)
+			db2 = db2.Order(order)
 		}
 	}
-	return db.Find(out).Error
+	return db2.Find(out).Error
 }
 
 // GetPages 分页返回数据
 func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
-	db := b.db.Model(model).Where(model)
-	db = db.Where(where)
+	db2 := b.db.Model(model).Where(model)
+	db2 = db2.Where(where)
 	if len(orders) > 0 {
 		for _, order := range orders {
-			db = db.Order(order)
+			db2 = db2.Order(order)
 		}
 	}
-	err := db.Count(totalCount).Error
+	err := db2.Count(totalCount).Error
 	if err != nil {
 		b.logger.Error("查询总数出错", zap.Error(err))
 		return err
@@ -178,7 +176,7 @@ func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex,
 	if *totalCount == 0 {
 		return nil
 	}
-	return db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
+	return db2.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
 }
 
 // PluckList 查询 model 中的一个列作为切片
