@@ -1912,6 +1912,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	var attachHash string
 	var orderTotalAmount float64 //订单金额
+	var charge float64 //服务费
 	var isPayed, isUrge bool
 	var orderIDKey string
 
@@ -1983,6 +1984,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 		businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 		orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+		charge, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge"))
 		attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
 		if err != nil {
@@ -2034,6 +2036,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			zap.String("当前操作者账号 username", username),
 			zap.String("目标用户账号 toUsername", toUsername),
 			zap.Float64("OrderTotalAmount", orderTotalAmount),
+			zap.Float64("Charge", charge),
 		)
 
 		//从redis里获取买家信息
@@ -2252,6 +2255,9 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 				//将OrderTotalAmount, Attach， AttachHash， UserData 更新到redis里
 				_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.OrderBody.GetOrderTotalAmount())
+				//TODO  需要增加charge
+				// _, err = redisConn.Do("HSET", orderIDKey, "Charge", req.OrderBody.GetCharge())
+
 				_, err = redisConn.Do("HSET", orderIDKey, "Attach", req.OrderBody.GetAttach())
 				_, err = redisConn.Do("HSET", orderIDKey, "AttachHash", cur_attachHash)
 				_, err = redisConn.Do("HSET", orderIDKey, "UserData", req.OrderBody.GetUserdata())
