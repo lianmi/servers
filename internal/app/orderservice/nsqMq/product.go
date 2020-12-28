@@ -1774,8 +1774,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						//根据用户是否是Vip计算手续费
 						charge, err = nc.CalculateCharge(isVip, orderProductBody.OrderTotalAmount)
 
-						orderProductBody.OrderTotalAmount = orderProductBody.OrderTotalAmount + charge
-
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
 					} else {
@@ -1912,7 +1910,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	var attachHash string
 	var orderTotalAmount float64 //订单金额
-	var charge float64 //服务费
+	var charge float64           //服务费
 	var isPayed, isUrge bool
 	var orderIDKey string
 

@@ -24,7 +24,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	var buyUser, businessUser string
 	var attachHash string
 	var orderTotalAmount float64 //订单金额
-	var charge float64 //服务费
+	var charge float64           //服务费
 	var isPayed bool
 
 	redisConn := s.redisPool.Get()
@@ -39,7 +39,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 	businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
-	charge, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge"))
+	charge, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge")) //服务费
 	attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 		BuyerUsername:    buyUser,
 		BusinessUsername: businessUser,
 		Cost:             orderTotalAmount,
-		Charge:           charge,
+		Charge:           charge, //服务费
 		State:            curState,
 		IsPayed:          isPayed,
 	}, nil
