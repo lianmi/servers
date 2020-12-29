@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	// "github.com/lianmi/servers/util/array"
+	"github.com/lianmi/servers/internal/pkg/models"
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
@@ -83,14 +84,15 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 		log.Println("productID:", productID)
 	}
-	vipUser := VipUser{
+	vipUser := models.VipUser{
 		PayType: 3, //包月
 	}
 
-	attach, err = vipUser.ToJson()
-	if err != nil {
-		return errors.New("vipUser.ToJson error")
-	}
+	attachBase := new(models.AttachBase)
+	attachBase.Type = 99 //约定99为购买Vip会员的type
+	attachBase.Body, _ = vipUser.ToJson()
+
+	attach, _ = attachBase.ToJson()
 
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,

@@ -141,10 +141,11 @@ const (
 
 //会员返佣比例相关， 比例是49%
 const (
-	VipBusinessUsername = "id3" //Vip会员的商户id
-	CommissionOne       = float64(0.3)
-	CommissionTwo       = float64(0.1)
-	CommissionThree     = float64(0.09)
+	VipBusinessUsername    = "id3"  //Vip会员的商户id, 暂定，上线后需要重新设定
+	ChargeBusinessUsername = "id10" // 接收服务费的商户id, 暂定，上线后需要重新设定
+	CommissionOne          = float64(0.3)
+	CommissionTwo          = float64(0.1)
+	CommissionThree        = float64(0.09)
 )
 
 //订单相关
@@ -172,9 +173,9 @@ const (
 	ServerDomain = "https://api.lianmi.cloud"
 )
 
-//服务手续费费率， VIP用户减半， 非Vip半价 
+//服务手续费费率， VIP用户减半， 非Vip半价
 const (
 	//VIP用户 免费的金额， 元
-	RateFreeAmout =30
-	Rate = 0.08
+	RateFreeAmout = 30
+	Rate          = 0.08
 )

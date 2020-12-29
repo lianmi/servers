@@ -253,6 +253,14 @@ func (nc *NsqClient) RedisInit() {
 		nc.logger.Info("ZADD succeed", zap.Int("length of teamIDs ", len(teamIDs)))
 	}
 
+	isExistSystemCharge, _ := redis.Bool(redisConn.Do("EXISTS", "SystemChargeProductID"))
+	if !isExistSystemCharge {
+		chargeProductID, err := nc.service.GetChargeProductID()
+		if err != nil {
+			nc.logger.Error("GetChargeProductID error", zap.Error(err))
+		}
+		redisConn.Do("SET", "SystemChargeProductID", chargeProductID)
+	}
 	_ = err
 
 }

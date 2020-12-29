@@ -127,6 +127,8 @@ type LianmiApisService interface {
 
 	GetTeams() []string
 
+	GetChargeProductID() (string, error)
+
 	DeleteTeamUser(teamID, username string) error
 
 	//创建群
@@ -485,6 +487,10 @@ func (s *DefaultLianmiApisService) UpdateFriend(pFriend *models.Friend) error {
 
 func (s *DefaultLianmiApisService) DeleteFriend(userID, friendUserID uint64) error {
 	return s.Repository.DeleteFriend(userID, friendUserID)
+}
+
+func (s *DefaultLianmiApisService) GetChargeProductID() (string, error) {
+	return s.Repository.GetChargeProductID()
 }
 
 func (s *DefaultLianmiApisService) GetTeams() []string {

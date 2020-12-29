@@ -93,7 +93,6 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 	businessUser, err := redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	attachHash, err := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	orderTotalAmount, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount")) //人民币
-	// charge, err := redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge"))                     //手续费
 
 	if isPayed == false {
 		return &Wallet.TransferResp{

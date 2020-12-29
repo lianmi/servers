@@ -1027,6 +1027,135 @@ COMPLETE:
 	return nil
 }
 
+/*
+生成某个订单的服务费订单ID并发送给买家
+*/
+func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Order.OrderProductBody) error {
+	var err error
+	var charge float64
+	var newSeq uint64
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	//根据用户是否是Vip计算手续费
+	charge, err = nc.CalculateCharge(isVip, orderProductBody.OrderTotalAmount)
+
+	//服务费的商品ID
+	systemChargeProductID, err := redis.String(redisConn.Do("GET", "SystemChargeProductID"))
+	if err != nil {
+		nc.logger.Error("SendChargeOrderIDToBuyer GET error")
+		return err
+	}
+
+	// 生成charge订单ID
+	chargeOrderID := uuid.NewV4().String()
+
+	var orignOrder = &models.OrignOrder{
+		orderProductBody.OrderID, //真实的商品 订单id
+	}
+	attachBase := new(models.AttachBase)
+	attachBase.Type = 100 //约定为服务费的type
+	attachBase.Body, _ = orignOrder.ToJson()
+
+	attach, _ := attachBase.ToJson()
+
+	// 将服务费数据保存到MySQL
+	err = nc.service.SaveChargeHistory(&models.ChargeHistory{
+		BuyerUsername:    orderProductBody.BuyUser,          //买家
+		BusinessUsername: orderProductBody.BusinessUser,     //商户
+		ChargeProductID:  systemChargeProductID,             //服务费的商品D
+		ChargeOrderID:    chargeOrderID,                     //本次服务费的订单ID
+		BusinessOrderID:  orderProductBody.OrderID,          //商品订单ID, 买家支付的订单ID
+		OrderTotalAmount: orderProductBody.OrderTotalAmount, //人民币格式的订单总金额
+		IsVip:            isVip,                             //是否是Vip用户
+		Rate:             LMCommon.Rate,                     //费率
+		ChargeAmount:     charge,                            //服务费
+		IsPayed:          false,
+	})
+
+	// 将服务费订单ID信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
+	_, err = redisConn.Do("HMSET",
+		fmt.Sprintf("Order:%s", chargeOrderID), //charge订单id
+		"ProductID", systemChargeProductID,     //服务费的商品ID
+		"BuyUser", orderProductBody.BuyUser, //买家
+		"OpkBuyUser", "",
+		"BusinessUser", orderProductBody.BusinessUser, //商户
+		"OpkBusinessUser", "",
+		"OrderTotalAmount", charge, //charge金额
+		"Attach", attach, //构造真正的订单ID，UI负责解析并合并支付
+		"State", int(Global.OrderState_OS_Prepare), //订单状态
+		"IsPayed", LMCommon.REDISFALSE, //此charge订单支付状态， true- 支付完成，false-未支付
+		"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
+	)
+	if err != nil {
+		nc.logger.Error("SendChargeOrderIDToBuyer HMSET error")
+		return err
+	}
+
+	//TODO 将服务费订单ID 发给买家
+	chargeOrderProductBody := &Order.OrderProductBody{
+		OrderID:         chargeOrderID,                 //charge订单id
+		ProductID:       systemChargeProductID,         //服务费的商品ID
+		BuyUser:         orderProductBody.BuyUser,      //发起订单的用户id
+		OpkBuyUser:      "",                            //买家的协商公钥
+		BusinessUser:    orderProductBody.BusinessUser, //商户的用户id
+		OpkBusinessUser: "",                            //商户的协商公钥
+		// 订单的总金额, 支付的时候以这个金额计算
+		OrderTotalAmount: charge, //服务费金额
+		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
+		// 传输会进过sdk 处理,  这里存放的是真正的 商品id 及订单ID
+		Attach: attach,
+		State:  Global.OrderState_OS_SendOK, //订单的状态
+	}
+
+	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err != nil {
+		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+		return err
+	}
+	chargeOrderProductBodyData, _ := proto.Marshal(chargeOrderProductBody)
+
+	//新建消息
+	chargeMsg := &models.Message{}
+
+	chargeMsg.UpdateID()
+
+	eRsp := &Msg.RecvMsgEventRsp{
+		Scene:        Msg.MessageScene_MsgScene_S2C,            //系统消息
+		Type:         Msg.MessageType_MsgType_Order,            //类型-订单消息
+		Body:         chargeOrderProductBodyData,               //订单载体 OrderProductBody
+		From:         LMCommon.ChargeBusinessUsername,          //谁发的, 暂定为 id10
+		FromDeviceId: "",                                       //哪个设备发的
+		Recv:         orderProductBody.BuyUser,                 //商户账户id, 暂定为 id3
+		ServerMsgId:  chargeMsg.GetID(),                        //服务器分配的消息ID
+		Seq:          newSeq,                                   //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+		Uuid:         fmt.Sprintf("%d", chargeMsg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+		Time:         uint64(time.Now().UnixNano() / 1e6),
+	}
+
+	// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+	orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", chargeMsg.GetID())
+	_, err = redisConn.Do("HMSET",
+		orderProductBodyKey,
+		"Username", LMCommon.ChargeBusinessUsername, //暂定为 id10
+		"OrderID", chargeOrderID,
+		"ProductID", systemChargeProductID,
+		"BuyUser", orderProductBody.BuyUser,
+		"OpkBuyUser", "",
+		"BusinessUser", LMCommon.ChargeBusinessUsername, //商户收款暂定为id10
+		"OpkBusinessUser", "",
+		"OrderTotalAmount", charge, //订单所需的服务费
+		"Attach", attach, //真正订单ID，UI负责解析并合并支付
+		"State", Global.OrderState_OS_SendOK, //订单的状态
+	)
+
+	//向买家发送服务费订单ID消息
+	go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+
+	return nil
+
+}
+
 //9-2 获取网点OPK公钥及订单ID
 func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	var err error
@@ -1269,7 +1398,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
 			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 			"IsUrge", LMCommon.REDISFALSE, //催单
-			"CreateAt", uint64(time.Now().UnixNano()/1e6), //秒
+			"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
 		)
 
 	}
@@ -1496,10 +1625,18 @@ func (nc *NsqClient) CalculateCharge(isVip bool, orderTotalAmout float64) (float
 			return 0, nil
 		} else {
 			//手续减半
-			return orderTotalAmout * LMCommon.Rate / 2, nil
+			charge := orderTotalAmout * LMCommon.Rate / 2
+			if charge < 1 {
+				charge = 1
+			}
+			return charge, nil
 		}
 	} else {
-		return orderTotalAmout * LMCommon.Rate, nil
+		charge := orderTotalAmout * LMCommon.Rate
+		if charge < 1 {
+			charge = 1
+		}
+		return charge, nil
 	}
 
 }
@@ -1516,8 +1653,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	var newSeq uint64
 
 	var isVip bool
-
-	var charge float64
 
 	//经过服务端更改状态后的新的OrderProductBody字节流
 	var orderProductBodyData []byte
@@ -1643,17 +1778,17 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			attachHash := crypt.Sha1(orderProductBody.GetAttach())
 
 			nc.logger.Debug("OrderProductBody payload",
-				zap.String("OrderID", orderProductBody.OrderID),
-				zap.String("ProductID", orderProductBody.ProductID),
-				zap.String("BuyUser", orderProductBody.BuyUser),
-				zap.String("OpkBuyUser", orderProductBody.OpkBuyUser),
-				zap.String("BusinessUser", orderProductBody.BusinessUser),
-				zap.String("OpkBusinessUser", orderProductBody.OpkBusinessUser),
-				zap.Float64("OrderTotalAmount", orderProductBody.OrderTotalAmount),
-				zap.String("Attach", orderProductBody.Attach),         //加密的密文
-				zap.String("AttachHash", attachHash),                  //订单内容的哈希
-				zap.ByteString("Userdata", orderProductBody.Userdata), //透传信息 , 不加密 ，直接传过去 不处理
-				zap.Int("State", int(orderProductBody.State)),         //订单状态
+				zap.String("OrderID", orderProductBody.OrderID),                    // 商品的订单id
+				zap.String("ProductID", orderProductBody.ProductID),                //商品id
+				zap.String("BuyUser", orderProductBody.BuyUser),                    //买家
+				zap.String("OpkBuyUser", orderProductBody.OpkBuyUser),              //买家的OPK公钥
+				zap.String("BusinessUser", orderProductBody.BusinessUser),          //商户
+				zap.String("OpkBusinessUser", orderProductBody.OpkBusinessUser),    //商户的OPK公钥
+				zap.Float64("OrderTotalAmount", orderProductBody.OrderTotalAmount), //订单金额
+				zap.String("Attach", orderProductBody.Attach),                      //加密的密文
+				zap.String("AttachHash", attachHash),                               //订单内容的哈希
+				zap.ByteString("Userdata", orderProductBody.Userdata),              //透传信息 , 不加密 ，直接传过去 不处理
+				zap.Int("State", int(orderProductBody.State)),                      //订单状态
 			)
 
 			//判断订单id不能为空
@@ -1730,52 +1865,71 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				//判断商户注册账号 是不是写死的系统商户id，如果是购买Vip, 自动接单，并返回给用户，让其发起支付操作
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
 
-					//从attach里解析PayType
-					vipUser := new(models.VipUser)
-					if err := json.Unmarshal([]byte(orderProductBody.Attach), vipUser); err != nil {
-						nc.logger.Error("从attach里解析PayType失败", zap.Error(err))
+					attachBase, err := models.AttachBaseFromJson([]byte(orderProductBody.Attach))
+					if err != nil {
+						nc.logger.Error("从attach里解析attachBase失败", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("Attach Unmarshal error")
 						goto COMPLETE
 					} else {
-						nc.logger.Debug("购买Vip",
-							zap.String("购买者", orderProductBody.BuyUser),
-							zap.String(" 商户 ", orderProductBody.BusinessUser),
-							zap.Int(" PayType ", vipUser.PayType),
-						)
-					}
-					//根据PayType获取到VIP价格
-					vipPrice, err := nc.service.GetVipUserPrice(vipUser.PayType)
-					if err != nil {
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("GetVipUserPrice error")
-						goto COMPLETE
-					}
-					//修改Attach，将价格填入
-					vipUser.Price = vipPrice.Price
-					attach, err := vipUser.ToJson()
-					if err != nil {
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("Attach ToJson error")
-						goto COMPLETE
-					}
-					orderProductBody.Attach = attach
+						if attachBase.Type == 99 {
+							//从attach的Body里解析PayType
+							vipUser, err := models.VipUserFromJson([]byte(attachBase.Body))
 
-					//接单成功，当用户收到后即可发起预支付
-					orderProductBody.State = Global.OrderState_OS_Taked
+							if err != nil {
+								nc.logger.Error("从attach的Body里解析PayType失败", zap.Error(err))
+								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+								errorMsg = fmt.Sprintf("VipUser Unmarshal error")
+								goto COMPLETE
+							}
+							nc.logger.Debug("购买Vip",
+								zap.String("购买者", orderProductBody.BuyUser),
+								zap.String("商户 ", orderProductBody.BusinessUser),
+								zap.Int(" ayType ", vipUser.PayType),
+							)
+							//根据PayType获取到VIP价格
+							vipPrice, err := nc.service.GetVipUserPrice(vipUser.PayType)
+							if err != nil {
+								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+								errorMsg = fmt.Sprintf("GetVipUserPrice error")
+								goto COMPLETE
+							}
 
-					//将接单状态转发到用户
-					toUser = orderProductBody.BuyUser
+							//修改attachBase，将价格填入
 
-				} else {
+							vipUser.Price = vipPrice.Price
+							attachBase.Body, _ = vipUser.ToJson()
+							attachStr, _ := attachBase.ToJson()
+							orderProductBody.Attach = attachStr
+
+							//接单成功，当用户收到后即可发起预支付
+							orderProductBody.State = Global.OrderState_OS_Taked
+
+							//将接单状态转发到用户
+							toUser = orderProductBody.BuyUser
+
+						} else {
+							//TODO
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+							errorMsg = fmt.Sprintf("Unknown attachBase type")
+							goto COMPLETE
+
+						}
+
+					}
+
+				} else { //普通下单，包括彩票
+
 					orderProductBody.State = Global.OrderState_OS_SendOK
-					//彩票类型的订单，  但没付款的时候，不需要向商户转发
+					//彩票类型的订单， 但没付款的时候，不需要向商户转发
 					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
-						//根据用户是否是Vip计算手续费
-						charge, err = nc.CalculateCharge(isVip, orderProductBody.OrderTotalAmount)
+
+						//根据Vip及订单内容生成服务费的支付数据, 并发送给买家
+						go nc.SendChargeOrderIDToBuyer(isVip, orderProductBody)
 
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
+
 					} else {
 
 						//将订单转发到商户
@@ -1819,7 +1973,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					"BusinessUser", orderProductBody.BusinessUser,
 					"OpkBusinessUser", orderProductBody.OpkBusinessUser,
 					"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
-					"Charge", charge, //订单所需的服务费
 					"Attach", orderProductBody.Attach, //订单内容，UI负责构造
 					"AttachHash", attachHash, //订单内容的哈希值
 					"UserData", orderProductBody.Userdata, //透传数据
@@ -1836,7 +1989,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					"BusinessUser", orderProductBody.BusinessUser, //商户
 					"OpkBusinessUser", orderProductBody.GetOpkBusinessUser(),
 					"OrderTotalAmount", orderProductBody.GetOrderTotalAmount(), //订单金额
-					"Charge", charge, //订单所需的服务费
 					"Attach", orderProductBody.GetAttach(), //订单内容，UI负责构造
 					"AttachHash", attachHash, //订单内容的哈希值
 					"UserData", orderProductBody.GetUserdata(), //透传数据
@@ -1910,7 +2062,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	var attachHash string
 	var orderTotalAmount float64 //订单金额
-	var charge float64           //服务费
 	var isPayed, isUrge bool
 	var orderIDKey string
 
@@ -1982,7 +2133,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 		businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 		orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
-		charge, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "Charge"))
 		attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
 		if err != nil {
@@ -2034,7 +2184,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			zap.String("当前操作者账号 username", username),
 			zap.String("目标用户账号 toUsername", toUsername),
 			zap.Float64("OrderTotalAmount", orderTotalAmount),
-			zap.Float64("Charge", charge),
 		)
 
 		//从redis里获取买家信息
@@ -2253,9 +2402,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 				//将OrderTotalAmount, Attach， AttachHash， UserData 更新到redis里
 				_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.OrderBody.GetOrderTotalAmount())
-				//TODO  需要增加charge
-				// _, err = redisConn.Do("HSET", orderIDKey, "Charge", req.OrderBody.GetCharge())
-
 				_, err = redisConn.Do("HSET", orderIDKey, "Attach", req.OrderBody.GetAttach())
 				_, err = redisConn.Do("HSET", orderIDKey, "AttachHash", cur_attachHash)
 				_, err = redisConn.Do("HSET", orderIDKey, "UserData", req.OrderBody.GetUserdata())

@@ -14,7 +14,6 @@ type OrderInfo struct {
 	BuyerUsername    string  `json:"buyer_username" validate:"required"`    //买家注册号
 	BusinessUsername string  `json:"business_username" validate:"required"` //商户注册号
 	Cost             float64 `json:"cost" validate:"required"`              //本订单的总金额
-	Charge           float64 `json:"charge" validate:"required"`            //服务费
 	State            int     `json:"state"`                                 //订单类型
 	IsPayed          bool    `json:"is_payed"`                              //此订单支付状态， true- 支付完成，false-未支付
 	IsUrge           bool    `json:"is_urge"`                               //催单

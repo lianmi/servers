@@ -102,7 +102,11 @@ func AddOrder(orderID, productID string) error {
 		BlueBall:   []int{9},
 	})
 
-	attach, err = ssqOrder.ToJson()
+	bodyJsonData, _ := ssqOrder.ToJson()
+	attachBase := new(models.AttachBase)
+	attachBase.Type = 9 //约定9为购买双色球
+	attachBase.Body = bodyJsonData
+	attach, err := attachBase.ToJson()
 	if err != nil {
 		return errors.New("ssqOrder.ToJson error")
 	}

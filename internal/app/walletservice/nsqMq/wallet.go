@@ -670,8 +670,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			businessUsername, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 			orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 
-			//TODO 判断是否是购买Vip会员
-			if businessUsername == LMCommon.VipBusinessUsername {
+			if businessUsername == LMCommon.VipBusinessUsername { //TODO 判断是否是购买Vip会员
+
 				// 根据 ProductID 获取到VIP类型
 				productID, _ := redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
 				if productID != "" {
@@ -962,6 +962,17 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				if err := nc.Repository.AddCommission(orderTotalAmount, username, orderID); err != nil {
 					nc.logger.Error("AddCommission发生错误", zap.Error(err), zap.String("orderID", orderID))
 				}
+
+			} else if businessUsername == LMCommon.ChargeBusinessUsername { //TODO 判断是否是支付服务费
+
+				//更新ChargeHistory表
+				nc.Repository.UpdateChargeHistoryForPayed(&models.ChargeHistory{
+					ChargeOrderID: orderID, //本次服务费的订单ID
+					IsPayed:       true,
+					BlockNumber:   blockNumber,
+					TxHash:        hash,
+				})
+
 			}
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed

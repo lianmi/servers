@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"fmt"
-
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/internal/pkg/models"
 )
 
 func (s *MysqlLianmiRepository) GetAlipayInfoByTradeNo(outTradeNo string) (string, float64, bool, error) {
@@ -22,4 +22,13 @@ func (s *MysqlLianmiRepository) GetAlipayInfoByTradeNo(outTradeNo string) (strin
 	IsPayed, err := redis.Bool(redisConn.Do("HGET", preAlipayKey, "IsPayed"))
 
 	return username, totalAmount, IsPayed, err
+}
+
+func (s *MysqlLianmiRepository) GetChargeProductID() (string, error) {
+	var systemCharge models.SystemCharge
+	if err := s.db.Model(&models.SystemCharge{}).First(&systemCharge).Error; err != nil {
+		return "", err
+	}
+
+	return systemCharge.ChargeProductID, nil
 }

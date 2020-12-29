@@ -20,6 +20,8 @@ type OrderService interface {
 
 	//根据 PayType获取价格信息
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
+
+	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
 }
 
 type DefaultApisService struct {
@@ -61,4 +63,8 @@ func (s *DefaultApisService) AddPreKeys(prekeys []*models.Prekey) error {
 //根据 PayType获取价格信息
 func (s *DefaultApisService) GetVipUserPrice(payType int) (*models.VipPrice, error) {
 	return s.Repository.GetVipUserPrice(payType)
+}
+
+func (s *DefaultApisService) SaveChargeHistory(chargeHistory *models.ChargeHistory) error {
+	return s.Repository.SaveChargeHistory(chargeHistory)
 }

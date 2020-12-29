@@ -15,6 +15,7 @@ type OrderRepository interface {
 	DeleteProduct(productID, username string) error
 	AddPreKeys(prekeys []*models.Prekey) error
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
+	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
 }
 
 type MysqlOrderRepository struct {
@@ -112,4 +113,9 @@ func (m *MysqlOrderRepository) GetVipUserPrice(payType int) (*models.VipPrice, e
 		return nil, errors.Wrapf(err, "PayType not found[payType=%d]", payType)
 	}
 	return p, nil
+}
+
+func (m *MysqlOrderRepository) SaveChargeHistory(chargeHistory *models.ChargeHistory) error {
+	return m.db.Save(chargeHistory).Error
+
 }

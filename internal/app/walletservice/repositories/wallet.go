@@ -76,6 +76,9 @@ type WalletRepository interface {
 
 	//购买Vip后，增加用户的到期时间
 	AddVipEndDate(username string, endTime int64) error
+
+	// 修改ChargeHistory的支付及哈希区块
+	UpdateChargeHistoryForPayed(chargeHistory *models.ChargeHistory) error
 }
 
 type MysqlWalletRepository struct {
@@ -819,4 +822,26 @@ func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) er
 
 	return nil
 
+}
+
+// 修改ChargeHistory的支付及哈希区块
+func (s *MysqlWalletRepository) UpdateChargeHistoryForPayed(chargeHistory *models.ChargeHistory) error {
+	values := map[string]interface{}{"is_payed": true, "block_number": chargeHistory.BlockNumber, "tx_hash": chargeHistory.TxHash}
+	result := s.db.Model(&models.ChargeHistory{}).Where(&models.ChargeHistory{
+		ChargeOrderID: chargeHistory.ChargeOrderID,
+	}).Updates(values)
+
+	//updated records counts
+	s.logger.Debug("UpdateChargeHistoryForPayed result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改ChargeHistory的支付及哈希区块失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("修改ChargeHistory的支付及哈希区块成功")
+	}
+
+	return nil
 }

@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	// "encoding/json"
 	"gorm.io/gorm"
+	"time"
 )
 
 /*
@@ -246,6 +246,56 @@ func (w *AliPayHistory) BeforeCreate(tx *gorm.DB) error {
 
 //BeforeUpdate UpdatedAt赋值
 func (w *AliPayHistory) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//系统服务费商品ID表
+type SystemCharge struct {
+	ID              uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"` //自动递增id
+	CreatedAt       int64  `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
+	UpdatedAt       int64  `form:"updated_at" json:"updated_at,omitempty"`   //更新时刻,毫秒
+	ChargeProductID string `json:"charge_product_id"  validate:"required"`   //服务费的商品D
+}
+
+//BeforeCreate CreatedAt赋值
+func (s *SystemCharge) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (s *SystemCharge) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//服务费收款历史, 在common.go里定义了接收服务费的账号，暂定为id3
+type ChargeHistory struct {
+	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`                 //创建时刻,毫秒
+	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`                 //更新时刻,毫秒
+	BuyerUsername    string  `json:"buyer_username"  validate:"required"`                    //买家
+	BusinessUsername string  `json:"business_username"  validate:"required"`                 //商户
+	ChargeProductID  string  `json:"charge_product_id"  validate:"required"`                 //服务费的商品D
+	ChargeOrderID    string  `gorm:"primarykey" json:"charge_order_id"  validate:"required"` //本次服务费的订单ID
+	BusinessOrderID  string  `json:"business_order_id"  validate:"required"`                 //商品订单ID, 买家支付的订单ID
+	OrderTotalAmount float64 `json:"order_total_amount" validate:"required"`                 //人民币格式的订单总金额
+	IsVip            bool    `json:"is_vip" validate:"required"`                             //是否是Vip用户
+	Rate             float64 `json:"rate" validate:"required"`                               //费率
+	ChargeAmount     float64 `json:"charge_amount" validate:"required"`                      //服务费
+	BlockNumber      uint64  `json:"block_number"`                                           //所在区块高度
+	TxHash           string  `json:"tx_hash" `                                               //交易哈希
+	IsPayed          bool    `json:"is_payed" `                                              //是否已经支付
+}
+
+//BeforeCreate CreatedAt赋值
+func (s *ChargeHistory) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (s *ChargeHistory) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

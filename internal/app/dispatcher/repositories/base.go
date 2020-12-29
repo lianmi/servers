@@ -146,6 +146,8 @@ type LianmiRepository interface {
 	//解除群成员的禁言
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
 
+	GetChargeProductID() (string, error)
+	
 	GetTeams() []string
 
 	//创建群
