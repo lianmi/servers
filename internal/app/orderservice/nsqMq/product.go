@@ -1063,7 +1063,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 	// 将服务费数据保存到MySQL
 	err = nc.service.SaveChargeHistory(&models.ChargeHistory{
 		BuyerUsername:    orderProductBody.BuyUser,          //买家
-		BusinessUsername: orderProductBody.BusinessUser,     //商户
+		BusinessUsername: LMCommon.ChargeBusinessUsername,   // 系统 商户
 		ChargeProductID:  systemChargeProductID,             //服务费的商品D
 		ChargeOrderID:    chargeOrderID,                     //本次服务费的订单ID
 		BusinessOrderID:  orderProductBody.OrderID,          //商品订单ID, 买家支付的订单ID
@@ -1080,7 +1080,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 		"ProductID", systemChargeProductID,     //服务费的商品ID
 		"BuyUser", orderProductBody.BuyUser, //买家
 		"OpkBuyUser", "",
-		"BusinessUser", orderProductBody.BusinessUser, //商户
+		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户
 		"OpkBusinessUser", "",
 		"OrderTotalAmount", charge, //charge金额
 		"Attach", attach, //构造真正的订单ID，UI负责解析并合并支付
@@ -1095,12 +1095,12 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 
 	//TODO 将服务费订单ID 发给买家
 	chargeOrderProductBody := &Order.OrderProductBody{
-		OrderID:         chargeOrderID,                 //charge订单id
-		ProductID:       systemChargeProductID,         //服务费的商品ID
-		BuyUser:         orderProductBody.BuyUser,      //发起订单的用户id
-		OpkBuyUser:      "",                            //买家的协商公钥
-		BusinessUser:    orderProductBody.BusinessUser, //商户的用户id
-		OpkBusinessUser: "",                            //商户的协商公钥
+		OrderID:         chargeOrderID,                   //charge订单id
+		ProductID:       systemChargeProductID,           //服务费的商品ID
+		BuyUser:         orderProductBody.BuyUser,        //发起订单的用户id
+		OpkBuyUser:      "",                              //买家的协商公钥
+		BusinessUser:    LMCommon.ChargeBusinessUsername, //商户的用户id
+		OpkBusinessUser: "",                              //商户的协商公钥
 		// 订单的总金额, 支付的时候以这个金额计算
 		OrderTotalAmount: charge, //服务费金额
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
