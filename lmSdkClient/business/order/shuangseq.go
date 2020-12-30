@@ -6,9 +6,9 @@ import (
 
 //双色球基础数据结构
 type ShuangSeQiu struct {
-	DantuoBall []int //胆拖红球
-	RedBall    []int //红球区
-	BlueBall   []int //篮球区
+	DantuoBalls []int //胆拖红球
+	RedBalls    []int //红球区
+	BlueBalls   []int //篮球区
 }
 
 //双色球订单, 支持单式\复式\胆拖

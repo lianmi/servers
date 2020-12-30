@@ -7,11 +7,11 @@ import (
 )
 
 // 订单协议的 OrderProductBody 里 Attach的最外层结构
-//约定， type=99是会员购买 
+//约定， type=99是会员购买
 //约定， type=100是订单服务费
 type AttachBase struct {
-	Type int    `json:"type" validate:"required"` //UI与服务端约定好， 区分Body关联哪一个反JSON数据结构
-	Body string`json:"body"`                     //自定义
+	BodyType int    `json:"body_type" validate:"required"` //UI与服务端约定好， 区分Body关联哪一个反JSON数据结构
+	Body     string `json:"body"`                          //自定义
 }
 
 func (a *AttachBase) ToJson() (string, error) {

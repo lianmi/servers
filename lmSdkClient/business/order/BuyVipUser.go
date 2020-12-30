@@ -89,7 +89,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 	}
 
 	attachBase := new(models.AttachBase)
-	attachBase.Type = 99 //约定99为购买Vip会员的type
+	attachBase.BodyType = 99 //约定99为购买Vip会员的type
 	attachBase.Body, _ = vipUser.ToJson()
 
 	attach, _ = attachBase.ToJson()
@@ -191,7 +191,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 						log.Println("Protobuf Unmarshal Error", err)
 					} else {
 						array.PrintPretty(orderProductBody)
-						vu := new(VipUser)
+						vu := new(models.VipUser)
 						json.Unmarshal([]byte(orderProductBody.Attach), vu)
 						// log.Println("attach解析 payType:", vu.PayType)
 						if orderProductBody.State == 4 {

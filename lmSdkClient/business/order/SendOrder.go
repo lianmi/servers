@@ -10,10 +10,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	// "github.com/lianmi/servers/util/array"
-
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
+	"github.com/lianmi/servers/internal/pkg/models"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/lianmi/servers/util/array"
@@ -97,16 +97,16 @@ func AddOrder(orderID, productID string) error {
 
 	//单式
 	ssqOrder.Straws = append(ssqOrder.Straws, &ShuangSeQiu{
-		DantuoBall: nil,
-		RedBall:    []int{1, 2, 3, 4, 5, 6},
-		BlueBall:   []int{9},
+		DantuoBalls: nil,
+		RedBalls:    []int{1, 2, 3, 4, 5, 6},
+		BlueBalls:   []int{9},
 	})
 
 	bodyJsonData, _ := ssqOrder.ToJson()
 	attachBase := new(models.AttachBase)
-	attachBase.Type = 9 //约定9为购买双色球
+	attachBase.BodyType = 9 //约定9为购买双色球
 	attachBase.Body = bodyJsonData
-	attach, err := attachBase.ToJson()
+	attach, err = attachBase.ToJson()
 	if err != nil {
 		return errors.New("ssqOrder.ToJson error")
 	}

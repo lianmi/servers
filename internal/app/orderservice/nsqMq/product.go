@@ -1055,7 +1055,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 		orderProductBody.OrderID, //真实的商品 订单id
 	}
 	attachBase := new(models.AttachBase)
-	attachBase.Type = 100 //约定为服务费的type
+	attachBase.BodyType = 100 //约定为服务费的type
 	attachBase.Body, _ = orignOrder.ToJson()
 
 	attach, _ := attachBase.ToJson()
@@ -1108,6 +1108,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 		Attach: attach,
 		State:  Global.OrderState_OS_SendOK, //订单的状态
 	}
+	nc.logger.Debug("chargeOrderProductBody", zap.String("Attacch", attach))
 
 	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err != nil {
 		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
@@ -1872,7 +1873,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						errorMsg = fmt.Sprintf("Attach Unmarshal error")
 						goto COMPLETE
 					} else {
-						if attachBase.Type == 99 {
+						if attachBase.BodyType == 99 {
 							//从attach的Body里解析PayType
 							vipUser, err := models.VipUserFromJson([]byte(attachBase.Body))
 
