@@ -1504,7 +1504,7 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 
 		nc.logger.Info("Broadcast Msg To All Devices Succeed",
 			zap.String("Username:", toUsername),
-			zap.String("DeviceID:", curDeviceKey),
+			zap.String("DeviceID:", eDeviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 		_ = err
@@ -2813,7 +2813,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 
 		nc.logger.Info("Broadcast Msg To All Devices Succeed",
 			zap.String("Username:", toUsername),
-			zap.String("DeviceID:", curDeviceKey),
+			zap.String("DeviceID:", eDeviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	}
