@@ -396,7 +396,7 @@ func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
 			_ = err
 			return 0
 		case header := <-headers:
-			s.logger.Info(header.TxHash.Hex())
+			// s.logger.Info(header.TxHash.Hex())
 			transactionStatus := s.CheckTransactionReceipt(hashToRead)
 			if transactionStatus == 0 {
 				//FAILURE
