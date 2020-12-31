@@ -1030,7 +1030,7 @@ COMPLETE:
 /*
 生成某个订单的服务费订单ID并发送给买家
 */
-func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Order.OrderProductBody) error {
+func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderProductBody *Order.OrderProductBody) error {
 	var err error
 	var charge float64
 	var newSeq uint64
@@ -1095,42 +1095,39 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 
 	//TODO 将服务费订单ID 发给买家
 	chargeOrderProductBody := &Order.OrderProductBody{
-		OrderID:         chargeOrderID,                   //charge订单id
-		ProductID:       systemChargeProductID,           //服务费的商品ID
-		BuyUser:         orderProductBody.BuyUser,        //发起订单的用户id
-		OpkBuyUser:      "",                              //买家的协商公钥
-		BusinessUser:    LMCommon.ChargeBusinessUsername, //商户的用户id
-		OpkBusinessUser: "",                              //商户的协商公钥
-		// 订单的总金额, 支付的时候以这个金额计算
-		OrderTotalAmount: charge, //服务费金额
-		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
-		// 传输会进过sdk 处理,  这里存放的是真正的 商品id 及订单ID
-		Attach: attach,
-		State:  Global.OrderState_OS_SendOK, //订单的状态
+		OrderID:          chargeOrderID,                   //charge订单id
+		ProductID:        systemChargeProductID,           //服务费的商品ID
+		BuyUser:          orderProductBody.BuyUser,        //发起订单的用户id
+		OpkBuyUser:       "",                              //买家的协商公钥 留空
+		BusinessUser:     LMCommon.ChargeBusinessUsername, //商户的用户id, 暂定为id10
+		OpkBusinessUser:  "",                              //商户的协商公钥 留空
+		OrderTotalAmount: charge,                          //服务费金额
+		Attach:           attach,                          // json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
+		State:            Global.OrderState_OS_SendOK,     //订单的状态
 	}
 	nc.logger.Debug("chargeOrderProductBody", zap.String("Attacch", attach))
 
-	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err != nil {
+	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", LMCommon.ChargeBusinessUsername))); err != nil {
 		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 		return err
 	}
 	chargeOrderProductBodyData, _ := proto.Marshal(chargeOrderProductBody)
 
-	//新建消息
+	//新建服务费订单消息
 	chargeMsg := &models.Message{}
 
 	chargeMsg.UpdateID()
 
 	eRsp := &Msg.RecvMsgEventRsp{
-		Scene:        Msg.MessageScene_MsgScene_S2C,            //系统消息
-		Type:         Msg.MessageType_MsgType_Order,            //类型-订单消息
-		Body:         chargeOrderProductBodyData,               //订单载体 OrderProductBody
-		From:         LMCommon.ChargeBusinessUsername,          //谁发的, 暂定为 id10
-		FromDeviceId: "",                                       //哪个设备发的
-		Recv:         orderProductBody.BuyUser,                 //商户账户id, 暂定为 id3
-		ServerMsgId:  chargeMsg.GetID(),                        //服务器分配的消息ID
-		Seq:          newSeq,                                   //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-		Uuid:         fmt.Sprintf("%d", chargeMsg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+		Scene:        Msg.MessageScene_MsgScene_S2C,   //系统消息
+		Type:         Msg.MessageType_MsgType_Order,   //类型-订单消息
+		Body:         chargeOrderProductBodyData,      //订单载体
+		From:         LMCommon.ChargeBusinessUsername, //谁发的, 暂定为 id10
+		FromDeviceId: "",                              //哪个设备发的
+		Recv:         orderProductBody.BuyUser,        //商户账户id, 暂定为 id3
+		ServerMsgId:  chargeMsg.GetID(),               //服务器分配的消息ID
+		Seq:          newSeq,                          //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+		Uuid:         sdkUuid,                         //客户端分配的消息ID，SDK生成的消息id，用来标识UI层的消息
 		Time:         uint64(time.Now().UnixNano() / 1e6),
 	}
 
@@ -1142,9 +1139,9 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(isVip bool, orderProductBody *Orde
 		"OrderID", chargeOrderID,
 		"ProductID", systemChargeProductID,
 		"BuyUser", orderProductBody.BuyUser,
-		"OpkBuyUser", "",
+		"OpkBuyUser", "", //留空
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //商户收款暂定为id10
-		"OpkBusinessUser", "",
+		"OpkBusinessUser", "", //留空
 		"OrderTotalAmount", charge, //订单所需的服务费
 		"Attach", attach, //真正订单ID，UI负责解析并合并支付
 		"State", Global.OrderState_OS_SendOK, //订单的状态
@@ -1926,7 +1923,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
 
 						//根据Vip及订单内容生成服务费的支付数据, 并发送给买家
-						go nc.SendChargeOrderIDToBuyer(isVip, orderProductBody)
+						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
@@ -1947,15 +1944,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
 				eRsp := &Msg.RecvMsgEventRsp{
-					Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-					Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-					Body:         orderProductBodyData,               //订单载体 OrderProductBody
-					From:         username,                           //谁发的
-					FromDeviceId: deviceID,                           //哪个设备发的
-					Recv:         req.To,                             //商户账户id
-					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+					Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+					Body:         orderProductBodyData,          //订单载体 OrderProductBody
+					From:         username,                      //谁发的
+					FromDeviceId: deviceID,                      //哪个设备发的
+					Recv:         req.To,                        //商户账户id
+					ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+					Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+					Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
@@ -2020,7 +2017,7 @@ COMPLETE:
 			msg.FillBody(nil)
 		} else {
 			rsp = &Msg.SendMsgRsp{
-				Uuid:        req.Uuid,
+				Uuid:        req.Uuid, // SDK构造，用来识别那条消息
 				ServerMsgId: msg.GetID(),
 				Seq:         curSeq,
 				Time:        uint64(time.Now().UnixNano() / 1e6), //毫秒
@@ -2633,15 +2630,15 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			}
 
 			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,      //系统消息
-				Type:         Msg.MessageType_MsgType_Order,      //类型-订单消息
-				Body:         orderBodyData,                      //发起方的body负载
-				From:         username,                           //谁发的
-				FromDeviceId: deviceID,                           //哪个设备发的
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
+				Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+				Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+				Body:         orderBodyData,                 //发起方的body负载
+				From:         username,                      //谁发的
+				FromDeviceId: deviceID,                      //哪个设备发的
+				ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+				Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
+				Time: uint64(time.Now().UnixNano() / 1e6),
 			}
 			//向商户发送订单消息的更改
 			//TODO  当商户离线时，无法再次获取到此订单推送
