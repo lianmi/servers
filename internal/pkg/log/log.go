@@ -1,13 +1,13 @@
 package log
 
 import (
+	"fmt"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
-	"fmt"
 )
 
 // Options is log configuration struct
@@ -67,7 +67,9 @@ func New(o *Options) (*zap.Logger, error) {
 	}
 
 	core := zapcore.NewTee(cores...)
-	logger = zap.New(core)
+
+	//AddCaller 增加输出go文件及行号
+	logger = zap.New(core, zap.AddCaller())
 
 	zap.ReplaceGlobals(logger)
 

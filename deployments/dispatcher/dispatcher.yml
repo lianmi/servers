@@ -30,6 +30,7 @@ log:
   maxAge: 3
   level: "debug"
   stdout: true
+  showline: true
 consul:
   addr: consul:8500
 grpc:
