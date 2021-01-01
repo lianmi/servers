@@ -1,0 +1,12 @@
+[GIN-VUE-ADMIN]2020/12/31 - 16:35:36.894	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:83	MySQL启动异常	{"err": "Error 1049: Unknown database 'qmPlus'"}
+[GIN-VUE-ADMIN]2020/12/31 - 16:37:49.124	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:83	MySQL启动异常	{"err": "Error 1049: Unknown database 'qmPlus'"}
+[GIN-VUE-ADMIN]2020/12/31 - 16:37:51.535	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:83	MySQL启动异常	{"err": "Error 1049: Unknown database 'qmPlus'"}
+[GIN-VUE-ADMIN]2020/12/31 - 17:03:19.041	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:83	MySQL启动异常	{"err": "Error 1045: Access denied for user 'root'@'172.17.0.1' (using password: YES)"}
+[GIN-VUE-ADMIN]2020/12/31 - 17:04:57.575	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:83	MySQL启动异常	{"err": "Error 1049: Unknown database 'qmplus'"}
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.650	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:62	register table success
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.651	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:20	use middleware logger
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.651	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:23	use middleware cors
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.651	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:25	register swagger handler
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.651	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:51	router register success
+[GIN-VUE-ADMIN]2020/12/31 - 17:05:52.651	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/core/server.go:29	server run success on 	{"address": ":8888"}
+[GIN-VUE-ADMIN]2020/12/31 - 18:29:52.274	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/core/server.go:38	accept tcp [::]:8888: use of closed network connection

@@ -2,8 +2,8 @@ package nsqMq
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"

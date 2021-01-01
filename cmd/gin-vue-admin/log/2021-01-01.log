@@ -1,0 +1,8 @@
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.717	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/gorm.go:62	register table success
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.719	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:20	use middleware logger
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.720	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:23	use middleware cors
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.720	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:25	register swagger handler
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.720	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/initialize/router.go:51	router register success
+[GIN-VUE-ADMIN]2021/01/01 - 17:20:56.720	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/core/server.go:29	server run success on 	{"address": ":8888"}
+[GIN-VUE-ADMIN]2021/01/01 - 17:22:33.082	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/service/sys_system.go:45	func utils.InitCPU() Failed!	{"err": "not implemented yet"}
+[GIN-VUE-ADMIN]2021/01/01 - 17:22:33.082	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/gin-vue-admin/server/api/v1/sys_system.go:72	获取失败!	{"err": "not implemented yet"}
