@@ -953,11 +953,21 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					errorMsg = fmt.Sprintf("AddVipEndDate error")
 					goto COMPLETE
 				}
+
+				//VIP用户到期时间
 				if _, err := redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "VipEndDate", endTime); err != nil {
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("HSET VipEndDate error")
 					goto COMPLETE
 				}
+
+				// 1 - 付费用户(购买会员)
+				if _, err := redisConn.Do("HSET", fmt.Sprintf("userData:%s", username), "State", 1); err != nil {
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("HSET State error")
+					goto COMPLETE
+				}
+
 				nc.logger.Debug("购买会员，进行佣金分配")
 				if err := nc.Repository.AddCommission(orderTotalAmount, username, orderID); err != nil {
 					nc.logger.Error("AddCommission发生错误", zap.Error(err), zap.String("orderID", orderID))

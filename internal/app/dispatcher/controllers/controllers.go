@@ -59,6 +59,7 @@ func CreateInitControllersFn(
 	pc *LianmiApisController,
 ) httpImpl.InitControllers {
 	return func(r *gin.Engine) {
+		//以下路由不做鉴权 
 		r.POST("/register", pc.Register)                              //注册用户
 		r.POST("/resetpassword", pc.ResetPassword)                    //重置密码， 可以不登录， 但必须用短信校验码
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode)                 //根据手机生成短信注册码

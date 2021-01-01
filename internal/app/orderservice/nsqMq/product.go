@@ -1883,7 +1883,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							nc.logger.Debug("购买Vip",
 								zap.String("购买者", orderProductBody.BuyUser),
 								zap.String("商户 ", orderProductBody.BusinessUser),
-								zap.Int(" ayType ", vipUser.PayType),
+								zap.Int(" PayType ", vipUser.PayType),
 							)
 							//根据PayType获取到VIP价格
 							vipPrice, err := nc.service.GetVipUserPrice(vipUser.PayType)

@@ -804,9 +804,21 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 
 //购买Vip后，增加用户的到期时间
 func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) error {
-	result := s.db.Model(&models.User{}).Where(&models.User{
+	// result := s.db.Model(&models.User{}).Where(&models.User{
+	// 	Username: username,
+	// }).Update("vip_end_date", endTime)
+
+	user := new(models.User)
+
+	user.VipEndDate = endTime
+	user.State = 1 //1-Vip用户
+
+	where := models.User{
 		Username: username,
-	}).Update("vip_end_date", endTime)
+	}
+
+	// 同时更新多个字段
+	result := s.db.Model(&models.User{}).Where(&where).Select("vip_end_date", "state").Updates(user)
 
 	//updated records counts
 	s.logger.Debug("AddVipEndDate result: ",
@@ -814,10 +826,10 @@ func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) er
 		zap.Error(result.Error))
 
 	if result.Error != nil {
-		s.logger.Error("增加用户的到期时间失败", zap.Error(result.Error))
+		s.logger.Error("增加用户的到期时间及Vip状态失败", zap.Error(result.Error))
 		return result.Error
 	} else {
-		s.logger.Debug("增加用户的到期时间成功")
+		s.logger.Debug("增加用户的到期时间及Vip状态成功")
 	}
 
 	return nil
