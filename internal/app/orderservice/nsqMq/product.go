@@ -2,6 +2,7 @@ package nsqMq
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -1862,8 +1863,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				//判断商户注册账号 是不是写死的系统商户id，如果是购买Vip, 自动接单，并返回给用户，让其发起支付操作
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
+					attachBytes, err := hex.DecodeString(orderProductBody.Attach)
+					if err != nil {
+						nc.logger.Error(" hex.DecodeString 失败", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("DecodeString hex error")
+						goto COMPLETE
+					}
 
-					attachBase, err := models.AttachBaseFromJson([]byte(orderProductBody.Attach))
+					attachBase, err := models.AttachBaseFromJson(attachBytes)
 					if err != nil {
 						nc.logger.Error("从attach里解析attachBase失败", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1872,8 +1880,14 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					} else {
 						if attachBase.BodyType == 99 {
 							//从attach的Body里解析PayType
-							vipUser, err := models.VipUserFromJson([]byte(attachBase.Body))
-
+							attachBytes, err := hex.DecodeString(attachBase.Body)
+							if err != nil {
+								nc.logger.Error(" hex.DecodeString 失败", zap.Error(err))
+								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+								errorMsg = fmt.Sprintf("DecodeString hex error")
+								goto COMPLETE
+							}
+							vipUser, err := models.VipUserFromJson(attachBytes)
 							if err != nil {
 								nc.logger.Error("从attach的Body里解析PayType失败", zap.Error(err))
 								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
