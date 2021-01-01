@@ -3,6 +3,7 @@ package nsqMq
 import (
 	"context"
 	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -1879,15 +1880,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						goto COMPLETE
 					} else {
 						if attachBase.BodyType == 99 {
-							//从attach的Body里解析PayType
-							attachBytes, err := hex.DecodeString(attachBase.Body)
+							//从attach的Body里解析PayType， 需要反base 64
+							decoded, err := base64.StdEncoding.DecodeString(attachBase.Body)
 							if err != nil {
-								nc.logger.Error(" hex.DecodeString 失败", zap.Error(err))
+								nc.logger.Error("base64.StdEncoding.DecodeString失败", zap.Error(err))
 								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("DecodeString hex error")
+								errorMsg = fmt.Sprintf("Decode base64 error")
 								goto COMPLETE
 							}
-							vipUser, err := models.VipUserFromJson(attachBytes)
+							vipUser, err := models.VipUserFromJson(decoded)
 							if err != nil {
 								nc.logger.Error("从attach的Body里解析PayType失败", zap.Error(err))
 								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
