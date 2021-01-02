@@ -1058,7 +1058,8 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	}
 	attachBase := new(models.AttachBase)
 	attachBase.BodyType = 100 //约定为服务费的type
-	attachBase.Body, _ = orignOrder.ToJson()
+	temp, _ := orignOrder.ToJson()
+	attachBase.Body = base64.StdEncoding.EncodeToString([]byte(temp)) //约定，购买会员 及 服务费的attach的body部分，都是base64
 
 	attach, _ := attachBase.ToJson()
 
@@ -1880,7 +1881,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						goto COMPLETE
 					} else {
 						if attachBase.BodyType == 99 {
-							//从attach的Body里解析PayType， 需要反base 64
+							//从attach的Body里解析PayType， UI已经base64了，因此需要反base64
 							decoded, err := base64.StdEncoding.DecodeString(attachBase.Body)
 							if err != nil {
 								nc.logger.Error("base64.StdEncoding.DecodeString失败", zap.Error(err))
@@ -1909,9 +1910,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							//修改attachBase，将价格填入
-
 							vipUser.Price = vipPrice.Price
-							attachBase.Body, _ = vipUser.ToJson()
+							bodyTemp, _ := vipUser.ToJson()
+							attachBase.Body = base64.StdEncoding.EncodeToString([]byte(bodyTemp)) // base64
 							attachStr, _ := attachBase.ToJson()
 							orderProductBody.Attach = hex.EncodeToString([]byte(attachStr)) //hex
 
