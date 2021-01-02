@@ -2,7 +2,7 @@
 package model
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"gin-vue-admin/global"
 )
 
 // 如果含有time.Time 请自行import time包

@@ -7,7 +7,7 @@ http:
 grpc:
   port: 0   
 db:
-  url: lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
+  url: root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local
   debug: true    
 nsq:
   broker: 127.0.0.1:4161
@@ -21,7 +21,7 @@ mqtt:
   clientid: dispatcher-client01
   topicprefix: lianmi/cloud/device/
   responseTopic: lianmi/cloud/dispatcher
-  caPath:  /root/developments/lianmi/work/basic/mosquitto/ca
+  caPath:  /Users/mac/developments/lianmi/lm-cloud/servers/mosquitto/ca
 redis:
   addr: 127.0.0.1:6379
   password: 

@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
+	"gin-vue-admin/global"
+	"gin-vue-admin/model"
+	"gin-vue-admin/model/request"
 )
 
 //@author: [granty1](https://github.com/granty1)

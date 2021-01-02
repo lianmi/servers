@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/config"
+	"gin-vue-admin/config"
 )
 
 // 配置文件结构体

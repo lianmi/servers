@@ -3,7 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"gin-vue-admin/global"
 	"go.uber.org/zap"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"

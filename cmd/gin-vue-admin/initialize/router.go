@@ -1,10 +1,10 @@
 package initialize
 
 import (
-	_ "github.com/lianmi/servers/cmd/gin-vue-admin/docs"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/middleware"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/router"
+	_ "gin-vue-admin/docs"
+	"gin-vue-admin/global"
+	"gin-vue-admin/middleware"
+	"gin-vue-admin/router"
 	"github.com/gin-gonic/gin"
 	"github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"

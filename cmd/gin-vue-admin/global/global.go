@@ -3,7 +3,7 @@ package global
 import (
 	"go.uber.org/zap"
 
-	"github.com/lianmi/servers/cmd/gin-vue-admin/config"
+	"gin-vue-admin/config"
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"

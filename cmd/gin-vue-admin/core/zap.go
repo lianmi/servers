@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/utils"
+	"gin-vue-admin/global"
+	"gin-vue-admin/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"

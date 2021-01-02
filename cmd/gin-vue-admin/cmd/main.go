@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/lianmi/servers/cmd/gin-vue-admin/cmd/gva"
+import "gin-vue-admin/cmd/gva"
 
 func main() {
 	gva.Execute()

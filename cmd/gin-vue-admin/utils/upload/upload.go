@@ -1,7 +1,7 @@
 package upload
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"gin-vue-admin/global"
 	"mime/multipart"
 )
 

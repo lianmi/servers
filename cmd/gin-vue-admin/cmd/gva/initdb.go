@@ -16,14 +16,14 @@ limitations under the License.
 package gva
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/nmi/servers/cmd/gin-vue-admin/cmd/datas"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/nmi/servers/cmd/gin-vue-admin/core"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/nmi/servers/cmd/gin-vue-admin/initialize"
+	"gin-vue-admin/cmd/datas"
+	"gin-vue-admin/core"
+	"gin-vue-admin/initialize"
 
 	"github.com/gookit/color"
 
-	_ "github.com/lianmi/servers/cmd/gin-vue-admin/nmi/servers/cmd/gin-vue-admin/core"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/nmi/servers/cmd/gin-vue-admin/global"
+	_ "gin-vue-admin/core"
+	"gin-vue-admin/global"
 
 	"github.com/spf13/cobra"
 )

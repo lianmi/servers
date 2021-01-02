@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/config"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/utils"
+	"gin-vue-admin/config"
+	"gin-vue-admin/global"
+	"gin-vue-admin/model"
+	"gin-vue-admin/utils"
 	"go.uber.org/zap"
 )
 

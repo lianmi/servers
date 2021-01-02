@@ -1,6 +1,8 @@
 .PHONY: all build run gotool clean help
 
 BINARY="gin-vue-admin"
+BINARY_MAC="gin-vue-admin-mac"
+BINARY_LINUX="gin-vue-admin"
 GVA = "gva"
 
 all: check gva initdb run
@@ -14,13 +16,13 @@ initdb:
 	@if [ -f ${GVA} ] ; then ./gva initdb && rm ${GVA} ; fi
 
 linux-build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -o ${BINARY_LINUX}
 
 windows-build:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o ${BINARY}.exe
 
 mac-build:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY_MAC}
 
 run:
 	@go run main.go

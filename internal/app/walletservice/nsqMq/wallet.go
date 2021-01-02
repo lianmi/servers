@@ -687,7 +687,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 						nc.logger.Debug("vipPrice数据", zap.Int("PayType", vipPrice.PayType), zap.Float64("Price", float64(vipPrice.Price)))
 					}
 
-					// 核对价格
+					// 核对价格 暂时 屏蔽，有问题
 					num1 := decimal.NewFromFloat(float64(vipPrice.Price))
 					num2 := decimal.NewFromFloat(orderTotalAmount)
 					num3 := decimal.NewFromFloat(0.0)
@@ -695,12 +695,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					result := num1.Sub(num2)
 
 					//比较是否相等
-					if result.Cmp(num3) == 0 {
+					if result.Cmp(num3) != 0 {
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("核对价格: 支付金额(%f)不等于规定的Vip会员价格(%f)", orderTotalAmount, float64(vipPrice.Price))
 						nc.logger.Error(errorMsg)
 						goto COMPLETE
 					}
+
 					payType = vipPrice.PayType
 
 				}
