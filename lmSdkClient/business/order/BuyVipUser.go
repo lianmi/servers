@@ -7,6 +7,7 @@ package order
 import (
 	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -191,8 +192,9 @@ func BuyVipUser(price float64, orderID, productID string) error {
 						log.Println("Protobuf Unmarshal Error", err)
 					} else {
 						array.PrintPretty(orderProductBody)
+						attachData , _ := hex.DecodeString(orderProductBody.Attach) //反hex
 						vu := new(models.VipUser)
-						json.Unmarshal([]byte(orderProductBody.Attach), vu)
+						json.Unmarshal([]byte(attachData), vu)
 						// log.Println("attach解析 payType:", vu.PayType)
 						if orderProductBody.State == 4 {
 							//OS_Taked        = 4;     /**< 已接单*/

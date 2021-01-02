@@ -51,3 +51,10 @@
 [GIN-VUE-ADMIN]2021/01/02 - 09:50:17.379	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:25	register swagger handler
 [GIN-VUE-ADMIN]2021/01/02 - 09:50:17.379	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:51	router register success
 [GIN-VUE-ADMIN]2021/01/02 - 09:50:17.379	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/core/server.go:29	server run success on 	{"address": ":8888"}
+[GIN-VUE-ADMIN]2021/01/02 - 19:22:13.696	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/core/server.go:38	accept tcp [::]:8888: use of closed network connection
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.960	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/gorm.go:62	register table success
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.961	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:20	use middleware logger
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.961	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:23	use middleware cors
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.961	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:25	register swagger handler
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.961	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/initialize/router.go:51	router register success
+[GIN-VUE-ADMIN]2021/01/02 - 19:27:12.961	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/cmd/gin-vue-admin/core/server.go:29	server run success on 	{"address": ":8888"}

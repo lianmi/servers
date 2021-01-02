@@ -1785,7 +1785,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				zap.String("BusinessUser", orderProductBody.BusinessUser),          //商户
 				zap.String("OpkBusinessUser", orderProductBody.OpkBusinessUser),    //商户的OPK公钥
 				zap.Float64("OrderTotalAmount", orderProductBody.OrderTotalAmount), //订单金额
-				zap.String("Attach", orderProductBody.Attach),                      //加密的密文
+				zap.String("Attach", orderProductBody.Attach),                      //加密的密文, hex
 				zap.String("AttachHash", attachHash),                               //订单内容的哈希
 				zap.ByteString("Userdata", orderProductBody.Userdata),              //透传信息 , 不加密 ，直接传过去 不处理
 				zap.Int("State", int(orderProductBody.State)),                      //订单状态
@@ -1864,7 +1864,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				//判断商户注册账号 是不是写死的系统商户id，如果是购买Vip, 自动接单，并返回给用户，让其发起支付操作
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
-					attachBytes, err := hex.DecodeString(orderProductBody.Attach)
+					attachBytes, err := hex.DecodeString(orderProductBody.Attach) //反hex
 					if err != nil {
 						nc.logger.Error(" hex.DecodeString 失败", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -1913,7 +1913,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							vipUser.Price = vipPrice.Price
 							attachBase.Body, _ = vipUser.ToJson()
 							attachStr, _ := attachBase.ToJson()
-							orderProductBody.Attach = attachStr
+							orderProductBody.Attach = hex.EncodeToString([]byte(attachStr)) //hex
 
 							//接单成功，当用户收到后即可发起预支付
 							orderProductBody.State = Global.OrderState_OS_Taked
@@ -1974,7 +1974,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				//对attach进行哈希计算，以便获知订单内容是否发生改变
 				attachHash := crypt.Sha1(orderProductBody.Attach)
 
-				// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应
+				// 将订单信息OrderProductBody数据缓存在redis里的一个哈希表里, 以 ServerMsgId 对应, 在消息ack时用到
 				orderProductBodyKey := fmt.Sprintf("OrderProductBody:%s", msg.GetID())
 				_, err = redisConn.Do("HMSET",
 					orderProductBodyKey,
@@ -2009,7 +2009,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				)
 
 				//向用户或商户 toUser 发送订单消息
-				//TODO  当商户离线时， 无法再次获取到此订单推送
 				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUser)
 
 			default:
@@ -2408,7 +2407,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 					zap.String("BusinessUser", req.OrderBody.BusinessUser),
 					zap.String("OpkBusinessUser", req.OrderBody.GetOpkBusinessUser()),
 					zap.Float64("OrderTotalAmount", req.OrderBody.GetOrderTotalAmount()),
-					zap.String("Attach", req.OrderBody.GetAttach()), //加密的密文
+					zap.String("Attach", req.OrderBody.GetAttach()), //加密的密文 hex
 					zap.String("AttachHash", cur_attachHash),        //订单内容哈希
 					zap.Int("State", int(req.OrderBody.GetState())), //订单状态
 				)
