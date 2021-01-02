@@ -1062,6 +1062,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	attachBase.Body = base64.StdEncoding.EncodeToString([]byte(temp)) //约定，购买会员 及 服务费的attach的body部分，都是base64
 
 	attach, _ := attachBase.ToJson()
+	attachHex := hex.EncodeToString([]byte(attach))
 
 	// 将服务费数据保存到MySQL
 	err = nc.service.SaveChargeHistory(&models.ChargeHistory{
@@ -1086,7 +1087,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户
 		"OpkBusinessUser", "",
 		"OrderTotalAmount", charge, //charge金额
-		"Attach", attach, //构造真正的订单ID，UI负责解析并合并支付
+		"Attach", attachHex, //hex
 		"State", int(Global.OrderState_OS_Prepare), //订单状态
 		"IsPayed", LMCommon.REDISFALSE, //此charge订单支付状态， true- 支付完成，false-未支付
 		"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
@@ -1105,10 +1106,10 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		BusinessUser:     LMCommon.ChargeBusinessUsername, //商户的用户id, 暂定为id10
 		OpkBusinessUser:  "",                              //商户的协商公钥 留空
 		OrderTotalAmount: charge,                          //服务费金额
-		Attach:           attach,                          // json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
+		Attach:           attachHex,                       // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
 		State:            Global.OrderState_OS_SendOK,     //订单的状态
 	}
-	nc.logger.Debug("chargeOrderProductBody", zap.String("Attacch", attach))
+	nc.logger.Debug("chargeOrderProductBody", zap.String("Attach", attachHex))
 
 	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", LMCommon.ChargeBusinessUsername))); err != nil {
 		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
@@ -1146,7 +1147,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //商户收款暂定为id10
 		"OpkBusinessUser", "", //留空
 		"OrderTotalAmount", charge, //订单所需的服务费
-		"Attach", attach, //真正订单ID，UI负责解析并合并支付
+		"Attach", attachHex, //hex 真正订单ID，UI负责解析并合并支付
 		"State", Global.OrderState_OS_SendOK, //订单的状态
 	)
 
@@ -1867,7 +1868,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				if orderProductBody.BusinessUser == LMCommon.VipBusinessUsername {
 					attachBytes, err := hex.DecodeString(orderProductBody.Attach) //反hex
 					if err != nil {
-						nc.logger.Error(" hex.DecodeString 失败", zap.Error(err))
+						nc.logger.Error("orderProductBody.Attach hex.DecodeString 失败", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("DecodeString hex error")
 						goto COMPLETE

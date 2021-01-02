@@ -7,6 +7,7 @@ package order
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -91,9 +92,11 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 	attachBase := new(models.AttachBase)
 	attachBase.BodyType = 99 //约定99为购买Vip会员的type
-	attachBase.Body, _ = vipUser.ToJson()
+	bodyTemp, _ := vipUser.ToJson()
+	attachBase.Body = base64.StdEncoding.EncodeToString([]byte(bodyTemp)) //约定，购买会员 及 服务费的attach的body部分，都是base64
 
 	attach, _ = attachBase.ToJson()
+	attachHex := hex.EncodeToString([]byte(attach)) //hex
 
 	req := &Order.OrderProductBody{
 		OrderID:   orderID,
@@ -110,7 +113,7 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		OrderTotalAmount: price,
 		// json 格式的内容 , 由 ui 层处理 sdk 仅透传
 		// 传输会进过sdk 处理
-		Attach: attach,
+		Attach: attachHex, //hex
 		// 透传信息 , 不加密 ，直接传过去 不处理
 		Userdata: nil,
 		//订单的状态;
@@ -192,14 +195,31 @@ func BuyVipUser(price float64, orderID, productID string) error {
 						log.Println("Protobuf Unmarshal Error", err)
 					} else {
 						array.PrintPretty(orderProductBody)
-						attachData , _ := hex.DecodeString(orderProductBody.Attach) //反hex
-						vu := new(models.VipUser)
-						json.Unmarshal([]byte(attachData), vu)
-						// log.Println("attach解析 payType:", vu.PayType)
-						if orderProductBody.State == 4 {
-							//OS_Taked        = 4;     /**< 已接单*/
-							log.Printf("已接单, Vip会员类型: %d,  价格是: %f, 下一步请发起支付", vu.PayType, vu.Price)
+						attachData, _ := hex.DecodeString(orderProductBody.Attach) //反hex
+						attachBase := new(models.AttachBase)
+						if err := json.Unmarshal([]byte(attachData), attachBase); err != nil {
+							log.Println("解包attachData failed, error: ", err)
+							return
 						}
+						if attachBase.BodyType == 99 {
+							// log.Println("attach解析 payType:", vu.PayType)
+							// if orderProductBody.State == 4 {
+							//OS_Taked        = 4;     /**< 已接单*/
+							vu := new(models.VipUser)
+							bodyData, err := base64.StdEncoding.DecodeString(attachBase.Body)
+							if err != nil {
+								log.Println("base64.StdEncoding.DecodeString failed, error: ", err)
+								return
+							}
+							vu, err = models.VipUserFromJson(bodyData)
+							if err != nil {
+								log.Println("VipUserFromJson failed, error: ", err)
+								return
+							}
+							log.Printf("已接单, Vip会员类型: %d,  价格是: %f, 下一步请发起支付", vu.PayType, vu.Price)
+							// }
+						}
+
 					}
 
 				}
