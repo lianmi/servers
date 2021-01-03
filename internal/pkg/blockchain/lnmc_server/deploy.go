@@ -1582,14 +1582,14 @@ func main() {
 
 	//从第1号叶子转账 500000000 代币给id4
 	amout := int64(5000000)
-	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", amout)
+	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x9858effd232b4033e47d90003d41ec34ecaeda94", amout)
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
-	//查询id1代币余额
-	queryLNMCBalance("0x32f9c58c2111c8d50f9aaf2cba6db163092e34ee")
 	//查询id4代币余额
-	// queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
+	// queryLNMCBalance("0x50770b64db3c2455dd1477454259ac0b1ff6ee79")
+	//查询id4代币余额
+	queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
 	//查询用户A的余额
 	// queryLNMCBalance(AddressAHEX)
 	//查询用户B的余额
