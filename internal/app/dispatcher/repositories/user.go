@@ -433,9 +433,9 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 						s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
 						//TODO 此语句导致堵塞，原因未明，向当前主设备及从设备发出踢下线
-						if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
-							s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
-						}
+						// if err := s.SendKickedMsgToDevice(jwtToken, username, eDeviceID); err != nil {
+						// 	s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+						// }
 					}
 
 					_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
