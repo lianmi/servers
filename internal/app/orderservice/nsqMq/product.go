@@ -1935,7 +1935,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				} else { //普通下单，包括彩票
 
-					orderProductBody.State = Global.OrderState_OS_SendOK
+					orderProductBody.State = Global.OrderState_OS_RecvOK
 					//彩票类型的订单， 但没付款的时候，不需要向商户转发
 					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
 
