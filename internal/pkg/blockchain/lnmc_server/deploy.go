@@ -1581,7 +1581,7 @@ func main() {
 	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
 
 	//从第1号叶子转账 500000000 代币给id4
-	amout := int64(500000000)
+	amout := int64(5000000)
 	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", amout)
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
