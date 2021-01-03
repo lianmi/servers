@@ -1939,8 +1939,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					//彩票类型的订单， 但没付款的时候，不需要向商户转发
 					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
 
-						//根据Vip及订单内容生成服务费的支付数据, 并发送给买家
-						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
+						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
+						// go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
