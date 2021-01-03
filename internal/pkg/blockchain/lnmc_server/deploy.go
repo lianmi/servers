@@ -1564,10 +1564,10 @@ func mulsigDeployMain() {
 }
 
 func main() {
-	//部署合约于第1号叶子 ,  获取发币合约地址
-	if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
-		log.Println(err.Error())
-	}
+	//部署合约于第1号叶子 ,  获取发币合约地址 用在首次
+	// if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
+	// 	log.Println(err.Error())
+	// }
 	//输出: Contract pending deploy:0x1d2bdda8954b401feb52008c63878e698b6b8444
 
 	//查询第1号叶子的LNMC余额
