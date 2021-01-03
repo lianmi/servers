@@ -506,40 +506,49 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", oldDeviceID)
 			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
 			s.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+			/*
+				TODO  暂时取消
+						//取出当前旧的设备的os， clientType， logonAt
+						curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
+						curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+						curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+						curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-			//取出当前旧的设备的os， clientType， logonAt
-			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
-			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
-			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+						//当前从设备踢下线
 
-			//当前从设备踢下线
-
-			if err := s.SendKickedMsgToDevice(jwtToken, username, oldDeviceID); err != nil {
-				s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
-			}
+						if err := s.SendKickedMsgToDevice(jwtToken, username, oldDeviceID); err != nil {
+							s.logger.Error("Failed to Send Kicked Msg To Device to ProduceChannel", zap.Error(err))
+						}
+			*/
 
 			//移除单个元素 ZREM deviceListKey {设备id}
 			_, err = redisConn.Do("ZREM", deviceListKey, oldDeviceID)
 
 			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
 
-			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
-			_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+			/*
+				TODO  暂时取消
+							deviceHashKey := fmt.Sprintf("devices:%s:%s", username, oldDeviceID)
+									_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
 
-			//向其它端发送此从设备离线的事件
-			if err := s.SendMultiLoginEventToOtherDevices(false, username, oldDeviceID, curOs, curClientType, curLogonAt); err != nil {
-				s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
-			}
+											//向其它端发送此从设备离线的事件
+											if err := s.SendMultiLoginEventToOtherDevices(false, username, oldDeviceID, curOs, curClientType, curLogonAt); err != nil {
+												s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
+											}
+
+			*/
 
 		}
+		/*
 
-		//向其它端发送此从设备上线的事件
-		logonAt := uint64(time.Now().UnixNano() / 1e6)
-		if err := s.SendMultiLoginEventToOtherDevices(true, username, deviceID, os, clientType, logonAt); err != nil {
-			s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
-		}
 
+			TODO  暂时取消
+				//向其它端发送此从设备上线的事件
+				logonAt := uint64(time.Now().UnixNano() / 1e6)
+				if err := s.SendMultiLoginEventToOtherDevices(true, username, deviceID, os, clientType, logonAt); err != nil {
+					s.logger.Error("Failed to Send MultiLoginEvent to Other Devices to ProduceChannel", zap.Error(err))
+				}
+		*/
 		//增加新的从设备
 		//ZADD devices:lsj001 4 "11111111-2222-3333-3333-44444444444"
 		_, err = redisConn.Do("ZADD", deviceListKey, clientType, deviceID) //有序集合
