@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/core"
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/initialize"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/core"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/initialize"
 )
 
 // @title Swagger Example API
