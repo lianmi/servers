@@ -1587,7 +1587,7 @@ func main() {
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//查询id81代币余额
-	queryLNMCBalance("0x415b67aa834cdac3b32ec3ff38203461041b6d69")
+	queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
 	//查询id4代币余额
 	// queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
 	//查询用户A的余额
