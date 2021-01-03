@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.1.1
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/bingjian-zhu/gin-vue-admin v0.0.0-20200506131022-dcbf95f91663
@@ -11,6 +12,9 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
+	github.com/casbin/casbin v1.7.0
+	github.com/casbin/casbin/v2 v2.19.8
+	github.com/casbin/gorm-adapter/v3 v3.0.4
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/confluentinc/confluent-kafka-go v1.4.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -18,10 +22,14 @@ require (
 	github.com/eclipse/paho.golang v0.9.0
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/ethereum/go-ethereum v1.9.21
+	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-contrib/zap v0.0.0-20190528085758-3cc18cd8fce3
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-playground/validator/v10 v10.3.0
+	github.com/go-redis/redis v6.14.2+incompatible
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/wire v0.3.0
@@ -32,23 +40,31 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/memberlist v0.1.4 // indirect
 	github.com/ipfs/go-ipfs-api v0.1.0
+	github.com/jordan-wright/email v4.0.1-0.20201230161404-3656afaabac4+incompatible
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/lestrrat-go/strftime v1.0.3 // indirect
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mojocn/base64Captcha v1.3.1
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing-contrib/go-gin v0.0.0-20190301172248-2e18f8b9c7d4
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.0
+	github.com/qiniu/api.v7/v7 v7.8.0
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.0
+	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/shopspring/decimal v1.2.0
 	github.com/smartwalle/alipay/v3 v3.1.5
 	github.com/smartwalle/xid v1.0.6
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
+	github.com/swaggo/gin-swagger v1.3.0
+	github.com/swaggo/swag v1.5.1
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible

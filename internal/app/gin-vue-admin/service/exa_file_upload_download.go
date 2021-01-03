@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/utils/upload"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/utils/upload"
 	"mime/multipart"
 	"strings"
 )

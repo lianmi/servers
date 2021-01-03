@@ -1,6 +1,6 @@
 package response
 
-import "github.com/lianmi/servers/cmd/gin-vue-admin/model"
+import "github.com/lianmi/servers/internal/app/gin-vue-admin/model"
 
 type SysMenusResponse struct {
 	Menus []model.SysMenu `json:"menus"`

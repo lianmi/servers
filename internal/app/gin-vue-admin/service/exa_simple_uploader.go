@@ -3,8 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"os"

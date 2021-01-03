@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
 	"go.uber.org/zap"

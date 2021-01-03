@@ -1,8 +1,8 @@
 package upload
 import (
 	"errors"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/utils"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/utils"
 	"go.uber.org/zap"
 	"io"
 	"mime/multipart"

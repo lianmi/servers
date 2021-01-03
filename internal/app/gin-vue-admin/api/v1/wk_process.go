@@ -2,11 +2,11 @@ package v1
 
 import (
 	"fmt"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
-	"github.com/lianmi/servers/cmd/gin-vue-admin/service"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model/response"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/service"
 	"github.com/gin-gonic/gin"
 )
 

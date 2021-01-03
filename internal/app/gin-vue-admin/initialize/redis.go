@@ -1,7 +1,7 @@
 package initialize
 
 import (
-	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/go-redis/redis"
 	"go.uber.org/zap"
 )
