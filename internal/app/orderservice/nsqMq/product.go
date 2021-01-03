@@ -1107,7 +1107,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		OpkBusinessUser:  "",                              //商户的协商公钥 留空
 		OrderTotalAmount: charge,                          //服务费金额
 		Attach:           attachHex,                       // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
-		State:            Global.OrderState_OS_SendOK,     //订单的状态
+		State:            Global.OrderState_OS_RecvOK,     //订单的状态
 	}
 	nc.logger.Debug("chargeOrderProductBody", zap.String("Attach", attachHex))
 
@@ -1148,7 +1148,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"OpkBusinessUser", "", //留空
 		"OrderTotalAmount", charge, //订单所需的服务费
 		"Attach", attachHex, //hex 真正订单ID，UI负责解析并合并支付
-		"State", Global.OrderState_OS_SendOK, //订单的状态
+		"State", Global.OrderState_OS_RecvOK, //订单的状态
 	)
 
 	//向买家发送服务费订单ID消息
