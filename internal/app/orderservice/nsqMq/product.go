@@ -1941,6 +1941,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						// go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
+						_ = isVip
 
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
