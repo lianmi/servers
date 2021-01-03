@@ -1580,7 +1580,7 @@ func main() {
 	//从第1号叶子转账500代币给A
 	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
 
-	//从第1号叶子转账100000代币给id1
+	//从第1号叶子转账 100000  代币给id1
 	amout := int64(100000)
 	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x32f9c58c2111c8d50f9aaf2cba6db163092e34ee", amout)
 
