@@ -1,6 +1,6 @@
 package request
 
-import "gin-vue-admin/model"
+import "github.com/lianmi/servers/cmd/gin-vue-admin/model"
 
 type WorkflowProcessSearch struct {
 	model.WorkflowProcess

@@ -1,16 +1,16 @@
 package v1
 
 import (
-	"gin-vue-admin/global"
-	"gin-vue-admin/middleware"
-	"gin-vue-admin/model"
-	"gin-vue-admin/model/request"
-	"gin-vue-admin/model/response"
-	"gin-vue-admin/service"
-	"gin-vue-admin/utils"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/middleware"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/service"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/utils"
 	"go.uber.org/zap"
 	"time"
 )

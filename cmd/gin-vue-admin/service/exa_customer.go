@@ -1,9 +1,9 @@
 package service
 
 import (
-	"gin-vue-admin/global"
-	"gin-vue-admin/model"
-	"gin-vue-admin/model/request"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
 )
 
 //@author: [piexlmax](https://github.com/piexlmax)

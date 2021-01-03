@@ -2,7 +2,7 @@
 package model
 
 import (
-	"gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
 	"time"
 )
 

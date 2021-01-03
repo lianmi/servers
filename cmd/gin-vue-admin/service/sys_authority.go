@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
-	"gin-vue-admin/global"
-	"gin-vue-admin/model"
-	"gin-vue-admin/model/request"
-	"gin-vue-admin/model/response"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
 	"gorm.io/gorm"
 	"strconv"
 )

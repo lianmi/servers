@@ -1,7 +1,7 @@
 package response
 
 import (
-	"gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
 )
 
 type SysUserResponse struct {

@@ -2,8 +2,8 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"gin-vue-admin/global"
-	"gin-vue-admin/model/response"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
 	"github.com/mojocn/base64Captcha"
 	"go.uber.org/zap"
 )

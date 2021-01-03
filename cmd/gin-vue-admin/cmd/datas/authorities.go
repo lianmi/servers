@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
 	"gorm.io/gorm"
 )
 

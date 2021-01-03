@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"gin-vue-admin/global"
-	"gin-vue-admin/model/request"
-	"gin-vue-admin/model/response"
-	"gin-vue-admin/service"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/service"
 	"github.com/gin-gonic/gin"
 )
 

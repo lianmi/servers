@@ -3,12 +3,12 @@ package v1
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gin-vue-admin/global"
-	"gin-vue-admin/model"
-	"gin-vue-admin/model/request"
-	"gin-vue-admin/model/response"
-	"gin-vue-admin/service"
-	"gin-vue-admin/utils"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/global"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/request"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/model/response"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/service"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/utils"
 	"go.uber.org/zap"
 )
 

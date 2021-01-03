@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"gin-vue-admin/api/v1"
-	"gin-vue-admin/middleware"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/api/v1"
+	"github.com/lianmi/servers/cmd/gin-vue-admin/middleware"
 )
 
 func InitAuthorityRouter(Router *gin.RouterGroup) {
