@@ -207,17 +207,28 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
+		nc.logger.Debug("Print req.Fields start ...")
+		for key, value := range req.Fields {
+			nc.logger.Debug("range req.Fields", zap.Int32("key", key), zap.String("value", value))
+		}
+		nc.logger.Debug("Print req.Fields end ...")
+
 		//查询出需要修改的用户
 		pUser := new(models.User)
 
 		if nick, ok := req.Fields[1]; ok {
 			//修改呢称
 			pUser.Nick = nick
+			nc.logger.Debug("req.Fields[1]", zap.String("Nick", nick))
+		} else {
+			nc.logger.Warn("req.Fields[1] not value")
 		}
 
 		if gender, ok := req.Fields[2]; ok {
 			//修改 性别
 			pUser.Gender, _ = strconv.Atoi(gender)
+		} else {
+			nc.logger.Warn("req.Fields[2] not value")
 		}
 
 		if avatar, ok := req.Fields[3]; ok {
@@ -227,26 +238,37 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 				//修改 头像
 				pUser.Avatar = avatar
 			}
+		} else {
+			nc.logger.Warn("req.Fields[3] not value")
 		}
 
 		if label, ok := req.Fields[4]; ok {
 			//修改 签名
 			pUser.Label = label
+			nc.logger.Debug("req.Fields[4]", zap.String("Label", label))
+		} else {
+			nc.logger.Warn("req.Fields[4] not value")
 		}
 
 		if email, ok := req.Fields[5]; ok {
 			//修改 Email
 			pUser.Email = email
+		} else {
+			nc.logger.Warn("req.Fields[5] not value")
 		}
 
 		if extend, ok := req.Fields[6]; ok {
 			//修改 Extend
 			pUser.Extend = extend
+		} else {
+			nc.logger.Warn("req.Fields[6] not value")
 		}
 
 		if allowType, ok := req.Fields[7]; ok {
 			//修改 AllowType
 			pUser.AllowType, _ = strconv.Atoi(allowType)
+		} else {
+			nc.logger.Warn("req.Fields7 not value")
 		}
 
 		if province, ok := req.Fields[8]; ok {
@@ -259,24 +281,32 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			//修改 city
 			pUser.City = city
 			nc.logger.Debug("req.Fields[9]", zap.String("City", city))
+		} else {
+			nc.logger.Warn("req.Fields[9] not value")
 		}
 
 		if county, ok := req.Fields[10]; ok {
 			//修改 county
 			pUser.County = county
 			nc.logger.Debug("req.Fields[10]", zap.String("County", county))
+		} else {
+			nc.logger.Warn("req.Fields[10] not value")
 		}
 
 		if street, ok := req.Fields[11]; ok {
 			//修改 street
 			pUser.Street = street
 			nc.logger.Debug("req.Fields[11]", zap.String("Street", street))
+		} else {
+			nc.logger.Warn("req.Fields[11] not value")
 		}
 
 		if address, ok := req.Fields[12]; ok {
 			//修改 address
 			pUser.Address = address
 			nc.logger.Debug("req.Fields[12]", zap.String("Address", address))
+		} else {
+			nc.logger.Warn("req.Fields[12] not value")
 		}
 
 		if err := nc.service.UpdateUser(username, pUser); err != nil {
