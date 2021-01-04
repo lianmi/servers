@@ -90,6 +90,11 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 						UserType:      User.UserType(userData.UserType),
 						Extend:        userData.Extend,
 						ContactPerson: userData.ContactPerson,
+						Province:      userData.Province,
+						City:          userData.City,
+						County:        userData.County,
+						Street:        userData.Street,
+						Address:       userData.Address,
 					},
 				}
 				data, _ := proto.Marshal(rsp)

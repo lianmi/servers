@@ -121,6 +121,11 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				UserType:      User.UserType(userData.UserType),
 				State:         User.UserState(userData.State),
 				ContactPerson: userData.ContactPerson,
+				Province:      userData.Province,
+				City:          userData.City,
+				County:        userData.County,
+				Street:        userData.Street,
+				Address:       userData.Address,
 			}
 
 			rsp.Users = append(rsp.Users, user)

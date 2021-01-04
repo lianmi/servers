@@ -220,6 +220,11 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			State:            User.UserState(fUserData.State),
 			Extend:           fUserData.Extend,
 			ContactPerson:    fUserData.ContactPerson,
+			Province:         fUserData.Province,
+			City:             fUserData.City,
+			County:           fUserData.County,
+			Street:           fUserData.Street,
+			Address:          fUserData.Address,
 			ReferrerUsername: fUserData.ReferrerUsername,
 			VipEndDate:       uint64(fUserData.VipEndDate),
 		},
@@ -247,6 +252,11 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 				UserType:      User.UserType(userData.UserType),
 				Extend:        userData.Extend,
 				ContactPerson: userData.ContactPerson,
+				Province:      userData.Province,
+				City:          userData.City,
+				County:        userData.County,
+				Street:        userData.Street,
+				Address:       userData.Address,
 			})
 
 		}
