@@ -1,8 +1,8 @@
 package datas
 
 import (
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/gookit/color"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"os"
 	"time"
 

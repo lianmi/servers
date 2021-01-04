@@ -1,9 +1,10 @@
 package datas
 
 import (
+	"github.com/gookit/color"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
-	"github.com/gookit/color"
+
 	"os"
 	"time"
 

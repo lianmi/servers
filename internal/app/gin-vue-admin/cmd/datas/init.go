@@ -1,9 +1,9 @@
 package datas
 
 import (
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gookit/color"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
 	"gorm.io/gorm"
 	"os"
 )
@@ -28,6 +28,9 @@ func InitMysqlTables(db *gorm.DB) {
 	var err error
 	if !db.Migrator().HasTable("casbin_rule") {
 		err = db.Migrator().CreateTable(&gormadapter.CasbinRule{})
+		color.Info.Println("[Mysql]-->表casbin_rule创建成功")
+	} else {
+		color.Info.Println("[Mysql]-->表casbin_rule 已存在，不需要创建 ")
 	}
 	err = db.AutoMigrate(
 		model.SysApi{},

@@ -1,0 +1,7 @@
+[GIN-VUE-ADMIN]2021/01/04 - 14:55:42.395	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/gorm.go:86	MySQL启动异常	{"err": "Error 1049: Unknown database 'lianmicloud'"}
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.515	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/gorm.go:65	register table success
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:20	use middleware logger
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:23	use middleware cors
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:25	register swagger handler
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:52	router register success
+[GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/core/server.go:29	server run success on 	{"address": ":8888"}

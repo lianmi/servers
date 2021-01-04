@@ -33,6 +33,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/wire v0.3.0
+	github.com/gookit/color v1.3.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
@@ -91,3 +92,5 @@ replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go v0.0.0-2019020420134
 replace github.com/lianmi/servers => /Users/mac/developments/goprojects/src/lianmi/servers
 
 replace github.com/eclipse/paho.golang v0.9.0 => github.com/eclipse/paho.golang v0.9.1-0.20200717101128-7369e711591a
+
+replace github.com/casbin/gorm-adapter/v3 => github.com/casbin/gorm-adapter/v3 v3.0.2
