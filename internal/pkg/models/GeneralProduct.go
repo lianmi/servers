@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/lianmi/servers/internal/pkg/models/global"
+	///Users/mac/developments/lianmi/lm-cloud/servers/internal/pkg/models/global/LMC_Model.go
 	"gorm.io/gorm"
 )
 
@@ -10,6 +12,8 @@ import (
 服务端的通用商品表
 */
 type GeneralProduct struct {
+	global.LMC_Model
+
 	ProductID        string `gorm:"primarykey" form:"product_id" json:"product_id,omitempty"` //商品ID
 	ProductName      string `form:"product_name" json:"product_name,omitempty"`               //商品名称
 	ProductType      int    `form:"product_type" json:"product_type,omitempty"`               //商品种类枚举
