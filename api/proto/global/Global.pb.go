@@ -803,7 +803,7 @@ const (
 	OrderState_OS_RecvOK       OrderState = 3  //*< 订单送达成功
 	OrderState_OS_Taked        OrderState = 4  //*< 已接单
 	OrderState_OS_Done         OrderState = 5  //*< 完成订单
-	OrderState_OS_Cancel       OrderState = 6  //*< 取消订单 撤单
+	OrderState_OS_Cancel       OrderState = 6  //*< 取消订单 商户同意撤单
 	OrderState_OS_Processing   OrderState = 7  //*< 订单处理中，一般用于商户，安抚下单的
 	OrderState_OS_Confirm      OrderState = 8  //*< 确认收货
 	OrderState_OS_ApplyCancel  OrderState = 9  //*< 申请撤单

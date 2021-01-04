@@ -55,14 +55,19 @@ message User {
     string label     = 8;
     string mobile    = 9;
     string email     = 10;
-    UserType user_type    = 11;
-    UserState state      = 12;
-    string extend        = 13;
-    string contact_person = 14;
-    string referrer_username = 15; //推荐人
-    fixed64 vipEndDate = 16;  //VIP用户到期时间
-    fixed64 createdAt = 18;     //用户注册时间,Unix时间戳
-    fixed64 updatedaAt = 19;     //用户资料最后更新时间,Unix时间戳
+    UserType user_type         = 11;
+    UserState state            = 12;
+    string extend              = 13;
+    string contact_person      = 14;
+    string province            = 15;  //省份, 如广东省
+    string city                = 16;  //城市，如广州市
+    string county              = 17;  //区，如天河区
+    string street              = 18;  //街道
+    string address             = 19; //地址
+    string referrer_username   = 20; //推荐人
+    fixed64 vipEndDate         = 21;  //VIP用户到期时间
+    fixed64 createdAt          = 22;     //用户注册时间,Unix时间戳
+    fixed64 updatedaAt         = 23;     //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表

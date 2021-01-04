@@ -336,7 +336,7 @@ type OrderProductBody struct {
 	BusinessUser string `protobuf:"bytes,5,opt,name=businessUser,proto3" json:"businessUser,omitempty"`
 	//商户的协商公钥
 	OpkBusinessUser string `protobuf:"bytes,6,opt,name=opkBusinessUser,proto3" json:"opkBusinessUser,omitempty"`
-	// 订单的总金额, 支付的时候以这个金额计算
+	// 订单的总金额, 支付的时候以这个金额 计算服务手续费
 	OrderTotalAmount float64 `protobuf:"fixed64,7,opt,name=OrderTotalAmount,proto3" json:"OrderTotalAmount,omitempty"`
 	// json 格式的内容 , 由 ui 层处理 sdk 仅透传
 	// 传输会进过sdk 处理

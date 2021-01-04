@@ -244,6 +244,36 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			pUser.AllowType, _ = strconv.Atoi(allowType)
 		}
 
+		if province, ok := req.Fields[8]; ok {
+			//修改 Province
+			pUser.Province = province
+			nc.logger.Debug("req.Fields[8]", zap.String("Province", province))
+		}
+
+		if city, ok := req.Fields[9]; ok {
+			//修改 city
+			pUser.City = city
+			nc.logger.Debug("req.Fields[9]", zap.String("City", city))
+		}
+
+		if county, ok := req.Fields[10]; ok {
+			//修改 county
+			pUser.County = county
+			nc.logger.Debug("req.Fields[10]", zap.String("County", county))
+		}
+
+		if street, ok := req.Fields[11]; ok {
+			//修改 street
+			pUser.Street = street
+			nc.logger.Debug("req.Fields[11]", zap.String("Street", street))
+		}
+
+		if address, ok := req.Fields[12]; ok {
+			//修改 address
+			pUser.Address = address
+			nc.logger.Debug("req.Fields[12]", zap.String("Address", address))
+		}
+
 		if err := nc.service.UpdateUser(username, pUser); err != nil {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误

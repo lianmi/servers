@@ -952,8 +952,10 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 		zap.Error(result.Error))
 
 	if result.Error != nil {
-		s.logger.Error("修改用户资料数据失败", zap.Error(result.Error))
+		s.logger.Error("UpdateUser, 修改用户资料数据失败", zap.Error(result.Error))
 		return result.Error
+	} else {
+		s.logger.Error("UpdateUser, 修改用户资料数据成功")
 	}
 	return nil
 }

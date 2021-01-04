@@ -4,6 +4,7 @@ import (
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/initialize/internal"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/model"
+	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -55,8 +56,8 @@ func MysqlTables(db *gorm.DB) {
 		model.WorkflowMove{},
 		model.ExaWfLeave{},
 
-		//TODO 通用商品 
-		// models.GeneralProduct{},
+		//TODO 通用商品
+		models.GeneralProduct{},
 	)
 	if err != nil {
 		global.GVA_LOG.Error("register table failed", zap.Any("err", err))

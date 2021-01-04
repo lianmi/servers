@@ -5,3 +5,13 @@
 [GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:25	register swagger handler
 [GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:52	router register success
 [GIN-VUE-ADMIN]2021/01/04 - 14:56:27.516	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/core/server.go:29	server run success on 	{"address": ":8888"}
+[GIN-VUE-ADMIN]2021/01/04 - 15:56:59.582	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/api/v1/sys_user.go:34	登陆失败! 用户名不存在或者密码错误	{"err": "record not found"}
+[GIN-VUE-ADMIN]2021/01/04 - 15:57:08.455	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/api/v1/sys_user.go:34	登陆失败! 用户名不存在或者密码错误	{"err": "record not found"}
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:22.019	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/core/server.go:38	accept tcp [::]:8888: use of closed network connection
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.541	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/gorm.go:66	register table success
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.542	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:20	use middleware logger
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.542	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:23	use middleware cors
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.542	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:25	register swagger handler
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.543	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/initialize/router.go:52	router register success
+[GIN-VUE-ADMIN]2021/01/04 - 17:17:26.543	[34minfo[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/core/server.go:29	server run success on 	{"address": ":8888"}
+[GIN-VUE-ADMIN]2021/01/04 - 21:45:40.078	[31merror[0m	/Users/mac/developments/lianmi/lm-cloud/servers/internal/app/gin-vue-admin/core/server.go:38	accept tcp [::]:8888: use of closed network connection

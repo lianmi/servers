@@ -39,6 +39,11 @@ type User struct {
 	BankCard           string `form:"bank_card" json:"bank_card,omitempty" `                       //银行卡账号
 	Bank               string `form:"bank" json:"bank,omitempty" `                                 //开户银行
 	TrueName           string `form:"true_name" json:"true_name,omitempty" `                       //用户实名
+	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
+	City               string `form:"city" json:"city,omitempty" `                                 //城市，如广州市
+	County             string `form:"county" json:"county,omitempty" `                             //区，如天河区
+	Street             string `form:"street" json:"street,omitempty" `                             //街道
+	Address            string `form:"address" json:"address,omitempty" `                           //地址
 	Deleted            int    `form:"deleted" json:"deleted"`                                      //软删除开关
 	State              int    `form:"state" json:"state"`                                          //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 	Extend             string `form:"extend" json:"extend,omitempty" `                             //扩展字段
