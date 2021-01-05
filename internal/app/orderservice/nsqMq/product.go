@@ -1074,7 +1074,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		OrderTotalAmount: orderProductBody.OrderTotalAmount, //人民币格式的订单总金额
 		IsVip:            isVip,                             //是否是Vip用户
 		Rate:             LMCommon.Rate,                     //费率
-		ChargeAmount:     charge,                            //服务费
+		ChargeAmount:     mathtool.FloatRound(charge, 2),    //服务费, 取小数点后两位的精度
 		IsPayed:          false,
 	})
 
@@ -1086,7 +1086,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"OpkBuyUser", "",
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户
 		"OpkBusinessUser", "",
-		"OrderTotalAmount", charge, //charge金额
+		"OrderTotalAmount", mathtool.FloatRound(charge, 2), //服务费, 取小数点后两位的精度
 		"Attach", attachHex, //hex
 		"State", int(Global.OrderState_OS_Prepare), //订单状态
 		"IsPayed", LMCommon.REDISFALSE, //此charge订单支付状态， true- 支付完成，false-未支付
@@ -1105,7 +1105,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		OpkBuyUser:       "",                              //买家的协商公钥 留空
 		BusinessUser:     LMCommon.ChargeBusinessUsername, //商户的用户id, 暂定为id10
 		OpkBusinessUser:  "",                              //商户的协商公钥 留空
-		OrderTotalAmount: charge,                          //服务费金额
+		OrderTotalAmount: mathtool.FloatRound(charge, 2),  //服务费, 取小数点后两位的精度
 		Attach:           attachHex,                       // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
 		State:            Global.OrderState_OS_RecvOK,     //订单的状态
 	}
@@ -1146,7 +1146,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"OpkBuyUser", "", //留空
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //商户收款暂定为id10
 		"OpkBusinessUser", "", //留空
-		"OrderTotalAmount", charge, //订单所需的服务费
+		"OrderTotalAmount", mathtool.FloatRound(charge, 2), //服务费, 取小数点后两位的精度
 		"Attach", attachHex, //hex 真正订单ID，UI负责解析并合并支付
 		"State", Global.OrderState_OS_RecvOK, //订单的状态
 	)
