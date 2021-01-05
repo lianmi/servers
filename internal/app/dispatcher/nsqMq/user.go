@@ -260,9 +260,10 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[4] not value")
 		}
 
-		if mobile, ok := req.Fields[5]; ok {
-			//手机不允许修改
-			nc.logger.Debug("req.Fields[5]", zap.String("mobile", mobile))
+		if trueName, ok := req.Fields[5]; ok {
+			//用户实名
+			pUser.TrueName = trueName
+			nc.logger.Debug("req.Fields[5]", zap.String("TrueName", trueName))
 		} else {
 			nc.logger.Warn("req.Fields[5] not value")
 		}
