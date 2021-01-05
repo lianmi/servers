@@ -1109,7 +1109,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		Attach:           attachHex,                       // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
 		State:            Global.OrderState_OS_RecvOK,     //订单的状态
 	}
-	nc.logger.Debug("chargeOrderProductBody", zap.String("Attach", attachHex))
+	nc.logger.Debug("chargeOrderProductBody", zap.String("chargeOrderID", chargeOrderID), zap.Float64("OrderTotalAmount", mathtool.FloatRound(charge, 2)))
 
 	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", LMCommon.ChargeBusinessUsername))); err != nil {
 		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
@@ -1942,7 +1942,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
-						// _ = isVip
 
 						//将接单状态转发到用户
 						toUser = orderProductBody.BuyUser
