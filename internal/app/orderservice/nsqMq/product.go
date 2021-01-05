@@ -16,9 +16,9 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
-
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/crypt"
+	"github.com/lianmi/servers/util/mathtool"
 
 	"google.golang.org/protobuf/proto"
 
@@ -1626,17 +1626,18 @@ func (nc *NsqClient) CalculateCharge(isVip bool, orderTotalAmout float64) (float
 			//免手续
 			return 0, nil
 		} else {
-			//手续减半
-			charge := orderTotalAmout * LMCommon.Rate / 2
+			//手续减半 取小数点后两位精度
+			charge := mathtool.FloatRound(orderTotalAmout*LMCommon.Rate/2, 2)
 			if charge < 1 {
 				charge = 1
 			}
 			return charge, nil
 		}
 	} else {
-		charge := orderTotalAmout * LMCommon.Rate
+		//取小数点后两位精度
+		charge := mathtool.FloatRound(orderTotalAmout*LMCommon.Rate, 2)
 		if charge < 1 {
-			charge = 1
+			charge = 1.0
 		}
 		return charge, nil
 	}
