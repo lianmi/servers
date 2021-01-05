@@ -207,6 +207,16 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
+		userKey := fmt.Sprintf("userData:%s", username)
+		userType, err := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
+
+		if err != nil {
+			nc.logger.Error("HGET Error", zap.Error(err))
+			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorMsg = fmt.Sprintf("HGET Error: %s", err.Error())
+			goto COMPLETE
+		}
+
 		nc.logger.Debug("Print req.Fields start ...")
 		for key, value := range req.Fields {
 			nc.logger.Debug("range req.Fields", zap.Int32("key", key), zap.String("value", value))
@@ -250,74 +260,116 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[4] not value")
 		}
 
-		if email, ok := req.Fields[5]; ok {
-			//修改 Email
-			pUser.Email = email
+		if mobile, ok := req.Fields[5]; ok {
+			//手机不允许修改
+			nc.logger.Debug("req.Fields[5]", zap.String("mobile", mobile))
 		} else {
 			nc.logger.Warn("req.Fields[5] not value")
 		}
 
-		if extend, ok := req.Fields[6]; ok {
+		if email, ok := req.Fields[6]; ok {
+			//修改 Email
+			pUser.Email = email
+		} else {
+			nc.logger.Warn("req.Fields[6] not value")
+		}
+
+		if extend, ok := req.Fields[7]; ok {
 			//修改 Extend
 			pUser.Extend = extend
 		} else {
 			nc.logger.Warn("req.Fields[6] not value")
 		}
 
-		if allowType, ok := req.Fields[7]; ok {
+		if allowType, ok := req.Fields[8]; ok {
 			//修改 AllowType
 			pUser.AllowType, _ = strconv.Atoi(allowType)
 		} else {
-			nc.logger.Warn("req.Fields7 not value")
+			nc.logger.Warn("req.Fields[8] not value")
 		}
 
-		if province, ok := req.Fields[8]; ok {
+		if province, ok := req.Fields[9]; ok {
 			//修改 Province
 			pUser.Province = province
-			nc.logger.Debug("req.Fields[8]", zap.String("Province", province))
+			nc.logger.Debug("req.Fields[9]", zap.String("Province", province))
 		}
 
-		if city, ok := req.Fields[9]; ok {
+		if city, ok := req.Fields[10]; ok {
 			//修改 city
 			pUser.City = city
-			nc.logger.Debug("req.Fields[9]", zap.String("City", city))
-		} else {
-			nc.logger.Warn("req.Fields[9] not value")
-		}
-
-		if county, ok := req.Fields[10]; ok {
-			//修改 county
-			pUser.County = county
-			nc.logger.Debug("req.Fields[10]", zap.String("County", county))
+			nc.logger.Debug("req.Fields[10]", zap.String("City", city))
 		} else {
 			nc.logger.Warn("req.Fields[10] not value")
 		}
 
-		if street, ok := req.Fields[11]; ok {
-			//修改 street
-			pUser.Street = street
-			nc.logger.Debug("req.Fields[11]", zap.String("Street", street))
+		if county, ok := req.Fields[11]; ok {
+			//修改 county
+			pUser.County = county
+			nc.logger.Debug("req.Fields[11]", zap.String("County", county))
 		} else {
 			nc.logger.Warn("req.Fields[11] not value")
 		}
 
-		if address, ok := req.Fields[12]; ok {
-			//修改 address
-			pUser.Address = address
-			nc.logger.Debug("req.Fields[12]", zap.String("Address", address))
+		if street, ok := req.Fields[12]; ok {
+			//修改 street
+			pUser.Street = street
+			nc.logger.Debug("req.Fields[12]", zap.String("Street", street))
 		} else {
 			nc.logger.Warn("req.Fields[12] not value")
+		}
+
+		if address, ok := req.Fields[13]; ok {
+			//修改 address
+			pUser.Address = address
+			nc.logger.Debug("req.Fields[13]", zap.String("Address", address))
+		} else {
+			nc.logger.Warn("req.Fields[13] not value")
 		}
 
 		if err := nc.service.UpdateUser(username, pUser); err != nil {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Update user error[username=%d]", username)
+			errorMsg = fmt.Sprintf("Update user error[username=%s]", username)
 			goto COMPLETE
 		}
 
+		//如果user是商户
+		if userType == int(User.UserType_Ut_Business) {
+			//更新store表
+			pStore := new(models.Store)
+			pStore.BusinessUsername = username
+
+			if branchesname, ok := req.Fields[14]; ok {
+				pStore.Branchesname = branchesname
+				nc.logger.Debug("req.Fields[14]", zap.String("Branchesname", branchesname))
+			} else {
+				nc.logger.Warn("req.Fields[14] not value")
+			}
+
+			if legalPerson, ok := req.Fields[15]; ok {
+				pStore.LegalPerson = legalPerson
+				nc.logger.Debug("req.Fields[15]", zap.String("LegalPerson", legalPerson))
+			} else {
+				nc.logger.Warn("req.Fields[15] not value")
+			}
+
+			if legalIdentityCard, ok := req.Fields[16]; ok {
+				pStore.LegalIdentityCard = legalIdentityCard
+				nc.logger.Debug("req.Fields[16]", zap.String("LegalIdentityCard", legalIdentityCard))
+			} else {
+				nc.logger.Warn("req.Fields[16] not value")
+			}
+
+			if err := nc.service.UpdateStore(username, pStore); err != nil {
+				nc.logger.Error("更新商店信息失败", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("Update store error[BusinessUsername=%s]", username)
+				goto COMPLETE
+			}
+		}
+
 		//修改redis里的userData:{username}哈希表，以便GetUsers的时候可以获取最新的数据
-		userKey := fmt.Sprintf("userData:%s", username)
+
 		userData := new(models.User)
 
 		if err = nc.db.Model(userData).Where(&models.User{

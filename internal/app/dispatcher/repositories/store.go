@@ -154,6 +154,28 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 
 }
 
+//更新商店
+func (s *MysqlLianmiRepository) UpdateStore(username string, store *models.Store) error {
+	where := models.Store{
+		Branchesname: username,
+	}
+	// 同时更新多个字段
+	result := s.db.Model(&models.Store{}).Where(&where).Updates(store)
+
+	//updated records count
+	s.logger.Debug("UpdateStore result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("UpdateStore, 修改店铺资料数据失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Error("UpdateStore, 修改店铺资料数据成功")
+	}
+	return nil
+}
+
 func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, error) {
 	var err error
 	p := new(models.Store)

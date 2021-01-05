@@ -48,6 +48,9 @@ type LianmiRepository interface {
 	//更新用户
 	UpdateUser(username string, user *models.User) error
 
+	//更新商店
+	UpdateStore(username string, store *models.Store) error
+
 	//保存标签MarkTag
 	AddTag(tag *models.Tag) error
 
@@ -147,7 +150,7 @@ type LianmiRepository interface {
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
 
 	GetChargeProductID() (string, error)
-	
+
 	GetTeams() []string
 
 	//创建群

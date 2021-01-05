@@ -109,7 +109,11 @@ type LianmiApisService interface {
 	//用户查询按月统计发展的付费会员总数及返佣金额，是否已经返佣
 	GetCommissionStatistics(username string) (*Auth.GetCommssionsResp, error)
 
+	//更新用户表
 	UpdateUser(username string, user *models.User) error
+
+	//更新商店表
+	UpdateStore(username string, store *models.Store) error
 
 	AddTag(tag *models.Tag) error
 
@@ -527,6 +531,11 @@ func (s *DefaultLianmiApisService) GetTeamUsers(teamID string, PageNum int, Page
 
 func (s *DefaultLianmiApisService) UpdateUser(username string, user *models.User) error {
 	return s.Repository.UpdateUser(username, user)
+}
+
+//更新商店表
+func (s *DefaultLianmiApisService) UpdateStore(username string, store *models.Store) error {
+	return s.Repository.UpdateStore(username, store)
 }
 
 func (s *DefaultLianmiApisService) AddTag(tag *models.Tag) error {
