@@ -9,6 +9,7 @@ import (
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	// LMCommon "github.com/lianmi/servers/internal/common"
+	// "github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -186,6 +187,9 @@ type LianmiApisService interface {
 
 	//支付宝付款成功
 	AlipayDone(ctx context.Context, outTradeNo string) error
+
+	//获取各种彩票的开售及停售时刻
+	QueryLotterySaleTimes() error
 }
 
 type DefaultLianmiApisService struct {
@@ -742,4 +746,10 @@ func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo st
 //查询VIP会员价格表
 func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error) {
 	return s.Repository.GetVipPriceList(payType)
+}
+
+//获取各种彩票的开售及停售时刻
+func (s *DefaultLianmiApisService) QueryLotterySaleTimes() error {
+	//return s.Repository.QueryLotterySaleTimes()
+	return nil
 }

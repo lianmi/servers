@@ -337,14 +337,15 @@ func CreateInitControllersFn(
 		storeGroup := r.Group("/v1/store") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			storeGroup.GET("/storeinfo/:id", pc.GetStore)        //根据商户注册id获取店铺资料
-			storeGroup.GET("/types", pc.GetStoreTypes)           //返回商品种类
-			storeGroup.POST("/savestore", pc.AddStore)           //增加或修改店铺资料
-			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
-			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
-			storeGroup.GET("/likes/:id", pc.StoreLikes)          //获取店铺的所有点赞用户列表
-			storeGroup.POST("/like/:id", pc.ClickLike)           //对某个店铺进行点赞
-			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)   //取消对某个店铺点赞
+			storeGroup.GET("/storeinfo/:id", pc.GetStore)                //根据商户注册id获取店铺资料
+			storeGroup.GET("/types", pc.GetStoreTypes)                   //返回商品种类
+			storeGroup.POST("/savestore", pc.AddStore)                   //增加或修改店铺资料
+			storeGroup.POST("/list", pc.QueryStoresNearby)               //根据gps位置获取一定范围内的店铺列表
+			storeGroup.POST("/productslist", pc.GetProductsList)         //获取某个商户的所有商品列表
+			storeGroup.GET("/likes/:id", pc.StoreLikes)                  //获取店铺的所有点赞用户列表
+			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞
+			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
+			storeGroup.GET("/lottersaletimes", pc.QueryLotterySaleTimes) //获取各种彩票的开售及停售时刻
 		}
 
 		//=======好友模块==========/

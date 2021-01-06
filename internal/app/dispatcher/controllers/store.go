@@ -39,9 +39,9 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 	RespData(c, http.StatusOK, code, store)
 }
 
-//TODO 返回商品种类 在新的数据库需要建立字典表 
+//TODO 返回商品种类 在新的数据库需要建立字典表
 func (pc *LianmiApisController) GetStoreTypes(c *gin.Context) {
-	
+
 	type StoreTypeData struct {
 		StoreType int    //编号
 		Name      string //名称
@@ -294,5 +294,20 @@ func (pc *LianmiApisController) DeleteClickLike(c *gin.Context) {
 
 	code = codes.SUCCESS
 	RespData(c, http.StatusOK, code, totalLikeCount)
+
+}
+
+//获取各种彩票的开售及停售时刻
+func (pc *LianmiApisController) QueryLotterySaleTimes(c *gin.Context) {
+	code := codes.InvalidParams
+
+	err := pc.service.QueryLotterySaleTimes()
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, nil)
 
 }

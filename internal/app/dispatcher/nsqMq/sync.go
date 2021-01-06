@@ -1231,9 +1231,9 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 				ProductDesc: productInfo.ProductDesc,
 				Thumbnail:   thumbnail,
 				ShortVideo:  productInfo.ShortVideo,
-				CreateAt:    uint64(productInfo.CreatedAt),
-				ModifyAt:    uint64(productInfo.ModifyAt),
-				AllowCancel: productInfo.AllowCancel,
+				// CreateAt:    uint64(productInfo.CreatedAt),
+				// ModifyAt:    uint64(productInfo.ModifyAt),
+				AllowCancel: *productInfo.AllowCancel,
 			}
 
 			if productInfo.ProductPic1Large != "" {

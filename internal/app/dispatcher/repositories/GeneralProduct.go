@@ -52,7 +52,7 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 	p = new(models.GeneralProduct)
 
 	if err = s.db.Model(p).Where(&models.GeneralProduct{
-		ProductID: productID,
+		ProductId: productID,
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%s]", productID)
@@ -94,16 +94,14 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 		}
 
 		gProduct := &Order.GeneralProduct{
-			ProductId:   generalProduct.ProductID,                       //通用商品ID
+			ProductId:   generalProduct.ProductId,                       //通用商品ID
 			ProductName: generalProduct.ProductName,                     //商品名称
 			ProductType: Global.ProductType(generalProduct.ProductType), //商品种类类型  枚举
 			ProductDesc: generalProduct.ProductDesc,                     //商品详细介绍
 			Thumbnail:   thumbnail,                                      //商品短视频缩略图
 			ShortVideo:  generalProduct.ShortVideo,                      //商品短视频
-			CreateAt:    uint64(generalProduct.CreatedAt),               //创建时间
-			ModifyAt:    uint64(generalProduct.ModifyAt),                //最后修改时间
-			AllowCancel: generalProduct.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
-		}
+			AllowCancel: *generalProduct.AllowCancel,                    //是否允许撤单， 默认是可以，彩票类的不可以
+		}	
 
 		if generalProduct.ProductPic1Large != "" {
 			// 动态拼接
@@ -167,7 +165,7 @@ func (s *MysqlLianmiRepository) UpdateGeneralProduct(generalProduct *models.Gene
 		return errors.New("generalProduct is nil")
 	}
 
-	where := models.GeneralProduct{ProductID: generalProduct.ProductID}
+	where := models.GeneralProduct{ProductId: generalProduct.ProductId}
 	// 同时更新多个字段
 	result := s.db.Model(&models.GeneralProduct{}).Where(&where).Updates(generalProduct)
 
@@ -191,7 +189,7 @@ func (s *MysqlLianmiRepository) DeleteGeneralProduct(productID string) bool {
 
 	//采用事务同时删除
 	var (
-		gpWhere        = models.GeneralProduct{ProductID: productID}
+		gpWhere        = models.GeneralProduct{ProductId: productID}
 		generalProduct models.GeneralProduct
 	)
 	tx := s.base.GetTransaction()

@@ -212,7 +212,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 		}
 
 		generalProduct := &models.GeneralProduct{
-			ProductID:        uuid.NewV4().String(), //商品ID
+			ProductId:        uuid.NewV4().String(), //商品ID
 			ProductName:      og.ProductName,        //商品名称
 			ProductType:      int(og.ProductType),   //商品种类枚举
 			ProductDesc:      og.ProductDesc,        //商品详细介绍
@@ -220,7 +220,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 			ProductPic2Large: productPic2Large,      //商品图片2-大图
 			ProductPic3Large: productPic3Large,      //商品图片3-大图
 			ShortVideo:       og.ShortVideo,         //商品短视频
-			AllowCancel:      og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
+			// AllowCancel:      *og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
 
 		}
 
@@ -287,7 +287,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		}
 
 		generalProduct := &models.GeneralProduct{
-			ProductID:        uuid.NewV4().String(), //商品ID
+			ProductId:        uuid.NewV4().String(), //商品ID
 			ProductName:      og.ProductName,        //商品名称
 			ProductType:      int(og.ProductType),   //商品种类枚举
 			ProductDesc:      og.ProductDesc,        //商品详细介绍
@@ -295,7 +295,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			ProductPic2Large: productPic2Large,      //商品图片2-大图
 			ProductPic3Large: productPic3Large,      //商品图片3-大图
 			ShortVideo:       og.ShortVideo,         //商品短视频
-			AllowCancel:      og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
+			// AllowCancel:      *og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
 
 		}
 

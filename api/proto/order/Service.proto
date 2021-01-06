@@ -113,3 +113,16 @@ message DeleteGeneralProductRsp {
     RespHeader status  = 1;
 
 }
+
+//获取各种彩票的开售及停售时刻
+message QueryLotterySaleTimesRsp {
+    //
+    int32 lotteryType =1;
+     // LotteryName  string `json:"lotteryName" form:"lotteryName" gorm:"column:lottery_name;comment:;type:varchar(191);size:191;"`
+     // SaleStartWeek  string `json:"saleStartWeek" form:"saleStartWeek" gorm:"column:sale_start_week;comment:星期几开始， 以半角逗号隔开;type:varchar(191);size:191;"`
+     // SaleStartTime  string `json:"saleStartTime" form:"saleStartTime" gorm:"column:sale_start_time;comment:开售时分秒, 22:0:00;type:varchar(191);size:191;"`
+     // SaleEndWeek  string `json:"saleEndWeek" form:"saleEndWeek" gorm:"column:sale_end_week;comment:停售星期几，以半角逗号隔开 ;type:varchar(191);size:191;"`
+     // SaleEndTime  string `json:"saleEndTime" form:"saleEndTime" gorm:"column:sale_end_time;comment:停售时分秒, 22:0:00;type:varchar(191);size:191;"`
+     // Holidays  string `json:"holidays" form:"holidays" gorm:"column:holidays;comment:;type:varchar(191);size:191;"`
+     // IsActive  *bool 
+}   
