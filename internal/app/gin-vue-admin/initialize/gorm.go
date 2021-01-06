@@ -58,6 +58,9 @@ func MysqlTables(db *gorm.DB) {
 
 		//TODO 通用商品
 		models.GeneralProduct{},
+
+		// TODO 彩种销售开始及销售时间表
+		models.LotterySaleTime{},
 	)
 	if err != nil {
 		global.GVA_LOG.Error("register table failed", zap.Any("err", err))

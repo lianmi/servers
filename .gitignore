@@ -25,3 +25,4 @@
 go.mod
 go.sum
 cmd/web/node_modules
+internal/app/gin-vue-admin/log

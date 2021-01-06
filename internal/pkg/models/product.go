@@ -11,16 +11,16 @@ import (
 缓存商户的上架商品
 */
 type Product struct {
-	ProductID        string `gorm:"primarykey"  form:"product_id" json:"product_id"`        //商品ID
-	Username         string `form:"username" json:"username,omitempty"`                     //商户用户账号id
-	Expire           int64  `form:"expire" json:"expire,omitempty"`                         //过期时间，0-无限
-	ProductName      string `form:"product_name" json:"product_name,omitempty"`             //商品名称
-	ProductType      int    `form:"product_type" json:"product_type,omitempty"`             //商品种类枚举
-	SubType          int    `form:"sub_type" json:"sub_type,omitempty"`                     //子类型枚举, 如彩票， 肉类
-	ProductDesc      string `form:"product_desc" json:"product_desc,omitempty"`             //商品详细介绍
-	ProductPic1Large string `form:"product_pic1_large" json:"product_pic1_large,omitempty"` //商品图片1-大图
-	ProductPic2Large string `form:"product_pic2_large" json:"product_pic2_large,omitempty"` //商品图片2-大图
-	ProductPic3Large string `form:"product_pic3_large" json:"product_pic3_large,omitempty"` //商品图片3-大图
+	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`        //商品ID
+	Username          string  `form:"username" json:"username,omitempty"`                     //商户用户账号id
+	Expire            int64   `form:"expire" json:"expire,omitempty"`                         //过期时间，0-无限
+	ProductName       string  `form:"product_name" json:"product_name,omitempty"`             //商品名称
+	ProductType       int     `form:"product_type" json:"product_type,omitempty"`             //商品种类枚举
+	SubType           int     `form:"sub_type" json:"sub_type,omitempty"`                     //子类型枚举, 如彩票， 肉类
+	ProductDesc       string  `form:"product_desc" json:"product_desc,omitempty"`             //商品详细介绍
+	ProductPic1Large  string  `form:"product_pic1_large" json:"product_pic1_large,omitempty"` //商品图片1-大图
+	ProductPic2Large  string  `form:"product_pic2_large" json:"product_pic2_large,omitempty"` //商品图片2-大图
+	ProductPic3Large  string  `form:"product_pic3_large" json:"product_pic3_large,omitempty"` //商品图片3-大图
 	ShortVideo        string  `form:"short_video" json:"short_video,omitempty"`               //商品短视频
 	Price             float32 `form:"price" json:"price,omitempty"`                           //价格
 	LeftCount         uint64  `form:"left_count" json:"left_count,omitempty"`                 //库存数量
@@ -38,6 +38,10 @@ type Product struct {
 
 	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻， 也就是上架时刻
 	ModifyAt  int64 `form:"modify_at" json:"modify_at,omitempty"`   //最后修改时间
+}
+
+func (GeneralProduct) TableName() string {
+	return "general_products"
 }
 
 //BeforeCreate CreatedAt赋值

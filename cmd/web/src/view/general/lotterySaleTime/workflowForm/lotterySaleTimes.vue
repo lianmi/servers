@@ -1,61 +1,36 @@
 <template>
 <div>
     <el-form :model="formData" label-position="right" label-width="80px">
-             
-      <el-form-item label="商品UUID:">
-         <el-input v-model="formData.productId" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-     <el-form-item label="商品介绍:">
-        <el-input v-model="formData.productDesc" clearable placeholder="请输入" ></el-input>
-  </el-form-item>
-     
-      <el-form-item label="商品大图1:">
-         <el-input v-model="formData.productPic1Large" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-    
-      <el-form-item label="商品大图2:">
-         <el-input v-model="formData.productPic2Large" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-    
-      <el-form-item label="商品大图3:">
-         <el-input v-model="formData.productPic3Large" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-    
-
-      <el-form-item label="shortVideo字段:">
-         <el-input v-model="formData.shortVideo" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-
-      <el-form-item label="允许撤单:">
-      <el-switch active-color="#13ce66" inactive-color="#ff4949" active-text="是" inactive-text="否" v-model="formData.allowCancel" clearable ></el-switch>
-   </el-form-item>
-
-   <el-form-item label="详情图片1:">
-      <el-input v-model="formData.descPic1" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-   <el-form-item label="详情图片2:">
-      <el-input v-model="formData.descPic2" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-   <el-form-item label="详情图片3:">
-      <el-input v-model="formData.descPic3" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-   <el-form-item label="详情图片4:">
-      <el-input v-model="formData.descPic4" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-   <el-form-item label="详情图片5:">
-      <el-input v-model="formData.descPic5" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
-   <el-form-item label="详情图片6:">
-      <el-input v-model="formData.descPic6" clearable placeholder="请输入" ></el-input>
-   </el-form-item>
-
+             <el-form-item label="类型:"><el-input v-model.number="formData.lotteryType" clearable placeholder="请输入"></el-input>
+          </el-form-item>
+           
+             <el-form-item label="彩票名称:">
+                <el-input v-model="formData.lotteryName" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="开始的星期数:">
+                <el-input v-model="formData.saleStartWeek" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="开售时刻:">
+                <el-input v-model="formData.saleStartTime" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="停售星期数:">
+                <el-input v-model="formData.saleEndWeek" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="停售时刻 :">
+                <el-input v-model="formData.saleEndTime" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="节假日停售(选填):">
+                <el-input v-model="formData.holidays" clearable placeholder="请输入" ></el-input>
+          </el-form-item>
+           
+             <el-form-item label="是否激活:">
+                <el-switch active-color="#13ce66" inactive-color="#ff4949" active-text="是" inactive-text="否" v-model="formData.isActive" clearable ></el-switch>
+          </el-form-item>
            <el-form-item>
            <el-button v-if="this.wf.clazz == 'start'" @click="start" type="primary">启动</el-button>
            <!-- complete传入流转参数 决定下一步会流转到什么位置 此处可以设置多个按钮来做不同的流转 -->
@@ -75,7 +50,7 @@ import {
 import infoList from "@/mixins/infoList";
 import { mapGetters } from "vuex";
 export default {
-  name: "GeneralProduct",
+  name: "LotterySaleTimes",
   mixins: [infoList],
   props:{
       business:{
@@ -96,25 +71,15 @@ export default {
       }
    },
   data() {
-    return {
-      intOptions:[],
-          formData: {
-            allowCancel:false,
-            descPic1:"",
-            descPic2:"",
-            descPic3:"",
-            descPic4:"",
-            descPic5:"",
-            descPic6:"",
-            modifyAt:0,
-            productDesc:"",
-            productId:"",
-            productName:"",
-            productPic1Large:"",
-            productPic2Large:"",
-            productPic3Large:"",
-            productType:0,
-            shortVideo:"",
+    return {formData: {
+            lotteryType:0,
+            lotteryName:"",
+            saleStartWeek:"",
+            saleStartTime:"",
+            saleEndWeek:"",
+            saleEndTime:"",
+            holidays:"",
+            isActive:false,
             
       }
     };
@@ -151,7 +116,7 @@ export default {
             wf:{
               workflowMoveID:this.workflowMoveID,
               businessId:0,
-              businessType:"generalProducts",
+              businessType:"lotterySaleTimes",
               workflowProcessID:this.wf.workflowProcessID,
               workflowNodeID:this.wf.id,
               promoterID:this.userInfo.ID,
@@ -174,7 +139,7 @@ export default {
             wf:{
               workflowMoveID:this.workflowMoveID,
               businessID:this.formData.ID,
-              businessType:"generalProducts",
+              businessType:"lotterySaleTimes",
               workflowProcessID:this.wf.workflowProcessID,
               workflowNodeID:this.wf.id,
               promoterID:this.userInfo.ID,

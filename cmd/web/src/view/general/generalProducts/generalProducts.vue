@@ -100,70 +100,60 @@
 
     <el-dialog :before-close="closeDialog" :visible.sync="dialogFormVisible" title="弹窗操作">
       <el-form :model="formData" label-position="right" label-width="80px">
-         <el-form-item label="允许撤单:">
-            <el-switch active-color="#13ce66" inactive-color="#ff4949" active-text="是" inactive-text="否" v-model="formData.allowCancel" clearable ></el-switch>
-      </el-form-item>
-       
-         <el-form-item label="详情图片1:">
-            <el-input v-model="formData.descPic1" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="详情图片2:">
-            <el-input v-model="formData.descPic2" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="详情图片3:">
-            <el-input v-model="formData.descPic3" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="详情图片4:">
-            <el-input v-model="formData.descPic4" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="详情图片5:">
-            <el-input v-model="formData.descPic5" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="descPic6字段:">
-            <el-input v-model="formData.descPic6" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="修改时间:"><el-input v-model.number="formData.modifyAt" clearable placeholder="请输入"></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品介绍:">
-            <el-input v-model="formData.productDesc" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品UUID:">
-            <el-input v-model="formData.productId" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品名称:">
-            <el-input v-model="formData.productName" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品大图1:">
-            <el-input v-model="formData.productPic1Large" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品大图2:">
-            <el-input v-model="formData.productPic2Large" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品大图3:">
-            <el-input v-model="formData.productPic3Large" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
-       
-         <el-form-item label="商品类型:">
-             <el-select v-model="formData.productType" placeholder="请选择" clearable>
-                 <el-option v-for="(item,key) in intOptions" :key="key" :label="item.label" :value="item.value"></el-option>
-             </el-select>
-      </el-form-item>
-       
-         <el-form-item label="shortVideo字段:">
-            <el-input v-model="formData.shortVideo" clearable placeholder="请输入" ></el-input>
-      </el-form-item>
+        
+        <el-form-item label="商品UUID:">
+          <el-input v-model="formData.productId" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
+
+      <el-form-item label="商品介绍:">
+         <el-input v-model="formData.productDesc" clearable placeholder="请输入" ></el-input>
+   </el-form-item>
+      
+       <el-form-item label="商品大图1:">
+          <el-input v-model="formData.productPic1Large" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
+     
+       <el-form-item label="商品大图2:">
+          <el-input v-model="formData.productPic2Large" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
+     
+       <el-form-item label="商品大图3:">
+          <el-input v-model="formData.productPic3Large" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
+     
+
+       <el-form-item label="shortVideo字段:">
+          <el-input v-model="formData.shortVideo" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
+
+
+    <el-form-item label="允许撤单:">
+      <el-switch active-color="#13ce66" inactive-color="#ff4949" active-text="是" inactive-text="否" v-model="formData.allowCancel" clearable ></el-switch>
+</el-form-item>
+ 
+   <el-form-item label="详情图片1:">
+      <el-input v-model="formData.descPic1" clearable placeholder="请输入" ></el-input>
+</el-form-item>
+ 
+   <el-form-item label="详情图片2:">
+      <el-input v-model="formData.descPic2" clearable placeholder="请输入" ></el-input>
+</el-form-item>
+ 
+   <el-form-item label="详情图片3:">
+      <el-input v-model="formData.descPic3" clearable placeholder="请输入" ></el-input>
+</el-form-item>
+ 
+   <el-form-item label="详情图片4:">
+      <el-input v-model="formData.descPic4" clearable placeholder="请输入" ></el-input>
+</el-form-item>
+ 
+   <el-form-item label="详情图片5:">
+      <el-input v-model="formData.descPic5" clearable placeholder="请输入" ></el-input>
+</el-form-item>
+ 
+   <el-form-item label="详情图片6:">
+      <el-input v-model="formData.descPic6" clearable placeholder="请输入" ></el-input>
+    </el-form-item>
        </el-form>
       <div class="dialog-footer" slot="footer">
         <el-button @click="closeDialog">取 消</el-button>
