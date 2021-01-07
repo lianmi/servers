@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	// "strconv"
-	uuid "github.com/satori/go.uuid"
+	// uuid "github.com/satori/go.uuid"
 	// "time"
 
 	"github.com/lianmi/servers/util/dateutil"
@@ -207,7 +207,6 @@ func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNum
 
 	//保存充值记录到 MySQL
 	lnmcDepositHistory := &models.LnmcDepositHistory{
-		UUID:              uuid.NewV4().String(),
 		Username:          username,
 		WalletAddress:     walletAddress,
 		BalanceLNMCBefore: int64(balanceLNMC),
@@ -299,9 +298,8 @@ func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *mod
 //9-11，为某个订单支付，查询出对应的记录，然后更新 orderID, 将State修改为1
 //确认转账后，更新转账历史记录
 func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
-	where := models.LnmcTransferHistory{
-		UUID: lmncTransferHistory.UUID,
-	}
+	where := models.LnmcTransferHistory{}
+	where.ID = lmncTransferHistory.ID
 
 	result := m.db.Model(&models.LnmcTransferHistory{}).Where(&where).Updates(lmncTransferHistory)
 

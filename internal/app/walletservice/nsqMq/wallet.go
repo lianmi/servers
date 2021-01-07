@@ -1931,14 +1931,14 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 				zap.String("ToUsername", collection.ToUsername),
 			)
 			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
-				Uuid:         collection.UUID,              //UUID
-				CreatedAt:    uint64(collection.CreatedAt), //创建时间
-				FromUsername: collection.FromUsername,      //发送方用户账号
-				ToUsername:   collection.ToUsername,        //接收方的用户账号
-				AmountLNMC:   collection.AmountLNMC,        //本次转账的用户连米币数量
-				OrderID:      collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-				BlockNumber:  collection.BlockNumber,       //成功执行合约的所在区块高度
-				Hash:         collection.TxHash,            //交易哈希
+				// Uuid:         collection.UUID,              //UUID
+				// CreatedAt:    uint64(collection.CreatedAt), //创建时间
+				FromUsername: collection.FromUsername, //发送方用户账号
+				ToUsername:   collection.ToUsername,   //接收方的用户账号
+				AmountLNMC:   collection.AmountLNMC,   //本次转账的用户连米币数量
+				OrderID:      collection.OrderID,      //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+				BlockNumber:  collection.BlockNumber,  //成功执行合约的所在区块高度
+				Hash:         collection.TxHash,       //交易哈希
 			})
 		}
 
@@ -2084,8 +2084,8 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 			)
 			amountLNMC := uint64(deposit.RechargeAmount * 100)
 			rsp.Deposits = append(rsp.Deposits, &Wallet.Deposit{
-				Uuid:        deposit.UUID,              //uuid
-				CreatedAt:   uint64(deposit.CreatedAt), //创建时间
+				// Uuid:        deposit.UUID,              //uuid
+				// CreatedAt:   uint64(deposit.CreatedAt), //创建时间
 				PaymentType: Global.ThirdPartyPaymentType(deposit.PaymentType),
 				Recharge:    deposit.RechargeAmount,      //充值金额，单位是人民币
 				AmountLNMC:  amountLNMC,                  //换算为连米币的数量, 无小数点
@@ -2204,8 +2204,8 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 				zap.String("Username", withdraw.Username),
 			)
 			rsp.Withdraws = append(rsp.Withdraws, &Wallet.Withdraw{
-				Uuid:        withdraw.UUID,              //UUID
-				CreatedAt:   uint64(withdraw.CreatedAt), //创建时间
+				// Uuid:        withdraw.UUID,              //UUID
+				// CreatedAt:   uint64(withdraw.CreatedAt), //创建时间
 				Bank:        withdraw.Bank,
 				BankCard:    withdraw.BankCard,
 				CardOwner:   withdraw.CardOwner,
@@ -2325,9 +2325,9 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 				zap.String("Username", transfer.Username),
 			)
 			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
-				Uuid:        transfer.UUID,              //UUID
-				CreatedAt:   uint64(transfer.CreatedAt), //创建时间
-				ToUsername:  transfer.ToUsername,        //接收方
+				Uuid: transfer.UUID, //UUID
+				// CreatedAt:   uint64(transfer.CreatedAt), //创建时间
+				ToUsername:  transfer.ToUsername, //接收方
 				AmountLNMC:  transfer.AmountLNMC,
 				State:       int32(transfer.State),
 				OrderID:     transfer.OrderID,
