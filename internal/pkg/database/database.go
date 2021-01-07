@@ -113,7 +113,6 @@ func New(o *Options) (*gorm.DB, error) {
 		// return nil, err
 	}
 	vipPrice3 := &models.VipPrice{
-		// ID:               3,
 		BusinessUsername: LMCommon.VipBusinessUsername,
 		ProductID:        uuid.NewV4().String(),
 		PayType:          3,
@@ -122,7 +121,7 @@ func New(o *Options) (*gorm.DB, error) {
 		Days:             30,
 		IsActive:         true,
 	}
-	vipPrice3.ID = 2
+	vipPrice3.ID = 3
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice3).Error; err != nil {
 		// return nil, err
