@@ -109,7 +109,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		//从redis的有序集合查询出商户的商品信息在时间戳req.TimeAt之后的更新
 		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", req.UserName), req.TimeAt, "+inf"))
 		for _, productID := range productIDs {
-			product := new(models.Product)
+			product := new(models.ProductInfo)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 				if err := redis.ScanStruct(result, product); err != nil {
 					nc.logger.Error("错误: ScanStruct", zap.Error(err))
@@ -124,22 +124,21 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			}
 
 			oProduct := &Order.Product{
-				ProductId:   product.ProductID,                       //商品ID
-				Expire:      uint64(product.Expire),                  //商品过期时间
-				ProductName: product.ProductName,                     //商品名称
-				ProductType: Global.ProductType(product.ProductType), //商品种类类型  枚举
-				//TODO  暂时全部都是双色球
-				SubType:           int32(Global.LotteryType_LT_Shuangseqiu),
-				ProductDesc:       product.ProductDesc,               //商品详细介绍
-				ShortVideo:        product.ShortVideo,                //商品短视频
-				Thumbnail:         thumbnail,                         //商品短视频缩略图
-				Price:             product.Price,                     //价格
-				LeftCount:         product.LeftCount,                 //库存数量
-				Discount:          product.Discount,                  //折扣 实际数字，例如: 0.95, UI显示为九五折
-				DiscountDesc:      product.DiscountDesc,              //折扣说明
-				DiscountStartTime: uint64(product.DiscountStartTime), //折扣开始时间
-				DiscountEndTime:   uint64(product.DiscountEndTime),   //折扣结束时间
-				AllowCancel:       product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
+				ProductId:         product.ProductID,                        //商品ID
+				Expire:            uint64(product.Expire),                   //商品过期时间
+				ProductName:       product.ProductName,                      //商品名称
+				ProductType:       Global.ProductType(product.ProductType),  //商品种类类型  枚举
+				SubType:           int32(Global.LotteryType_LT_Shuangseqiu), //TODO  暂时全部都是双色球
+				ProductDesc:       product.ProductDesc,                      //商品详细介绍
+				ShortVideo:        product.ShortVideo,                       //商品短视频
+				Thumbnail:         thumbnail,                                //商品短视频缩略图
+				Price:             product.Price,                            //价格
+				LeftCount:         product.LeftCount,                        //库存数量
+				Discount:          product.Discount,                         //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      product.DiscountDesc,                     //折扣说明
+				DiscountStartTime: uint64(product.DiscountStartTime),        //折扣开始时间
+				DiscountEndTime:   uint64(product.DiscountEndTime),          //折扣结束时间
+				AllowCancel:       product.AllowCancel,                      //是否允许撤单， 默认是可以，彩票类的不可以
 			}
 			if product.ProductPic1Large != "" {
 				// 动态拼接
@@ -374,66 +373,62 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		product = &models.Product{
-			ProductID:   productId,
-			Username:    username,
-			Expire:      int64(req.Product.Expire),
-			ProductName: req.Product.ProductName,
-			ProductType: int(req.Product.ProductType),
-			ProductDesc: req.Product.ProductDesc,
-
-			ProductPic1Large: productPic1Large,
-
-			ProductPic2Large: productPic2Large,
-
-			ProductPic3Large: productPic3Large,
-
-			ShortVideo:        shortVideo,
-			Price:             req.Product.Price,
-			LeftCount:         req.Product.LeftCount,
-			Discount:          req.Product.Discount,
-			DiscountDesc:      req.Product.DiscountDesc,
-			DiscountStartTime: int64(req.Product.DiscountStartTime),
-			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			AllowCancel:       req.Product.AllowCancel,
+			ProductInfo: models.ProductInfo{
+				ProductID:         productId,
+				Username:          username,
+				Expire:            int64(req.Product.Expire),
+				ProductName:       req.Product.ProductName,
+				ProductType:       int(req.Product.ProductType),
+				ProductDesc:       req.Product.ProductDesc,
+				ProductPic1Large:  productPic1Large,
+				ProductPic2Large:  productPic2Large,
+				ProductPic3Large:  productPic3Large,
+				ShortVideo:        shortVideo,
+				Price:             req.Product.Price,
+				LeftCount:         req.Product.LeftCount,
+				Discount:          req.Product.Discount,
+				DiscountDesc:      req.Product.DiscountDesc,
+				DiscountStartTime: int64(req.Product.DiscountStartTime),
+				DiscountEndTime:   int64(req.Product.DiscountEndTime),
+				AllowCancel:       req.Product.AllowCancel,
+			},
 		}
 
 		if len(req.Product.DescPics) >= 1 {
-			product.DescPic1 = req.Product.DescPics[0]
+			product.ProductInfo.DescPic1 = req.Product.DescPics[0]
 		}
 		if len(req.Product.DescPics) >= 2 {
-			product.DescPic2 = req.Product.DescPics[1]
+			product.ProductInfo.DescPic2 = req.Product.DescPics[1]
 		}
 		if len(req.Product.DescPics) >= 3 {
-			product.DescPic3 = req.Product.DescPics[2]
+			product.ProductInfo.DescPic3 = req.Product.DescPics[2]
 		}
 		if len(req.Product.DescPics) >= 4 {
-			product.DescPic4 = req.Product.DescPics[3]
+			product.ProductInfo.DescPic4 = req.Product.DescPics[3]
 		}
 		if len(req.Product.DescPics) >= 5 {
-			product.DescPic5 = req.Product.DescPics[4]
+			product.ProductInfo.DescPic5 = req.Product.DescPics[4]
 		}
 		if len(req.Product.DescPics) >= 6 {
-			product.DescPic6 = req.Product.DescPics[5]
+			product.ProductInfo.DescPic6 = req.Product.DescPics[5]
 		}
 
 		nc.logger.Debug("Product字段",
-			zap.String("Username", product.Username),
-			zap.String("ProductId", product.ProductID),
-			zap.Int64("Expire", product.Expire),
-			zap.String("ProductName", product.ProductName),
-			zap.Int("ProductType", product.ProductType),
-			zap.String("ProductDesc", product.ProductDesc),
-			// zap.String("ProductPic1Small", product.ProductPic1Small),
-			// zap.String("ProductPic1Middle", product.ProductPic1Middle),
-			zap.String("ProductPic1Large", product.ProductPic1Large),
-			zap.Bool("AllowCancel", product.AllowCancel),
+			zap.String("Username", product.ProductInfo.Username),
+			zap.String("ProductId", product.ProductInfo.ProductID),
+			zap.Int64("Expire", product.ProductInfo.Expire),
+			zap.String("ProductName", product.ProductInfo.ProductName),
+			zap.Int("ProductType", product.ProductInfo.ProductType),
+			zap.String("ProductDesc", product.ProductInfo.ProductDesc),
+			zap.String("ProductPic1Large", product.ProductInfo.ProductPic1Large),
+			zap.Bool("AllowCancel", product.ProductInfo.AllowCancel),
 		)
 		//保存到MySQL
 		if err = nc.service.AddProduct(product); err != nil {
 			nc.logger.Error("错误: 增加到MySQL失败", zap.Error(err))
 		}
 
-		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
+		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product.ProductInfo)...); err != nil {
 			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
 		}
 
@@ -660,46 +655,48 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		product := &models.Product{
-			Username:    username,
-			ProductID:   req.Product.ProductId,
-			Expire:      int64(req.Product.Expire),
-			ProductName: req.Product.ProductName,
-			ProductType: int(req.Product.ProductType),
-			ProductDesc: req.Product.ProductDesc,
+			ProductInfo: models.ProductInfo{
+				Username:    username,
+				ProductID:   req.Product.ProductId,
+				Expire:      int64(req.Product.Expire),
+				ProductName: req.Product.ProductName,
+				ProductType: int(req.Product.ProductType),
+				ProductDesc: req.Product.ProductDesc,
 
-			ProductPic1Large: productPic1Large,
+				ProductPic1Large: productPic1Large,
 
-			ProductPic2Large: productPic2Large,
+				ProductPic2Large: productPic2Large,
 
-			ProductPic3Large: productPic3Large,
+				ProductPic3Large: productPic3Large,
 
-			ShortVideo:        shortVideo,
-			Price:             req.Product.Price,
-			LeftCount:         req.Product.LeftCount,
-			Discount:          req.Product.Discount,
-			DiscountDesc:      req.Product.DiscountDesc,
-			DiscountStartTime: int64(req.Product.DiscountStartTime),
-			DiscountEndTime:   int64(req.Product.DiscountEndTime),
-			AllowCancel:       req.Product.AllowCancel,
+				ShortVideo:        shortVideo,
+				Price:             req.Product.Price,
+				LeftCount:         req.Product.LeftCount,
+				Discount:          req.Product.Discount,
+				DiscountDesc:      req.Product.DiscountDesc,
+				DiscountStartTime: int64(req.Product.DiscountStartTime),
+				DiscountEndTime:   int64(req.Product.DiscountEndTime),
+				AllowCancel:       req.Product.AllowCancel,
+			},
 		}
 
 		if len(req.Product.DescPics) >= 1 {
-			product.DescPic1 = req.Product.DescPics[0]
+			product.ProductInfo.DescPic1 = req.Product.DescPics[0]
 		}
 		if len(req.Product.DescPics) >= 2 {
-			product.DescPic2 = req.Product.DescPics[1]
+			product.ProductInfo.DescPic2 = req.Product.DescPics[1]
 		}
 		if len(req.Product.DescPics) >= 3 {
-			product.DescPic3 = req.Product.DescPics[2]
+			product.ProductInfo.DescPic3 = req.Product.DescPics[2]
 		}
 		if len(req.Product.DescPics) >= 4 {
-			product.DescPic4 = req.Product.DescPics[3]
+			product.ProductInfo.DescPic4 = req.Product.DescPics[3]
 		}
 		if len(req.Product.DescPics) >= 5 {
-			product.DescPic5 = req.Product.DescPics[4]
+			product.ProductInfo.DescPic5 = req.Product.DescPics[4]
 		}
 		if len(req.Product.DescPics) >= 6 {
-			product.DescPic6 = req.Product.DescPics[5]
+			product.ProductInfo.DescPic6 = req.Product.DescPics[5]
 		}
 
 		//保存到MySQL
@@ -710,7 +707,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product)...); err != nil {
+		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product.ProductInfo)...); err != nil {
 			nc.logger.Error("错误: HMSET Product Info", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Save to redis error")
@@ -853,16 +850,16 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		//TODO 判断是否存在着此商品id的订单
 
 		//得到此商品的详细信息，如图片等，从阿里云OSS里删除这些文件
-		product := new(models.Product)
+		productInfo := new(models.ProductInfo)
 		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
-			if err := redis.ScanStruct(result, product); err != nil {
+			if err := redis.ScanStruct(result, productInfo); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = "HGETALL Error"
 				goto COMPLETE
 			}
 		}
-		if err = nc.DeleteAliyunOssFile(product); err != nil {
+		if err = nc.DeleteAliyunOssFile(productInfo); err != nil {
 			nc.logger.Error("DeleteAliyunOssFile", zap.Error(err))
 		}
 
@@ -1265,9 +1262,9 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		}
 
 		// 获取ProductID对应的商品信息
-		product := new(models.Product)
+		productInfo := new(models.ProductInfo)
 		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
-			if err := redis.ScanStruct(result, product); err != nil {
+			if err := redis.ScanStruct(result, productInfo); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("This Product is not exists")
@@ -1276,8 +1273,8 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		}
 
 		//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
-		if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
-			nc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
+		if (productInfo.Expire > 0) && (productInfo.Expire < time.Now().UnixNano()/1e6) {
+			nc.logger.Warn("商品有效期过期", zap.Int64("Expire", productInfo.Expire))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Product is expire")
 			goto COMPLETE
@@ -1513,7 +1510,7 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 	return nil
 }
 
-func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
+func (nc *NsqClient) DeleteAliyunOssFile(productInfo *models.ProductInfo) error {
 	// New client
 	client, err := oss.New(LMCommon.Endpoint, LMCommon.AccessID, LMCommon.AccessKey)
 	if err != nil {
@@ -1528,87 +1525,87 @@ func (nc *NsqClient) DeleteAliyunOssFile(product *models.Product) error {
 
 	//删除文件
 
-	if product.ProductPic1Large != "" {
-		err = bucket.DeleteObject(product.ProductPic1Large)
+	if productInfo.ProductPic1Large != "" {
+		err = bucket.DeleteObject(productInfo.ProductPic1Large)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic1Large:", product.ProductPic1Large))
+				zap.String("ProductPic1Large:", productInfo.ProductPic1Large))
 		}
 
 	}
 
-	if product.ProductPic2Large != "" {
-		err = bucket.DeleteObject(product.ProductPic2Large)
+	if productInfo.ProductPic2Large != "" {
+		err = bucket.DeleteObject(productInfo.ProductPic2Large)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic2Large:", product.ProductPic2Large))
+				zap.String("ProductPic2Large:", productInfo.ProductPic2Large))
 		}
 
 	}
 
-	if product.ProductPic3Large != "" {
-		err = bucket.DeleteObject(product.ProductPic3Large)
+	if productInfo.ProductPic3Large != "" {
+		err = bucket.DeleteObject(productInfo.ProductPic3Large)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("ProductPic3Large:", product.ProductPic3Large))
+				zap.String("ProductPic3Large:", productInfo.ProductPic3Large))
 		}
 
 	}
 
-	if product.ShortVideo != "" {
-		err = bucket.DeleteObject(product.ShortVideo)
+	if productInfo.ShortVideo != "" {
+		err = bucket.DeleteObject(productInfo.ShortVideo)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("ShortVideo:", product.ShortVideo))
+				zap.String("ShortVideo:", productInfo.ShortVideo))
 		}
 
 	}
 
-	if product.DescPic1 != "" {
-		err = bucket.DeleteObject(product.DescPic1)
+	if productInfo.DescPic1 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic1)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic1:", product.DescPic1))
+				zap.String("DescPic1:", productInfo.DescPic1))
 		}
 
 	}
-	if product.DescPic2 != "" {
-		err = bucket.DeleteObject(product.DescPic2)
+	if productInfo.DescPic2 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic2)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic2:", product.DescPic2))
+				zap.String("DescPic2:", productInfo.DescPic2))
 		}
 
 	}
-	if product.DescPic3 != "" {
-		err = bucket.DeleteObject(product.DescPic3)
+	if productInfo.DescPic3 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic3)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic3:", product.DescPic3))
+				zap.String("DescPic3:", productInfo.DescPic3))
 		}
 
 	}
-	if product.DescPic4 != "" {
-		err = bucket.DeleteObject(product.DescPic4)
+	if productInfo.DescPic4 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic4)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic4:", product.DescPic4))
+				zap.String("DescPic4:", productInfo.DescPic4))
 		}
 
 	}
-	if product.DescPic5 != "" {
-		err = bucket.DeleteObject(product.DescPic5)
+	if productInfo.DescPic5 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic5)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic5:", product.DescPic5))
+				zap.String("DescPic5:", productInfo.DescPic5))
 		}
 
 	}
-	if product.DescPic6 != "" {
-		err = bucket.DeleteObject(product.DescPic6)
+	if productInfo.DescPic6 != "" {
+		err = bucket.DeleteObject(productInfo.DescPic6)
 		if err == nil {
 			nc.logger.Info("删除文件 Succeed",
-				zap.String("DescPic6:", product.DescPic6))
+				zap.String("DescPic6:", productInfo.DescPic6))
 		}
 
 	}
@@ -1845,9 +1842,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				// 获取ProductID对应的商品信息
-				product := new(models.Product)
+				productInfo := new(models.ProductInfo)
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.ProductID))); err == nil {
-					if err := redis.ScanStruct(result, product); err != nil {
+					if err := redis.ScanStruct(result, productInfo); err != nil {
 						nc.logger.Error("错误: ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 						errorMsg = fmt.Sprintf("This Product is not exists")
@@ -1856,8 +1853,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 				//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
-				if (product.Expire > 0) && (product.Expire < time.Now().UnixNano()/1e6) {
-					nc.logger.Warn("商品有效期过期", zap.Int64("Expire", product.Expire))
+				if (productInfo.Expire > 0) && (productInfo.Expire < time.Now().UnixNano()/1e6) {
+					nc.logger.Warn("商品有效期过期", zap.Int64("Expire", productInfo.Expire))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("Product is expire")
 					goto COMPLETE
@@ -1932,7 +1929,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				} else { //普通下单
 
 					//彩票类型的订单， 但没付款的时候，也需要向商户转发
-					if Global.ProductType(product.ProductType) == Global.ProductType_OT_Lottery {
+					if Global.ProductType(productInfo.ProductType) == Global.ProductType_OT_Lottery {
 
 						orderProductBody.State = Global.OrderState_OS_RecvOK
 
@@ -2251,9 +2248,9 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		// 获取ProductID对应的商品信息
-		product := new(models.Product)
+		productInfo := new(models.ProductInfo)
 		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
-			if err := redis.ScanStruct(result, product); err != nil {
+			if err := redis.ScanStruct(result, productInfo); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("This Product is not exists")

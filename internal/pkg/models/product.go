@@ -10,9 +10,7 @@ import (
 服务端的商品表
 缓存商户的上架商品
 */
-type Product struct {
-	global.LMC_Model
-
+type ProductInfo struct {
 	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`        //商品ID
 	Username          string  `form:"username" json:"username,omitempty"`                     //商户用户账号id
 	Expire            int64   `form:"expire" json:"expire,omitempty"`                         //过期时间，0-无限
@@ -39,9 +37,13 @@ type Product struct {
 	DescPic6          string  `form:"desc_pic6" json:"desc_pic16,omitempty"`                  //商品介绍pic6 -图片6
 
 }
+type Product struct {
+	global.LMC_Model
+	ProductInfo
+}
 
-func (GeneralProduct) TableName() string {
-	return "general_products"
+func (Product) TableName() string {
+	return "products"
 }
 
 //BeforeCreate CreatedAt赋值

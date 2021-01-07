@@ -152,7 +152,9 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeReq) error {
 	product := new(models.Product)
 	where := models.Product{
-		ProductID: req.ProductId,
+		ProductInfo: models.ProductInfo{
+			ProductID: req.ProductId,
+		},
 	}
 
 	var curSubType int
@@ -187,7 +189,9 @@ func (s *MysqlLianmiRepository) SetProductSubType(req *Order.ProductSetSubTypeRe
 func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product, error) {
 	product := new(models.Product)
 	where := models.Product{
-		ProductID: productID,
+		ProductInfo: models.ProductInfo{
+			ProductID: productID,
+		},
 	}
 
 	if err := s.db.Model(&models.Product{}).Where(&where).First(product).Error; err != nil {

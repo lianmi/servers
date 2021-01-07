@@ -1024,7 +1024,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 			//商户 的商品列表
 			productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", watchingUser), productAt, "+inf"))
 			for _, productID := range productIDs {
-				productInfo := new(models.Product)
+				productInfo := new(models.ProductInfo)
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 					if err := redis.ScanStruct(result, productInfo); err != nil {
 						nc.logger.Error("错误: ScanStruct", zap.Error(err))

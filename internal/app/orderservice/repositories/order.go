@@ -55,7 +55,9 @@ func (m *MysqlOrderRepository) AddProduct(product *models.Product) error {
 func (m *MysqlOrderRepository) UpdateProduct(product *models.Product) error {
 
 	where := models.Product{
-		ProductID: product.ProductID,
+		ProductInfo: models.ProductInfo{
+			ProductID: product.ProductInfo.ProductID,
+		},
 	}
 	// 同时更新多个字段
 	result := m.db.Model(&models.Product{}).Where(&where).Updates(product)
@@ -75,7 +77,12 @@ func (m *MysqlOrderRepository) UpdateProduct(product *models.Product) error {
 
 //删除商品
 func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
-	where := models.Product{ProductID: productID, Username: username}
+	where := models.Product{
+		ProductInfo: models.ProductInfo{
+			ProductID: productID,
+			Username:  username,
+		},
+	}
 	db2 := m.db.Where(&where).Delete(models.Product{})
 	err := db2.Error
 	if err != nil {
