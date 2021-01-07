@@ -26,7 +26,7 @@ import (
 5-1 发送消息
 1. 消息发送接口，包括单聊、群聊、系统通知
 2. 服务器会处理接收方的主从设备的消息分发
-3. 除了客服账号外，不支持陌生人聊天
+3. 除了商户及客服账号外，不支持陌生人聊天
 */
 func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 	var err error
@@ -87,7 +87,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 		//根据场景判断消息是个人消息、群聊消息
 		switch req.GetScene() {
 		case Msg.MessageScene_MsgScene_C2C: //个人消息
-			toUser = req.GetTo()
+			toUser = req.GetTo() //给谁发消息
 			nc.logger.Debug("MessageScene_MsgScene_C2C",
 				zap.String("toUser", req.GetTo()),
 				zap.Int("Type", int(req.GetType())),
@@ -100,11 +100,30 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				Msg.MessageType_MsgType_Bin,    // 二进制
 				Msg.MessageType_MsgType_Secret: //加密类型
 
-				//判断toUser的合法性以及是否封禁等
 				userData := new(models.User)
-				userKey := fmt.Sprintf("userData:%s", toUser)
+				userKey := fmt.Sprintf("userData:%s", username)
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
+
+						nc.logger.Error("错误：ScanStruct", zap.Error(err))
+						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+						goto COMPLETE
+
+					}
+				}
+				if userData.State == 2 {
+					nc.logger.Warn("此用户已被封号", zap.String("Username", req.GetTo()))
+					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
+					goto COMPLETE
+				}
+
+				//判断toUser的合法性以及是否封禁等
+				toUserData := new(models.User)
+				toUserKey := fmt.Sprintf("userData:%s", toUser)
+				if result, err := redis.Values(redisConn.Do("HGETALL", toUserKey)); err == nil {
+					if err := redis.ScanStruct(result, toUserData); err != nil {
 
 						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
@@ -114,61 +133,70 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 					}
 				}
 
-				if userData.State == 2 {
+				if toUserData.State == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
 					goto COMPLETE
 				}
 
-				//判断两者是不是好友， 单向好友也不能发消息
-				var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
-				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), toUser); err == nil {
-					if reply == nil {
-						//A好友列表中没有B
-						isAhaveB = false
-					} else {
-						isAhaveB = true
-					}
-
-				}
-				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", toUser), username); err == nil {
-					if reply == nil {
-						//B好友列表中没有A
-						isBhaveA = false
-					} else {
-						isBhaveA = true
-					}
-
-				}
-
-				//判断 本次会话是不是 客服 与 用户 的会话， 如果是则放行
-				isCustomerService = nc.CheckIsCustomerService(username, toUser)
-
-				if isCustomerService {
-					//pass
-					nc.logger.Info("客服与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
-
+				// 商户与买家之间的私聊
+				if userData.UserType == 2 || toUserData.UserType == 2 {
+					//允许私聊
+					nc.logger.Info("商户与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
 				} else {
-					if isAhaveB && isBhaveA {
-						//pass
-					} else {
-						nc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
-						goto COMPLETE
-					}
+					// 除了商户及客服账号外，不支持陌生人聊天
 
-					//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
-					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
-						if reply != nil {
-							nc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
-							errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
-							errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+					//判断 本次会话是不是 客服 与 用户 的会话， 如果是则放行
+					isCustomerService = nc.CheckIsCustomerService(username, toUser)
+
+					if isCustomerService {
+						//pass
+						nc.logger.Info("客服与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
+
+					} else {
+
+						//判断两者是不是好友， 单向好友也不能发消息
+						var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
+						if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), toUser); err == nil {
+							if reply == nil {
+								//A好友列表中没有B
+								isAhaveB = false
+							} else {
+								isAhaveB = true
+							}
+
+						}
+						if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", toUser), username); err == nil {
+							if reply == nil {
+								//B好友列表中没有A
+								isBhaveA = false
+							} else {
+								isBhaveA = true
+							}
+
+						}
+
+						if isAhaveB && isBhaveA {
+							//pass
+						} else {
+							nc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
+							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+							errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
 							goto COMPLETE
 						}
-					}
 
+						//查出接收人对此用户消息接收的设定，黑名单，屏蔽等
+						if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
+							if reply != nil {
+								nc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
+								errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
+								errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+								goto COMPLETE
+							}
+						}
+
+					}
 				}
 
 				//构造转发消息数据
