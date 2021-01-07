@@ -2,8 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	// "gorm.io/gorm"
-	// "time"
 )
 
 // 订单协议的 OrderProductBody 里 Attach的最外层结构
@@ -53,8 +51,8 @@ func OrignOrderFromJson(data []byte) (*OrignOrder, error) {
 
 //UI构造attach数据结构
 type VipUser struct {
-	PayType int     `form:"pay_type" json:"pay_type"`     //VIP类型，1-包年，2-包季， 3-包月
-	Price   float32 `form:"price" json:"price,omitempty"` //价格, 单位: 元
+	PayType int     `json:"pay_type" form:"payType" gorm:"column:pay_type;comment:VIP类型，1-包年，2-包季， 3-包月"`
+	Price   float32 `json:"price" form:"price" gorm:"column:price;comment:价格, 单位: 元"`
 }
 
 func (m *VipUser) ToJson() (string, error) {

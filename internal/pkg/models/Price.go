@@ -1,7 +1,7 @@
 package models
 
 import (
-	// "encoding/json"
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
 	"time"
 )
@@ -10,16 +10,19 @@ import (
 VIP会员价格表及优惠设定，计算分佣时需要考虑是否有折扣
 */
 type VipPrice struct {
-	ID               uint64  `gorm:"primarykey" form:"id" json:"id,omitempty"`
-	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"`     //创建时刻,毫秒
-	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"`     //更新时刻,毫秒
-	BusinessUsername string  `form:"business_username" json:"business_username"` //购买会员的商户账号，一般都是预先注册，然后再写死
-	ProductID        string  `form:"product_id" json:"product_id"`               //商品ID
-	PayType          int     `form:"pay_type" json:"pay_type"`                   //VIP类型，1-包年，2-包季， 3-包月
-	Title            string  `form:"title" json:"title,omitempty" `              //价格标题说明
-	Price            float32 `form:"price" json:"price,omitempty"`               //价格, 单位: 元
-	Days             int     `form:"days" json:"days,omitempty"`                 //开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天
-	IsActive         bool    `form:"is_active" json:"is_active"`                 //此价格是否激活，true的状态才可用
+	global.LMC_Model
+
+	PayType          int     `json:"pay_type" form:"payType" gorm:"column:pay_type;comment:VIP类型，1-包年，2-包季， 3-包月"`
+	Price            float32 `json:"price" form:"price" gorm:"column:price;comment:价格, 单位: 元"`
+	BusinessUsername string  `json:"business_username" form:"business_username" gorm:"column:business_username;comment:购买会员的商户账号，一般都是预先注册，然后再写死;type:varchar(191);size:191;"`
+	ProductID        string  `json:"product_id" form:"product_id" gorm:"column:product_id;comment:商品ID;type:varchar(191);size:191;"`
+	Title            string  `json:"title" form:"title" gorm:"column:title;comment:价格标题说明;type:varchar(191);size:191;"`
+	Days             int     `json:"days" form:"days" gorm:"column:days;comment:开通时长 本记录对应的天数，例如包年增加365天，包季是90天，包月是30天"`
+	IsActive         bool    `json:"is_active" form:"is_active" gorm:"column:is_active;comment:此价格是否激活，true的状态才可用"`
+}
+
+func (VipPrice) TableName() string {
+	return "vip_prices"
 }
 
 //BeforeCreate CreatedAt赋值
@@ -40,9 +43,7 @@ VIP 7天体验卡 - 一个用户只能体验一次，体验过之后就算领了
 用于抵消手续费的数量，不得用于提现,不存放区块链里，只存放在redis里, 每次只能领取一张
 */
 type ECoupon struct {
-	ID        uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`
-	CreatedAt int64  `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
-	UpdatedAt int64  `form:"updated_at" json:"updated_at,omitempty"` //更新时刻,毫秒
+	global.LMC_Model
 
 	Title     string  `form:"title" json:"title,omitempty" `           //标题说明
 	ScopeType int     `form:"scope_type" json:"scope_type,omitempty" ` //作用范围类型,0-默认，不作用于任何收费， 1-会员购买及服务费，2-VIP天数，用于几天VIP的体验卡
@@ -50,6 +51,10 @@ type ECoupon struct {
 	Days      int     `form:"days" json:"days,omitempty"`              //体验时长天数, 最多不得多于7天
 	IsUsed    bool    `form:"is_used" json:"is_used"`                  //是否已经使用,一旦激活就不能再次使用
 	Expire    int64   `form:"expire" json:"expire,omitempty"`          //过期时间，0-无限
+}
+
+func (ECoupon) TableName() string {
+	return "e_coupons"
 }
 
 //BeforeCreate CreatedAt赋值

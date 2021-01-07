@@ -76,15 +76,14 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.StoreLike{})                // 商店的点赞明细表
 	db.AutoMigrate(&models.UserLike{})                 // 用户点赞的店铺记录表
 	db.AutoMigrate(&models.OrderImagesHistory{})       // 服务端的订单图片上链历史表
-	db.AutoMigrate(&models.AliPayHistory{})            //  支付宝充值历史表
-	db.AutoMigrate(&models.VipPrice{})                 //  VIP会员价格表
-	db.AutoMigrate(&models.ECoupon{})                  //  系统电子优惠券表
-	db.AutoMigrate(&models.SystemCharge{})             //系统服务费商品ID表
-	db.AutoMigrate(&models.ChargeHistory{})            //系统服务费历史表
-	db.AutoMigrate(&models.LotterySaleTime{})          //各个彩种的销售开始时间及结束时间
+	db.AutoMigrate(&models.AliPayHistory{})            // 支付宝充值历史表
+	db.AutoMigrate(&models.VipPrice{})                 // VIP会员价格表
+	db.AutoMigrate(&models.ECoupon{})                  // 系统电子优惠券表
+	db.AutoMigrate(&models.SystemCharge{})             // 系统服务费商品ID表
+	db.AutoMigrate(&models.ChargeHistory{})            // 系统服务费历史表
+	db.AutoMigrate(&models.LotterySaleTime{})          // 各个彩种的销售开始时间及结束时间
 
 	vipPrice := &models.VipPrice{
-		ID:               1,
 		BusinessUsername: LMCommon.VipBusinessUsername,
 		ProductID:        uuid.NewV4().String(),
 		PayType:          1,
@@ -93,12 +92,13 @@ func New(o *Options) (*gorm.DB, error) {
 		Days:             365,
 		IsActive:         true,
 	}
+	vipPrice.ID = 1
+
 	//如果没有记录，则增加，如果有记录，则更新全部字段
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice2 := &models.VipPrice{
-		ID:               2,
 		BusinessUsername: LMCommon.VipBusinessUsername,
 		ProductID:        uuid.NewV4().String(),
 		PayType:          2,
@@ -107,12 +107,13 @@ func New(o *Options) (*gorm.DB, error) {
 		Days:             90,
 		IsActive:         true,
 	}
+	vipPrice2.ID = 2
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice2).Error; err != nil {
 		// return nil, err
 	}
 	vipPrice3 := &models.VipPrice{
-		ID:               3,
+		// ID:               3,
 		BusinessUsername: LMCommon.VipBusinessUsername,
 		ProductID:        uuid.NewV4().String(),
 		PayType:          3,
@@ -121,6 +122,7 @@ func New(o *Options) (*gorm.DB, error) {
 		Days:             30,
 		IsActive:         true,
 	}
+	vipPrice3.ID = 2
 
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice3).Error; err != nil {
 		// return nil, err
@@ -131,8 +133,6 @@ func New(o *Options) (*gorm.DB, error) {
 	sc.ID = 1
 	sc.ChargeProductID = uuid.NewV4().String()
 	db.Save(sc)
-
-
 
 	return db, nil
 }
