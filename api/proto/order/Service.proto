@@ -118,11 +118,10 @@ message DeleteGeneralProductRsp {
 message LotterySaleTime {
     int32 lotteryType =1;
     string lotteryName =2;
-    repeated string saleStartWeeks =3;
-    string saleStartTime  =4;
-    repeated string saleEndWeeks  =5;
-    string saleEndTime  =6;
-    repeated string holidays  =7;
+    repeated string saleEndWeeks  =3;
+    int32 saleEndHour  =4;
+    int32 saleEndMinute  =5;
+    repeated string holidays  =6;
 
 }
 

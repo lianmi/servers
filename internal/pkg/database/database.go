@@ -132,19 +132,7 @@ func New(o *Options) (*gorm.DB, error) {
 	sc.ChargeProductID = uuid.NewV4().String()
 	db.Save(sc)
 
-	//各个彩票开售及停售时间表
-	// lotterySaleTime := &models.LotterySaleTime{
-	// 	LotteryType:   1,
-	// 	LotteryName:   "ssq",
-	// 	SaleStartWeek: "2,4,7",
-	// 	SaleStartTime: "22:00",
-	// 	SaleEndWeek:   "2,4,7",
-	// 	SaleEndTime:   "20:00",
-	// 	Holidays:      "01-01,10-01",
-	// 	IsActive:      true,
-	// }
-	// lotterySaleTime.ID = 1
-	// db.Save(lotterySaleTime)
+
 
 	return db, nil
 }

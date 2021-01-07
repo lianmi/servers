@@ -607,10 +607,9 @@ func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySale
 		orderLotterySaleTime := &Order.LotterySaleTime{
 			LotteryType:   int32(lotterySaleTime.LotteryType),
 			LotteryName:   lotterySaleTime.LotteryName,
-			SaleStartTime: lotterySaleTime.SaleStartTime,
-			SaleEndTime:   lotterySaleTime.SaleEndTime,
+			SaleEndHour:   int32(lotterySaleTime.SaleEndHour),
+			SaleEndMinute: int32(lotterySaleTime.SaleEndMinute),
 		}
-		orderLotterySaleTime.SaleStartWeeks = strings.Split(lotterySaleTime.SaleStartWeek, ",")
 		orderLotterySaleTime.SaleEndWeeks = strings.Split(lotterySaleTime.SaleEndWeek, ",")
 		orderLotterySaleTime.Holidays = strings.Split(lotterySaleTime.Holidays, ",")
 
