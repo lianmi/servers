@@ -589,12 +589,10 @@ func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySale
 
 	var lotterySaleTimes []*models.LotterySaleTime
 
-	isActive := new(bool)
-	*isActive = true
-
 	where := models.LotterySaleTime{
-		IsActive: isActive,
+		IsActive: true,
 	}
+
 	db2 := s.db
 	db2, err = s.base.BuildWhere(db2, where)
 	if err != nil {
