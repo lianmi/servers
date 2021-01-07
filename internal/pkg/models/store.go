@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"time"
 )
 
 //店铺表
@@ -12,9 +12,9 @@ import (
 //当此店铺的商户提交审核后，后台需要删除此记录
 
 type Store struct {
+	global.LMC_Model
+
 	StoreUUID         string  `gorm:"primarykey" form:"store_uuid" json:"store_uuid" `                       //店铺的uuid
-	CreatedAt         int64   `form:"created_at" json:"created_at,omitempty"`                                //创建时刻,毫秒
-	UpdatedAt         int64   `form:"updated_at" json:"updated_at,omitempty"`                                //更新时刻,毫秒
 	StoreType         int     `form:"store_type" json:"store_type"`                                          //店铺类型,对应Global.proto里的StoreType枚举
 	ImageURL          string  `form:"image_url" json:"image_url" `                                           //店铺外景照片或产品图片
 	BusinessUsername  string  `form:"business_username" json:"business_username" `                           //商户注册号
@@ -62,6 +62,8 @@ func (l *Store) BeforeUpdate(tx *gorm.DB) error {
 通过定时【1小时执行一次】，从Redis读取数据持久化到MySQL中
 */
 type StoreLike struct {
+	global.LMC_Model
+
 	BusinessUsername string `gorm:"primarykey" form:"business_username" json:"business_username" ` //商户注册号
 	Username         string `form:"username" json:"username" `                                     //普通用户注册号
 }
@@ -69,6 +71,8 @@ type StoreLike struct {
 //用户点赞的店铺记录表
 //每个用户只能点赞一次，如果是点赞过了，可以取消点赞
 type UserLike struct {
+	global.LMC_Model
+
 	Username         string `gorm:"primarykey" form:"username" json:"username" ` //普通用户注册号
 	BusinessUsername string `form:"business_username" json:"business_username" ` //商户注册号
 }

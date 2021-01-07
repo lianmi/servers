@@ -476,8 +476,6 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 						MuteType:     Team.MuteMode(teamInfo.MuteType),
 						InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 						Ex:           teamInfo.Extend,
-						CreateAt:     uint64(teamInfo.CreatedAt),
-						UpdateAt:     uint64(teamInfo.UpdatedAt),
 					})
 				}
 			}
@@ -1055,8 +1053,6 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					DiscountDesc:      productInfo.DiscountDesc,              //折扣说明
 					DiscountStartTime: uint64(productInfo.DiscountStartTime), //折扣开始时间
 					DiscountEndTime:   uint64(productInfo.DiscountEndTime),   //折扣结束时间
-					CreateAt:          uint64(productInfo.CreatedAt),         //创建时间
-					ModifyAt:          uint64(productInfo.ModifyAt),          //最后修改时间
 					AllowCancel:       productInfo.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 				}
 				if productInfo.ProductPic1Large != "" {

@@ -37,8 +37,6 @@ func (w *UserWallet) BeforeUpdate(tx *gorm.DB) error {
 type LnmcDepositHistory struct {
 	global.LMC_Model
 
-	// UUID string `gorm:"primarykey" json:"username" validate:"required"` //uuid
-
 	Username          string  `json:"username" validate:"required"`           //用户注册号
 	WalletAddress     string  `json:"wallet_address" validate:"required"`     //用户链上地址，默认是用户HD钱包的第0号索引，用于存储Eth及连米币
 	BalanceLNMCBefore int64   `json:"amount_lnmc_before" validate:"required"` //充值前用户连米币数量
@@ -100,8 +98,6 @@ func (w *LnmcTransferHistory) BeforeUpdate(tx *gorm.DB) error {
 type LnmcWithdrawHistory struct {
 	global.LMC_Model
 
-	// UUID string `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"` //uuid
-
 	WithdrawUUID      string `json:"withdraw_uuid" validate:"required"`      //提现单编号，UUID
 	Username          string `json:"username" validate:"required"`           //发送方用户注册号
 	Bank              string `json:"bank" validate:"required"`               //银行名称
@@ -133,8 +129,6 @@ func (w *LnmcWithdrawHistory) BeforeUpdate(tx *gorm.DB) error {
 
 type LnmcCollectionHistory struct {
 	global.LMC_Model
-
-	// UUID string `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"` //uuid
 
 	FromUsername      string `json:"from_username" validate:"required"`       //发送方用户注册号
 	FromWalletAddress string `json:"from_wallet_address" validate:"required"` //发送方用户链上地址，默认是用户HD钱包的第0号索引，用于存储连米币
@@ -202,7 +196,6 @@ type HashInfo struct {
 type LnmcOrderTransferHistory struct {
 	global.LMC_Model
 
-	// UUID                      string  `gorm:"primarykey" form:"uuid" json:"uuid,omitempty"`     //uuid
 	OrderID                   string  `json:"order_id"  validate:"required"`                    //订单ID
 	PayType                   int     `json:"pay_type"  validate:"required"`                    //转账类型，1-订单完成，被买家确认后转账给商户，2-撤单及拒单退款
 	ProductID                 string  `json:"product_id"  validate:"required"`                  //商品ID

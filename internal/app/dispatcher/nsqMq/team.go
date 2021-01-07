@@ -139,7 +139,6 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			}
 
 			pTeam := new(models.Team)
-			pTeam.CreatedAt = time.Now().UnixNano() / 1e6
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
 			pTeam.Teamname = req.GetName()
 			pTeam.Nick = req.GetName()
@@ -314,7 +313,6 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 					Mute:            teamUser.IsMute,
 					Ex:              teamUser.Extend,
 					JoinTime:        uint64(teamUser.JoinAt),
-					UpdateTime:      uint64(teamUser.UpdatedAt),
 				})
 			}
 
@@ -456,8 +454,6 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 					MuteType:     Team.MuteMode(teamInfo.MuteType),
 					InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 					Ex:           teamInfo.Extend,
-					CreateAt:     uint64(teamInfo.CreatedAt),
-					UpdateAt:     uint64(teamInfo.UpdatedAt),
 				}
 			}
 
@@ -1393,8 +1389,6 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				MuteType:     Team.MuteMode(teamInfo.MuteType),
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
-				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().UnixNano() / 1e6), //更新时间
 			}
 
 		}
@@ -4427,7 +4421,6 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 					Mute:            teamUser.IsMute,
 					Ex:              teamUser.Extend,
 					JoinTime:        uint64(teamUser.JoinAt),
-					UpdateTime:      uint64(teamUser.UpdatedAt),
 				})
 
 			}
@@ -4552,8 +4545,6 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 				MuteType:     Team.MuteMode(teamInfo.MuteType),
 				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 				Ex:           teamInfo.Extend,
-				CreateAt:     uint64(teamInfo.CreatedAt),
-				UpdateAt:     uint64(time.Now().UnixNano() / 1e6), //更新时间
 			})
 		}
 		//用户自己的退群列表
@@ -5007,7 +4998,6 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 				Mute:            teamUser.IsMute,
 				Ex:              teamUser.Extend,
 				JoinTime:        uint64(teamUser.JoinAt),
-				UpdateTime:      uint64(teamUser.UpdatedAt),
 			})
 		}
 

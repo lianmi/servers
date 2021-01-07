@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"time"
 
 	"github.com/lianmi/servers/api/proto/team"
@@ -13,9 +14,9 @@ CREATE TABLE `tuser` (`teamid` TEXT NOT NULL, `account` TEXT NOT NULL, `avatar` 
 
 //定义群用户的数据结构
 type TeamUser struct {
-	ID              uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`            //自增
+	global.LMC_Model
+
 	JoinAt          int64  `form:"join_at" json:"join_at,omitempty"`                     //入群时间，unix时间戳
-	UpdatedAt       int64  `form:"updated_at" json:"updated_at,omitempty"`               //最近更新时间，unix时间戳
 	TeamID          string `form:"team_id" json:"team_id" binding:"required"`            //群组id， 以team开头
 	Teamname        string `form:"team_name" json:"team_name" binding:"required"`        //群组名， 中英文
 	Username        string `form:"user_name" json:"user_name,omitempty"`                 //群成员用户账号

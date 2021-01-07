@@ -231,9 +231,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		Keys:               p.Keys,                        //商户经营范围搜索关键字
 		BusinessLicenseUrl: licenseURL,                    //商户营业执照阿里云url
 		AuditState:         int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
-		CreatedAt:          uint64(p.CreatedAt),
-		UpdatedAt:          uint64(p.UpdatedAt),
-		OpeningHours:       p.OpeningHours, //营业时间
+		OpeningHours:       p.OpeningHours,                //营业时间
 	}, nil
 
 }

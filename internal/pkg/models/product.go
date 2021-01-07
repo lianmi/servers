@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"time"
 )
 
 /*
@@ -11,6 +11,8 @@ import (
 缓存商户的上架商品
 */
 type Product struct {
+	global.LMC_Model
+
 	ProductID         string  `gorm:"primarykey"  form:"product_id" json:"product_id"`        //商品ID
 	Username          string  `form:"username" json:"username,omitempty"`                     //商户用户账号id
 	Expire            int64   `form:"expire" json:"expire,omitempty"`                         //过期时间，0-无限
@@ -36,8 +38,6 @@ type Product struct {
 	DescPic5          string  `form:"desc_pic5" json:"desc_pic5,omitempty"`                   //商品介绍pic5 -图片5
 	DescPic6          string  `form:"desc_pic6" json:"desc_pic16,omitempty"`                  //商品介绍pic6 -图片6
 
-	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻， 也就是上架时刻
-	ModifyAt  int64 `form:"modify_at" json:"modify_at,omitempty"`   //最后修改时间
 }
 
 func (GeneralProduct) TableName() string {

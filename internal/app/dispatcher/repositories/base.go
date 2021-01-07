@@ -37,7 +37,7 @@ type LianmiRepository interface {
 	AddRole(role *models.Role) (err error)
 
 	//删除用户
-	DeleteUser(id uint64) bool
+	DeleteUser(id uint) bool
 
 	// 根据UserName获取用户角色
 	GetUserRoles(where interface{}) []*models.Role

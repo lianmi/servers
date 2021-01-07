@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"time"
 )
 
 /*
@@ -13,9 +13,8 @@ import (
 Three->Two-One->User
 */
 type Distribution struct {
-	ID                 uint64 `form:"id" json:"id,omitempty"`
-	CreatedAt          int64  `form:"created_at" json:"created_at,omitempty"`          //创建时刻,毫秒
-	UpdatedAt          int64  `form:"updated_at" json:"updated_at,omitempty"`          //修改时间
+	global.LMC_Model
+
 	Username           string `gorm:"primarykey" json:"username"  validate:"required"` //用户注册账号id
 	BusinessUsername   string `json:"business_username"  validate:"required"`          //归属的商户注册账号id
 	UsernameLevelOne   string `json:"username_level_one" `                             //向后的一级
@@ -43,14 +42,14 @@ Commission:  One:35, Two:10, Three: 5
  alter table `commissions` drop column `year_month`;
 */
 type Commission struct {
-	CreatedAt        int64   `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
-	UpdatedAt        int64   `form:"updated_at" json:"updated_at,omitempty"` //修改时间
-	YearMonth        string  `json:"year_month" validate:"required"`         //统计月份
-	UsernameLevel    string  `json:"username_level" validate:"required"`     //One Two Three
-	BusinessUsername string  `json:"business_username" validate:"required"`  //归属的商户注册账号id
-	Amount           float64 `json:"amount" validate:"required"`             //会员费用金额，单位是人民币
-	OrderID          string  `json:"order_id" validate:"required"`           //订单ID
-	Commission       float64 `json:"commission" validate:"required"`         //本次佣金提成金额，人民币
+	global.LMC_Model
+
+	YearMonth        string  `json:"year_month" validate:"required"`        //统计月份
+	UsernameLevel    string  `json:"username_level" validate:"required"`    //One Two Three
+	BusinessUsername string  `json:"business_username" validate:"required"` //归属的商户注册账号id
+	Amount           float64 `json:"amount" validate:"required"`            //会员费用金额，单位是人民币
+	OrderID          string  `json:"order_id" validate:"required"`          //订单ID
+	Commission       float64 `json:"commission" validate:"required"`        //本次佣金提成金额，人民币
 }
 
 //BeforeCreate CreatedAt赋值
@@ -70,8 +69,8 @@ func (c *Commission) BeforeUpdate(tx *gorm.DB) error {
 利用复合主键（联合主键） username 及 year_month 控制Save方法, 这条数据如果在数据库中存在，就做更新操作；如果不存在就做插入操作。
 */
 type CommissionStatistics struct {
-	CreatedAt       int64   `form:"created_at" json:"created_at,omitempty"`           //创建时刻,毫秒
-	UpdatedAt       int64   `form:"updated_at" json:"updated_at,omitempty"`           //修改时间
+	global.LMC_Model
+
 	Username        string  `gorm:"primarykey" json:"username" validate:"required"`   //用户户注册账号id
 	YearMonth       string  `gorm:"primarykey" json:"year_month" validate:"required"` //统计月份
 	TotalCommission float64 `json:"total_commission" validate:"required"`             //本月佣金合计
@@ -96,9 +95,7 @@ func (n *CommissionStatistics) BeforeUpdate(tx *gorm.DB) error {
 一旦归属于某个商户的用户被推荐注册，就增加一条记录
 */
 type BusinessUnderling struct {
-	ID        uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"` //自动递增id
-	CreatedAt int64  `form:"created_at" json:"created_at,omitempty"`   //创建时刻,毫秒
-	UpdatedAt int64  `form:"updated_at" json:"updated_at,omitempty"`   //修改时间
+	global.LMC_Model
 
 	MembershipUsername string `json:"membership_username" validate:"required"` //会员账户
 	BusinessUsername   string `json:"business_username" validate:"required"`   //归属的商户注册账号id
@@ -122,11 +119,11 @@ func (bc *BusinessUnderling) BeforeUpdate(tx *gorm.DB) error {
 (统计BusinessUnderling表的某个商户的每月会员的数量)
 */
 type BusinessUserStatistics struct {
-	CreatedAt        int64  `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
-	UpdatedAt        int64  `form:"updated_at" json:"updated_at,omitempty"` //修改时间
-	BusinessUsername string `json:"business_username" validate:"required"`  //商户注册账号id
-	YearMonth        string `json:"year_month" validate:"required"`         //统计月份
-	UnderlingTotal   int64  `json:"underling_total" validate:"required"`    //下属用户总数
+	global.LMC_Model
+
+	BusinessUsername string `json:"business_username" validate:"required"` //商户注册账号id
+	YearMonth        string `json:"year_month" validate:"required"`        //统计月份
+	UnderlingTotal   int64  `json:"underling_total" validate:"required"`   //下属用户总数
 }
 
 //BeforeCreate CreatedAt赋值
@@ -146,9 +143,9 @@ func (b *BusinessUserStatistics) BeforeUpdate(tx *gorm.DB) error {
 佣金由经过申请，由平台转账到用户或商户钱包
 */
 type CommissionWithdraw struct {
+	global.LMC_Model
+
 	Username           string  `json:"username" validate:"required"`                  //用户或商户注册账号id
-	CreatedAt          int64   `form:"created_at" json:"created_at,omitempty"`        //创建时刻,毫秒
-	UpdatedAt          int64   `form:"updated_at" json:"updated_at,omitempty"`        //修改时间
 	UserType           int     `form:"user_type" json:"user_type" binding:"required"` //用户类型 1-普通，2-商户
 	YearMonth          string  `json:"year_month" validate:"required"`                //统计月份
 	WithdrawCommission float64 `json:"withdraw_commission,omitempty"`                 //佣金提现金额

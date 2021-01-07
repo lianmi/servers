@@ -1,9 +1,9 @@
 package models
 
 import (
-	"time"
-
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"time"
 )
 
 //redis里订单数据
@@ -24,8 +24,7 @@ type OrderInfo struct {
 服务端的订单图片上链历史表
 */
 type OrderImagesHistory struct {
-	CreatedAt int64 `form:"created_at" json:"created_at,omitempty"` //创建时刻,毫秒
-	UpdatedAt int64 `form:"updated_at" json:"updated_at,omitempty"` //更新时刻,毫秒
+	global.LMC_Model
 
 	OrderID          string  `gorm:"primarykey" json:"order_id"`            //订单ID
 	ProductID        string  ` json:"product_id"`                           //商品ID

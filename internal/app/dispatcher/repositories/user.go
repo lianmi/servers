@@ -228,7 +228,6 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 			return err
 		}
 		pTeam := new(models.Team)
-		pTeam.CreatedAt = time.Now().UnixNano() / 1e6
 		pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
 		pTeam.Teamname = fmt.Sprintf("team%d", newTeamIndex)
 		pTeam.Nick = fmt.Sprintf("%s的群", user.Nick)
@@ -590,14 +589,17 @@ func (s *MysqlLianmiRepository) AddRole(role *models.Role) (err error) {
 	}
 }
 
-func (s *MysqlLianmiRepository) DeleteUser(id uint64) bool {
+func (s *MysqlLianmiRepository) DeleteUser(id uint) bool {
 	//采用事务同时删除用户和相应的用户角色
 	var (
-		userWhere = models.User{ID: id}
+		userWhere = models.User{}
 		user      models.User
-		roleWhere = models.Role{UserID: id}
+		roleWhere = models.Role{}
 		role      models.Role
 	)
+	userWhere.ID = id
+	roleWhere.UserID = id
+
 	tx := s.base.GetTransaction()
 	tx.Where(&roleWhere).Delete(&role)
 	if err := tx.Where(&userWhere).Delete(&user).Error; err != nil {

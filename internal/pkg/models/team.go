@@ -1,18 +1,17 @@
 package models
 
 import (
-	"time"
-
+	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"time"
 
 	"github.com/lianmi/servers/api/proto/team"
 )
 
 //定义群组的数据结构
 type Team struct {
-	ID           uint64 `gorm:"primarykey" form:"id" json:"id,omitempty"`                         //自动递增id
-	CreatedAt    int64  `form:"created_at" json:"created_at,omitempty"`                            //创建时刻
-	UpdatedAt    int64  `form:"updated_at" json:"updated_at,omitempty"`                            //更新时刻
+	global.LMC_Model
+
 	TeamID       string `form:"team_id" json:"team_id" `                                           //群id，自动生成，字母(team) + 数字
 	Teamname     string `form:"teamname" json:"teamname" `                                         //群名
 	Nick         string `json:"nick" validate:"required"`                                          //群呢称，必填

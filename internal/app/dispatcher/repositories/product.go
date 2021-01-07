@@ -87,8 +87,6 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 			DiscountDesc:      product.DiscountDesc,              //折扣说明
 			DiscountStartTime: uint64(product.DiscountStartTime), //折扣开始时间
 			DiscountEndTime:   uint64(product.DiscountEndTime),   //折扣结束时间
-			CreateAt:          uint64(product.CreatedAt),         //创建时间
-			ModifyAt:          uint64(product.ModifyAt),          //最后修改时间
 			AllowCancel:       product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 		}
 
@@ -222,8 +220,6 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 		DiscountDesc:      product.DiscountDesc,              //折扣说明
 		DiscountStartTime: uint64(product.DiscountStartTime), //折扣开始时间
 		DiscountEndTime:   uint64(product.DiscountEndTime),   //折扣结束时间
-		CreateAt:          uint64(product.CreatedAt),         //创建时间
-		ModifyAt:          uint64(product.ModifyAt),          //最后修改时间
 		AllowCancel:       product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 	}
 
