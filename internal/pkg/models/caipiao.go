@@ -9,6 +9,7 @@ import (
 //各个彩种的销售开始及最后截止时间
 type LotterySaleTime struct {
 	global.LMC_Model
+
 	LotteryType   int    `json:"lotteryType" form:"lotteryType" gorm:"column:lottery_type;comment:;type:bigint;size:19;"`                             //彩票种类
 	LotteryName   string `json:"lotteryName" form:"lotteryName" gorm:"column:lottery_name;comment:;type:varchar(191);size:191;"`                      //彩票名称
 	SaleStartWeek string `json:"saleStartWeek" form:"saleStartWeek" gorm:"column:sale_start_week;comment:星期几开始， 以半角逗号隔开;type:varchar(191);size:191;"` //销售开始 是 星期几，用逗号隔开, 如: 2, 4, 7

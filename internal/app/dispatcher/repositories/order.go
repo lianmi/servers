@@ -160,3 +160,5 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 	}
 	return nil, nil
 }
+
+

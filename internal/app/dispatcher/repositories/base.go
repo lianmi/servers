@@ -216,6 +216,9 @@ type LianmiRepository interface {
 
 	//查询VIP会员价格表
 	GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error)
+
+	//获取各种彩票的开售及停售时刻
+	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 }
 
 type MysqlLianmiRepository struct {

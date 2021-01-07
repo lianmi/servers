@@ -581,3 +581,45 @@ func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) erro
 	}
 	return nil
 }
+
+//获取各种彩票的开售及停售时刻
+func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
+	var err error
+	lotterySaleTimesRsp := &Order.QueryLotterySaleTimesRsp{}
+
+	var lotterySaleTimes []*models.LotterySaleTime
+
+	isActive := new(bool)
+	*isActive = true
+
+	where := models.LotterySaleTime{
+		IsActive: isActive,
+	}
+	db2 := s.db
+	db2, err = s.base.BuildWhere(db2, where)
+	if err != nil {
+		s.logger.Error("BuildWhere错误", zap.Error(err))
+		return nil, err
+	}
+
+	db2.Find(&lotterySaleTimes)
+
+	for _, lotterySaleTime := range lotterySaleTimes {
+
+		orderLotterySaleTime := &Order.LotterySaleTime{
+			LotteryType:   int32(lotterySaleTime.LotteryType),
+			LotteryName:   lotterySaleTime.LotteryName,
+			SaleStartTime: lotterySaleTime.LotteryName,
+			SaleEndTime:   lotterySaleTime.LotteryName,
+		}
+		orderLotterySaleTime.SaleStartWeeks = strings.Split(lotterySaleTime.SaleStartWeek, ",")
+		orderLotterySaleTime.SaleEndWeeks = strings.Split(lotterySaleTime.SaleEndWeek, ",")
+		orderLotterySaleTime.Holidays = strings.Split(lotterySaleTime.Holidays, ",")
+
+		lotterySaleTimesRsp.LotterySaleTimes = append(lotterySaleTimesRsp.LotterySaleTimes, orderLotterySaleTime)
+
+	}
+
+	return lotterySaleTimesRsp, nil
+
+}

@@ -189,7 +189,7 @@ type LianmiApisService interface {
 	AlipayDone(ctx context.Context, outTradeNo string) error
 
 	//获取各种彩票的开售及停售时刻
-	QueryLotterySaleTimes() error
+	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -749,7 +749,6 @@ func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPri
 }
 
 //获取各种彩票的开售及停售时刻
-func (s *DefaultLianmiApisService) QueryLotterySaleTimes() error {
-	//return s.Repository.QueryLotterySaleTimes()
-	return nil
+func (s *DefaultLianmiApisService) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
+	return s.Repository.QueryLotterySaleTimes()
 }
