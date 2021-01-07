@@ -248,7 +248,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	}
 
 	columns := []string{"*"}
-	orderBy := "updated_at desc"
+	orderBy := "id desc"
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
