@@ -2,12 +2,12 @@ package global
 
 import (
 	"gorm.io/gorm"
-	"time"
+	// "time"
 )
 
 type LMC_Model struct {
 	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt int64
+	UpdatedAt int64
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
