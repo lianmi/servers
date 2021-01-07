@@ -92,7 +92,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			zap.Uint64("TimeAt", req.TimeAt),
 		)
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -348,7 +348,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -605,7 +605,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -816,7 +816,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -962,7 +962,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -1222,7 +1222,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -1236,7 +1236,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		}
 
 		//从redis里获取目标商户的信息
-		businessUserData := new(models.User)
+		businessUserData := new(models.UserBase)
 		userKey = fmt.Sprintf("userData:%s", req.UserName)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
@@ -1719,7 +1719,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -1745,7 +1745,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//从redis里获取目标商户的信息
-		businessUserData := new(models.User)
+		businessUserData := new(models.UserBase)
 		userKey = fmt.Sprintf("userData:%s", req.To)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
@@ -2194,7 +2194,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		)
 
 		//从redis里获取买家信息
-		buyerData := new(models.User)
+		buyerData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", buyUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, buyerData); err != nil {
@@ -2215,7 +2215,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//从redis里获取商户的信息
-		businessUserData := new(models.User)
+		businessUserData := new(models.UserBase)
 		userKey = fmt.Sprintf("userData:%s", businessUser)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, businessUserData); err != nil {
@@ -2713,7 +2713,7 @@ func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//从redis里获取当前用户信息
-	userData := new(models.User)
+	userData := new(models.UserBase)
 	userKey := fmt.Sprintf("userData:%s", username)
 	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 		if err := redis.ScanStruct(result, userData); err != nil {

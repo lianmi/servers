@@ -9,16 +9,13 @@ import (
 )
 
 //定义群组的数据结构
-type Team struct {
-	global.LMC_Model
-
+type TeamInfo struct {
 	TeamID       string `form:"team_id" json:"team_id" `                                           //群id，自动生成，字母(team) + 数字
 	Teamname     string `form:"teamname" json:"teamname" `                                         //群名
 	Nick         string `json:"nick" validate:"required"`                                          //群呢称，必填
 	Icon         string `form:"icon" json:"icon,omitempty"`                                        //群头像url
 	Announcement string `form:"announcement" json:"announcement,omitempty" `                       //群公告
 	Introductory string `gorm:"type:text;null" form:"introductory" json:"introductory,omitempty" ` // Text文本类型
-	Deleted      int    `form:"deteled" json:"deteled"`                                            //软删除开关
 	Status       int    `form:"status" json:"status"`                                              //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
 	Extend       string `form:"extend" json:"extend,omitempty" `                                   //扩展字段
 	Owner        string `form:"owner" json:"owner,omitempty" `                                     //群主账号id
@@ -30,6 +27,11 @@ type Team struct {
 	MuteType     int    `form:"mute_type" json:"mute_type,omitempty" `                             //禁言类型
 	Ex           string `form:"ex" json:"ex,omitempty" `                                           //JSON扩展字段,由业务方解析
 	ModifiedBy   string `form:"modified_by" json:"modified_by,omitempty"`                          //最后由哪个操作员修改
+}
+type Team struct {
+	global.LMC_Model
+
+	TeamInfo
 }
 
 //BeforeCreate CreatedAt赋值
@@ -44,14 +46,14 @@ func (t *Team) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-func (t *Team) GetType() team.TeamMemberType {
+func (t *TeamInfo) GetType() team.TeamMemberType {
 	return team.TeamMemberType(t.Type)
 }
 
-func (t *Team) GetVerifyType() team.VerifyType {
+func (t *TeamInfo) GetVerifyType() team.VerifyType {
 	return team.VerifyType(t.VerifyType)
 }
 
-func (t *Team) GetInviteMode() team.InviteMode {
+func (t *TeamInfo) GetInviteMode() team.InviteMode {
 	return team.InviteMode(t.InviteMode)
 }

@@ -84,12 +84,12 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 			//先从Redis里读取，不成功再从 MySQL里读取
 			userKey := fmt.Sprintf("userData:%s", username)
 
-			userData := new(models.User)
+			userBaseData := new(models.UserBase)
 
 			isExists, _ := redis.Bool(redisConn.Do("EXISTS", userKey))
 			if isExists {
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-					if err := redis.ScanStruct(result, userData); err != nil {
+					if err := redis.ScanStruct(result, userBaseData); err != nil {
 
 						nc.logger.Error("错误：ScanStruct", zap.Error(err))
 						continue
@@ -98,34 +98,65 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				}
 			} else {
 				nc.logger.Debug("尝试从 MySQL里读取")
+				pUser := new(models.User)
 
-				if err = nc.db.Model(userData).Where(&models.User{
-					Username: username,
-				}).First(userData).Error; err != nil {
+				if err = nc.db.Model(pUser).Where(&models.User{
+					UserBase: models.UserBase{
+						Username: username,
+					},
+				}).First(pUser).Error; err != nil {
 					nc.logger.Error("MySQL里读取错误, 可能记录不存在", zap.Error(err))
 					continue
 				}
+				userBaseData.Username = pUser.Username
+				userBaseData.Password = pUser.Password
+				userBaseData.Nick = pUser.Nick
+				userBaseData.Gender = pUser.Gender
+				userBaseData.Avatar = pUser.Avatar
+				userBaseData.Label = pUser.Label
+				userBaseData.Mobile = pUser.Mobile
+				userBaseData.Email = pUser.Email
+				userBaseData.AllowType = pUser.AllowType
+				userBaseData.UserType = pUser.UserType
+				userBaseData.BankCard = pUser.BankCard
+				userBaseData.Bank = pUser.Bank
+				userBaseData.TrueName = pUser.TrueName
+				userBaseData.Province = pUser.Province
+				userBaseData.City = pUser.City
+				userBaseData.County = pUser.County
+				userBaseData.Street = pUser.Street
+				userBaseData.Address = pUser.Address
+				userBaseData.State = pUser.State
+				userBaseData.Extend = pUser.Extend
+				userBaseData.ContactPerson = pUser.ContactPerson
+				userBaseData.ReferrerUsername = pUser.ReferrerUsername
+				userBaseData.BelongBusinessUser = pUser.BelongBusinessUser
+				userBaseData.CreatedBy = pUser.CreatedBy
+				userBaseData.ModifiedBy = pUser.ModifiedBy
+				userBaseData.ModifiedBy = pUser.ModifiedBy
+				userBaseData.VipEndDate = pUser.VipEndDate
+				userBaseData.ECouponCardUsed = pUser.ECouponCardUsed
 
 				//将数据写入redis，以防下次再从MySQL里读取, 如果错误也不会终止
-				if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(userData)...); err != nil {
+				if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(pUser.UserBase)...); err != nil {
 					nc.logger.Error("错误：HMSET", zap.Error(err))
 				}
 			}
 
 			user := &User.User{
-				Username:      userData.Username,
-				Nick:          userData.Nick,
-				Gender:        userData.GetGender(),
-				Avatar:        userData.Avatar,
-				Label:         userData.Label,
-				UserType:      User.UserType(userData.UserType),
-				State:         User.UserState(userData.State),
-				ContactPerson: userData.ContactPerson,
-				Province:      userData.Province,
-				City:          userData.City,
-				County:        userData.County,
-				Street:        userData.Street,
-				Address:       userData.Address,
+				Username:      userBaseData.Username,
+				Nick:          userBaseData.Nick,
+				Gender:        userBaseData.GetGender(),
+				Avatar:        userBaseData.Avatar,
+				Label:         userBaseData.Label,
+				UserType:      User.UserType(userBaseData.UserType),
+				State:         User.UserState(userBaseData.State),
+				ContactPerson: userBaseData.ContactPerson,
+				Province:      userBaseData.Province,
+				City:          userBaseData.City,
+				County:        userBaseData.County,
+				Street:        userBaseData.Street,
+				Address:       userBaseData.Address,
 			}
 
 			rsp.Users = append(rsp.Users, user)
@@ -374,14 +405,17 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		userData := new(models.User)
 
 		if err = nc.db.Model(userData).Where(&models.User{
-			Username: username,
+			UserBase: models.UserBase{
+				Username: username,
+			},
 		}).First(userData).Error; err != nil {
 			nc.logger.Error("MySQL里读取错误", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Query user error[username=%s]", username)
 			goto COMPLETE
 		}
-		if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(userData)...); err != nil {
+
+		if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(userData.UserBase)...); err != nil {
 			nc.logger.Error("错误：HMSET", zap.Error(err))
 		} else {
 			nc.logger.Debug("刷新Redis的用户数据成功", zap.String("username", username))
@@ -554,10 +588,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 		//修改的用户
 		account := req.GetUsername()
-		accountData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", account)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, accountData); err != nil {
+			if err := redis.ScanStruct(result, userData); err != nil {
 
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误

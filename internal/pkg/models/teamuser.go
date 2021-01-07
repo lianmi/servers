@@ -13,9 +13,7 @@ CREATE TABLE `tuser` (`teamid` TEXT NOT NULL, `account` TEXT NOT NULL, `avatar` 
 */
 
 //定义群用户的数据结构
-type TeamUser struct {
-	global.LMC_Model
-
+type TeamUserInfo struct {
 	JoinAt          int64  `form:"join_at" json:"join_at,omitempty"`                     //入群时间，unix时间戳
 	TeamID          string `form:"team_id" json:"team_id" binding:"required"`            //群组id， 以team开头
 	Teamname        string `form:"team_name" json:"team_name" binding:"required"`        //群组名， 中英文
@@ -32,16 +30,27 @@ type TeamUser struct {
 	NotifyType      int    `form:"notify_type" json:"notify_type,omitempty" `            //群消息通知类型 1-群全部消息提醒 2-管理员消息提醒 3-联系人提醒 4-所有消息均不提醒
 }
 
+type TeamUser struct {
+	global.LMC_Model
+	TeamUserInfo
+}
+
+//BeforeCreate CreatedAt赋值
+func (t *TeamUser) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
 //BeforeUpdate UpdatedAt赋值
 func (t *TeamUser) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
-func (t *TeamUser) GetType() team.TeamMemberType {
+func (t *TeamUserInfo) GetType() team.TeamMemberType {
 	return team.TeamMemberType(t.TeamMemberType)
 }
 
-func (t *TeamUser) GetNotifyType() team.NotifyType {
+func (t *TeamUserInfo) GetNotifyType() team.NotifyType {
 	return team.NotifyType(t.NotifyType)
 }

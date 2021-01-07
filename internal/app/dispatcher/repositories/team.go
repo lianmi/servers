@@ -27,7 +27,9 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	p := new(models.Team)
 
 	if err = s.db.Model(p).Where(&models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}).First(p).Error; err != nil {
 		return errors.Wrapf(err, "Get team info error[teamID=%s]", teamID)
 	}
@@ -65,7 +67,9 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	//将Status变为 Normal(2) - 正常状态
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}).Update("status", 2)
 
 	//updated records count
@@ -204,7 +208,9 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}).Update("status", 3) //将Status变为 3
 
 	//updated records count
@@ -222,7 +228,9 @@ func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 //解封群组
 func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}).Update("status", 2) //将Status变为 2
 
 	//updated records count
@@ -239,7 +247,9 @@ func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 //保存禁言的值，用于设置群禁言或解禁
 func (s *MysqlLianmiRepository) UpdateTeamMute(teamID string, muteType int) error {
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}).Update("mute_type", muteType) //修改MuteType
 
 	//updated records count
@@ -278,7 +288,11 @@ func (s *MysqlLianmiRepository) UpdateTeamUser(pTeamUser *models.TeamUser) error
 		return errors.New("pTeamUser is nil")
 	}
 
-	where := models.TeamUser{TeamID: pTeamUser.TeamID}
+	where := models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID: pTeamUser.TeamID,
+		},
+	}
 	// 同时更新多个字段
 	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(pTeamUser)
 
@@ -300,10 +314,17 @@ func (s *MysqlLianmiRepository) UpdateTeamUser(pTeamUser *models.TeamUser) error
 //解除群成员的禁言
 func (s *MysqlLianmiRepository) SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error {
 
-	where := models.TeamUser{TeamID: teamID, Username: dissMuteUser}
+	where := models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID:   teamID,
+			Username: dissMuteUser,
+		},
+	}
 	result := s.db.Model(&models.TeamUser{}).Where(&where).Updates(models.TeamUser{
-		IsMute:   isMute,
-		Mutedays: mutedays,
+		TeamUserInfo: models.TeamUserInfo{
+			IsMute:   isMute,
+			Mutedays: mutedays,
+		},
 	})
 
 	//updated records count
@@ -323,7 +344,12 @@ func (s *MysqlLianmiRepository) SetMuteTeamUser(teamID, dissMuteUser string, isM
 
 //删除群成员
 func (s *MysqlLianmiRepository) DeleteTeamUser(teamID, username string) error {
-	where := models.TeamUser{TeamID: teamID, Username: username}
+	where := models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID:   teamID,
+			Username: username,
+		},
+	}
 	db2 := s.db.Where(&where).Delete(models.TeamUser{})
 	err := db2.Error
 	if err != nil {
@@ -357,7 +383,11 @@ func (s *MysqlLianmiRepository) GetPages(model interface{}, out interface{}, pag
 //分页获取群成员
 func (s *MysqlLianmiRepository) GetTeamUsers(teamID string, PageNum int, PageSize int, total *int64, where interface{}) []*models.TeamUser {
 	var teamUsers []*models.TeamUser
-	if err := s.GetPages(&models.TeamUser{TeamID: teamID}, &teamUsers, PageNum, PageSize, total, where); err != nil {
+	if err := s.GetPages(&models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID: teamID,
+		},
+	}, &teamUsers, PageNum, PageSize, total, where); err != nil {
 		s.logger.Error("获取群成员信息失败", zap.Error(err))
 	}
 	return teamUsers
@@ -387,7 +417,9 @@ func (s *MysqlLianmiRepository) CreateTeam(pTeam *models.Team) error {
 func (s *MysqlLianmiRepository) UpdateTeam(teamID string, pTeam *models.Team) error {
 
 	where := models.Team{
-		TeamID: teamID,
+		TeamInfo: models.TeamInfo{
+			TeamID: teamID,
+		},
 	}
 	// 同时更新多个字段
 	result := s.db.Model(&models.Team{}).Where(&where).Select("nick", "icon", "announcement", "introductory", "verify_type", "invite_mode").Updates(pTeam)

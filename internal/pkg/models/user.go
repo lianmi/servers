@@ -22,9 +22,7 @@ import (
 )
 
 //定义用户的数据结构, id+ Username 构成复合主键 , Mobile 是唯一索引
-type User struct {
-	global.LMC_Model
-
+type UserBase struct {
 	Username           string `gorm:"primarykey" json:"username" `                                 //用户注册号，自动生成，字母 + 数字
 	Password           string `json:"password" validate:"required"`                                //用户密码，md5加密
 	Nick               string `json:"nick" validate:"required"`                                    //用户呢称，必填
@@ -43,7 +41,6 @@ type User struct {
 	County             string `form:"county" json:"county,omitempty" `                             //区，如天河区
 	Street             string `form:"street" json:"street,omitempty" `                             //街道
 	Address            string `form:"address" json:"address,omitempty" `                           //地址
-	Deleted            int    `form:"deleted" json:"deleted"`                                      //软删除开关
 	State              int    `form:"state" json:"state"`                                          //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 	Extend             string `form:"extend" json:"extend,omitempty" `                             //扩展字段
 	ContactPerson      string `form:"contact_person" json:"contact_person" binding:"required"`     //联系人
@@ -53,6 +50,12 @@ type User struct {
 	ModifiedBy         string `form:"modified_by" json:"modified_by,omitempty"`                    //最后由哪个操作员修改
 	VipEndDate         int64  `form:"vip_end_date" json:"vip_end_date,omitempty"`                  //VIP用户到期时间
 	ECouponCardUsed    bool   `form:"ecoupon_card_used" json:"ecoupon_card_used,omitempty"`        //VIP7天体验卡
+}
+
+type User struct {
+	global.LMC_Model
+
+	UserBase
 }
 
 //BeforeCreate CreatedAt赋值
@@ -74,14 +77,14 @@ type UserRole struct {
 	UserRoles []*Role
 }
 
-func (user *User) GetGender() PbUser.Gender {
+func (user *UserBase) GetGender() PbUser.Gender {
 	return PbUser.Gender(user.Gender)
 }
 
-func (user *User) GetAllowType() PbUser.AllowType {
+func (user *UserBase) GetAllowType() PbUser.AllowType {
 	return PbUser.AllowType(user.AllowType)
 }
 
-func (user *User) GetUserType() PbUser.UserType {
+func (user *UserBase) GetUserType() PbUser.UserType {
 	return PbUser.UserType(user.UserType)
 }

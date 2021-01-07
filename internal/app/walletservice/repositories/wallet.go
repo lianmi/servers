@@ -812,7 +812,9 @@ func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) er
 	user.State = 1 //1-Vip用户
 
 	where := models.User{
-		Username: username,
+		UserBase: models.UserBase{
+			Username: username,
+		},
 	}
 
 	// 同时更新多个字段

@@ -36,7 +36,9 @@ func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err er
 	p = new(models.User)
 
 	if err = s.db.Model(p).Where(&models.User{
-		Username: username,
+		UserBase: models.UserBase{
+			Username: username,
+		},
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "Get user error[Username=%s]", username)
@@ -79,7 +81,9 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 	defer redisConn.Close()
 
 	result := s.db.Model(&models.User{}).Where(&models.User{
-		Username: username,
+		UserBase: models.UserBase{
+			Username: username,
+		},
 	}).Update("status", 2) //将Status变为 2, 1-正常， 2-封号
 
 	//updated records count
@@ -129,7 +133,9 @@ func (s *MysqlLianmiRepository) BlockUser(username string) (err error) {
 func (s *MysqlLianmiRepository) DisBlockUser(username string) (err error) {
 
 	result := s.db.Model(&models.User{}).Where(&models.User{
-		Username: username,
+		UserBase: models.UserBase{
+			Username: username,
+		},
 	}).Update("status", 1) //将Status变为 1, 1-正常， 2-封号
 
 	//updated records count
@@ -255,7 +261,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 
 	//将用户信息缓存到redis里
 	userKey := fmt.Sprintf("userData:%s", user.Username)
-	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user)...); err != nil {
+	if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
 		s.logger.Error("错误：HMSET", zap.Error(err))
 	}
 
@@ -290,7 +296,9 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 	defer redisConn.Close()
 
 	if err = s.db.Model(user).Where(&models.User{
-		Mobile: mobile,
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
 	}).First(user).Error; err != nil {
 		//记录不存在错误(RecordNotFound)，返回false
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -300,7 +308,9 @@ func (s *MysqlLianmiRepository) ResetPassword(mobile, password string, user *mod
 	}
 
 	result := s.db.Model(&models.User{}).Where(&models.User{
-		Mobile: mobile,
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
 	}).Update("password", password) //替换旧密码
 
 	//updated records count
@@ -363,7 +373,11 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	where := models.User{Username: username}
+	where := models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}
 	var user models.User
 
 	err = s.db.Model(&models.User{}).Where(&where).First(&user).Error
@@ -615,7 +629,11 @@ func (s *MysqlLianmiRepository) DeleteUser(id uint) bool {
 func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 	var user models.User
 
-	where := models.User{Username: username}
+	where := models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}
 
 	err := s.db.Model(&models.User{}).Where(&where).First(&user).Error
 	if err != nil {
@@ -635,7 +653,11 @@ func (s *MysqlLianmiRepository) ExistUserByName(username string) bool {
 // 判断手机号码是否已存在
 func (s *MysqlLianmiRepository) ExistUserByMobile(mobile string) bool {
 	var user models.User
-	where := models.User{Mobile: mobile}
+	where := models.User{
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
+	}
 
 	err := s.db.Model(&models.User{}).Where(&where).First(&user).Error
 	if err != nil {
@@ -901,7 +923,9 @@ func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, erro
 	p := new(models.User)
 
 	if err = s.db.Model(p).Where(&models.User{
-		Mobile: mobile,
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
 	}).First(p).Error; err != nil {
 		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
 		return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
@@ -943,7 +967,9 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 //修改用户资料
 func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) error {
 	where := models.User{
-		Username: username,
+		UserBase: models.UserBase{
+			Username: username,
+		},
 	}
 	// 同时更新多个字段
 	result := s.db.Model(&models.User{}).Where(&where).Updates(user)

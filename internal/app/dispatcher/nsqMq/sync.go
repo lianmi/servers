@@ -67,7 +67,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 	if cur_myInfoAt > myInfoAt {
 		//构造SyncUserProfileEventRsp
 		//先从Redis里读取
-		userData := new(models.User)
+		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
@@ -331,7 +331,7 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		}
 		for _, fuser := range fUsers {
 
-			fUserData := new(models.User)
+			fUserData := new(models.UserBase)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("userData:%s", fuser))); err == nil {
 				if err := redis.ScanStruct(result, fUserData); err != nil {
 

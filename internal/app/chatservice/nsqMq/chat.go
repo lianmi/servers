@@ -100,7 +100,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				Msg.MessageType_MsgType_Bin,    // 二进制
 				Msg.MessageType_MsgType_Secret: //加密类型
 
-				userData := new(models.User)
+				userData := new(models.UserBase)
 				userKey := fmt.Sprintf("userData:%s", username)
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
@@ -120,7 +120,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				}
 
 				//判断toUser的合法性以及是否封禁等
-				toUserData := new(models.User)
+				toUserData := new(models.UserBase)
 				toUserKey := fmt.Sprintf("userData:%s", toUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", toUserKey)); err == nil {
 					if err := redis.ScanStruct(result, toUserData); err != nil {
@@ -272,7 +272,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				toUser = teamMember
 
 				//判断toUser的合法性以及是否封禁等
-				userData := new(models.User)
+				userData := new(models.UserBase)
 				userKey := fmt.Sprintf("userData:%s", toUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 					if err := redis.ScanStruct(result, userData); err != nil {
@@ -333,7 +333,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 			nc.logger.Debug("MessageScene_MsgScene_P2P", zap.String("toUser", toUser))
 			//判断toUser的合法性以及是否封禁等
-			userData := new(models.User)
+			userData := new(models.UserBase)
 			userKey := fmt.Sprintf("userData:%s", toUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 				if err := redis.ScanStruct(result, userData); err != nil {

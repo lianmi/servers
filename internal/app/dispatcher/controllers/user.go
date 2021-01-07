@@ -127,19 +127,21 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			avatar = userReq.Avatar //oss  objid形式的字符串
 		}
 		user := models.User{
-			Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
-			Password:         userReq.Password,         //用户密码，md5加密
-			Nick:             userReq.Nick,             //用户呢称，必填
-			Gender:           int(userReq.Gender),      //性别
-			Avatar:           avatar,                   //头像url
-			Label:            userReq.Label,            //签名标签
-			Mobile:           userReq.Mobile,           //注册手机
-			Email:            userReq.Email,            //密保邮件，需要发送校验邮件确认
-			AllowType:        3,                        //用户加好友枚举，默认是3
-			UserType:         int(userReq.UserType),    //用户类型 1-普通，2-商户
-			State:            0,                        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-			ContactPerson:    userReq.ContactPerson,    //联系人
-			ReferrerUsername: userReq.ReferrerUsername, //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
+			UserBase: models.UserBase{
+				Username:         userReq.Username,         //用户注册号，自动生成，字母 + 数字
+				Password:         userReq.Password,         //用户密码，md5加密
+				Nick:             userReq.Nick,             //用户呢称，必填
+				Gender:           int(userReq.Gender),      //性别
+				Avatar:           avatar,                   //头像url
+				Label:            userReq.Label,            //签名标签
+				Mobile:           userReq.Mobile,           //注册手机
+				Email:            userReq.Email,            //密保邮件，需要发送校验邮件确认
+				AllowType:        3,                        //用户加好友枚举，默认是3
+				UserType:         int(userReq.UserType),    //用户类型 1-普通，2-商户
+				State:            0,                        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+				ContactPerson:    userReq.ContactPerson,    //联系人
+				ReferrerUsername: userReq.ReferrerUsername, //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
+			},
 		}
 
 		if userName, err := pc.service.Register(&user); err == nil {

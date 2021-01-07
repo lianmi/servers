@@ -33,7 +33,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 	defer redisConn.Close()
 
 	//判断商户的注册id的合法性以及是否封禁等
-	userData := new(models.User)
+	userData := new(models.UserBase)
 
 	userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
 	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
@@ -365,7 +365,7 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	defer redisConn.Close()
 
 	//判断商户的注册id的合法性以及是否封禁等
-	userData := new(models.User)
+	userData := new(models.UserBase)
 
 	userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
 	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
