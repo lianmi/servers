@@ -1063,7 +1063,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 
 			}
-			
+
 			//刷新接收者redis里的代币数量
 			toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 			redisConn.Do("HSET",

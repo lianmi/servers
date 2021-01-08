@@ -298,8 +298,9 @@ func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *mod
 //9-11，为某个订单支付，查询出对应的记录，然后更新 orderID, 将State修改为1
 //确认转账后，更新转账历史记录
 func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *models.LnmcTransferHistory) (err error) {
-	where := models.LnmcTransferHistory{}
-	where.ID = lmncTransferHistory.ID
+	where := models.LnmcTransferHistory{
+		UUID: lmncTransferHistory.UUID,
+	}
 
 	result := m.db.Model(&models.LnmcTransferHistory{}).Where(&where).Updates(lmncTransferHistory)
 
