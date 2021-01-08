@@ -66,13 +66,13 @@ type LianmiApisService interface {
 
 	GetProductInfo(product string) (*Order.Product, error)
 
-	AddGeneralProduct(generalProduct *models.GeneralProduct) error
+	AddGeneralProduct(generalProductInfo *models.GeneralProductInfo) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
 	GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error)
 
-	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
+	UpdateGeneralProduct(generalProductInfo *models.GeneralProductInfo) error
 
 	DeleteGeneralProduct(productID string) bool
 
@@ -124,8 +124,14 @@ type LianmiApisService interface {
 	// 增加群成员资料
 	AddTeamUser(pTeamUser *models.TeamUser) error
 
-	// 修改群成员资料
-	UpdateTeamUser(pTeamUser *models.TeamUser) error
+	//设置群管理员s
+	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error
+
+	// 修改群成员呢称、扩展
+	UpdateTeamUserMyInfo(teamID, username, nick, ex string) error
+
+	//修改群通知方式
+	UpdateTeamUserNotifyType(teamID string, notifyType int) error
 
 	//解除禁言
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error
@@ -392,8 +398,8 @@ func (s *DefaultLianmiApisService) UpdateTeamMute(teamID string, muteType int) e
 }
 
 //======后台相关======/
-func (s *DefaultLianmiApisService) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
-	return s.Repository.AddGeneralProduct(generalProduct)
+func (s *DefaultLianmiApisService) AddGeneralProduct(generalProductInfo *models.GeneralProductInfo) error {
+	return s.Repository.AddGeneralProduct(generalProductInfo)
 
 }
 
@@ -416,9 +422,9 @@ func (s *DefaultLianmiApisService) GetGeneralProductPage(req *Order.GetGeneralPr
 }
 
 // 修改通用商品 - Update
-func (s *DefaultLianmiApisService) UpdateGeneralProduct(generalProduct *models.GeneralProduct) error {
+func (s *DefaultLianmiApisService) UpdateGeneralProduct(generalProductInfo *models.GeneralProductInfo) error {
 
-	return s.Repository.UpdateGeneralProduct(generalProduct)
+	return s.Repository.UpdateGeneralProduct(generalProductInfo)
 
 }
 
@@ -481,8 +487,18 @@ func (s *DefaultLianmiApisService) SubmitCommssionWithdraw(username, yearMonth s
 }
 
 // 修改群成员资料
-func (s *DefaultLianmiApisService) UpdateTeamUser(pTeamUser *models.TeamUser) error {
-	return s.Repository.UpdateTeamUser(pTeamUser)
+func (s *DefaultLianmiApisService) UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error {
+	return s.Repository.UpdateTeamUserManager(teamID, managerUsername, isAdd)
+}
+
+// 修改群成员呢称、扩展
+func (s *DefaultLianmiApisService) UpdateTeamUserMyInfo(teamID, username, nick, ex string) error {
+	return s.Repository.UpdateTeamUserMyInfo(teamID, username, nick, ex)
+}
+
+//修改群通知方式
+func (s *DefaultLianmiApisService) UpdateTeamUserNotifyType(teamID string, notifyType int) error {
+	return s.Repository.UpdateTeamUserNotifyType(teamID, notifyType)
 }
 
 // 增加群成员资料

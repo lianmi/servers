@@ -10,9 +10,7 @@ import (
 /*
 服务端的通用商品表
 */
-type GeneralProduct struct {
-	global.LMC_Model
-
+type GeneralProductInfo struct {
 	ProductId        string `json:"productId" form:"productId" gorm:"column:product_id;comment:商品UUID;type:varchar(191);size:191;"`
 	ProductName      string `json:"productName" form:"productName" gorm:"column:product_name;comment:商品名称;type:varchar(191);size:191;"`
 	ProductType      int    `json:"productType" form:"productType" gorm:"column:product_type;comment:商品种类枚举"`
@@ -31,14 +29,19 @@ type GeneralProduct struct {
 	DescPic6 string `json:"descPic6" form:"descPic6" gorm:"column:desc_pic6;comment:商品介绍pic6 -图片6;type:varchar(191);size:191;"`
 }
 
+type GeneralProduct struct {
+	global.LMC_Model
+	GeneralProductInfo
+}
+
 //BeforeCreate CreatedAt赋值
 func (d *GeneralProduct) BeforeCreate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
 
-//BeforeUpdate ModifyAt赋值
+//BeforeUpdate UpdatedAt赋值
 func (d *GeneralProduct) BeforeUpdate(tx *gorm.DB) error {
-	tx.Statement.SetColumn("ModifyAt", time.Now().UnixNano()/1e6)
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }

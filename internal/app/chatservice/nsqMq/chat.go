@@ -248,19 +248,12 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
-			teamInfo := new(models.Team)
-			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-				if err := redis.ScanStruct(result, teamInfo); err != nil {
-					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
-					goto COMPLETE
-				}
-			}
+			teamInfoStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
+			teamInfoType, _ := redis.Int(redisConn.Do("HGET", key, "Type"))
 
 			//此群是否是正常的
-			if teamInfo.Status != 2 {
-				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
+			if teamInfoStatus != 2 {
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfoStatus))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("Team status is not normal")
 				goto COMPLETE
@@ -272,16 +265,10 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				toUser = teamMember
 
 				//判断toUser的合法性以及是否封禁等
-				userData := new(models.UserBase)
 				userKey := fmt.Sprintf("userData:%s", toUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-					if err := redis.ScanStruct(result, userData); err != nil {
-						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						continue
-					}
-				}
+				userState, _ := redis.Int(redisConn.Do("HGET", userKey, "State"))
 
-				if userData.State == 2 {
+				if userState == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
 					continue
 				}
@@ -292,10 +279,12 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				switch notifyType {
 				case 1: //群全部消息提醒
 				case 2: //管理员消息提醒
-					if teamInfo.GetType() == Team.TeamMemberType_Tmt_Manager || teamInfo.GetType() == Team.TeamMemberType_Tmt_Owner {
-						//pass
-					} else {
+					if teamInfoType == int(Team.TeamMemberType_Tmt_Manager) || teamInfoType == int(Team.TeamMemberType_Tmt_Owner) {
 						nc.logger.Warn("此用户设置了管理员信息提醒", zap.String("toUser", req.GetTo()))
+						//pass
+
+					} else {
+
 						continue
 					}
 				case 3: //联系人提醒

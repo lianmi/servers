@@ -109,86 +109,86 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		//从redis的有序集合查询出商户的商品信息在时间戳req.TimeAt之后的更新
 		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", req.UserName), req.TimeAt, "+inf"))
 		for _, productID := range productIDs {
-			product := new(models.ProductInfo)
+			productInfo := new(models.ProductInfo)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
-				if err := redis.ScanStruct(result, product); err != nil {
+				if err := redis.ScanStruct(result, productInfo); err != nil {
 					nc.logger.Error("错误: ScanStruct", zap.Error(err))
 					continue
 				}
 			}
 
 			var thumbnail string
-			if product.ShortVideo != "" {
+			if productInfo.ShortVideo != "" {
 
-				thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+				thumbnail = LMCommon.OSSUploadPicPrefix + productInfo.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
 			}
 
 			oProduct := &Order.Product{
-				ProductId:         product.ProductID,                        //商品ID
-				Expire:            uint64(product.Expire),                   //商品过期时间
-				ProductName:       product.ProductName,                      //商品名称
-				ProductType:       Global.ProductType(product.ProductType),  //商品种类类型  枚举
-				SubType:           int32(Global.LotteryType_LT_Shuangseqiu), //TODO  暂时全部都是双色球
-				ProductDesc:       product.ProductDesc,                      //商品详细介绍
-				ShortVideo:        product.ShortVideo,                       //商品短视频
-				Thumbnail:         thumbnail,                                //商品短视频缩略图
-				Price:             product.Price,                            //价格
-				LeftCount:         product.LeftCount,                        //库存数量
-				Discount:          product.Discount,                         //折扣 实际数字，例如: 0.95, UI显示为九五折
-				DiscountDesc:      product.DiscountDesc,                     //折扣说明
-				DiscountStartTime: uint64(product.DiscountStartTime),        //折扣开始时间
-				DiscountEndTime:   uint64(product.DiscountEndTime),          //折扣结束时间
-				AllowCancel:       product.AllowCancel,                      //是否允许撤单， 默认是可以，彩票类的不可以
+				ProductId:         productInfo.ProductID,                       //商品ID
+				Expire:            uint64(productInfo.Expire),                  //商品过期时间
+				ProductName:       productInfo.ProductName,                     //商品名称
+				ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
+				SubType:           int32(Global.LotteryType_LT_Shuangseqiu),    //TODO  暂时全部都是双色球
+				ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
+				ShortVideo:        productInfo.ShortVideo,                      //商品短视频
+				Thumbnail:         thumbnail,                                   //商品短视频缩略图
+				Price:             productInfo.Price,                           //价格
+				LeftCount:         productInfo.LeftCount,                       //库存数量
+				Discount:          productInfo.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      productInfo.DiscountDesc,                    //折扣说明
+				DiscountStartTime: uint64(productInfo.DiscountStartTime),       //折扣开始时间
+				DiscountEndTime:   uint64(productInfo.DiscountEndTime),         //折扣结束时间
+				AllowCancel:       productInfo.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 			}
-			if product.ProductPic1Large != "" {
+			if productInfo.ProductPic1Large != "" {
 				// 动态拼接
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large,
 				})
 			}
 
-			if product.ProductPic2Large != "" {
+			if productInfo.ProductPic2Large != "" {
 				// 动态拼接
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large,
 				})
 			}
 
-			if product.ProductPic3Large != "" {
+			if productInfo.ProductPic3Large != "" {
 				// 动态拼接
 				oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-					Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-					Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-					Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large,
+					Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+					Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+					Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large,
 				})
 			}
 
-			if product.DescPic1 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+			if productInfo.DescPic1 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic1)
 			}
 
-			if product.DescPic2 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+			if productInfo.DescPic2 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic2)
 			}
 
-			if product.DescPic3 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+			if productInfo.DescPic3 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic3)
 			}
 
-			if product.DescPic4 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+			if productInfo.DescPic4 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic4)
 			}
 
-			if product.DescPic5 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+			if productInfo.DescPic5 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic5)
 			}
 
-			if product.DescPic6 != "" {
-				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+			if productInfo.DescPic6 != "" {
+				oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic6)
 
 			}
 
@@ -482,8 +482,6 @@ COMPLETE:
 				DiscountDesc:      req.Product.DiscountDesc,              //折扣说明
 				DiscountStartTime: uint64(req.Product.DiscountStartTime), //折扣开始时间
 				DiscountEndTime:   uint64(req.Product.DiscountEndTime),   //折扣结束时间
-				CreateAt:          uint64(req.Product.CreateAt),          //创建时间
-				ModifyAt:          uint64(req.Product.ModifyAt),          //最后修改时间
 				AllowCancel:       req.Product.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
 			}
 

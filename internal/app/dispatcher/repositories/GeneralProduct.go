@@ -14,14 +14,17 @@ import (
 //======通用商品======/
 
 // 增加通用商品- Create
-func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.GeneralProduct) error {
+func (s *MysqlLianmiRepository) AddGeneralProduct(generalProductInfo *models.GeneralProductInfo) error {
 	var err error
-	if generalProduct == nil {
-		return errors.New("generalProduct is nil")
+	if generalProductInfo == nil {
+		return errors.New("generalProductInfo is nil")
 	}
 	//判断ProductName是否存在， 如果存在，则无法增加
 	where := models.GeneralProduct{
-		ProductName: generalProduct.ProductName,
+		GeneralProductInfo: models.GeneralProductInfo{
+
+			ProductName: generalProductInfo.ProductName,
+		},
 	}
 
 	p := new(models.GeneralProduct)
@@ -30,13 +33,15 @@ func (s *MysqlLianmiRepository) AddGeneralProduct(generalProduct *models.General
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			//记录找不到也会触发错误 记录不存在
 		} else {
-			return errors.Wrapf(err, "Get GeneralProduct info error[ProductName=%s]", generalProduct.ProductName)
+			return errors.Wrapf(err, "Get GeneralProduct info error[ProductName=%s]", generalProductInfo.ProductName)
 		}
 
 	}
 
 	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&generalProduct).Error; err != nil {
+	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&models.GeneralProduct{
+		GeneralProductInfo: *generalProductInfo,
+	}).Error; err != nil {
 		s.logger.Error("AddGeneralProduct, failed to upsert generalProduct", zap.Error(err))
 		return err
 	} else {
@@ -52,13 +57,14 @@ func (s *MysqlLianmiRepository) GetGeneralProductByID(productID string) (p *mode
 	p = new(models.GeneralProduct)
 
 	if err = s.db.Model(p).Where(&models.GeneralProduct{
-		ProductId: productID,
+		GeneralProductInfo: models.GeneralProductInfo{
+			ProductId: productID,
+		},
 	}).First(p).Error; err != nil {
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "Get GeneralProduct error[productID=%s]", productID)
 	}
 
-	s.logger.Debug("GetUser run...")
 	return
 }
 
@@ -77,7 +83,10 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 	where := models.GeneralProduct{}
 	if req.ProductType > 0 {
 		where = models.GeneralProduct{
-			ProductType: int(req.ProductType),
+
+			GeneralProductInfo: models.GeneralProductInfo{
+				ProductType: int(req.ProductType),
+			},
 		}
 	}
 	if err := s.base.GetPages(&models.GeneralProduct{}, &generalProducts, pageIndex, pageSize, total, &where); err != nil {
@@ -101,7 +110,7 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 			Thumbnail:   thumbnail,                                      //商品短视频缩略图
 			ShortVideo:  generalProduct.ShortVideo,                      //商品短视频
 			AllowCancel: *generalProduct.AllowCancel,                    //是否允许撤单， 默认是可以，彩票类的不可以
-		}	
+		}
 
 		if generalProduct.ProductPic1Large != "" {
 			// 动态拼接
@@ -159,15 +168,21 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 }
 
 // 修改通用商品 - Update
-func (s *MysqlLianmiRepository) UpdateGeneralProduct(generalProduct *models.GeneralProduct) error {
+func (s *MysqlLianmiRepository) UpdateGeneralProduct(generalProductInfo *models.GeneralProductInfo) error {
 
-	if generalProduct == nil {
-		return errors.New("generalProduct is nil")
+	if generalProductInfo == nil {
+		return errors.New("generalProductInfo is nil")
 	}
 
-	where := models.GeneralProduct{ProductId: generalProduct.ProductId}
+	where := models.GeneralProduct{
+		GeneralProductInfo: models.GeneralProductInfo{
+			ProductId: generalProductInfo.ProductId,
+		},
+	}
 	// 同时更新多个字段
-	result := s.db.Model(&models.GeneralProduct{}).Where(&where).Updates(generalProduct)
+	result := s.db.Model(&models.GeneralProduct{}).Where(&where).Updates(&models.GeneralProduct{
+		GeneralProductInfo: *generalProductInfo,
+	})
 
 	//updated records count
 	s.logger.Debug("UpdateGeneralProduct result: ",
@@ -189,7 +204,11 @@ func (s *MysqlLianmiRepository) DeleteGeneralProduct(productID string) bool {
 
 	//采用事务同时删除
 	var (
-		gpWhere        = models.GeneralProduct{ProductId: productID}
+		gpWhere = models.GeneralProduct{
+			GeneralProductInfo: models.GeneralProductInfo{
+				ProductId: productID,
+			},
+		}
 		generalProduct models.GeneralProduct
 	)
 	tx := s.base.GetTransaction()

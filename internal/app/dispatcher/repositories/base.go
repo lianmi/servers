@@ -100,13 +100,13 @@ type LianmiRepository interface {
 
 	GetProductInfo(productID string) (*Order.Product, error)
 
-	AddGeneralProduct(generalProduct *models.GeneralProduct) error
+	AddGeneralProduct(generalProductInfo *models.GeneralProductInfo) error
 
 	GetGeneralProductByID(productID string) (p *models.GeneralProduct, err error)
 
 	GetGeneralProductPage(req *Order.GetGeneralProductPageReq) (*Order.GetGeneralProductPageResp, error)
 
-	UpdateGeneralProduct(generalProduct *models.GeneralProduct) error
+	UpdateGeneralProduct(generalProductInfo *models.GeneralProductInfo) error
 
 	DeleteGeneralProduct(productID string) bool
 
@@ -143,8 +143,14 @@ type LianmiRepository interface {
 	//增加群成员
 	AddTeamUser(pTeamUser *models.TeamUser) error
 
-	//修改群成员资料
-	UpdateTeamUser(pTeamUser *models.TeamUser) error
+	//设置获取取消群管理员
+	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error
+
+	// 修改群成员呢称、扩展
+	UpdateTeamUserMyInfo(teamID, username, nick, ex string) error
+
+	//修改群通知方式
+	UpdateTeamUserNotifyType(teamID string, notifyType int) error
 
 	//解除群成员的禁言
 	SetMuteTeamUser(teamID, dissMuteUser string, isMute bool, mutedays int) error

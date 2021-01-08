@@ -282,30 +282,96 @@ func (s *MysqlLianmiRepository) AddTeamUser(pTeamUser *models.TeamUser) error {
 	return nil
 }
 
-//修改群成员资料
-func (s *MysqlLianmiRepository) UpdateTeamUser(pTeamUser *models.TeamUser) error {
-	if pTeamUser == nil {
-		return errors.New("pTeamUser is nil")
-	}
+//增加或移除群管理员, isAdd = true为增加 isAdd=false为移除
+func (s *MysqlLianmiRepository) UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error {
 
 	where := models.TeamUser{
 		TeamUserInfo: models.TeamUserInfo{
-			TeamID: pTeamUser.TeamID,
+			TeamID:   teamID,
+			Username: managerUsername,
 		},
 	}
+	var teamMemberType int
+	if isAdd {
+		teamMemberType = 2
+	} else {
+		teamMemberType = 3
+	}
+
 	// 同时更新多个字段
-	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(pTeamUser)
+	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(&models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamMemberType: teamMemberType, //群管理员 or 普通群成员s
+		},
+	})
 
 	//updated records count
-	s.logger.Debug("UpdateTeamUser result: ",
+	s.logger.Debug("UpdateTeamUserManager result: ",
 		zap.Int64("RowsAffected", result.RowsAffected),
 		zap.Error(result.Error))
 
 	if result.Error != nil {
-		s.logger.Error("修改通用商品失败", zap.Error(result.Error))
+		s.logger.Error("UpdateTeamUserManager失败", zap.Error(result.Error))
 		return result.Error
 	} else {
-		s.logger.Debug("修改通用商品成功")
+		s.logger.Debug("UpdateTeamUserManager成功")
+	}
+
+	return nil
+}
+
+// 修改群成员呢称、扩展
+func (s *MysqlLianmiRepository) UpdateTeamUserMyInfo(teamID, username, nick, ex string) error {
+	where := models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID:   teamID,
+			Username: username,
+		},
+	}
+	// 同时更新多个字段
+	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			Nick:   nick,
+			Extend: ex,
+		},
+	})
+
+	//updated records count
+	s.logger.Debug("UpdateTeamUserMyInfo result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("UpdateTeamUserMyInfo失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("UpdateTeamUserMyInfo成功")
+	}
+
+	return nil
+}
+
+//修改群通知方式
+func (s *MysqlLianmiRepository) UpdateTeamUserNotifyType(teamID string, notifyType int) error {
+	where := models.TeamUser{
+		TeamUserInfo: models.TeamUserInfo{
+			TeamID: teamID,
+		},
+	}
+
+	//更新notify_type字段
+	result := s.db.Model(&models.TeamUser{}).Where(where).Update("notify_type", notifyType)
+
+	//updated records count
+	s.logger.Debug("UpdateTeamUserManager result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("UpdateTeamUserNotifyType失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("UpdateTeamUserNotifyType成功")
 	}
 
 	return nil

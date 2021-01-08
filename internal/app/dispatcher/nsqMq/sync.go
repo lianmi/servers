@@ -90,11 +90,6 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 						UserType:      User.UserType(userData.UserType),
 						Extend:        userData.Extend,
 						ContactPerson: userData.ContactPerson,
-						// Province:      userData.Province,
-						// City:          userData.City,
-						// County:        userData.County,
-						// Street:        userData.Street,
-						// Address:       userData.Address,
 					},
 				}
 				data, _ := proto.Marshal(rsp)
@@ -447,7 +442,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 
 		for _, teamID := range teamIDs {
 			nc.logger.Debug("for..range teamIDs", zap.String("teamID", teamID))
-			teamInfo := new(models.Team)
+			teamInfo := new(models.TeamInfo)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamInfo:%s", teamID))); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err), zap.String("key", fmt.Sprintf("TeamInfo:%s", teamID)))
@@ -1038,22 +1033,21 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 				}
 
 				oProduct := &Order.Product{
-					ProductId:   productID,                                   //商品ID
-					Expire:      uint64(productInfo.Expire),                  //商品过期时间
-					ProductName: productInfo.ProductName,                     //商品名称
-					ProductType: Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-					//TODO  暂时全部都是双色球
-					SubType:           int32(Global.LotteryType_LT_Shuangseqiu),
-					ProductDesc:       productInfo.ProductDesc,               //商品详细介绍
-					ShortVideo:        productInfo.ShortVideo,                //商品短视频
-					Thumbnail:         thumbnail,                             //商品短视频缩略图
-					Price:             productInfo.Price,                     //价格
-					LeftCount:         productInfo.LeftCount,                 //库存数量
-					Discount:          productInfo.Discount,                  //折扣 实际数字，例如: 0.95, UI显示为九五折
-					DiscountDesc:      productInfo.DiscountDesc,              //折扣说明
-					DiscountStartTime: uint64(productInfo.DiscountStartTime), //折扣开始时间
-					DiscountEndTime:   uint64(productInfo.DiscountEndTime),   //折扣结束时间
-					AllowCancel:       productInfo.AllowCancel,               //是否允许撤单， 默认是可以，彩票类的不可以
+					ProductId:         productID,                                   //商品ID
+					Expire:            uint64(productInfo.Expire),                  //商品过期时间
+					ProductName:       productInfo.ProductName,                     //商品名称
+					ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
+					SubType:           int32(Global.LotteryType_LT_Shuangseqiu),    //TODO  暂时全部都是双色球
+					ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
+					ShortVideo:        productInfo.ShortVideo,                      //商品短视频
+					Thumbnail:         thumbnail,                                   //商品短视频缩略图
+					Price:             productInfo.Price,                           //价格
+					LeftCount:         productInfo.LeftCount,                       //库存数量
+					Discount:          productInfo.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+					DiscountDesc:      productInfo.DiscountDesc,                    //折扣说明
+					DiscountStartTime: uint64(productInfo.DiscountStartTime),       //折扣开始时间
+					DiscountEndTime:   uint64(productInfo.DiscountEndTime),         //折扣结束时间
+					AllowCancel:       productInfo.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
 				}
 				if productInfo.ProductPic1Large != "" {
 					// 动态拼接
@@ -1082,8 +1076,6 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large,
 					})
 				}
-
-				//
 
 				if productInfo.DescPic1 != "" {
 					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic1)
@@ -1114,7 +1106,6 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 			}
 
 			//下架的商品ID
-
 			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveProducts:%s", watchingUser), productAt, "+inf"))
 			for _, removeProductID := range removeProductIDs {
 				rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
@@ -1208,7 +1199,7 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		//获取redis通用商品列表
 		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "GeneralProducts", generalProductAt, "+inf"))
 		for _, productID := range productIDs {
-			productInfo := new(models.GeneralProduct)
+			productInfo := new(models.GeneralProductInfo)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("GeneralProduct:%s", productID))); err == nil {
 				if err := redis.ScanStruct(result, productInfo); err != nil {
 					nc.logger.Error("错误: ScanStruct", zap.Error(err))
@@ -1227,8 +1218,6 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 				ProductDesc: productInfo.ProductDesc,
 				Thumbnail:   thumbnail,
 				ShortVideo:  productInfo.ShortVideo,
-				// CreateAt:    uint64(productInfo.CreatedAt),
-				// ModifyAt:    uint64(productInfo.ModifyAt),
 				AllowCancel: *productInfo.AllowCancel,
 			}
 

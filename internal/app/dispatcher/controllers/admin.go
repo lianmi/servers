@@ -211,7 +211,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 			productPic3Large = og.ProductPics[2].Large
 		}
 
-		generalProduct := &models.GeneralProduct{
+		generalProductInfo := &models.GeneralProductInfo{
 			ProductId:        uuid.NewV4().String(), //商品ID
 			ProductName:      og.ProductName,        //商品名称
 			ProductType:      int(og.ProductType),   //商品种类枚举
@@ -225,25 +225,25 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 		}
 
 		if len(og.DescPics) >= 1 {
-			generalProduct.DescPic1 = og.DescPics[0]
+			generalProductInfo.DescPic1 = og.DescPics[0]
 		}
 		if len(og.DescPics) >= 2 {
-			generalProduct.DescPic2 = og.DescPics[1]
+			generalProductInfo.DescPic2 = og.DescPics[1]
 		}
 		if len(og.DescPics) >= 3 {
-			generalProduct.DescPic3 = og.DescPics[2]
+			generalProductInfo.DescPic3 = og.DescPics[2]
 		}
 		if len(og.DescPics) >= 4 {
-			generalProduct.DescPic4 = og.DescPics[3]
+			generalProductInfo.DescPic4 = og.DescPics[3]
 		}
 		if len(og.DescPics) >= 5 {
-			generalProduct.DescPic5 = og.DescPics[4]
+			generalProductInfo.DescPic5 = og.DescPics[4]
 		}
 		if len(og.DescPics) >= 6 {
-			generalProduct.DescPic6 = og.DescPics[5]
+			generalProductInfo.DescPic6 = og.DescPics[5]
 		}
 
-		if err := pc.service.AddGeneralProduct(generalProduct); err == nil {
+		if err := pc.service.AddGeneralProduct(generalProductInfo); err == nil {
 			pc.logger.Debug("AddGeneralProduct run ok")
 			RespOk(c, http.StatusOK, 200)
 		} else {
@@ -286,7 +286,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			productPic3Large = og.ProductPics[2].Large
 		}
 
-		generalProduct := &models.GeneralProduct{
+		generalProductInfo := &models.GeneralProductInfo{
 			ProductId:        uuid.NewV4().String(), //商品ID
 			ProductName:      og.ProductName,        //商品名称
 			ProductType:      int(og.ProductType),   //商品种类枚举
@@ -300,25 +300,25 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		}
 
 		if len(og.DescPics) >= 1 {
-			generalProduct.DescPic1 = og.DescPics[0]
+			generalProductInfo.DescPic1 = og.DescPics[0]
 		}
 		if len(og.DescPics) >= 2 {
-			generalProduct.DescPic2 = og.DescPics[1]
+			generalProductInfo.DescPic2 = og.DescPics[1]
 		}
 		if len(og.DescPics) >= 3 {
-			generalProduct.DescPic3 = og.DescPics[2]
+			generalProductInfo.DescPic3 = og.DescPics[2]
 		}
 		if len(og.DescPics) >= 4 {
-			generalProduct.DescPic4 = og.DescPics[3]
+			generalProductInfo.DescPic4 = og.DescPics[3]
 		}
 		if len(og.DescPics) >= 5 {
-			generalProduct.DescPic5 = og.DescPics[4]
+			generalProductInfo.DescPic5 = og.DescPics[4]
 		}
 		if len(og.DescPics) >= 6 {
-			generalProduct.DescPic6 = og.DescPics[5]
+			generalProductInfo.DescPic6 = og.DescPics[5]
 		}
 
-		if err := pc.service.UpdateGeneralProduct(generalProduct); err == nil {
+		if err := pc.service.UpdateGeneralProduct(generalProductInfo); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
 			RespOk(c, http.StatusOK, 200)
 		} else {
@@ -476,4 +476,3 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 		}
 	}
 }
-

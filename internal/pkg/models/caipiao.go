@@ -29,8 +29,8 @@ func (d *LotterySaleTime) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-//BeforeUpdate ModifyAt赋值
+//BeforeUpdate UpdatedAt赋值
 func (d *LotterySaleTime) BeforeUpdate(tx *gorm.DB) error {
-	tx.Statement.SetColumn("ModifyAt", time.Now().UnixNano()/1e6)
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
