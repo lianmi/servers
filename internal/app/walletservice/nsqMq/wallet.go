@@ -1829,12 +1829,12 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		topic := "Order.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+			nc.logger.Info("Order Message succeed send to ProduceChannel", zap.String("topic", topic))
 		} else {
 			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("Broadcast Msg To All Devices Succeed",
+		nc.logger.Info("Order Message(5-2) send Succeed",
 			zap.String("Username:", toUsername),
 			zap.String("DeviceID:", eDeviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
