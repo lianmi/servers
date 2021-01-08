@@ -836,6 +836,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			BlockNumber:      blockNumber,  //区块高度
 			TxHash:           hash,         //哈希
 		}
+
 		nc.Repository.UpdateLnmcTransferHistory(lnmcTransferHistory)
 
 		//更新转账记录到 redis  HSET
@@ -1062,6 +1063,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 
 			}
+			
 			//刷新接收者redis里的代币数量
 			toBalanceAfter, _ := nc.ethService.GetLNMCTokenBalance(toWalletAddress)
 			redisConn.Do("HSET",

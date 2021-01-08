@@ -238,8 +238,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().UnixNano()/1e6),
-						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
+
 					)
 
 					//增加B的好友A的信息哈希表
@@ -251,8 +250,6 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						"Nick", nick,
 						"Source", req.GetSource(), //来源
 						"Ex", req.GetPs(), //附言
-						"CreateAt", uint64(time.Now().UnixNano()/1e6),
-						"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 					)
 
 					//写入MySQL的好友表, 需要增加两条记录
@@ -497,8 +494,6 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().UnixNano()/1e6),
-					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
 
 				//增加B的好友A的信息哈希表
@@ -510,8 +505,6 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					"Nick", nick,
 					"Source", req.GetSource(),
 					"Ex", "", //TODO
-					"CreateAt", uint64(time.Now().UnixNano()/1e6),
-					"UpdateAt", uint64(time.Now().UnixNano()/1e6),
 				)
 
 				//如果userB是商户
@@ -1188,16 +1181,12 @@ func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 			nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
 			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
-			createAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "CreateAt"))
-			updateAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "UpdateAt"))
 
 			rsp.Friends = append(rsp.Friends, &Friends.Friend{
 				Username: friendUsername,
 				Nick:     nick,
 				Source:   source,
 				Ex:       ex,
-				CreateAt: createAt,
-				UpdateAt: updateAt,
 			})
 		}
 		//从redis里读取username的删除的好友列表

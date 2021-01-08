@@ -195,16 +195,11 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			}
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
 			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
-			createAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "CreateAt"))
-			updateAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "UpdateAt"))
-
 			rsp.Friends = append(rsp.Friends, &Friends.Friend{
 				Username: friendUsername,
 				Nick:     nick,
 				Source:   source,
 				Ex:       ex,
-				CreateAt: createAt,
-				UpdateAt: updateAt,
 			})
 		}
 		//从redis里读取username的删除的好友列表
@@ -224,16 +219,12 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			}
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
 			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
-			createAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "CreateAt"))
-			updateAt, _ := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "UpdateAt"))
 
 			rsp.RemovedAccounts = append(rsp.RemovedAccounts, &Friends.Friend{
 				Username: friendUsername,
 				Nick:     nick,
 				Source:   source,
 				Ex:       ex,
-				CreateAt: createAt,
-				UpdateAt: updateAt,
 			})
 		}
 

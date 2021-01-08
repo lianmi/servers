@@ -32,3 +32,4 @@ func (s *MysqlLianmiRepository) GetChargeProductID() (string, error) {
 
 	return systemCharge.ChargeProductID, nil
 }
+
