@@ -100,19 +100,11 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				Msg.MessageType_MsgType_Bin,    // 二进制
 				Msg.MessageType_MsgType_Secret: //加密类型
 
-				userData := new(models.UserBase)
 				userKey := fmt.Sprintf("userData:%s", username)
-				if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-					if err := redis.ScanStruct(result, userData); err != nil {
+				userState, _ := redis.Int(redisConn.Do("HGET", userKey, "State"))
+				userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
-						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-						goto COMPLETE
-
-					}
-				}
-				if userData.State == 2 {
+				if userState == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("Username", req.GetTo()))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
@@ -120,20 +112,11 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				}
 
 				//判断toUser的合法性以及是否封禁等
-				toUserData := new(models.UserBase)
 				toUserKey := fmt.Sprintf("userData:%s", toUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", toUserKey)); err == nil {
-					if err := redis.ScanStruct(result, toUserData); err != nil {
+				toUserState, _ := redis.Int(redisConn.Do("HGET", toUserKey, "State"))
+				toUserType, _ := redis.Int(redisConn.Do("HGET", toUserKey, "UserType"))
 
-						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", toUser)
-						goto COMPLETE
-
-					}
-				}
-
-				if toUserData.State == 2 {
+				if toUserState == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
 					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
@@ -141,7 +124,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				}
 
 				// 商户与买家之间的私聊
-				if userData.UserType == 2 || toUserData.UserType == 2 {
+				if userType == 2 || toUserType == 2 {
 					//允许私聊
 					nc.logger.Info("商户与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
 				} else {
@@ -321,20 +304,12 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 			toDeviceID := req.GetToDeviceId()
 
 			nc.logger.Debug("MessageScene_MsgScene_P2P", zap.String("toUser", toUser))
+
 			//判断toUser的合法性以及是否封禁等
-			userData := new(models.UserBase)
 			userKey := fmt.Sprintf("userData:%s", toUser)
-			if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-				if err := redis.ScanStruct(result, userData); err != nil {
-					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", toUser)
-					goto COMPLETE
+			userState, _ := redis.Int(redisConn.Do("HGET", userKey, "State"))
 
-				}
-			}
-
-			if userData.State == 2 {
+			if userState == 2 {
 				nc.logger.Warn("此用户已被封号", zap.String("toUser", toUser))
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)

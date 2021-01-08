@@ -38,14 +38,12 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 	resp, err := pc.service.GetProductInfo(productId)
 	if err != nil {
 		pc.logger.Error("get Product by productId error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 5000, "Get GeneralProduct by productId error")
+		RespFail(c, http.StatusBadRequest, 500, "Get Product by productId error")
 		return
 	}
 
 	c.JSON(http.StatusOK, resp)
 }
-
-
 
 //获取某个商户的所有商品列表
 func (pc *LianmiApisController) GetProductsList(c *gin.Context) {
@@ -82,7 +80,6 @@ func (pc *LianmiApisController) SetProductSubType(c *gin.Context) {
 			RespFail(c, http.StatusBadRequest, code, "商品ID不能为空")
 			return
 		}
-		
 
 		err := pc.service.SetProductSubType(&req)
 		if err != nil {

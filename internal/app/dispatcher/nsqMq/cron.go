@@ -45,7 +45,7 @@ func (nc *NsqClient) RunCron() {
 
 				//刷新redis
 				if _, err := redisConn.Do("HSET", key, "IsMute", 0); err != nil {
-					nc.logger.Error("错误：HMSET teamUser", zap.Error(err))
+					nc.logger.Error("错误：HSET teamUser", zap.Error(err))
 					continue
 				}
 				nc.logger.Info("DissMuteTeamUsers ok", zap.String("dissMuteUser", dissMuteUser))

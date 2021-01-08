@@ -53,17 +53,17 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	memberExtend, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Extend"))
 
 	teamUser := new(models.TeamUser)
-	teamUser.JoinAt = time.Now().UnixNano() / 1e6
-	teamUser.Teamname = p.Teamname
-	teamUser.Username = p.Owner
-	teamUser.Nick = memberNick                                   //群成员呢称
-	teamUser.Avatar = memberAvatar                               //群成员头像
-	teamUser.Label = memberLabel                                 //群成员标签
-	teamUser.Source = ""                                         //群成员来源  TODO
-	teamUser.Extend = memberExtend                               //群成员扩展字段
-	teamUser.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
-	teamUser.IsMute = false                                      //是否被禁言
-	teamUser.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
+	teamUser.TeamUserInfo.JoinAt = time.Now().UnixNano() / 1e6
+	teamUser.TeamUserInfo.Teamname = p.Teamname
+	teamUser.TeamUserInfo.Username = p.Owner
+	teamUser.TeamUserInfo.Nick = memberNick                                   //群成员呢称
+	teamUser.TeamUserInfo.Avatar = memberAvatar                               //群成员头像
+	teamUser.TeamUserInfo.Label = memberLabel                                 //群成员标签
+	teamUser.TeamUserInfo.Source = ""                                         //群成员来源  TODO
+	teamUser.TeamUserInfo.Extend = memberExtend                               //群成员扩展字段
+	teamUser.TeamUserInfo.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
+	teamUser.TeamUserInfo.IsMute = false                                      //是否被禁言
+	teamUser.TeamUserInfo.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
 
 	//将Status变为 Normal(2) - 正常状态
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
@@ -84,7 +84,6 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	/*
 		1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
-		2. 群记录哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
 		3. 每个群在用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
 		4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 		5. 被移除的成员列表，Key格式为： TeamUsersRemoved:{TeamnID}
@@ -93,12 +92,11 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	//存储所有群组， 方便查询及定时任务解禁
 	err = redisConn.Send("ZADD", "Teams", time.Now().UnixNano()/1e6, p.TeamID)
 	err = redisConn.Send("ZADD", fmt.Sprintf("Team:%s", p.Owner), time.Now().UnixNano()/1e6, p.TeamID)
-	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamInfo:%s", p.TeamID)).AddFlat(p)...)
 
 	//当前只有群主一个成员
 	err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().UnixNano()/1e6, p.Owner)
 
-	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser)...)
+	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser.TeamUserInfo)...)
 
 	//更新redis的sync:{用户账号} teamsAt 时间戳
 	err = redisConn.Send("HSET",

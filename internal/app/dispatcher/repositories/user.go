@@ -32,14 +32,14 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (s *MysqlLianmiRepository) GetUser(username string) (p *models.User, err error) {
-	p = new(models.User)
+func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err error) {
+	user = new(models.User)
 
-	if err = s.db.Model(p).Where(&models.User{
+	if err = s.db.Model(user).Where(&models.User{
 		UserBase: models.UserBase{
 			Username: username,
 		},
-	}).First(p).Error; err != nil {
+	}).First(user).Error; err != nil {
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "Get user error[Username=%s]", username)
 	}
@@ -920,17 +920,17 @@ func (s *MysqlLianmiRepository) GenerateSmsCode(mobile string) bool {
 
 func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, error) {
 	var err error
-	p := new(models.User)
+	user := new(models.User)
 
-	if err = s.db.Model(p).Where(&models.User{
+	if err = s.db.Model(user).Where(&models.User{
 		UserBase: models.UserBase{
 			Mobile: mobile,
 		},
-	}).First(p).Error; err != nil {
+	}).First(user).Error; err != nil {
 		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
 		return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
 	} else {
-		return p.Username, nil
+		return user.Username, nil
 	}
 }
 

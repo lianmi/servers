@@ -802,14 +802,10 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 
 //购买Vip后，增加用户的到期时间
 func (s *MysqlWalletRepository) AddVipEndDate(username string, endTime int64) error {
-	// result := s.db.Model(&models.User{}).Where(&models.User{
-	// 	Username: username,
-	// }).Update("vip_end_date", endTime)
-
 	user := new(models.User)
 
-	user.VipEndDate = endTime
-	user.State = 1 //1-Vip用户
+	user.UserBase.VipEndDate = endTime
+	user.UserBase.State = 1 //1-Vip用户
 
 	where := models.User{
 		UserBase: models.UserBase{

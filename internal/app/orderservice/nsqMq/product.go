@@ -91,19 +91,6 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 			zap.String("UserName", req.UserName),
 			zap.Uint64("TimeAt", req.TimeAt),
 		)
-		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
-		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
 
 		//获取商户的商品有序集合
 		//从redis的有序集合查询出商户的商品信息在时间戳req.TimeAt之后的更新
@@ -347,20 +334,10 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
 
 		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
-
-		if userData.UserType != int(User.UserType_Ut_Business) {
+		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上架商品")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
@@ -437,7 +414,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
+
 		nc.logger.Debug("7-2 回包")
 
 		msg.FillBody(data)
@@ -598,20 +575,10 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
-
-		if userData.UserType != int(User.UserType_Ut_Business) {
+		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上架商品")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
@@ -811,20 +778,10 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
-
-		if userData.UserType != int(User.UserType_Ut_Business) {
+		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能下架商品")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
@@ -957,20 +914,10 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
-
-		if userData.UserType != int(User.UserType_Ut_Business) {
+		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上传OPK")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
@@ -1216,43 +1163,19 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
-		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
-
 		//从redis里获取目标商户的信息
-		businessUserData := new(models.UserBase)
-		userKey = fmt.Sprintf("userData:%s", req.UserName)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, businessUserData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.UserName)
-				goto COMPLETE
-
-			}
-		}
+		businessUserState, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.UserName), "State"))
+		businessUserType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.UserName), "UserType"))
 
 		//判断商户是否被封号
-		if businessUserData.State == 2 {
+		if businessUserState == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.UserName))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.UserName)
 			goto COMPLETE
 		}
 
-		if businessUserData.UserType != int(User.UserType_Ut_Business) {
+		if businessUserType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("目标用户不是商户类型")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.UserName)
@@ -1714,47 +1637,25 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		}
 
 		//从redis里获取当前用户信息
-		userData := new(models.UserBase)
-		userKey := fmt.Sprintf("userData:%s", username)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-				goto COMPLETE
-
-			}
-		}
+		state, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State"))
 
 		//判断是否被封号
-		if userData.State == 2 {
+		if state == 2 {
 			nc.logger.Warn("警告: 此用户已被封号")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
 			goto COMPLETE
-		} else if userData.State == 1 {
+		} else if state == 1 {
 			isVip = true
 		} else {
 			isVip = false
 		}
 
 		//从redis里获取目标商户的信息
-		businessUserData := new(models.UserBase)
-		userKey = fmt.Sprintf("userData:%s", req.To)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, businessUserData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.To)
-				goto COMPLETE
-
-			}
-		}
+		businessUserState, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.To), "State"))
 
 		//判断商户是否被封号
-		if businessUserData.State == 2 {
+		if businessUserState == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.To))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("BusinessUser is blocked[Username=%s]", req.To)
@@ -2189,20 +2090,10 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		)
 
 		//从redis里获取买家信息
-		buyerData := new(models.UserBase)
-		userKey := fmt.Sprintf("userData:%s", buyUser)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, buyerData); err != nil {
+		buyerState, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", buyUser), "State"))
 
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[buyUser=%s]", buyUser)
-				goto COMPLETE
-
-			}
-		}
 		//判断用户是否被封号
-		if buyerData.State == 2 {
+		if buyerState == 2 {
 			nc.logger.Warn("此y用户已被封号", zap.String("User", buyUser))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", buyUser)
@@ -2210,21 +2101,10 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//从redis里获取商户的信息
-		businessUserData := new(models.UserBase)
-		userKey = fmt.Sprintf("userData:%s", businessUser)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, businessUserData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[businessUser=%s]", businessUser)
-				goto COMPLETE
-
-			}
-		}
+		businessUserState, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUser), "State"))
 
 		//判断商户是否被封号
-		if businessUserData.State == 2 {
+		if businessUserState == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", businessUser))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", businessUser)
@@ -2246,15 +2126,15 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		// 获取ProductID对应的商品信息
-		productInfo := new(models.ProductInfo)
-		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
-			if err := redis.ScanStruct(result, productInfo); err != nil {
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("This Product is not exists")
-				goto COMPLETE
-			}
-		}
+		// productInfo := new(models.ProductInfo)
+		// if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
+		// 	if err := redis.ScanStruct(result, productInfo); err != nil {
+		// 		nc.logger.Error("错误: ScanStruct", zap.Error(err))
+		// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		// 		errorMsg = fmt.Sprintf("This Product is not exists")
+		// 		goto COMPLETE
+		// 	}
+		// }
 
 		//获取当前订单的状态
 		curState, err := redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
@@ -2595,7 +2475,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			})
 
 		case Global.OrderState_OS_Expedited:
-			if buyerData.State != 1 {
+			if buyerState != 1 {
 				nc.logger.Error("买家加急, 但不是VIP用户")
 				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 				errorMsg = fmt.Sprintf("User is not VIP error.")
@@ -2708,20 +2588,9 @@ func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//从redis里获取当前用户信息
-	userData := new(models.UserBase)
 	userKey := fmt.Sprintf("userData:%s", username)
-	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-		if err := redis.ScanStruct(result, userData); err != nil {
-
-			nc.logger.Error("错误: ScanStruct", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
-			goto COMPLETE
-
-		}
-	}
-
-	if userData.UserType != 2 {
+	userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
+	if userType != 2 {
 		nc.logger.Error("只有商户才能查询OPK存量")
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 		errorMsg = fmt.Sprintf("UserType is not business type")

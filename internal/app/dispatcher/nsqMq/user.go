@@ -259,7 +259,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if nick, ok := req.Fields[1]; ok {
 			//修改呢称
-			pUser.Nick = nick
+			pUser.UserBase.Nick = nick
 			nc.logger.Debug("req.Fields[1]", zap.String("Nick", nick))
 		} else {
 			nc.logger.Warn("req.Fields[1] not value")
@@ -267,17 +267,17 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if gender, ok := req.Fields[2]; ok {
 			//修改 性别
-			pUser.Gender, _ = strconv.Atoi(gender)
+			pUser.UserBase.Gender, _ = strconv.Atoi(gender)
 		} else {
 			nc.logger.Warn("req.Fields[2] not value")
 		}
 
 		if avatar, ok := req.Fields[3]; ok {
 			if avatar == "" {
-				pUser.Avatar = LMCommon.PubAvatar
+				pUser.UserBase.Avatar = LMCommon.PubAvatar
 			} else {
 				//修改 头像
-				pUser.Avatar = avatar
+				pUser.UserBase.Avatar = avatar
 			}
 		} else {
 			nc.logger.Warn("req.Fields[3] not value")
@@ -285,7 +285,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if label, ok := req.Fields[4]; ok {
 			//修改 签名
-			pUser.Label = label
+			pUser.UserBase.Label = label
 			nc.logger.Debug("req.Fields[4]", zap.String("Label", label))
 		} else {
 			nc.logger.Warn("req.Fields[4] not value")
@@ -293,7 +293,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if trueName, ok := req.Fields[5]; ok {
 			//用户实名
-			pUser.TrueName = trueName
+			pUser.UserBase.TrueName = trueName
 			nc.logger.Debug("req.Fields[5]", zap.String("TrueName", trueName))
 		} else {
 			nc.logger.Warn("req.Fields[5] not value")
@@ -301,34 +301,34 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if email, ok := req.Fields[6]; ok {
 			//修改 Email
-			pUser.Email = email
+			pUser.UserBase.Email = email
 		} else {
 			nc.logger.Warn("req.Fields[6] not value")
 		}
 
 		if extend, ok := req.Fields[7]; ok {
 			//修改 Extend
-			pUser.Extend = extend
+			pUser.UserBase.Extend = extend
 		} else {
 			nc.logger.Warn("req.Fields[6] not value")
 		}
 
 		if allowType, ok := req.Fields[8]; ok {
 			//修改 AllowType
-			pUser.AllowType, _ = strconv.Atoi(allowType)
+			pUser.UserBase.AllowType, _ = strconv.Atoi(allowType)
 		} else {
 			nc.logger.Warn("req.Fields[8] not value")
 		}
 
 		if province, ok := req.Fields[9]; ok {
 			//修改 Province
-			pUser.Province = province
+			pUser.UserBase.Province = province
 			nc.logger.Debug("req.Fields[9]", zap.String("Province", province))
 		}
 
 		if city, ok := req.Fields[10]; ok {
 			//修改 city
-			pUser.City = city
+			pUser.UserBase.City = city
 			nc.logger.Debug("req.Fields[10]", zap.String("City", city))
 		} else {
 			nc.logger.Warn("req.Fields[10] not value")
@@ -336,7 +336,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if county, ok := req.Fields[11]; ok {
 			//修改 county
-			pUser.County = county
+			pUser.UserBase.County = county
 			nc.logger.Debug("req.Fields[11]", zap.String("County", county))
 		} else {
 			nc.logger.Warn("req.Fields[11] not value")
@@ -344,7 +344,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if street, ok := req.Fields[12]; ok {
 			//修改 street
-			pUser.Street = street
+			pUser.UserBase.Street = street
 			nc.logger.Debug("req.Fields[12]", zap.String("Street", street))
 		} else {
 			nc.logger.Warn("req.Fields[12] not value")
@@ -352,7 +352,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if address, ok := req.Fields[13]; ok {
 			//修改 address
-			pUser.Address = address
+			pUser.UserBase.Address = address
 			nc.logger.Debug("req.Fields[13]", zap.String("Address", address))
 		} else {
 			nc.logger.Warn("req.Fields[13] not value")
@@ -588,18 +588,6 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 		//修改的用户
 		account := req.GetUsername()
-		userData := new(models.UserBase)
-		userKey := fmt.Sprintf("userData:%s", account)
-		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
-			if err := redis.ScanStruct(result, userData); err != nil {
-
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not exists[Username=%s]", account)
-				goto COMPLETE
-
-			}
-		}
 
 		if account == username {
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
