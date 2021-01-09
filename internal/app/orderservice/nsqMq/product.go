@@ -931,7 +931,6 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 				Type:         0,
 				Username:     username,
 				Publickey:    opk,
-				UploadTimeAt: time.Now().UnixNano() / 1e6,
 			})
 
 			//保存到redis里prekeys:{username}
