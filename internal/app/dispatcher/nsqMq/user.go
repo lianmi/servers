@@ -12,7 +12,7 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	// "net/http"
 	"strconv"
 
 	"time"
@@ -22,6 +22,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	User "github.com/lianmi/servers/api/proto/user"
 	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 )
@@ -34,7 +35,7 @@ import (
 func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var data []byte
 
 	rsp := &User.GetUsersResp{
@@ -72,9 +73,8 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 	//解包body
 	var getUsersReq User.GetUsersReq
 	if err := proto.Unmarshal(body, &getUsersReq); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError //错误码
 		goto COMPLETE
 
 	} else {
@@ -174,7 +174,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -198,7 +199,6 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 	rsp := &User.UpdateProfileRsp{}
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -233,8 +233,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	var req User.UpdateUserProfileReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError //错误码
 		goto COMPLETE
 
 	} else {
@@ -243,8 +242,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if err != nil {
 			nc.logger.Error("HGET Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HGET Error: %s", err.Error())
+			errorCode = LMCError.RedisError //错误码
 			goto COMPLETE
 		}
 
@@ -360,8 +358,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 		if err := nc.service.UpdateUser(username, pUser); err != nil {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Update user error[username=%s]", username)
+			errorCode = LMCError.UserModUpdateProfileError //错误码
 			goto COMPLETE
 		}
 
@@ -393,9 +390,8 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			}
 
 			if err := nc.service.UpdateStore(username, pStore); err != nil {
-				nc.logger.Error("更新商店信息失败", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Update store error[BusinessUsername=%s]", username)
+				nc.logger.Error("更新商户商店信息出错", zap.Error(err))
+				errorCode = LMCError.UserModUpdateStoreError //错误码
 				goto COMPLETE
 			}
 		}
@@ -410,8 +406,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			},
 		}).First(userData).Error; err != nil {
 			nc.logger.Error("MySQL里读取错误", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user error[username=%s]", username)
+			errorCode = LMCError.DataBaseError //错误码
 			goto COMPLETE
 		}
 
@@ -512,12 +507,14 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 	}
 
 COMPLETE:
+
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -540,7 +537,6 @@ COMPLETE:
 func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -575,8 +571,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 	var req User.MarkTagReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = "Protobuf Unmarshal Error"
+		errorCode = LMCError.ProtobufUnmarshalError //错误码
 		goto COMPLETE
 	} else {
 
@@ -590,8 +585,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 		account := req.GetUsername()
 
 		if account == username {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Can't mark yourself.[username=%s]", account)
+			errorCode = LMCError.UserModMarkTagParamError //错误码
 			goto COMPLETE
 		}
 
@@ -601,8 +595,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), account); err == nil {
 				if reply == nil {
 					//A好友列表中没有B
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Can't mark none friend user.[username=%s]", account)
+					errorCode = LMCError.UserModMarkTagParamNorFriendError //错误码
 					goto COMPLETE
 				}
 			}
@@ -616,8 +609,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				//保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "MarkTag error"
+					errorCode = LMCError.UserModMarkTagParamNorFriendError //错误码
 					goto COMPLETE
 				}
 				//增加到黑名单
@@ -653,9 +645,8 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				db2 := nc.db.Where(&where).Delete(models.Tag{})
 				err = db2.Error
 				if err != nil {
-					nc.logger.Error("删除实体出错", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
+					nc.logger.Error("移除黑名单出错", zap.Error(err))
+					errorCode = LMCError.UserModMarkTagRemoveError //错误码
 					goto COMPLETE
 				}
 				count := db2.RowsAffected
@@ -691,8 +682,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:1", username), account); err == nil {
 				if reply == nil {
 					//A好友列表中没有B
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Can't mark none friend user.[username=%s]", account)
+					errorCode = LMCError.UserModMarkTagParamNorFriendError //错误码
 					goto COMPLETE
 				}
 			}
@@ -706,8 +696,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				//MySQL 保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "MarkTag error"
+					errorCode = LMCError.UserModMarkTagAddError //错误码
 					goto COMPLETE
 				}
 				err = redisConn.Send("ZADD", fmt.Sprintf("MutedList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
@@ -728,9 +717,8 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				db2 := nc.db.Where(&where).Delete(models.Tag{})
 				err = db2.Error
 				if err != nil {
-					nc.logger.Error("删除实体出错", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
+					nc.logger.Error("增加免打扰出错", zap.Error(err))
+					errorCode = LMCError.UserModMarkTagAddError //错误码
 					goto COMPLETE
 				}
 				count := db2.RowsAffected
@@ -762,8 +750,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				//保存标签MarkTag
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "MarkTag error"
+					errorCode = LMCError.UserModMarkTagAddError
 					goto COMPLETE
 				}
 				err = redisConn.Send("ZADD", fmt.Sprintf("StickyList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
@@ -785,8 +772,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				err = db2.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("删除实体出错[account=%s]", account)
+					errorCode = LMCError.UserModMarkTagAddError //错误码
 					goto COMPLETE
 				}
 				count := db2.RowsAffected
@@ -868,7 +854,8 @@ COMPLETE:
 		//只需返回200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
