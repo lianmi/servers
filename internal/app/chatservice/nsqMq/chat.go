@@ -3,7 +3,6 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -12,6 +11,7 @@ import (
 	Order "github.com/lianmi/servers/api/proto/order"
 	Team "github.com/lianmi/servers/api/proto/team"
 	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/internal/pkg/sts"
 	"google.golang.org/protobuf/proto"
@@ -32,7 +32,6 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 	var err error
 	var toUser, teamID string
 	errorCode := 200
-	var errorMsg string
 	var isCustomerService bool //toUser是否是客服账号
 	rsp := &Msg.SendMsgRsp{}
 
@@ -70,9 +69,8 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 	//解包body
 	var req Msg.SendMsgReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -106,8 +104,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 				if userState == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("Username", req.GetTo()))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 
@@ -118,8 +115,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 				if toUserState == 2 {
 					nc.logger.Warn("此用户已被封号", zap.String("toUser", req.GetTo()))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 
@@ -164,8 +160,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 							//pass
 						} else {
 							nc.logger.Warn("对方用户不是当前用户的好友", zap.String("toUser", req.GetTo()))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = fmt.Sprintf("User is not your friend[Username=%s]", toUser)
+							errorCode = LMCError.IsNotFriendError
 							goto COMPLETE
 						}
 
@@ -173,8 +168,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 						if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", toUser), username); err == nil {
 							if reply != nil {
 								nc.logger.Warn("用户已被对方拉黑", zap.String("toUser", req.GetTo()))
-								errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+								errorCode = LMCError.IsNotFriendError
 								goto COMPLETE
 							}
 						}
@@ -185,8 +179,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 				//构造转发消息数据
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "INCR Error"
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 
@@ -237,8 +230,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 			//此群是否是正常的
 			if teamInfoStatus != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfoStatus))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -311,16 +303,14 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 
 			if userState == 2 {
 				nc.logger.Warn("此用户已被封号", zap.String("toUser", toUser))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", toUser)
+				errorCode = LMCError.UserIsBlockedError
 				goto COMPLETE
 			}
 
 			//构造转发消息数据
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUser))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -373,8 +363,10 @@ COMPLETE:
 		//构造回包消息数据
 		if curSeq, err := redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 			nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-			msg.SetCode(int32(500))                       //状态码
-			msg.SetErrorMsg([]byte("INCR userSeq Error")) //错误提示
+			errorCode = LMCError.RedisError
+			msg.SetCode(int32(errorCode))            //状态码
+			errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+			msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 			msg.FillBody(nil)
 		} else {
 			rsp = &Msg.SendMsgRsp{
@@ -388,7 +380,8 @@ COMPLETE:
 		}
 
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -411,7 +404,6 @@ COMPLETE:
 func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	var newSeq uint64
 
@@ -449,8 +441,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 	//解包body
 	var req Msg.MsgAckReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
@@ -518,8 +509,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", buyUser))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = "INCR Error"
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 
@@ -558,7 +548,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -580,7 +571,7 @@ func (nc *NsqClient) HandleSendCancelMsg(msg *models.Message) error {
 	var err error
 	var data []byte
 	errorCode := 200
-	var errorMsg string
+
 	var isExists bool
 	var newSeq uint64
 
@@ -615,8 +606,7 @@ func (nc *NsqClient) HandleSendCancelMsg(msg *models.Message) error {
 	//解包body
 	var req Msg.SendCancelMsgReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
@@ -633,8 +623,7 @@ func (nc *NsqClient) HandleSendCancelMsg(msg *models.Message) error {
 		recvKey := fmt.Sprintf("recvMsgList:%s", req.GetServerMsgId())
 		if isExists, err = redis.Bool(redisConn.Do("EXISTS", recvKey)); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = "Can not cancel msg after 1 minute"
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -689,8 +678,7 @@ func (nc *NsqClient) HandleSendCancelMsg(msg *models.Message) error {
 			}
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -732,7 +720,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -752,7 +741,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Msg.GetOssTokenRsp{}
 
 	redisConn := nc.redisPool.Get()
@@ -786,8 +775,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 	var req Msg.GetOssTokenReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -798,71 +786,68 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 
 		client = sts.NewStsClient(LMCommon.AccessID, LMCommon.AccessKey, LMCommon.RoleAcs)
 		/*
-			if req.IsPrivate {
 
-				//仅允许用户向lianmi-ipfs这个Bucket上传类似users/{username}/的文件
-				acs := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
-				nc.logger.Debug("acs", zap.String("acs", acs))
+			//仅允许用户向lianmi-ipfs这个Bucket上传类似users/{username}/的文件
+			acs := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
+			nc.logger.Debug("acs", zap.String("acs", acs))
 
-				policy := sts.Policy{
-					Version: "1",
-					Statement: []sts.StatementBase{sts.StatementBase{
-						Effect: "Allow",
-						// Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-						Action:   []string{"oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-						Resource: []string{acs},
-					}},
-				}
-
-				//300秒
-				url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.PrivateEXPIRESECONDS), policy.ToJson())
-				if err != nil {
-					nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
-					goto COMPLETE
-				}
-
-				nc.logger.Debug("url", zap.String("url", url))
-
-			} else {
-
+			policy := sts.Policy{
+				Version: "1",
+				Statement: []sts.StatementBase{sts.StatementBase{
+					Effect: "Allow",
+					// Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Action:   []string{"oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+					Resource: []string{acs},
+				}},
 			}
+
+			//300秒
+			url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.PrivateEXPIRESECONDS), policy.ToJson())
+			if err != nil {
+				nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
+				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+				errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
+				goto COMPLETE
+			}
+
+			nc.logger.Debug("url", zap.String("url", url))
+
+
 		*/
 
-		//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, stores, teamicons, 目录有可读写权限
-		acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
-		acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
-		acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
-		acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
-		acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
-		acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
-		acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
-		acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
+		//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, orders, stores, teamicons, 目录有可读写权限
+			// acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
+			// acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
+			// acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
+			// acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
+			// acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
+			// acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
+			// acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
+			// acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
 
 		// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
 		policy := sts.Policy{
 			Version: "1",
 			Statement: []sts.StatementBase{sts.StatementBase{
-				Effect:   "Allow",
-				Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
+				Effect: "Allow",
+				// Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+				Action: []string{"*"},
+				// Resource: []string{"acs:oss:*:*:lianmi-ipfs", acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
+				Resource: []string{"acs:oss:*:*:lianmi-ipfs", "acs:oss:*:*:lianmi-ipfs/*"},
 			}},
 		}
 
 		url, err = client.GenerateSignatureUrl("client", fmt.Sprintf("%d", LMCommon.EXPIRESECONDS), policy.ToJson())
 		if err != nil {
 			nc.logger.Error("GenerateSignatureUrl Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("GenerateSignatureUrl Error: %s", err.Error())
+			errorCode = LMCError.GenerateSignatureUrlError
 			goto COMPLETE
 		}
 
 		data, err := client.GetStsResponse(url)
 		if err != nil {
 			nc.logger.Error("阿里云oss GetStsResponse Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("GetOssToken Error: %s", err.Error())
+			errorCode = LMCError.GenerateSignatureUrlError
 			goto COMPLETE
 		}
 
@@ -870,8 +855,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		sjson, err := simpleJson.NewJson(data)
 		if err != nil {
 			nc.logger.Warn("simplejson.NewJson Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("GetOssToken Error: %s", err.Error())
+			errorCode = LMCError.GenerateSignatureUrlError
 			goto COMPLETE
 		}
 
@@ -909,7 +893,8 @@ COMPLETE:
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 

@@ -17,7 +17,6 @@ import (
 	"fmt"
 	// "strings"
 	"github.com/pkg/errors"
-	"net/http"
 	"sync"
 	"time"
 
@@ -30,6 +29,7 @@ import (
 	Team "github.com/lianmi/servers/api/proto/team"
 	User "github.com/lianmi/servers/api/proto/user"
 	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -41,7 +41,7 @@ import (
 func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_myInfoAt uint64
 
 	redisConn := nc.redisPool.Get()
@@ -72,8 +72,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("错误：ScanStructt error[userKey=%s]", userKey)
+				errorCode = LMCError.ProtobufUnmarshalError
 				goto COMPLETE
 
 			} else {
@@ -137,6 +136,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 
@@ -146,7 +146,7 @@ COMPLETE:
 func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_friendsAt uint64
 
 	redisConn := nc.redisPool.Get()
@@ -181,8 +181,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		friends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:1]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -206,8 +205,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		RemoveFriends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:2", username), "-inf", "+inf"))
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:2]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -269,6 +267,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -277,7 +276,7 @@ COMPLETE:
 func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_friendUsersAt uint64
 
 	redisConn := nc.redisPool.Get()
@@ -311,8 +310,7 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		fUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Friend:%s:1]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 		for _, fuser := range fUsers {
@@ -382,6 +380,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -390,7 +389,7 @@ COMPLETE:
 func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_teamsAt uint64
 
 	redisConn := nc.redisPool.Get()
@@ -426,8 +425,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 		teamIDs, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Team:%s", username), "-inf", "+inf"))
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=Team:%s]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -517,6 +515,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -525,7 +524,7 @@ COMPLETE:
 func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_tagsAt uint64
 
 	redisConn := nc.redisPool.Get()
@@ -561,8 +560,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		blackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的黑名单 ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:1]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -577,8 +575,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		mutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的免打扰 ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:1]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -593,8 +590,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		stickyUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("StickyList:%s:1", username), tagsAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的置顶  ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:1]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -609,8 +605,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		removeBlackUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BlackList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除黑名单 ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[BlackList:%s:2]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -625,8 +620,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		removeMutedUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("MutedList:%s:2", username), tagsAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除免打扰 ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[MutedList:%s:2]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -642,8 +636,7 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		if err != nil {
 
 			nc.logger.Error("遍历时间戳大于客户端上报的时间戳的移除置顶 ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[StickyList:%s:2]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -698,6 +691,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -744,7 +738,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_systemMsgAt uint64
 
 	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
@@ -773,8 +767,7 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 		_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE执行错误", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("错误: ZRANGEBYSCORE error[key=%s]", offLineMsgListKey)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		} else {
 			nc.logger.Debug("移除时间少于yesTime(7天)离线通知", zap.Int64("yesTime", yesTime))
@@ -857,6 +850,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 	return nil
@@ -866,7 +860,7 @@ COMPLETE:
 func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_watchAt uint64
 
 	rsp := &Order.SyncWatchEventRsp{
@@ -900,8 +894,7 @@ func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.Sync
 		if err != nil {
 
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -957,6 +950,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -965,7 +959,7 @@ COMPLETE:
 func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_productAt uint64
 
 	rsp := &Order.SyncProductsEventRsp{
@@ -1001,8 +995,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 		if err != nil {
 
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ZRANGEBYSCORE error[Watching:%s]", username)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -1147,6 +1140,7 @@ COMPLETE:
 		//只需返回200
 		return nil
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -1155,7 +1149,7 @@ COMPLETE:
 func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var cur_generalProductAt uint64
 	var thumbnail string
 
@@ -1315,6 +1309,8 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		//只需返回200
 		return nil
 	} else {
+
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		return errors.Wrap(err, errorMsg)
 	}
 }
@@ -1326,7 +1322,6 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 	var err error
 
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -1359,8 +1354,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 	//解包body
 	var req Sync.SyncEventReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
@@ -1487,7 +1481,8 @@ COMPLETE:
 		//只需返回200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 

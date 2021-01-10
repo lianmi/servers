@@ -8,14 +8,6 @@ services:
     volumes:
       # - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
       - /root/developments/lianmi/work/logs/chatservice.log:/tmp/chatservice.log
-     
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.chatservice
 
   lianmi-orderservice:
     image: lianmi/orderservice:0.1
@@ -25,13 +17,6 @@ services:
     volumes:
       # - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
       - /root/developments/lianmi/work/logs/orderservice.log:/tmp/orderservice.log
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.orderservice
 
   lianmi-walletservice:
     image: lianmi/walletservice:0.1
@@ -42,13 +27,6 @@ services:
       # - ${LOG_DIR}/walletservice.log:/tmp/walletservice.log
       - /root/developments/lianmi/work/logs/walletservice.log:/tmp/walletservice.log
       - /store/blockchain/lianmichain/node1:/etc/node
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.walletservice
 
   lianmi-dispatcher:
     image: lianmi/dispatcher:0.1
@@ -61,13 +39,16 @@ services:
       # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        fluentd-retry-wait: '1s'
-        fluentd-max-retries: '30'
-        tag: lianmi.lm-cloud.dispatcher
+      
+  lianmi-admin-server:
+    image: lianmi/admin-server:0.1
+    container_name: lianmi-admin-server
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:28088:8888'
+    volumes:
+#      - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
+      - ./lianmi-admin-server/config.yaml:/app/config.yaml
 
 networks:
   default:

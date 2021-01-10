@@ -1,6 +1,8 @@
 apps = 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
  
-BINARY='gin-vue-admin'
+#BINARY='lianmi-admin-server'
+
+LOG_DIR=/root/developments/lianmi/work/logs
 
 .PHONY: run
 
@@ -24,8 +26,9 @@ mac:
 
 .PHONY: admin_linux
 admin_linux:
-	GOOS=linux GOARCH="amd64" go build -o dist/gin-vue-admin-linux-amd64 ./cmd/gin-vue-admin
-
+	#GOOS=linux GOARCH="amd64" go build -o dist/gin-vue-admin-linux-amd64 ./cmd/gin-vue-admin
+	$(MAKE) -C internal/app/gin-vue-admin/ all
+	
 .PHONY: admin_mac
 admin_mac:
 	GOOS=darwin GOARCH="amd64" go build -o dist/gin-vue-admin-darwin-amd64 ./cmd/gin-vue-admin
@@ -36,6 +39,9 @@ linux:
 	do \
 		GOOS=linux GOARCH="amd64" go build -o dist/$$app-linux-amd64 ./cmd/$$app/; \
 	done
+	# Make lianmi-admin-server (incl. binary and docker image)
+	$(MAKE) -C internal/app/gin-vue-admin/ all
+	
 .PHONY: cover
 cover: test
 	for app in $(apps) ;\
@@ -122,6 +128,16 @@ docker-compose: build dash rules
 	done
 	# export env_file=/root/developments/lianmi/lm-cloud/servers/deployments/.env
 	# echo "LOG_DIR=/root/developments/lianmi/work/logs" > $env_file
-	echo $(apps) | tr ' ' '\n' | xargs -i touch "${LOG_DIR}/{}.log"
+	mkdir -p $(LOG_DIR)
+	echo $(apps) | tr ' ' '\n' | xargs -i touch "$(LOG_DIR)/{}.log"
+	# DIRTY
+	touch $(LOG_DIR)/lianmi-admin-server.log
+	
+	docker-compose -f deployments/docker-compose.yml down
 	docker-compose -f deployments/docker-compose.yml up --build -d
 all: lint cover docker
+
+
+.PHONY: docker-clean
+docker-clean:
+	-docker rmi $(shell docker images --filter "dangling=true" -q --no-trunc)

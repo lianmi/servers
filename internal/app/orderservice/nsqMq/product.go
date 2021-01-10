@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	// "net/http"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -566,7 +565,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		if req.Product.ProductId == "" {
 			nc.logger.Warn("上架商品id必须非空")
-			errorCode = LMCError.OrderModAddProductEmptyProductIDError
+			errorCode = LMCError.ProductIDIsEmptError
 			goto COMPLETE
 		}
 
@@ -762,7 +761,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 
 		if req.ProductID == "" {
 			nc.logger.Warn("下架商品id必须非空")
-			errorCode = LMCError.OrderModAddProductEmptyProductIDError
+			errorCode = LMCError.ProductIDIsEmptError
 			goto COMPLETE
 		}
 
@@ -892,7 +891,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 
 		if len(req.PreKeys) == 0 {
 			nc.logger.Warn("一次性公钥的数组长度必须大于0")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			errorCode = LMCError.RegisterPreKeysArrayEmptyError
 			goto COMPLETE
 		}
 
@@ -902,8 +901,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 
 		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上传OPK")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
+			errorCode = LMCError.RegisterPreKeysNotBusinessTypeError
 			goto COMPLETE
 		}
 
@@ -1120,7 +1118,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	//解包body
 	var req Order.GetPreKeyOrderIDReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1132,15 +1130,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 		if req.ProductID == "" {
 			nc.logger.Warn("商品id不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductID is empty[ProductID=%s]", req.ProductID)
+			errorCode = LMCError.GetPreKeyOrderIDEmptyProductIDError
 			goto COMPLETE
 		}
 
 		if req.UserName == "" {
 			nc.logger.Warn("商户用户账号不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("UserName is empty[Username=%s]", req.UserName)
+			errorCode = LMCError.BusinessUsernameIsEmptyError
 			goto COMPLETE
 		}
 
@@ -1151,15 +1147,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		//判断商户是否被封号
 		if businessUserState == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.UserName))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.UserName)
+			errorCode = LMCError.BusinessUserIsBlockedError
 			goto COMPLETE
 		}
 
 		if businessUserType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("目标用户不是商户类型")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", req.UserName)
+			errorCode = LMCError.TargetUserIsNotBusinessTypeError
 			goto COMPLETE
 		}
 
@@ -1169,8 +1163,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
 		if (expire > 0) && (expire < time.Now().UnixNano()/1e6) {
 			nc.logger.Warn("商品有效期过期", zap.Int64("Expire", expire))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Product is expire")
+			errorCode = LMCError.ProductExpireError
 			goto COMPLETE
 		}
 
@@ -1196,8 +1189,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 			} else {
 				nc.logger.Warn("商户的prekeys有序集合无法取出")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Business opks is empty[BusinessUsername=%s]", req.UserName)
+				errorCode = LMCError.RedisError
 
 				//向商户推送9-10事件通知
 				go nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
@@ -1208,6 +1200,8 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
 			if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.UserName), "-inf", "+inf")); err != nil {
 				nc.logger.Error("ZCOUNT Error", zap.Error(err))
+				errorCode = LMCError.RedisError
+				goto COMPLETE
 			} else {
 
 				if count < 10 {
@@ -1600,7 +1594,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	//解包body
 	var req Msg.SendMsgReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1614,14 +1608,12 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 		if req.To == "" {
 			nc.logger.Warn("商户用户账号不能为空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("To is empty[Username=%s]", req.To)
+			errorCode = LMCError.BusinessUsernameIsEmptyError
 			goto COMPLETE
 		}
 		if req.Type != Msg.MessageType_MsgType_Order {
 			nc.logger.Warn("警告，不能处理非订单类型的消息")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Type is not right[Type=%d]", int32(req.Type))
+			errorCode = LMCError.OrderMsgTypeError
 			goto COMPLETE
 		}
 
@@ -1631,8 +1623,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		//判断是否被封号
 		if state == 2 {
 			nc.logger.Warn("警告: 此用户已被封号")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
+			errorCode = LMCError.UserIsBlockedError
 			goto COMPLETE
 		} else if state == 1 {
 			isVip = true
@@ -1646,15 +1637,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		//判断商户是否被封号
 		if businessUserState == 2 {
 			nc.logger.Warn("此商户已被封号", zap.String("businessUser", req.To))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("BusinessUser is blocked[Username=%s]", req.To)
+			errorCode = LMCError.BusinessUserIsBlockedError
 			goto COMPLETE
 		}
 
 		//解包出 OrderProductBody
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.Body, orderProductBody); err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			nc.logger.Warn("OrderProductBody解包错误", zap.Error(err))
+			errorCode = LMCError.ProtobufUnmarshalError
 			goto COMPLETE
 
 		} else {
@@ -1678,8 +1669,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 			//判断订单id不能为空
 			if orderProductBody.OrderID == "" {
 				nc.logger.Error("OrderID is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("OrderID is empty")
+				errorCode = LMCError.OrderIDIsEmptyError
 				goto COMPLETE
 			}
 
@@ -1690,40 +1680,28 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				//总金额不能小于或等于0
 				if orderProductBody.OrderTotalAmount <= 0 {
 					nc.logger.Error("OrderTotalAmount is less than 0")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("OrderTotalAmount is less than 0")
+					errorCode = LMCError.OrderTotalAmountError
 					goto COMPLETE
 				}
 
 				// 判断商品id不能为空
 				if orderProductBody.ProductID == "" {
 					nc.logger.Error("ProductID is empty")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ProductID is empty")
+					errorCode = LMCError.ProductIDIsEmptError
 					goto COMPLETE
 				}
 
 				//判断买家账号id不能为空
 				if orderProductBody.BuyUser == "" {
 					nc.logger.Error("BuyUser is empty")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("BuyUser is empty")
+					errorCode = LMCError.BuyUserIsEmptyError
 					goto COMPLETE
 				}
-
-				// 判断买家的OPK不能为空
-				// if orderProductBody.OpkBuyUser == "" {
-				// 	nc.logger.Error("OpkBuyUser is empty")
-				// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				// 	errorMsg = fmt.Sprintf("OpkBuyUser is empty")
-				// 	goto COMPLETE
-				// }
 
 				//判断商户的账号id不能为空
 				if orderProductBody.BusinessUser == "" {
 					nc.logger.Error("BusinessUse is empty")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("BusinessUse is empty")
+					errorCode = LMCError.BusinessUserIsEmptyError
 					goto COMPLETE
 				}
 
@@ -1732,8 +1710,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", orderProductBody.ProductID))); err == nil {
 					if err := redis.ScanStruct(result, productInfo); err != nil {
 						nc.logger.Error("错误: ScanStruct", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("This Product is not exists")
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 				}
@@ -1741,8 +1718,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				//检测商品有效期是否过期， 对彩票竞猜类的商品，有效期内才能下单
 				if (productInfo.Expire > 0) && (productInfo.Expire < time.Now().UnixNano()/1e6) {
 					nc.logger.Warn("商品有效期过期", zap.Int64("Expire", productInfo.Expire))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Product is expire")
+					errorCode = LMCError.ProductExpireError
 					goto COMPLETE
 				}
 
@@ -1751,16 +1727,14 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 					attachBytes, err := hex.DecodeString(orderProductBody.Attach) //反hex
 					if err != nil {
 						nc.logger.Error("orderProductBody.Attach hex.DecodeString 失败", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("DecodeString hex error")
+						errorCode = LMCError.DecodingHexError
 						goto COMPLETE
 					}
 
 					attachBase, err := models.AttachBaseFromJson(attachBytes)
 					if err != nil {
 						nc.logger.Error("从attach里解析attachBase失败", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("Attach Unmarshal error")
+						errorCode = LMCError.ParseAttachError
 						goto COMPLETE
 					} else {
 						if attachBase.BodyType == 99 {
@@ -1768,15 +1742,13 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							decoded, err := base64.StdEncoding.DecodeString(attachBase.Body)
 							if err != nil {
 								nc.logger.Error("base64.StdEncoding.DecodeString失败", zap.Error(err))
-								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("Decode base64 error")
+								errorCode = LMCError.Base64DecodingError
 								goto COMPLETE
 							}
 							vipUser, err := models.VipUserFromJson(decoded)
 							if err != nil {
 								nc.logger.Error("从attach的Body里解析PayType失败", zap.Error(err))
-								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("VipUser Unmarshal error")
+								errorCode = LMCError.ParseAttachError
 								goto COMPLETE
 							}
 							nc.logger.Debug("购买Vip",
@@ -1787,8 +1759,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							//根据PayType获取到VIP价格
 							vipPrice, err := nc.service.GetVipUserPrice(vipUser.PayType)
 							if err != nil {
-								errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-								errorMsg = fmt.Sprintf("GetVipUserPrice error")
+								errorCode = LMCError.QueryVipPriceError
 								goto COMPLETE
 							}
 
@@ -1804,8 +1775,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						} else {
 							//TODO
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = fmt.Sprintf("Unknown attachBase type")
+							errorCode = LMCError.AttachBodyTypeError
 							goto COMPLETE
 
 						}
@@ -1890,9 +1860,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 				}
 
 			default:
-				nc.logger.Error("订单状态 Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "OrderProductBody state error, state must be prepare"
+				nc.logger.Error("订单状态未定义", zap.Error(err))
+				errorCode = LMCError.UnkownOrderTypeError
 				goto COMPLETE
 			}
 		}
@@ -1986,15 +1955,14 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	//解包body
 	var req Order.ChangeOrderStateReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
 
 		if req.OrderBody.OrderID == "" {
 			nc.logger.Error("OrderID is empty")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OrderID is empty")
+			errorCode = LMCError.OrderIDIsEmptyError
 			goto COMPLETE
 		}
 		orderID = req.OrderBody.OrderID
@@ -2002,15 +1970,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		//根据订单id获取buyUser及businessUser是谁
 		orderIDKey = fmt.Sprintf("Order:%s", orderID)
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", orderIDKey)); err != nil {
-			nc.logger.Error("EXISTS")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("orderIDKey is not exists")
+			nc.logger.Error("EXISTS 错误", zap.Error(err))
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		} else {
 			if isExists == false {
-				nc.logger.Error("orderIDKey is not exists")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("orderIDKey is not exists")
+				nc.logger.Error("orderID is not exists")
+				errorCode = LMCError.OrderIDIsNotExistsError
 				goto COMPLETE
 			}
 		}
@@ -2030,29 +1996,25 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		if productID == "" {
 			nc.logger.Error("ProductID is empty")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductID is empty")
+			errorCode = LMCError.ProductIDIsEmptError
 			goto COMPLETE
 		}
 
 		if buyUser == "" {
 			nc.logger.Error("BuyUser is empty")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("BuyUser is empty")
+			errorCode = LMCError.BuyUserIsEmptyError
 			goto COMPLETE
 		}
 
 		if businessUser == "" {
 			nc.logger.Error("BusinessUse is empty")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("BusinessUse is empty")
+			errorCode = LMCError.BusinessUserIsEmptyError
 			goto COMPLETE
 		}
 
 		if orderTotalAmount <= 0 {
 			nc.logger.Error("OrderTotalAmount is less than 0")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OrderTotalAmount is less than 0")
+			errorCode = LMCError.OrderTotalAmountError
 			goto COMPLETE
 		}
 
@@ -2080,9 +2042,8 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		//判断用户是否被封号
 		if buyerState == 2 {
-			nc.logger.Warn("此y用户已被封号", zap.String("User", buyUser))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", buyUser)
+			nc.logger.Warn("此用户已被封号", zap.String("User", buyUser))
+			errorCode = LMCError.UserIsBlockedError
 			goto COMPLETE
 		}
 
@@ -2091,9 +2052,8 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		//判断商户是否被封号
 		if businessUserState == 2 {
-			nc.logger.Warn("此商户已被封号", zap.String("businessUser", businessUser))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is blocked[Username=%s]", businessUser)
+			nc.logger.Warn("f", zap.String("businessUser", businessUser))
+			errorCode = LMCError.BusinessUserIsBlockedError
 			goto COMPLETE
 		}
 
@@ -2104,21 +2064,11 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				nc.logger.Error("此订单id不属于此商户",
 					zap.String("OrderID", orderID),
 				)
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("This orderid is not be geared to BusinessUser:[%s]", businessUser)
+				errorCode = LMCError.OrderIDNotBelongToError
 				goto COMPLETE
 			}
 
 		}
-
-		// 获取ProductID对应的商品信息
-		// productInfo := new(models.ProductInfo)
-		// if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
-		// 	if err := redis.ScanStruct(result, productInfo); err != nil {
-		// 		nc.logger.Error("错误: ScanStruct", zap.Error(err))
-		// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		// 	}
-		// }
 
 		//获取当前订单的状态
 		curState, err := redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
@@ -2133,14 +2083,12 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		case Global.OrderState_OS_Done: //当前处于: 完成订单
 			if businessUser == username {
 				nc.logger.Warn("警告: 当前状态处于完成订单状态, 不能更改为其它")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order state is done, you cannot change state")
+				errorCode = LMCError.OrderStatusBusinessChangeError
 				goto COMPLETE
 			} else {
 				if req.State != Global.OrderState_OS_Confirm {
 					nc.logger.Warn("警告: 当前状态处于完成订单状态, 只能选择确认")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Order state is done, you only change to confirm")
+					errorCode = LMCError.OrderStatusChangeConfirmError
 					goto COMPLETE
 				}
 			}
@@ -2154,29 +2102,25 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			// 	} else {
 			// 		nc.logger.Warn("警告: 只有商户才能有权更改订单状态为撤单或完成")
 			// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			// 		errorMsg = fmt.Sprintf("You have not right to change order state")
 			// 		goto COMPLETE
 			// 	}
 			// }
 
 		case Global.OrderState_OS_Confirm: //当前处于:  确认收货
 			nc.logger.Warn("警告: 此订单已经确认收货,不能再更改其状态")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order state is confirmed")
+			errorCode = LMCError.OrderStatusConfirmIsDoneError
 			goto COMPLETE
 
 		case Global.OrderState_OS_Cancel: //当前处于: 撤单
 			nc.logger.Warn("警告: 此订单已撤单,不能再更改其状态")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order state is canceled")
+			errorCode = LMCError.OrderStatusIsCancelError
 			goto COMPLETE
 
 		case Global.OrderState_OS_AttachChange: //当前处于: 订单内容发生更改
 
 		case Global.OrderState_OS_Paying: //当前状态为支付中， 锁定订单，不能更改，直到支付完成
 			nc.logger.Warn("警告: 此订单当前状态为支付中, 不能更改状态")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order state is paying")
+			errorCode = LMCError.OrderStatusIsPayingError
 			goto COMPLETE
 
 		case Global.OrderState_OS_IsPayed: // 已支付， 支付成功
@@ -2185,21 +2129,18 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		// case Global.OrderState_OS_Overdue: // 已逾期, 订单终止，无法再更改状态了的
 		// 	nc.logger.Warn("警告: 此订单当前状态为已逾期, 不能更改状态")
 		// 	errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		// 	errorMsg = fmt.Sprintf("This order state is overdue")
 		// 	goto COMPLETE
 
 		case Global.OrderState_OS_Refuse: //当前处于: 已拒单
 			nc.logger.Warn("警告: 此订单已拒单,不能再更改其状态")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("This order state is refuse")
+			errorCode = LMCError.OrderStatusIsRefusedError
 			goto COMPLETE
 
 		case Global.OrderState_OS_Urge: // 买家催单, 商户可以回复7， 只能催一次
 			if req.State == Global.OrderState_OS_Urge {
 				nc.logger.Warn("警告: 此订单当前状态为买家催单, 只能催一次")
 
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("This order state is urge")
+				errorCode = LMCError.OrderStatusIsUrgedError
 				goto COMPLETE
 
 			}
@@ -2210,10 +2151,9 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		switch req.State {
 		case Global.OrderState_OS_Taked: //已接单, 向买家推送通知
 			if toUsername == buyUser {
-				nc.logger.Warn("警告: 买家不能接单，SDK逻辑错误")
+				nc.logger.Warn("警告: 买家不能接单，否则就是 SDK逻辑错误")
 
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BuyUser cannot change state into OS_Taked")
+				errorCode = LMCError.OrderStatusIsBuyerError
 				goto COMPLETE
 			}
 			nc.logger.Debug("已接单, 向买家推送通知", zap.String("BusinessUser", businessUser))
@@ -2230,23 +2170,20 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		case Global.OrderState_OS_AttachChange: //订单内容发生更改, 需要解包
 			if isPayed {
 				nc.logger.Error("完成支付之后不能修改订单内容及金额")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order cannot change after payed.")
+				errorCode = LMCError.OrderStatusPayedError
 				goto COMPLETE
 			}
 
 			//判断订单id不能为空
 			if req.OrderBody.OrderID == "" {
 				nc.logger.Error("OrderID is empty")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("OrderID is empty")
+				errorCode = LMCError.OrderIDIsEmptyError
 				goto COMPLETE
 			}
 
 			if req.OrderBody.GetOrderTotalAmount() <= 0 {
 				nc.logger.Error("OrderTotalAmount is less than  0")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("OrderTotalAmount is less than  0")
+				errorCode = LMCError.OrderTotalAmountError
 				goto COMPLETE
 			}
 
@@ -2279,8 +2216,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		case Global.OrderState_OS_Done: //完成订单, 商户发送的
 			if isPayed == false {
 				nc.logger.Error("完成订单, 商户发送的， 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order is not payed.")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 
@@ -2295,10 +2231,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		case Global.OrderState_OS_ApplyCancel: // 买家申请撤单
 			if isPayed == false {
-				nc.logger.Error("买家申请撤单, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BuyUser apply cancel order, but not payed error.")
-				goto COMPLETE
+				nc.logger.Debug("买家申请撤单, 但是未完成支付")
 			}
 
 			//通知商家
@@ -2312,26 +2245,25 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		case Global.OrderState_OS_Cancel: // 商户同意撤单
 			if isPayed == false {
-				nc.logger.Error("商户同意撤单, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BusinessUser agree cancel order, but not payed error.")
-				goto COMPLETE
-			}
-
-			//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
-			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
-				OrderID: orderID,
-				PayType: LMCommon.OrderTransferForCancel, //退款
-			})
-			if err != nil {
-				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Micro service error.")
-				goto COMPLETE
+				nc.logger.Debug("商户同意撤单, 但买家未完成支付")
 			} else {
-				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+				//TODO 扣除手续费
+				nc.logger.Debug("商户同意撤单, 买家完成支付, 需要退款")
+				//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
+				ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+				transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
+					OrderID: orderID,
+					PayType: LMCommon.OrderTransferForCancel, //退款
+				})
+				if err != nil {
+					nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+					errorCode = LMCError.WalletTranferError
 
+					goto COMPLETE
+				} else {
+					nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+
+				}
 			}
 
 			//通知买家
@@ -2355,9 +2287,8 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		case Global.OrderState_OS_Confirm: //确认收货
 			if isPayed == false {
-				nc.logger.Error("买家确认收货, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BuyUser confirm, but not payed error.")
+				nc.logger.Error("买家确认收货, 但是未完成支付")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 
@@ -2369,8 +2300,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			})
 			if err != nil {
 				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Micro service error.")
+				errorCode = LMCError.WalletTranferError
 				goto COMPLETE
 			} else {
 				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
@@ -2387,26 +2317,23 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			})
 
 		case Global.OrderState_OS_Paying: // 支付中， 此状态不能由用户设置
-			nc.logger.Error("支付中， 此状态不能由用户设置")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Set state error")
+			nc.logger.Error("此状态不能由用户设置为支付中")
+			errorCode = LMCError.OrderStatusCannotChangetoPayingError
 			goto COMPLETE
 
 		case Global.OrderState_OS_Overdue: //已逾期
 
 		case Global.OrderState_OS_IsPayed: //已支付， 支付成功
 			if isPayed == false {
-				nc.logger.Error("商户拒单, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BusinessUser refuse order, but not payed error.")
+				nc.logger.Error("未完成支付之前不能设置为已支付")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 
 		case Global.OrderState_OS_Refuse: //商户拒单， 跟已接单是相反的操作
 			if isPayed == false {
-				nc.logger.Error("商户拒单, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("BusinessUser refuse order, but not payed error.")
+				nc.logger.Debug("商户拒单, 但买家未完成支付")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 
@@ -2419,8 +2346,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			if err != nil {
 				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Micro service error.")
+				errorCode = LMCError.WalletTranferError
 				goto COMPLETE
 			} else {
 				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
@@ -2437,15 +2363,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 		case Global.OrderState_OS_Urge:
 			if isPayed == false {
-				nc.logger.Error("买家催单, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order is not payed error.")
+				nc.logger.Error("买家催单, 但是未完成支付")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 			if isUrge == true {
 				nc.logger.Error("买家催单, 只能催一次")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order has already puged")
+				errorCode = LMCError.OrderStatusOnceUrgedError
 				goto COMPLETE
 			}
 
@@ -2461,14 +2385,12 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		case Global.OrderState_OS_Expedited:
 			if buyerState != 1 {
 				nc.logger.Error("买家加急, 但不是VIP用户")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not VIP error.")
+				errorCode = LMCError.OrderStatusVipExpeditedError
 				goto COMPLETE
 			}
 			if isPayed == false {
-				nc.logger.Error("买家加急, 但是未完成支付 ")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Order is not payed error.")
+				nc.logger.Error("买家加急, 但是未完成支付")
+				errorCode = LMCError.OrderStatusNotPayError
 				goto COMPLETE
 			}
 
@@ -2492,8 +2414,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//将最新订单状态转发到目标用户
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "INCR Error"
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -2577,15 +2498,14 @@ func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 	userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 	if userType != 2 {
 		nc.logger.Error("只有商户才能查询OPK存量")
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("UserType is not business type")
+		errorCode = LMCError.PreKeyGetCountError
 		goto COMPLETE
 	}
 
 	if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", username), "-inf", "+inf")); err != nil {
 		nc.logger.Error("ZCOUNT Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Prekeys is not exists[username=%s]", username)
+		errorCode = LMCError.RedisError
+
 		goto COMPLETE
 	}
 
@@ -2672,14 +2592,6 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	}
-
-	return nil
-}
-
-/*
-将源账号的一定数量的代币转到目标账号
-*/
-func (nc *NsqClient) DoTransfer(fromUsername, targetUsername string, amount uint64) error {
 
 	return nil
 }

@@ -16,7 +16,6 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -25,10 +24,11 @@ import (
 
 	// User "github.com/lianmi/servers/api/proto/user"
 	Friends "github.com/lianmi/servers/api/proto/friends"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	uuid "github.com/satori/go.uuid"
 
@@ -54,7 +54,7 @@ import (
 func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var isExists bool
 
 	rsp := &Friends.FriendRequestRsp{}
@@ -98,8 +98,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 	req := &Friends.FriendRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -122,15 +121,13 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		if isExists, err = redis.Bool(redisConn.Do("EXISTS", targetKey)); err != nil {
 			//redis出错
 			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 		if !isExists {
 			//B不存在
 			err = errors.Wrapf(err, "user not exists[username=%s]", req.GetUsername())
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user error or user not exists[username=%s]", req.GetUsername())
+			errorCode = LMCError.UserNotExistsError
 			goto COMPLETE
 		}
 
@@ -160,8 +157,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
 				nc.logger.Warn("用户已被对方拉黑， 不能加好友", zap.String("Username", req.GetUsername()))
-				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
+				errorCode = LMCError.IsBlackUserError
 				goto COMPLETE
 			}
 		}
@@ -183,12 +179,12 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				nc.logger.Debug(fmt.Sprintf("OptType_Fr_ApplyFriend, userA: %s, userB: %s", userA, userB))
 
 				//拒绝任何人添加好友
-				if allowType == common.DenyAny {
+				if allowType == LMCommon.DenyAny {
 					nc.logger.Debug("拒绝任何人添加好友")
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 					//允许人加为好友
-				} else if allowType == common.AllowAny {
+				} else if allowType == LMCommon.AllowAny {
 
 					nc.logger.Debug("允许人加为好友")
 
@@ -264,8 +260,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendA.FriendUsername = userB
 						if err := nc.service.AddFriend(pFriendA); err != nil {
 							nc.logger.Error("Add Friend Error", zap.Error(err))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "无法保存到数据库"
+							errorCode = LMCError.AddFriendError
 							goto COMPLETE
 						}
 
@@ -275,8 +270,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						pFriendB.FriendUsername = userA
 						if err := nc.service.AddFriend(pFriendB); err != nil {
 							nc.logger.Error("Add Friend Error", zap.Error(err))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "无法保存到数据库"
+							errorCode = LMCError.DataBaseError
 							goto COMPLETE
 						}
 
@@ -287,8 +281,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userA))); err != nil {
 							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "INCR Error"
+							errorCode = LMCError.RedisError
+
 							goto COMPLETE
 						}
 						body := &Msg.MessageNotificationBody{
@@ -323,8 +317,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						//构造回包里的数据
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", userB))); err != nil {
 							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = "INCR Error"
+							errorCode = LMCError.RedisError
 							goto COMPLETE
 						}
 
@@ -365,7 +358,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						time.Now().UnixNano()/1e6)
 
 					//加好友设定是需要审核
-				} else if allowType == common.NeedConfirm {
+				} else if allowType == LMCommon.NeedConfirm {
 					nc.logger.Debug("加好友设定是需要审核")
 
 					//判断是否已经在预审核好友列表里
@@ -452,8 +445,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
 					if reply == nil {
 						nc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
-						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
-						errorMsg = "FriendRequest timeout"
+						errorCode = LMCError.AddFriendExpireError
 						goto COMPLETE
 					}
 				}
@@ -532,8 +524,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendA.FriendUsername = userB
 					if err := nc.service.AddFriend(pFriendA); err != nil {
 						nc.logger.Error("Add Friend Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = "无法保存到数据库"
+						errorCode = LMCError.AddFriendError
 						goto COMPLETE
 					}
 
@@ -543,8 +534,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					pFriendB.FriendUsername = userA
 					if err := nc.service.AddFriend(pFriendB); err != nil {
 						nc.logger.Error("Add Friend Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = "无法保存到数据库"
+						errorCode = LMCError.AddFriendError
 						goto COMPLETE
 					}
 
@@ -620,8 +610,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Friend:%s:0", userA), userB); err == nil {
 					if reply == nil {
 						nc.logger.Info("好友请求有效期 7 天, 用户已经不在预审核好友列表里", zap.String("Username", userB))
-						errorCode = http.StatusRequestTimeout //408， 请求有效期过期
-						errorMsg = "FriendRequest timeout"
+						errorCode = LMCError.AddFriendExpireError
 						goto COMPLETE
 					}
 				}
@@ -679,7 +668,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -703,7 +693,7 @@ A和B互为好友，A发起双向删除，则B所有在线终端会收到好友�
 func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	var isAhaveB, isBhaveA bool //A好友列表里有B， B好友列表里有A
@@ -741,8 +731,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 	req := &Friends.DeleteFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -753,8 +742,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		//检测目标用户是否存在及添加好友的设定
 		isExists, _ := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("userData:%s", targetUsername)))
 		if !isExists {
-			errorCode = http.StatusInternalServerError
-			errorMsg = fmt.Sprintf("Query user error[username=%s]", targetUsername)
+			errorCode = LMCError.UserNotExistsError
 			goto COMPLETE
 		}
 
@@ -784,10 +772,9 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		}
 
 		//本地好友表，删除双方的好友关系
-
 		if !isAhaveB {
 			err = nil
-			errorMsg = "对方不是你好友"
+			errorCode = LMCError.IsNotFriendError
 			goto COMPLETE
 		}
 		//在A的好友列表里删除B ZREM
@@ -880,8 +867,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		{
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -916,7 +902,8 @@ COMPLETE:
 		//只需返回200即可
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -939,7 +926,7 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var data []byte
 	rsp := &Friends.UpdateFriendRsp{}
 
@@ -976,8 +963,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 	req := &Friends.UpdateFriendReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -994,8 +980,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 
 		isExists, _ := redis.Bool(redisConn.Do("EXISTS", targetKey))
 		if !isExists {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user error[targetUsername=%s]", targetUsername)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -1005,8 +990,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 		where := models.Friend{UserID: userID, FriendUsername: targetUsername}
 		if err = nc.db.Model(pFriend).Where(&where).First(pFriend).Error; err != nil {
 			nc.logger.Error("Query friend Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query friend Error: %s", err.Error())
+			errorCode = LMCError.DataBaseError
 			goto COMPLETE
 		}
 
@@ -1023,8 +1007,7 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 
 		if err := nc.service.UpdateFriend(pFriend); err != nil {
 			nc.logger.Error("修改好友资料失败", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("修改好友资料失败[username=%s]", targetUsername)
+			errorCode = LMCError.DataBaseError
 			goto COMPLETE
 		}
 
@@ -1100,7 +1083,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1123,7 +1107,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Friends.GetFriendsRsp{}
 	var data []byte
 
@@ -1160,8 +1144,7 @@ func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 	req := &Friends.GetFriendsReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1204,7 +1187,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1227,7 +1211,6 @@ COMPLETE:
 func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -1262,8 +1245,7 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	req := &Friends.WatchRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1276,14 +1258,13 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 		//判断是否封号，是否存在
 		if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetUsername()), "State")); err != nil {
 			nc.logger.Error("redisConn HGET Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+			errorCode = LMCError.RedisError
+
 			goto COMPLETE
 		} else {
-			if state == common.UserBlocked {
+			if state == LMCommon.UserBlocked {
 				nc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+				errorCode = LMCError.UserIsBlockedError
 				goto COMPLETE
 			}
 		}
@@ -1291,9 +1272,8 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 		//判断是否被对方拉黑
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
 			if reply != nil {
-				nc.logger.Warn("用户已被对方拉黑， 不能关注", zap.String("Username", req.GetUsername()))
-				errorCode = http.StatusNotFound //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is blocked[Username=%s]", req.GetUsername())
+				nc.logger.Warn("用户已被对方拉黑,不能关注", zap.String("Username", req.GetUsername()))
+				errorCode = LMCError.FollowIsBlackUserError
 				goto COMPLETE
 			}
 		}
@@ -1320,7 +1300,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1343,7 +1324,6 @@ COMPLETE:
 func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -1378,8 +1358,7 @@ func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	req := &Friends.WatchRequestReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1415,7 +1394,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 

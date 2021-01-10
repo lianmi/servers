@@ -2,7 +2,7 @@ package nsqMq
 
 import (
 	"fmt"
-	"net/http"
+	// "net/http"
 	"strconv"
 	"time"
 
@@ -14,7 +14,8 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Team "github.com/lianmi/servers/api/proto/team"
 	User "github.com/lianmi/servers/api/proto/user"
-	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -42,7 +43,6 @@ import (
 func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	//响应参数
 	rsp := &Team.CreateTeamRsp{}
@@ -80,8 +80,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 	req := &Team.CreateTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -96,35 +95,31 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 		teamOwner := req.GetOwner()
 
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("userData:%s", teamOwner))); err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query user error[teamOwner=%s]", teamOwner)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Owner is not exists[teamOwner=%s]", teamOwner)
+				errorCode = LMCError.UserNotExistsError
 				goto COMPLETE
 			}
 
 			//判断群主是否已经注册为网点用户类型
 			userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", teamOwner), "UserType"))
 			if User.UserType(userType) != User.UserType_Ut_Business {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("serType is not business type [userType=%d]", userType)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
 			//用户拥有的群的总数量是否已经达到上限
 			if count, err := redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("Team:%s", teamOwner))); err != nil {
 				nc.logger.Error("ZCARD Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Can not query team count ")
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			} else {
-				if count >= common.MaxTeamLimit {
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Reach team max limit[count=%d]", count)
+				if count >= LMCommon.MaxTeamLimit {
+					nc.logger.Warn("用户拥有的群的总数量是否已经达到上限")
+					errorCode = LMCError.TeamMembersLimitError
 					goto COMPLETE
 				}
 
@@ -133,8 +128,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			var newTeamIndex uint64
 			if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
 				nc.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("serType is not business type [userType=%d]", userType)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -149,7 +143,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 
 			//默认的设置
 			pTeam.Status = 1 //Init(1) - 初始状态,审核中 Normal(2) - 正常状态 Blocked(3) - 封禁状态
-			pTeam.MemberLimit = common.PerTeamMembersLimit
+			pTeam.MemberLimit = LMCommon.PerTeamMembersLimit
 			pTeam.MemberNum = 1  //刚刚建群是只有群主1人
 			pTeam.MuteType = 1   //None(1) - 所有人可发言
 			pTeam.InviteMode = 1 //邀请模式,初始为1
@@ -157,8 +151,8 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			//写入MySQL数据库 创建群
 			if err = nc.service.CreateTeam(pTeam); err != nil {
 				nc.logger.Error("CreateTeam Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法保存到数据库"
+				errorCode = LMCError.DataBaseError
+
 				goto COMPLETE
 			}
 
@@ -190,7 +184,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -220,7 +215,6 @@ COMPLETE:
 func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	//响应参数
 	rsp := &Team.GetTeamMembersRsp{
@@ -263,8 +257,7 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	req := &Team.GetTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -276,14 +269,13 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 		teamID := req.GetTeamId()
 
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				nc.logger.Warn("群组不存在或未审核通过")
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -333,7 +325,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -357,7 +350,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var count int
 
 	//响应参数
@@ -397,8 +390,7 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 	req := &Team.GetTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -410,22 +402,19 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS TeamInfo Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
 				nc.logger.Error("ZCARD Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -434,8 +423,7 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamInfo:%s", teamID))); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 
@@ -448,7 +436,7 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 					Owner:        pTeam.Owner,
 					Type:         Team.TeamType(pTeam.Type),
 					VerifyType:   Team.VerifyType(pTeam.VerifyType),
-					MemberLimit:  int32(common.PerTeamMembersLimit),
+					MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 					MemberNum:    int32(count),
 					Status:       Team.Status(pTeam.Status),
 					MuteType:     Team.MuteMode(pTeam.MuteType),
@@ -468,7 +456,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -504,7 +493,7 @@ COMPLETE:
 func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	var count int
 
@@ -547,8 +536,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 	req := &Team.InviteTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -563,34 +551,34 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
-			pTeam := new(models.Team)
-			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
-				if err := redis.ScanStruct(result, pTeam); err != nil {
-					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
-					goto COMPLETE
-				}
-			}
+			// pTeam := new(models.Team)
+			// if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+			// 	if err := redis.ScanStruct(result, pTeam); err != nil {
+			// 		nc.logger.Error("错误：ScanStruct", zap.Error(err))
+			// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
+			// 		errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+			// 		goto COMPLETE
+			// 	}
+			// }
+			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
+			teamInviteMode, _ := redis.Int(redisConn.Do("HGET", key, "InviteMode"))
+			teamID, _ := redis.String(redisConn.Do("HGET", key, "TeamID"))
 
 			//此群是否是正常的
-			if pTeam.Status != 2 {
-				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+			if teamStatus != 2 {
+				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -600,19 +588,18 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 			if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("TeamUsers:%s", teamID), yesTime, "+inf")); err != nil {
 				nc.logger.Error("ZCOUNT Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
-			if count > common.OnedayInvitedLimit {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Reach one day invite limit[count=%d]", count)
+			if count > LMCommon.OnedayInvitedLimit {
+				nc.logger.Warn("一天最多只能邀请50人入群")
+				errorCode = LMCError.TeamOneDayInviteLimitError
 				goto COMPLETE
 			}
 
 			//此群的拉人进群的模式设定
-			switch Team.InviteMode(pTeam.InviteMode) {
+			switch Team.InviteMode(teamInviteMode) {
 			case Team.InviteMode_Invite_All: //所有人都可以邀请其他人入群
 				//处理待入群用户列表
 				abortUsers := nc.processInviteMembers(redisConn, teamID, username, deviceID, req.GetPs(), req.GetUsernames())
@@ -627,8 +614,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 					if err := redis.ScanStruct(result, opUser); err != nil {
 						nc.logger.Error("TeamUser is not exist", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUserInfo=%s]", teamID, username)
+						errorCode = LMCError.UserNotExistsError
 						goto COMPLETE
 					}
 				}
@@ -637,8 +623,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 					//pass
 				} else {
 					nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is not team owner or manager[Username=%s]", username)
+					errorCode = LMCError.TeamOperatorNotOwnerError
 					goto COMPLETE
 				}
 
@@ -650,7 +635,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 			case Team.InviteMode_Invite_Check: //邀请用户入群时需要管理员审核，需要向所有群管理员发送系统通知，管理员利用4-26 回复
 				//向群主或管理员推送此用户的主动加群通知
-				managers, _ := nc.GetOwnerAndManagers(pTeam.TeamID)
+				managers, _ := nc.GetOwnerAndManagers(teamID)
 				for _, manager := range managers {
 					//遍历整个被邀请加群用户列表, 注意：每个用户都必须有独立的工作流ID
 					for _, inviteUsername := range req.GetUsernames() {
@@ -664,7 +649,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 									nc.logger.Error("redisConn HGET Error", zap.Error(err))
 									continue
 								} else {
-									if state == common.UserBlocked {
+									if state == LMCommon.UserBlocked {
 										nc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
 										rsp.AbortedUsers = append(rsp.AbortedUsers, inviteUsername)
 										continue
@@ -691,8 +676,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
 							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-							errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-							errorMsg = fmt.Sprintf("INCR error[Owner=%s]", manager)
+							errorCode = LMCError.RedisError
 							goto COMPLETE
 						}
 						nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
@@ -747,7 +731,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -781,7 +766,7 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 					nc.logger.Error("redisConn HGET Error", zap.Error(err))
 					continue
 				} else {
-					if state == common.UserBlocked {
+					if state == LMCommon.UserBlocked {
 						nc.logger.Debug("User is blocked", zap.String("inviteUsername", inviteUsername))
 						abortedUsers = append(abortedUsers, inviteUsername)
 						continue
@@ -864,7 +849,7 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	//响应参数
@@ -906,8 +891,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 	req := &Team.RemoveTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -921,14 +905,12 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -938,16 +920,14 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -955,8 +935,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			teamUserInfo := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, teamUserInfo); err != nil {
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUserInfo=%s]", teamID, username)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
@@ -966,8 +945,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 				//管理员或群主
 			} else {
 				nc.logger.Error("无权删除群成员", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not owner or manager[username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotRightDeleteMemberrError
 				goto COMPLETE
 			}
 
@@ -980,7 +958,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 						removeUser := new(models.TeamUser)
 						if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, removedUsername))); err == nil {
 							if err := redis.ScanStruct(result, removeUser); err != nil {
-								errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUserInfo=%s]", teamID, removedUsername)
+
 								nc.logger.Error("TeamUser is not exist", zap.Error(err))
 
 								//增加到无法移除列表
@@ -1097,7 +1075,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1127,7 +1106,7 @@ COMPLETE:
 func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	var count int
 
@@ -1168,8 +1147,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 	req := &Team.AcceptTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1185,8 +1163,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 		fromNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetFrom()), "Nick"))
 		if err != nil {
 			nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("HGET error[from=%s]", req.GetFrom())
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 		//校验用户是否曾经被人拉入群
@@ -1197,8 +1174,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			} else {
 				nc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Not in invited list")
+				errorCode = LMCError.InviteTeamMembersError
 				goto COMPLETE
 			}
 		}
@@ -1206,14 +1182,12 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -1223,30 +1197,26 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断username是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State")); err != nil {
 				nc.logger.Error("redisConn HGET Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			} else {
-				if state == common.UserBlocked {
+				if state == LMCommon.UserBlocked {
 					nc.logger.Debug("User is blocked", zap.String("Username", username))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", username)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 			}
@@ -1257,6 +1227,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				if reply != nil { //是群成员
 					err = nil
 					nc.logger.Debug("User is already member", zap.String("Username", username))
+					errorCode = LMCError.TeamAlreadyMemberError
 					goto COMPLETE
 				}
 			}
@@ -1267,8 +1238,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				if err := redis.ScanStruct(result, userData); err != nil {
 
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 
 				}
@@ -1292,8 +1262,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 			if err := nc.service.AddTeamUser(teamUser); err != nil {
 				nc.logger.Error("增加群成员teamUser失败", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("增加群成员teamUser失败[Username=%s]", username)
+				errorCode = LMCError.AddTeamUserError
 				goto COMPLETE
 
 			}
@@ -1370,8 +1339,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			//计算群成员数量。
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
 				nc.logger.Error("ZCARD Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 			rsp.TeamInfo = &Team.TeamInfo{
@@ -1383,7 +1351,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				Owner:        pTeam.Owner,
 				Type:         Team.TeamType(pTeam.Type),
 				VerifyType:   Team.VerifyType(pTeam.VerifyType),
-				MemberLimit:  int32(common.PerTeamMembersLimit),
+				MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 				MemberNum:    int32(count),
 				Status:       Team.Status(pTeam.Status),
 				MuteType:     Team.MuteMode(pTeam.MuteType),
@@ -1400,7 +1368,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1426,7 +1395,7 @@ COMPLETE:
 func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	redisConn := nc.redisPool.Get()
@@ -1462,8 +1431,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 	req := &Team.RejectTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1483,8 +1451,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				_, err = redisConn.Do("ZREM", fmt.Sprintf("InviteTeamMembers:%s", teamID), username)
 			} else {
 				nc.logger.Warn("校验用户是否曾经被人拉入群: 否", zap.String("username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Not Invite for this team")
+				errorCode = LMCError.InviteTeamMembersError
 				goto COMPLETE
 			}
 		}
@@ -1492,14 +1459,12 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -1509,23 +1474,20 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", pTeam.Owner))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("INCR error[Owner=%s]", pTeam.Owner)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -1539,8 +1501,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "Nick"))
 			if err != nil {
 				nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("HGET error[from=%s]", req.GetFrom())
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -1580,7 +1541,8 @@ COMPLETE:
 		//只需200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1611,7 +1573,7 @@ COMPLETE:
 func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	// var count int
 
@@ -1648,8 +1610,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 	req := &Team.ApplyTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1666,8 +1627,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 			if err := redis.ScanStruct(result, userData); err != nil {
 
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 
 			}
@@ -1682,14 +1642,12 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -1699,30 +1657,26 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, teamInfo); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if teamInfo.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断username是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "State")); err != nil {
 				nc.logger.Error("redisConn HGET Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			} else {
-				if state == common.UserBlocked {
+				if state == LMCommon.UserBlocked {
 					nc.logger.Debug("User is blocked", zap.String("Username", username))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("User is blocked[Username=%s]", username)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 			}
@@ -1734,8 +1688,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				if reply != nil { //是群成员
 					err = nil
 					nc.logger.Debug("User is already team member", zap.String("Username", username))
-					errorCode = http.StatusFound //302
-					errorMsg = fmt.Sprintf("User is already team member[Username=%s]", username)
+					errorCode = LMCError.UserIsAlreadyTeammemberError
 					goto COMPLETE
 				}
 			}
@@ -1795,8 +1748,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 					body := Msg.MessageNotificationBody{
@@ -1831,8 +1783,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Owner=%s]", manager)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 					body := Msg.MessageNotificationBody{
@@ -1862,8 +1813,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 
 			case Team.VerifyType_Vt_Private: //仅限邀请加入
 				nc.logger.Warn("此群仅限邀请加入")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is private, not support apply join")
+				errorCode = LMCError.TeamVerifyTypePrivateErroe
 				goto COMPLETE
 			}
 
@@ -1876,7 +1826,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1903,7 +1854,7 @@ COMPLETE:
 func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	// var count int
 
@@ -1940,8 +1891,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 	req := &Team.PassTeamApplyReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -1962,14 +1912,12 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -1981,22 +1929,19 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			//此群是否是正常的
 			if teamStatus != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				nc.logger.Error("redisConn HGET Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			} else {
-				if state == common.UserBlocked {
+				if state == LMCommon.UserBlocked {
 					nc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 			}
@@ -2008,6 +1953,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				if reply != nil { //是群成员
 					err = nil
 					nc.logger.Debug("User is already member", zap.String("Username", targetUsername))
+					errorCode = LMCError.TeamAlreadyMemberError
 					goto COMPLETE
 				}
 			}
@@ -2017,8 +1963,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, opUser); err != nil {
 					nc.logger.Error("TeamUser is not exist", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUserInfo=%s]", teamID, username)
+					errorCode = LMCError.TeamOperatorNotOwnerError
 					goto COMPLETE
 				}
 			}
@@ -2027,8 +1972,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				//pass
 			} else {
 				nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotOwnerError
 				goto COMPLETE
 			}
 
@@ -2038,8 +1982,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				if err := redis.ScanStruct(result, userData); err != nil {
 
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", targetUsername)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 
 				}
@@ -2069,8 +2012,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 				body := Msg.MessageNotificationBody{
@@ -2129,7 +2071,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -2156,7 +2099,7 @@ COMPLETE:
 func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	redisConn := nc.redisPool.Get()
@@ -2192,8 +2135,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 	req := &Team.RejectTeamApplyReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -2216,14 +2158,12 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -2233,30 +2173,26 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断targetUsername是不是被封禁了，如果是则返回
 			if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", targetUsername), "State")); err != nil {
 				nc.logger.Error("redisConn HGET Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("ser is not exists[Username=%s]", targetUsername)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			} else {
-				if state == common.UserBlocked {
+				if state == LMCommon.UserBlocked {
 					nc.logger.Debug("User is blocked", zap.String("Username", targetUsername))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("ser is blocked[Username=%s]", targetUsername)
+					errorCode = LMCError.UserIsBlockedError
 					goto COMPLETE
 				}
 			}
@@ -2266,8 +2202,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, opUser); err != nil {
 					nc.logger.Error("Operate User is not exist", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Operate is not exists[teamID=%s, teamUserInfo=%s]", teamID, username)
+					errorCode = LMCError.TeamUserIsNotExists
 					goto COMPLETE
 				}
 			}
@@ -2276,8 +2211,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				//pass
 			} else {
 				nc.logger.Warn("Operate User is not team owner or manager", zap.String("Username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Operate User is not team owner[Username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotOwnerError
 				goto COMPLETE
 			}
 
@@ -2287,8 +2221,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 			//向此用户推送拒绝入群的通知
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", targetUsername))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("INCR error[Username=%s]", targetUsername)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 			body := Msg.MessageNotificationBody{
@@ -2359,7 +2292,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -2385,7 +2319,7 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var data []byte
 	rsp := &Team.UpdateTeamRsp{}
 
@@ -2422,8 +2356,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	req := &Team.UpdateTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -2436,14 +2369,12 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -2453,8 +2384,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			//此群是否是正常的
 			if status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -2466,8 +2396,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 
 			} else {
 				nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not team owner or manager [Username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotOwnerError
 				goto COMPLETE
 			}
 
@@ -2594,7 +2523,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -2619,7 +2549,7 @@ COMPLETE:
 func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	var teamID string
 
@@ -2656,8 +2586,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 	req := &Team.LeaveTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -2676,14 +2605,12 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -2693,8 +2620,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
@@ -2702,8 +2628,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -2715,8 +2640,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 					if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 						if err := redis.ScanStruct(result, removeUser); err != nil {
 							nc.logger.Error("TeamUser is not exist", zap.Error(err))
-							errorCode = http.StatusBadRequest //错误码，400
-							errorMsg = fmt.Sprintf("TeamUser is not exists[teamID=%s, teamUserInfo=%s]", teamID, username)
+							errorCode = LMCError.TeamUserIsNotExists
 							goto COMPLETE
 						}
 					}
@@ -2725,8 +2649,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 					if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 						//管理员或群主
 						nc.logger.Error("管理员或群主不能退群，必须由群主删除")
-						errorCode = http.StatusBadRequest //错误码，400
-						errorMsg = fmt.Sprintf("管理员或群主不能退群，必须由群主删除")
+						errorCode = LMCError.OwnerLeaveTeamError
 						goto COMPLETE
 
 					} else {
@@ -2734,8 +2657,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 						//删除此用户在群里的数据
 						if err := nc.service.DeleteTeamUser(teamID, username); err != nil {
 							nc.logger.Error("移除群成员失败", zap.Error(err))
-							errorCode = http.StatusBadRequest //错误码，400
-							errorMsg = fmt.Sprintf("移除群成员失败")
+							errorCode = LMCError.DeleteTeamUserError
 							goto COMPLETE
 						}
 
@@ -2812,7 +2734,8 @@ COMPLETE:
 		nc.logger.Info("退群成功", zap.String("teamID", teamID))
 
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -2842,7 +2765,7 @@ COMPLETE:
 func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Team.AddTeamManagersRsp{
 		AbortedUsernames: make([]string, 0),
 	}
@@ -2881,8 +2804,7 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 	req := &Team.AddTeamManagersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -2896,14 +2818,12 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -2913,24 +2833,21 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断操作者是不是群主
 			if username != pTeam.Owner {
 				nc.logger.Warn("User is not team owner", zap.String("Username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotOwnerError
 				goto COMPLETE
 			}
 
@@ -2945,7 +2862,7 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 							continue
 						} else {
-							if state == common.UserBlocked {
+							if state == LMCommon.UserBlocked {
 								nc.logger.Debug("User is blocked", zap.String("Username", manager))
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3050,7 +2967,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -3079,7 +2997,7 @@ COMPLETE:
 func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Team.RemoveTeamManagersRsp{
 		AbortedUsernames: make([]string, 0),
 	}
@@ -3120,8 +3038,7 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 	req := &Team.RemoveTeamManagersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -3135,14 +3052,12 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -3152,24 +3067,21 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//判断操作者是不是群主
 			if username != pTeam.Owner {
 				nc.logger.Warn("User is not team owner", zap.String("Username", username))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("User is not team owner[Username=%s]", username)
+				errorCode = LMCError.TeamOperatorNotOwnerError
 				goto COMPLETE
 			}
 			for _, manager := range req.GetUsernames() {
@@ -3183,7 +3095,7 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 							rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
 							continue
 						} else {
-							if state == common.UserBlocked {
+							if state == LMCommon.UserBlocked {
 								nc.logger.Debug("User is blocked", zap.String("Username", manager))
 								//增加到放弃列表
 								rsp.AbortedUsernames = append(rsp.AbortedUsernames, manager)
@@ -3292,7 +3204,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -3318,7 +3231,6 @@ COMPLETE:
 func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -3353,8 +3265,7 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 	req := &Team.MuteTeamReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -3368,14 +3279,12 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -3385,16 +3294,14 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -3412,23 +3319,20 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 					pTeam.MuteType = int(mute)
 				} else {
 					nc.logger.Warn("管理员无权设置全体禁言")
-					errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("管理员无权设置全体禁言[username=%s]", username)
+					errorCode = LMCError.ManagerNotRightMuteAllTeamUsersError
 					goto COMPLETE
 				}
 			} else {
 				//其它成员无权设置
 				nc.logger.Warn("其它成员无权设置禁言")
-				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("其它成员无权设置禁言[username=%s]", username)
+				errorCode = LMCError.NorlamNotRightMuteTeamUsersError
 				goto COMPLETE
 			}
 
 			//写入MySQL, 保存禁言类型的值
 			if err = nc.service.UpdateTeamMute(teamID, int(mute)); err != nil {
 				nc.logger.Error("Save Team Mute Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法将Mute保存到Team"
+				errorCode = LMCError.DataBaseError
 				goto COMPLETE
 			}
 
@@ -3483,7 +3387,8 @@ COMPLETE:
 		//200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -3510,7 +3415,6 @@ COMPLETE:
 func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	var newSeq uint64
 
@@ -3547,8 +3451,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 	req := &Team.MuteTeamMemberReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -3562,8 +3465,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 		teamID := req.GetTeamId()
 		if req.GetMutedays() < 0 {
 			nc.logger.Error("Mutedays Error")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Mutedays must greater than 0[Mutedays=%d]", req.GetMutedays())
+			errorCode = LMCError.ParamError
 			goto COMPLETE
 		}
 
@@ -3576,14 +3478,12 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -3593,8 +3493,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
@@ -3602,8 +3501,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -3613,8 +3511,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, opTeamUser); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
@@ -3629,8 +3526,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 				//判断是否处于解禁状态
 				if isMute == false && req.GetMute() == isMute {
 					nc.logger.Warn("警告: 不能重复解禁")
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is already disMute[username=%s]", req.GetUsername())
+					errorCode = LMCError.ParamError
 					goto COMPLETE
 
 				}
@@ -3667,8 +3563,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 
@@ -3710,8 +3605,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			} else {
 				//其它成员无权设置
 				nc.logger.Warn("其它成员无权设置禁言时长", zap.String("username", username))
-				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("其它成员无权设置禁言时长[username=%s]", username)
+				errorCode = LMCError.NorlamNotRightMuteTimeTeamUsersError
 				goto COMPLETE
 			}
 
@@ -3724,7 +3618,8 @@ COMPLETE:
 		//200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -3749,7 +3644,6 @@ COMPLETE:
 func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -3784,8 +3678,7 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	req := &Team.SetNotifyTypeReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -3800,14 +3693,12 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -3818,16 +3709,14 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 			//此群是否是正常的
 			if teamStatus != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
 			//写入MySQL
 			if err = nc.service.UpdateTeamUserNotifyType(teamID, int(req.GetNotifyType())); err != nil {
 				nc.logger.Error("UpdateTeamUserNotifyType Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法更新群通知方式"
+				errorCode = LMCError.DataBaseError
 				goto COMPLETE
 			}
 
@@ -3842,7 +3731,8 @@ COMPLETE:
 		//200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -3867,7 +3757,7 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 	var nick, ex string
 	var ok bool
@@ -3905,8 +3795,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	req := &Team.UpdateMyInfoReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -3919,14 +3808,12 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -3937,8 +3824,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//此群是否是正常的
 			if teamStatus != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -3963,8 +3849,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//写入MySQL
 			if err = nc.service.UpdateTeamUserMyInfo(teamID, username, nick, ex); err != nil {
 				nc.logger.Error("UpdateTeamUserMyInfo Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "无法保存群成员信息"
+				errorCode = LMCError.DataBaseError
 				goto COMPLETE
 			}
 
@@ -3974,8 +3859,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//向其它端推送修改
 			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
 				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("INCR error[Username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -4011,7 +3895,8 @@ COMPLETE:
 		//200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -4037,7 +3922,6 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	var ok bool
 	var nick, ex string
@@ -4075,8 +3959,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	req := &Team.UpdateMemberInfoReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -4090,14 +3973,12 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -4107,16 +3988,14 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -4126,8 +4005,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, opTeamUser); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
@@ -4149,8 +4027,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				//写入MySQL
 				if err = nc.service.UpdateTeamUserMyInfo(teamID, username, nick, ex); err != nil {
 					nc.logger.Error("UpdateTeamUserMyInfo Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = "无法保存群成员资料"
+					errorCode = LMCError.DataBaseError
 					goto COMPLETE
 				}
 
@@ -4164,8 +4041,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", teamMember)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 
@@ -4196,8 +4072,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			} else {
 				//其它成员无权设置
 				nc.logger.Warn("其它成员无权设置群成员资料")
-				errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("其它成员无权设置群成员资料[username=%s]", username)
+				errorCode = LMCError.NorlamNotRightSetProfileTeamUsersError
 				goto COMPLETE
 			}
 
@@ -4210,7 +4085,8 @@ COMPLETE:
 		//200
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -4236,7 +4112,7 @@ COMPLETE:
 func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Team.PullTeamMembersRsp{
 		Tmembers: make([]*Team.Tmember, 0),
 	}
@@ -4275,8 +4151,7 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 	req := &Team.PullTeamMembersReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -4290,14 +4165,12 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Query team info error[teamID=%s]", teamID)
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 
 		} else {
 			if !isExists {
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
 
@@ -4307,16 +4180,14 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, pTeam); err != nil {
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 			}
 			//此群是否是正常的
 			if pTeam.Status != 2 {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team status is not normal")
+				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
 
@@ -4357,7 +4228,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -4383,7 +4255,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Team.GetMyTeamsRsp{
 		Teams:        make([]*Team.TeamInfo, 0),
 		RemovedTeams: make([]string, 0),
@@ -4423,8 +4295,7 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 	req := &Team.GetMyTeamsReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -4449,8 +4320,7 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 			var count int
 			if count, err = redis.Int(redisConn.Do("ZCARD", fmt.Sprintf("TeamUsers:%s", teamID))); err != nil {
 				nc.logger.Error("ZCARD Error", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("TeamUsers is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 
@@ -4463,7 +4333,7 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 				Owner:        pTeam.Owner,
 				Type:         Team.TeamType(pTeam.Type),
 				VerifyType:   Team.VerifyType(pTeam.VerifyType),
-				MemberLimit:  int32(common.PerTeamMembersLimit),
+				MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 				MemberNum:    int32(count),
 				Status:       Team.Status(pTeam.Status),
 				MuteType:     Team.MuteMode(pTeam.MuteType),
@@ -4485,7 +4355,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -4517,7 +4388,7 @@ TODO
 func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	redisConn := nc.redisPool.Get()
@@ -4553,8 +4424,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	req := &Team.CheckTeamInviteReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -4578,8 +4448,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, pTeam); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 		}
@@ -4587,8 +4456,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		//此群是否是正常的
 		if pTeam.Status != 2 {
 			nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Team status is not normal")
+			errorCode = LMCError.TeamStatusError
 			goto COMPLETE
 		}
 
@@ -4597,8 +4465,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamUserInfo); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 		}
@@ -4614,8 +4481,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					if err := redis.ScanStruct(result, userData); err != nil {
 
 						nc.logger.Error("错误：ScanStruct", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("ScanStruct Error[Username=%s]", req.GetInvitee())
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 
 					}
@@ -4624,8 +4490,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				//向受邀请人发送邀请加群通知
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInvitee()))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
@@ -4659,8 +4524,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", manager)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 					handledMsg := fmt.Sprintf("管理员同意用户 %s 拉人入群申请", inviterNick)
@@ -4694,8 +4558,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				//向邀请人 及 其它管理员发送通知
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetInviter()))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-					errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-					errorMsg = fmt.Sprintf("INCR error[Username=%s]", req.GetInviter())
+					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
 				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetInviter()), "Nick"))
@@ -4729,8 +4592,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				for _, manager := range managers {
 					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
 						nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-						errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-						errorMsg = fmt.Sprintf("INCR error[Username=%s]", manager)
+						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
 					body := Msg.MessageNotificationBody{
@@ -4762,8 +4624,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		} else {
 			//其它成员无权设置
 			nc.logger.Warn("其它成员无权审核用户入群申请")
-			errorCode = http.StatusBadRequest //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("其它成员无权审核用户入群申请[username=%s]", username)
+			errorCode = LMCError.NorlamNotRightAuditError
 			goto COMPLETE
 		}
 
@@ -4775,7 +4636,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -4800,7 +4662,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var data []byte
 	// var newSeq uint64
 
@@ -4842,8 +4704,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 	req := &Team.GetTeamMembersPageReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -4861,8 +4722,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, pTeam); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team is not exists[teamID=%s]", teamID)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 		}
@@ -4870,8 +4730,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		//此群是否是正常的
 		if pTeam.Status != 2 {
 			nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Team status is not normal")
+			errorCode = LMCError.TeamStatusError
 			goto COMPLETE
 		}
 
@@ -4880,8 +4739,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 			if err := redis.ScanStruct(result, teamUserInfo); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Team user is not exists[username=%s]", username)
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 		}
@@ -4933,7 +4791,8 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
