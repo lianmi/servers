@@ -816,24 +816,24 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		*/
 
 		//生成阿里云oss临时sts, Policy是对lianmi-ipfs这个bucket下的 avatars, generalavatars, msg, products, orders, stores, teamicons, 目录有可读写权限
-		// acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
-		// acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
-		// acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
-		// acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
-		// acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
-		// acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
-		// acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
-		// acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
+		acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
+		acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
+		acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
+		acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
+		acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
+		acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
+		acsTeamIcons := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/teamicons/%s/*", username)
+		acsUsers := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/users/%s/*", username)
 
 		// Policy是对lianmi-ipfs这个bucket下的user目录有可读写权限
 		policy := sts.Policy{
 			Version: "1",
 			Statement: []sts.StatementBase{sts.StatementBase{
 				Effect: "Allow",
-				// Action:   []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
-				Action: []string{"oss:*"},
-				// Resource: []string{"acs:oss:*:*:lianmi-ipfs", acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
-				Resource: []string{"acs:oss:*:*:lianmi-ipfs", "acs:oss:*:*:lianmi-ipfs/*"},
+				Action: []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+				// Action: []string{"oss:*"},  // 开放所有权限
+				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
+				// Resource: []string{"acs:oss:*:*:lianmi-ipfs", "acs:oss:*:*:lianmi-ipfs/*"},
 			}},
 		}
 
