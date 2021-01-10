@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	// "net/http"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -16,6 +16,7 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/crypt"
 	"github.com/lianmi/servers/util/mathtool"
@@ -44,7 +45,7 @@ import (
 func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Order.QueryProductsRsp{
 		Products:        make([]*Order.Product, 0),
 		SoldoutProducts: make([]string, 0),
@@ -81,9 +82,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 	//解包body
 	var req Order.QueryProductsReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -196,7 +195,8 @@ COMPLETE:
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -217,7 +217,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	var err error
 	var data []byte
 	errorCode := 200
-	var errorMsg string
+
 	var productId string
 	var productPic1Small, productPic1Middle, productPic1Large string
 	var productPic2Small, productPic2Middle, productPic2Large string
@@ -256,9 +256,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 	//解包body
 	var req Order.AddProductReq
 	if err = proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -294,9 +292,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		)
 
 		if req.Product.ProductId != "" {
-			nc.logger.Warn("新的上架商品id必须是空的 ")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductId is not empty[Username=%s]", username)
+			nc.logger.Warn("新的上架商品id必须是空的")
+			errorCode = LMCError.OrderModProductIDNotEmpty //错误码
 			goto COMPLETE
 		}
 
@@ -306,8 +303,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			//符合要求 pass
 		} else {
 			nc.logger.Warn("新的上架商品所属类型不正确")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("OrderType is not right[Username=%s]", username)
+			errorCode = LMCError.OrderModProductTypeError //错误码
 			goto COMPLETE
 		}
 
@@ -315,9 +311,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		if req.Expire > 0 {
 			//是否小于当前时间戳
 			if int64(req.Expire) < time.Now().UnixNano()/1e6 {
-				nc.logger.Warn("Expire小于当前时间戳")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Expire is less than current microsecond[Expire=%d]", req.Expire)
+				nc.logger.Warn("过期时间小于当前时间戳")
+				errorCode = LMCError.OrderModProductTypeError //错误码
 				goto COMPLETE
 			}
 
@@ -339,8 +334,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 
 		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上架商品")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
+			errorCode = LMCError.OrderModAddProductUserTypeError //错误码
 			goto COMPLETE
 		}
 
@@ -403,10 +397,14 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		//保存到MySQL
 		if err = nc.service.AddProduct(product); err != nil {
 			nc.logger.Error("错误: 增加到MySQL失败", zap.Error(err))
+			errorCode = LMCError.DataBaseError
+			goto COMPLETE
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product.ProductInfo)...); err != nil {
 			nc.logger.Error("错误: HMSET ProductInfo", zap.Error(err))
+			errorCode = LMCError.RedisError
+			goto COMPLETE
 		}
 
 	}
@@ -420,7 +418,8 @@ COMPLETE:
 		msg.FillBody(data)
 
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -517,7 +516,6 @@ COMPLETE:
 func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	var productPic1Large string
 	var productPic2Large string
@@ -555,9 +553,8 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	//解包body
 	var req Order.UpdateProductReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -569,8 +566,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		if req.Product.ProductId == "" {
 			nc.logger.Warn("上架商品id必须非空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductId is empty[Username=%s]", username)
+			errorCode = LMCError.OrderModAddProductEmptyProductIDError
 			goto COMPLETE
 		}
 
@@ -580,8 +576,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能上架商品")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
+			errorCode = LMCError.OrderModAddProductUserTypeError
 			goto COMPLETE
 		}
 
@@ -590,8 +585,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			if reply == nil {
 				//此商品没有上架过
 				nc.logger.Warn("此商品没有上架过")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Product is not onsell [Username=%s]", username)
+				errorCode = LMCError.OrderModAddProductNotOnSellError
 				goto COMPLETE
 			}
 
@@ -667,15 +661,13 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		//保存到MySQL
 		if err = nc.service.UpdateProduct(product); err != nil {
 			nc.logger.Error("错误: 保存到MySQL失败", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Save to db error")
+			errorCode = LMCError.DataBaseError
 			goto COMPLETE
 		}
 
 		if _, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("Product:%s", req.Product.ProductId)).AddFlat(product.ProductInfo)...); err != nil {
 			nc.logger.Error("错误: HMSET Product Info", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Save to redis error")
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -707,7 +699,8 @@ COMPLETE:
 	if errorCode == 200 {
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -727,7 +720,6 @@ COMPLETE:
 func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -760,9 +752,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 	//解包body
 	var req Order.SoldoutProductReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -772,8 +762,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 
 		if req.ProductID == "" {
 			nc.logger.Warn("下架商品id必须非空")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("ProductId is empty[Username=%s]", username)
+			errorCode = LMCError.OrderModAddProductEmptyProductIDError
 			goto COMPLETE
 		}
 
@@ -783,8 +772,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 
 		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Warn("用户不是商户类型，不能下架商品")
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("User is not business type[Username=%s]", username)
+			errorCode = LMCError.OrderModAddProductUserTypeError
 			goto COMPLETE
 		}
 
@@ -793,8 +781,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			if reply == nil {
 				//此商品没有上架过
 				nc.logger.Warn("此商品没有上架过")
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = fmt.Sprintf("Product is not onsell [Username=%s]", username)
+				errorCode = LMCError.OrderModAddProductNotOnSellError
 				goto COMPLETE
 			}
 
@@ -809,8 +796,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
 			if err := redis.ScanStruct(result, productInfo); err != nil {
 				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-				errorMsg = "HGETALL Error"
+				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
 		}
@@ -843,7 +829,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -863,7 +850,6 @@ COMPLETE:
 func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -896,9 +882,7 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 	//解包body
 	var req Order.RegisterPreKeysReq
 	if err := proto.Unmarshal(body, &req); err != nil {
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
@@ -909,7 +893,6 @@ func (nc *NsqClient) HandleRegisterPreKeys(msg *models.Message) error {
 		if len(req.PreKeys) == 0 {
 			nc.logger.Warn("一次性公钥的数组长度必须大于0")
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("PreKeys is empty[Username=%s]", username)
 			goto COMPLETE
 		}
 
@@ -952,7 +935,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1101,7 +1085,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	rsp := &Order.GetPreKeyOrderIDRsp{}
 	var count int //OPK有序集合的数量
 
@@ -1137,8 +1121,6 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	var req Order.GetPreKeyOrderIDReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
@@ -1274,7 +1256,8 @@ COMPLETE:
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1576,7 +1559,7 @@ func (nc *NsqClient) CalculateCharge(isVip bool, orderTotalAmout float64) (float
 func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	var isVip bool
@@ -1618,8 +1601,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 	var req Msg.SendMsgReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
@@ -1673,9 +1654,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		//解包出 OrderProductBody
 		var orderProductBody = new(Order.OrderProductBody)
 		if err := proto.Unmarshal(req.Body, orderProductBody); err != nil {
-			nc.logger.Error("Protobuf Unmarshal OrderProductBody Error", zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Protobuf Unmarshal OrderProductBody Error: %s", err.Error())
 			goto COMPLETE
 
 		} else {
@@ -1939,7 +1918,8 @@ COMPLETE:
 			msg.FillBody(data)
 		}
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -1962,7 +1942,7 @@ COMPLETE:
 func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var newSeq uint64
 
 	var orderBodyData []byte
@@ -2007,8 +1987,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 	var req Order.ChangeOrderStateReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
-		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		goto COMPLETE
 
 	} else {
@@ -2139,8 +2117,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		// 	if err := redis.ScanStruct(result, productInfo); err != nil {
 		// 		nc.logger.Error("错误: ScanStruct", zap.Error(err))
 		// 		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		// 		errorMsg = fmt.Sprintf("This Product is not exists")
-		// 		goto COMPLETE
 		// 	}
 		// }
 
@@ -2544,7 +2520,8 @@ COMPLETE:
 		//
 		msg.FillBody(nil)
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 
@@ -2567,7 +2544,7 @@ COMPLETE:
 func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 	var err error
 	errorCode := 200
-	var errorMsg string
+
 	var count int
 
 	redisConn := nc.redisPool.Get()
@@ -2622,7 +2599,8 @@ COMPLETE:
 		msg.FillBody(data)
 
 	} else {
-		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
 		msg.FillBody(nil)
 	}
 

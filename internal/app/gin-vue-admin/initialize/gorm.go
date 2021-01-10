@@ -34,36 +34,36 @@ func Gorm() *gorm.DB {
 
 func MysqlTables(db *gorm.DB) {
 	err := db.AutoMigrate(
-		model.SysUser{},
-		model.SysAuthority{},
-		model.SysApi{},
-		model.SysBaseMenu{},
-		model.SysBaseMenuParameter{},
-		model.JwtBlacklist{},
-		model.SysDictionary{},
-		model.SysDictionaryDetail{},
-		model.ExaFileUploadAndDownload{},
-		model.ExaFile{},
-		model.ExaFileChunk{},
-		model.ExaSimpleUploader{},
-		model.ExaCustomer{},
-		model.SysOperationRecord{},
-		model.WorkflowProcess{},
-		model.WorkflowNode{},
-		model.WorkflowEdge{},
-		model.WorkflowStartPoint{},
-		model.WorkflowEndPoint{},
-		model.WorkflowMove{},
-		model.ExaWfLeave{},
+	// model.SysUser{},
+	// model.SysAuthority{},
+	// model.SysApi{},
+	// model.SysBaseMenu{},
+	// model.SysBaseMenuParameter{},
+	// model.JwtBlacklist{},
+	// model.SysDictionary{},
+	// model.SysDictionaryDetail{},
+	// model.ExaFileUploadAndDownload{},
+	// model.ExaFile{},
+	// model.ExaFileChunk{},
+	// model.ExaSimpleUploader{},
+	// model.ExaCustomer{},
+	// model.SysOperationRecord{},
+	// model.WorkflowProcess{},
+	// model.WorkflowNode{},
+	// model.WorkflowEdge{},
+	// model.WorkflowStartPoint{},
+	// model.WorkflowEndPoint{},
+	// model.WorkflowMove{},
+	// model.ExaWfLeave{},
 
-		//TODO 通用商品
-		models.GeneralProduct{},
+	//TODO 通用商品
+	// models.GeneralProduct{},
 
-		// TODO 彩种销售开始及销售时间表
-		models.LotterySaleTime{},
+	// TODO 彩种销售开始及销售时间表
+	// models.LotterySaleTime{},
 
-		models.Store{}, // 商户店铺表
-		models.User{},  // 用户表
+	// models.Store{}, // 商户店铺表
+	// models.User{},  // 用户表
 	)
 	if err != nil {
 		global.GVA_LOG.Error("register table failed", zap.Any("err", err))

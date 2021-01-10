@@ -18,7 +18,7 @@ import (
 	// "strings"
 	"time"
 
-	"net/http"
+	// "net/http"
 
 	"github.com/pkg/errors"
 
@@ -26,6 +26,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	LMCommon "github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/randtool"
 	"go.uber.org/zap"
@@ -241,7 +242,6 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 	var err error
 	kickRsp := &Auth.KickRsp{}
 	errorCode := 200 //错误码， 200是正常，其它是错误
-	var errorMsg string
 	var data []byte
 
 	//将此设备从在线列表里删除，然后更新对应用户的在线列表。
@@ -282,8 +282,7 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 		var kickReq Auth.KickReq
 		if err := proto.Unmarshal(body, &kickReq); err != nil {
 			nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-			errorCode = http.StatusInternalServerError //500
-			errorMsg = "Protobuf Unmarshal Error"
+			errorCode = LMCError.ProtobufUnmarshalError
 			goto COMPLETE
 		} else {
 			deviceiIDs = kickReq.GetDeviceIds()
@@ -415,15 +414,18 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 	} else {
 		//从设备无权踢出其它设备
 		err = errors.Wrapf(err, "Slave service no right to kick other device")
-		errorMsg = "Slave service no right to kick other device"
+		errorCode = LMCError.AuthModNotRight
+		goto COMPLETE
 	}
 
 COMPLETE:
+
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		data, _ = proto.Marshal(kickRsp)
 		msg.FillBody(data) //网络包的body，承载真正的业务数据
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode)
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
 	}
@@ -538,7 +540,6 @@ func (nc *NsqClient) HandleGetAllDevices(msg *models.Message) error {
 func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 	var err error
 	errorCode := 200 //错误码， 200是正常，其它是错误
-	var errorMsg string
 
 	username := msg.GetUserName() //主设备用户账号
 	deviceID := msg.GetDeviceID() //主设备设备id
@@ -568,8 +569,7 @@ func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 	slaveDeviceID, err := redis.String(redisConn.Do("GET", tempKey))
 	if err != nil {
 		nc.logger.Error("Failed to GET slaveDeviceID", zap.Error(err))
-		errorCode = http.StatusInternalServerError //500
-		errorMsg = fmt.Sprintf("Protobuf Unmarshal Error: %s", err.Error())
+		errorCode = LMCError.RedisError
 		goto COMPLETE
 
 	} else {
@@ -579,8 +579,7 @@ func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 		mobile, _ := redis.String(redisConn.Do("HGET", userKey, "Mobile"))
 		if mobile == "" {
 			nc.logger.Error("获取手机失败", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Get Mobile from redis error")
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -598,8 +597,7 @@ func (nc *NsqClient) HandleAddSlaveDevice(msg *models.Message) error {
 		//一次性写入到Redis
 		if err := redisConn.Flush(); err != nil {
 			nc.logger.Error("写入redis失败", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("写入redis失败: %s", err.Error())
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 		nc.logger.Debug("GenerateSmsCode, 写入redis成功")
@@ -654,6 +652,7 @@ COMPLETE:
 		//这里不需要发送body，直接向主设备发送200即可
 		msg.FillBody(nil)
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode)
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
 	}
@@ -678,7 +677,6 @@ func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 	var err error
 	rsp := &Auth.AuthorizeCodeRsp{}
 	errorCode := 200
-	var errorMsg string
 	var data []byte
 
 	nc.logger.Info("HandleAuthorizeCode start...", zap.String("DeviceId", msg.GetDeviceID()))
@@ -693,8 +691,7 @@ func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 	var req Auth.AuthorizeCodeReq
 	if err := proto.Unmarshal(body, &req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-		errorMsg = "Protobuf Unmarshal Error"
+		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 	} else {
 		nc.logger.Debug("AuthorizeCodeReq",
@@ -713,8 +710,7 @@ func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 		_, err = redisConn.Do("SET", tempKey, deviceID)
 		if err != nil {
 			nc.logger.Error("Failed to SET ", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Failed to SET: %s", err.Error())
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 		nc.logger.Debug("HandleAuthorizeCode",
@@ -725,8 +721,7 @@ func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
 		_, err = redisConn.Do("EXPIRE", tempKey, LMCommon.SMSEXPIRE)
 		if err != nil {
 			nc.logger.Error("Failed to EXPIRE ", zap.Error(err))
-			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
-			errorMsg = fmt.Sprintf("Failed to EXPIRE: %s", err.Error())
+			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
 
@@ -745,6 +740,7 @@ COMPLETE:
 		data, _ = proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode)
 		msg.SetErrorMsg([]byte(errorMsg)) //错误提示
 		msg.FillBody(nil)
 	}
