@@ -18,7 +18,7 @@ import (
 )
 
 func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
-	var err error
+	// var err error
 	var curState int
 	var productID string
 	var buyUser, businessUser string
@@ -32,17 +32,17 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	//订单详情
 	orderIDKey := fmt.Sprintf("Order:%s", orderID)
 	//获取订单的具体信息
-	curState, err = redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
-	isPayed, err = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
-	productID, err = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
-	buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
-	businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
-	orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+	curState, _ = redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
+	isPayed, _ = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
+	productID, _ = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+	buyUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
+	businessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+	orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 	attachHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
-	if err != nil {
-		s.logger.Error("UploadOrderImages, HGET Error", zap.Error(err))
-		return nil, err
-	}
+	// if err != nil {
+	// 	s.logger.Error("UploadOrderImages, HGET Error", zap.Error(err))
+	// 	return nil, err
+	// }
 	return &models.OrderInfo{
 		OrderID:          orderID,
 		AttachHash:       attachHash,

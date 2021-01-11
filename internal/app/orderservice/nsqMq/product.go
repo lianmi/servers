@@ -1983,17 +1983,17 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//获取订单的具体信息
-		isPayed, err = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
-		isUrge, err = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsUrge"))
-		productID, err = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
-		buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
-		businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
-		orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+		isPayed, _ = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
+		isUrge, _ = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsUrge"))
+		productID, _ = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
+		buyUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
+		businessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
+		orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 		attachHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
-		if err != nil {
-			nc.logger.Error("从Redis里取出此 Order 对应的businessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
-		}
+		// if err != nil {
+		// 	nc.logger.Error("从Redis里取出此 Order 对应的businessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
+		// }
 
 		if productID == "" {
 			nc.logger.Error("ProductID is empty")
@@ -2033,6 +2033,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			zap.String("ProductID", productID),
 			zap.String("BuyUser", buyUser),
 			zap.String("BusinessUser", businessUser),
+			zap.String("AttachHash", attachHash),
 			zap.String("当前操作者账号 username", username),
 			zap.String("目标用户账号 toUsername", toUsername),
 			zap.Float64("OrderTotalAmount", orderTotalAmount),
