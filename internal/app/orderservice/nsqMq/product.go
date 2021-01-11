@@ -1237,6 +1237,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"ProductID", req.ProductID, //商品id
 			"Type", req.OrderType, //订单类型
 			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
+			"AttachHash", "",
 			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 			"IsUrge", LMCommon.REDISFALSE, //催单
 			"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
@@ -1988,7 +1989,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 		businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 		orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
-		attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
+		attachHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
 		if err != nil {
 			nc.logger.Error("从Redis里取出此 Order 对应的businessUser Error", zap.String("orderIDKey", orderIDKey), zap.Error(err))
