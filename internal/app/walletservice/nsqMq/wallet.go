@@ -387,8 +387,9 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			toUsername = businessUser
 			toWalletAddress = newKeyPair.AddressHex //中转账号
 
-			//将redis里的订单信息哈希表状态字段设置为 OS_Paying
+			//将redis里的订单信息哈希表状态字段设置为 OS_Paying 及订单金额
 			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_Paying))
+			_, err = redisConn.Do("HSET", orderIDKey, "OrderTotalAmount", req.Amount)
 
 		}
 
