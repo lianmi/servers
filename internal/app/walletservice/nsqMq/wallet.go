@@ -469,12 +469,23 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 
 		//发起者钱包账户向接收者账户转账，由于服务端没有发起者的私钥，所以只能生成裸交易，让发起者签名后才能向接收者账户转账
 		tokens := int64(amountLNMC)
-		rawDescToTarget, err := nc.ethService.GenerateTransferLNMCTokenTx(walletAddress, toWalletAddress, tokens)
+		rawDescToTarget, err := nc.ethService.GenerateTransferLNMCTokenTx(redisConn, walletAddress, toWalletAddress, tokens)
 		if err != nil {
-			nc.logger.Error("构造发起者向接收者转账的交易 失败", zap.String("walletAddress", walletAddress), zap.String("toWalletAddress", toWalletAddress), zap.Error(err))
+			nc.logger.Error("构造发起者向接收者转账的交易失败", zap.String("walletAddress", walletAddress), zap.String("toWalletAddress", toWalletAddress), zap.Error(err))
 			errorCode = http.StatusInternalServerError //错误码， 200是正常，其它是错误
 			errorMsg = fmt.Sprintf("Generate TransferLNMCTokenTx error")
 			goto COMPLETE
+		} else {
+			nc.logger.Debug("构造发起者向接收者转账的交易成功",
+				zap.String("walletAddress", walletAddress),
+				zap.String("toWalletAddress", toWalletAddress),
+				zap.Uint64("Nonce", rawDescToTarget.Nonce),
+				zap.Uint64("GasPrice", rawDescToTarget.GasPrice),
+				zap.Uint64("GasLimit", rawDescToTarget.GasLimit),
+				zap.Uint64("ChainID", rawDescToTarget.ChainID),
+				zap.Uint64("Value", amountLNMC),
+			)
+
 		}
 
 		rsp := &Wallet.PreTransferRsp{
@@ -1410,7 +1421,7 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 
 		//调用eth接口， 构造用户转账给平台方子地址的裸交易数据
 		tokens := int64(amountLNMC + fee) //加上佣金
-		rawDesc, err := nc.ethService.GenerateTransferLNMCTokenTx(walletAddress, withdrawKeyPair.AddressHex, tokens)
+		rawDesc, err := nc.ethService.GenerateTransferLNMCTokenTx(redisConn, walletAddress, withdrawKeyPair.AddressHex, tokens)
 		if err != nil {
 			nc.logger.Error("提现，构造用户转账给平台方子地址的裸交易数据 失败", zap.String("walletAddress", walletAddress), zap.String("Plaform Address", withdrawKeyPair.AddressHex), zap.Error(err))
 			errorCode = http.StatusPaymentRequired //402

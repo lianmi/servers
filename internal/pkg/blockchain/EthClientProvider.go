@@ -19,9 +19,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/google/wire"
-	// "github.com/miguelmota/go-ethereum-hdwallet"
 	"golang.org/x/crypto/sha3"
 	// "github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -42,7 +42,8 @@ type KeyPair struct {
 type Service struct {
 	o        *Options
 	WsClient *ethclient.Client
-	logger   *zap.Logger
+	// redisPool *redis.Pool
+	logger *zap.Logger
 }
 
 // Options service options
@@ -82,7 +83,8 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 	// 	return nil, err
 	// }
 	return &Service{
-		o:        opts,
+		o: opts,
+		// redisPool: redisPool,
 		WsClient: client,
 		logger:   logger,
 	}, nil
@@ -834,14 +836,20 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 }
 
 /*
-构造一个普通用户账号转账的裸交易数据，目标是多签合约地址
+构造一个普通用户账号转账的裸交易数据,  用于预支付的发起
 source - 发起方钱包账号
 target - 接收者的钱包地址
 tokens - 代币数量，字符串格式
 */
-func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int64) (*models.RawDesc, error) {
+func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, target string, tokens int64) (*models.RawDesc, error) {
 	var err error
 	var balanceEth uint64 //用户当前ETH数量
+
+	s.logger.Debug("GenerateTransferLNMCTokenTx start...",
+		zap.String("source", source),
+		zap.String("target", target),
+		zap.Int64("tokens", tokens),
+	)
 
 	//当前用户的链上Eth余额
 	balanceEth, err = s.GetWeiBalance(source)
@@ -855,16 +863,40 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 		)
 		return nil, errors.New("Not sufficient funds")
 	}
-
 	fromAddress := common.HexToAddress(source)
-	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+
+	successNonceAt, err := s.WsClient.NonceAt(context.Background(), fromAddress, nil)
 	if err != nil {
-		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		s.logger.Error("Get NonceAt failed ", zap.Error(err))
 		return nil, err
 	}
-	// fmt.Println("nonce:", int64(nonce))
-	// nonce = nonce
-	s.logger.Debug("Generate TransferLNMCTokenTx succeed", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
+
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed", zap.Error(err))
+		return nil, err
+	}
+	//TODO 从redis里取出上次的 PendingNonceAt 假如这两个nonce都相同，那么报错
+	nonceAtKey := fmt.Sprintf("PendingNonceAt:%s", source)
+	oldPendingNonceAt, err := redis.Uint64(redisConn.Do("GET", nonceAtKey))
+
+	if oldPendingNonceAt == nonce {
+		s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
+		return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
+	}
+
+	//TODO 这里有幺蛾子，nonce不会增长,连续发起多个交易会堵塞
+	// see : https://blog.csdn.net/sinat_34070003/article/details/79919431
+	// see: https://blog.csdn.net/qq_44373419/article/details/106492988 golang 实现 ETH 交易离线签名（冷签）--以太坊DPOS
+
+	s.logger.Debug("Get NonceAt succeed",
+		zap.Uint64("successNonceAt", successNonceAt),
+		zap.Uint64("PendingNonceAt", nonce),
+		zap.Uint64("nonce的值相差", nonce-successNonceAt),
+	)
+	_, err = redisConn.Do("SET", nonceAtKey, nonce)
+
+	// s.logger.Debug("Generate TransferLNMCTokenTx succeed", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
 
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
@@ -872,8 +904,6 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 		s.logger.Error("SuggestGasPrice failed ", zap.Error(err))
 		return nil, err
 	}
-
-	// fmt.Println("gasPrice", gasPrice)
 
 	//接收者的钱包地址
 	toAddress := common.HexToAddress(target)
@@ -893,18 +923,13 @@ func (s *Service) GenerateTransferLNMCTokenTx(source, target string, tokens int6
 	amount := big.NewInt(tokens) //代币数量
 
 	paddedAmount := common.LeftPadBytes(amount.Bytes(), 32)
-	// fmt.Println(hexutil.Encode(paddedAmount))
 
 	var data []byte
 	data = append(data, methodID...)
 	data = append(data, paddedAddress...)
 	data = append(data, paddedAmount...)
 
-	// fmt.Println("data:", data)
-	// fmt.Println("data hex:", hex.EncodeToString(data))
-
 	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
-	// fmt.Println("gasLimit:", gasLimit)
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
