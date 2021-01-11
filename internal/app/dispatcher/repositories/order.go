@@ -23,7 +23,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	var productID string
 	var buyUser, businessUser string
 	// var attachHash string
-	var orderTotalAmount float64 //订单金额
+	// var orderTotalAmount float64 //订单金额
 	var isPayed bool
 
 	redisConn := s.redisPool.Get()
@@ -37,9 +37,10 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	productID, err = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
 	buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 	businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
-	orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+	// orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 	// attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	if err != nil {
+		s.logger.Error("UploadOrderImages, HGET Error", zap.Error(err))
 		return nil, err
 	}
 	return &models.OrderInfo{
@@ -48,7 +49,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 		ProductID:        productID,
 		BuyerUsername:    buyUser,
 		BusinessUsername: businessUser,
-		Cost:             orderTotalAmount,
+		// Cost:             orderTotalAmount,
 		State:            curState,
 		IsPayed:          isPayed,
 	}, nil
