@@ -311,3 +311,18 @@ func (pc *LianmiApisController) QueryLotterySaleTimes(c *gin.Context) {
 	RespData(c, http.StatusOK, code, lotterySaleTimesRsp)
 
 }
+
+//清除所有OPK
+func (pc *LianmiApisController)  ClearAllOPK(c *gin.Context) {
+	code := codes.InvalidParams
+
+	lotterySaleTimesRsp, err := pc.service.QueryLotterySaleTimes()
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, lotterySaleTimesRsp)
+
+}

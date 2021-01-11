@@ -22,7 +22,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	var curState int
 	var productID string
 	var buyUser, businessUser string
-	var attachHash string
+	// var attachHash string
 	var orderTotalAmount float64 //订单金额
 	var isPayed bool
 
@@ -38,13 +38,13 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	buyUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 	businessUser, err = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	orderTotalAmount, err = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
-	attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
+	// attachHash, err = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	if err != nil {
 		return nil, err
 	}
 	return &models.OrderInfo{
-		OrderID:          orderID,
-		AttachHash:       attachHash,
+		OrderID: orderID,
+		// AttachHash:       attachHash,
 		ProductID:        productID,
 		BuyerUsername:    buyUser,
 		BusinessUsername: businessUser,
@@ -160,5 +160,3 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 	}
 	return nil, nil
 }
-
-

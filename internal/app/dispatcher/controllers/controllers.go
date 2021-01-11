@@ -346,6 +346,8 @@ func CreateInitControllersFn(
 			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞
 			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
 			storeGroup.GET("/lottersaletimes", pc.QueryLotterySaleTimes) //获取各种彩票的开售及停售时刻
+			storeGroup.DELETE("/clearallopk", pc.ClearAllOPK)            //清除所有
+
 		}
 
 		//=======好友模块==========/
