@@ -8,8 +8,6 @@ import (
 	User "github.com/lianmi/servers/api/proto/user"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
-	// LMCommon "github.com/lianmi/servers/internal/common"
-	// "github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -199,6 +197,12 @@ type LianmiApisService interface {
 
 	//清除所有OPK
 	ClearAllOPK(username string) error
+
+	//获取当前商户的所有OPK
+	GetAllOPKS(username string) (*Order.GetAllOPKSRsp, error)
+
+	//删除当前商户的指定OPK
+	EraseOPK(username string, req *Order.EraseOPKSReq) error
 }
 
 type DefaultLianmiApisService struct {
@@ -773,6 +777,18 @@ func (s *DefaultLianmiApisService) QueryLotterySaleTimes() (*Order.QueryLotteryS
 }
 
 //清除所有OPK
-func (s *DefaultLianmiApisService)  ClearAllOPK(username string) error {
+func (s *DefaultLianmiApisService) ClearAllOPK(username string) error {
+
 	return s.Repository.ClearAllOPK(username)
+}
+
+//获取当前商户的所有OPK
+func (s *DefaultLianmiApisService) GetAllOPKS(username string) (*Order.GetAllOPKSRsp, error) {
+
+	return s.Repository.GetAllOPKS(username)
+}
+
+//删除当前商户的指定OPK
+func (s *DefaultLianmiApisService) EraseOPK(username string, req *Order.EraseOPKSReq) error {
+	return s.Repository.EraseOPK(username, req)
 }

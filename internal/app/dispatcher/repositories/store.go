@@ -621,11 +621,17 @@ func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySale
 
 //清除所有OPK
 func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
-
+	var err error
 	s.logger.Debug("ClearAllOPK start ...")
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
 
 	redisConn.Do("DEL", fmt.Sprintf("prekeys:%s", username))
 
@@ -643,6 +649,56 @@ func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
 	}
 	tx.Commit()
 	s.logger.Debug("ClearAllOPK end")
+	return nil
+
+}
+
+//获取当前商户的所有OPK
+func (s *MysqlLianmiRepository) GetAllOPKS(username string) (*Order.GetAllOPKSRsp, error) {
+	var err error
+	s.logger.Debug("GetAllOPKS start ...")
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return nil, errors.Wrap(err, "此用户非商户类型")
+	}
+
+	var rsp = &Order.GetAllOPKSRsp{}
+
+	opks, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", username), 0, -1))
+	for _, opk := range opks {
+		rsp.Opks = append(rsp.Opks, opk)
+	}
+
+	return rsp, nil
+
+}
+
+//删除当前商户的指定OPK
+func (s *MysqlLianmiRepository) EraseOPK(username string, req *Order.EraseOPKSReq) error {
+	var err error
+	s.logger.Debug("EraseOPK start ...")
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
+	for _, opk := range req.Opks {
+		_, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", username), opk)
+		if err != nil {
+			return err
+		}
+	}
+	s.logger.Debug("EraseOPK end")
+
 	return nil
 
 }

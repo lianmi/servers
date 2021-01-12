@@ -333,3 +333,54 @@ func (pc *LianmiApisController) ClearAllOPK(c *gin.Context) {
 	RespOk(c, http.StatusOK, code)
 
 }
+
+//获取当前商户的所有OPK
+func (pc *LianmiApisController) GetAllOPKS(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	resp, err := pc.service.GetAllOPKS(username)
+	if err != nil {
+		RespFail(c, http.StatusBadRequest, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, resp)
+
+}
+
+//删除当前商户的指定OPK
+func (pc *LianmiApisController) EraseOPK(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	var req Order.EraseOPKSReq
+
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+
+		err := pc.service.EraseOPK(username, &req)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "删除当前商户的指定OPK错误")
+			return
+		}
+		code = codes.SUCCESS
+		RespOk(c, http.StatusOK, code)
+	}
+
+}

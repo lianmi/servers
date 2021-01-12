@@ -129,3 +129,14 @@ message LotterySaleTime {
 message QueryLotterySaleTimesRsp {
     repeated LotterySaleTime lotterySaleTimes =1;
 }   
+
+
+//获取当前商户的所有OPK
+message GetAllOPKSRsp {
+    repeated string opks =1;
+}
+
+//删除当前商户的指定OPK
+message EraseOPKSReq {
+    repeated string opks =1;
+}

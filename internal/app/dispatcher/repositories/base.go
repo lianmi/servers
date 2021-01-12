@@ -227,7 +227,13 @@ type LianmiRepository interface {
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 
 	//清除所有OPK
-	ClearAllOPK(username string) error 
+	ClearAllOPK(username string) error
+
+	//获取当前商户的所有OPK
+	GetAllOPKS(username string) (*Order.GetAllOPKSRsp, error)
+
+	//删除当前商户的指定OPK
+	EraseOPK(username string, req *Order.EraseOPKSReq) error
 }
 
 type MysqlLianmiRepository struct {
