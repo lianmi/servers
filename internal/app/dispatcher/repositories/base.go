@@ -225,6 +225,9 @@ type LianmiRepository interface {
 
 	//获取各种彩票的开售及停售时刻
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
+
+	//清除所有OPK
+	ClearAllOPK(username string) error 
 }
 
 type MysqlLianmiRepository struct {

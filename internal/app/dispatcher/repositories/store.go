@@ -618,3 +618,31 @@ func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySale
 	return lotterySaleTimesRsp, nil
 
 }
+
+//清除所有OPK
+func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
+
+	s.logger.Debug("ClearAllOPK start ...")
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	redisConn.Do("DEL", fmt.Sprintf("prekeys:%s", username))
+
+	//采用事务同时删除
+	var (
+		prekeyWhere = models.Prekey{
+			Username: username,
+		}
+	)
+	tx := s.base.GetTransaction()
+	if err := tx.Where(&prekeyWhere).Delete(&models.Prekey{}).Error; err != nil {
+		s.logger.Error("删除当前用户的OPK失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	s.logger.Debug("ClearAllOPK end")
+	return nil
+
+}

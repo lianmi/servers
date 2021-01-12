@@ -313,16 +313,23 @@ func (pc *LianmiApisController) QueryLotterySaleTimes(c *gin.Context) {
 }
 
 //清除所有OPK
-func (pc *LianmiApisController)  ClearAllOPK(c *gin.Context) {
+func (pc *LianmiApisController) ClearAllOPK(c *gin.Context) {
 	code := codes.InvalidParams
 
-	lotterySaleTimesRsp, err := pc.service.QueryLotterySaleTimes()
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	err := pc.service.ClearAllOPK(username)
 	if err != nil {
 		RespFail(c, http.StatusBadRequest, 500, err.Error())
 		return
 	}
 
 	code = codes.SUCCESS
-	RespData(c, http.StatusOK, code, lotterySaleTimesRsp)
+	RespOk(c, http.StatusOK, code)
 
 }

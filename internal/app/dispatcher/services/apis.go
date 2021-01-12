@@ -196,6 +196,9 @@ type LianmiApisService interface {
 
 	//获取各种彩票的开售及停售时刻
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
+
+	//清除所有OPK
+	ClearAllOPK(username string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -767,4 +770,9 @@ func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPri
 //获取各种彩票的开售及停售时刻
 func (s *DefaultLianmiApisService) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
 	return s.Repository.QueryLotterySaleTimes()
+}
+
+//清除所有OPK
+func (s *DefaultLianmiApisService)  ClearAllOPK(username string) error {
+	return s.Repository.ClearAllOPK(username)
 }
