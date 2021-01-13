@@ -702,3 +702,44 @@ func (s *MysqlLianmiRepository) EraseOPK(username string, req *Order.EraseOPKSRe
 	return nil
 
 }
+
+//设置当前商户默认OPK
+func (s *MysqlLianmiRepository) SetDefaultOPK(username, opk string) error {
+	var err error
+	s.logger.Debug("SetDefaultOPK start ...")
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
+	_, err = redisConn.Do("SET", fmt.Sprintf("DefatltOPK:%s", username), opk)
+	if err != nil {
+		return err
+	}
+
+	//更新MySQL stores表
+	result := s.db.Model(&models.Store{}).Where(&models.Store{
+		BusinessUsername: username,
+	}).Update("default_opk", opk)
+
+	//updated records count
+	s.logger.Debug("修改 stores表= result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("Update Store default_opk 失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("Update Store default_opk  成功")
+	}
+
+	s.logger.Debug("SetDefaultOPK end")
+
+	return nil
+
+}

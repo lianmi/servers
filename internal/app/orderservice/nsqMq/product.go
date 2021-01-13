@@ -1188,12 +1188,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 				}
 
 			} else {
-				nc.logger.Warn("商户的prekeys有序集合无法取出")
-				errorCode = LMCError.RedisError
+				nc.logger.Warn("商户的prekeys有序集合为空, 取出此商户的默认的OPK")
+				opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefatltOPK:%s", req.UserName)))
 
-				//向商户推送9-10事件通知
-				go nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
-
+			}
+			if opk == "" {
+				nc.logger.Error("商户的OPK池是空的，并且默认OPK也是空")
+				errorCode = LMCError.OPKEmptyError
 				goto COMPLETE
 			}
 
@@ -1237,7 +1238,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			"ProductID", req.ProductID, //商品id
 			"Type", req.OrderType, //订单类型
 			"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
-			"AttachHash", "",
+			"AttachHash", "", //订单内容attach的哈希值， 默认为空
 			"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 			"IsUrge", LMCommon.REDISFALSE, //催单
 			"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒

@@ -65,6 +65,7 @@ const (
 	OrderModAddProductNotOnSellError = 2070106 //此商品没有上架过
 	BuyUserIsEmptyError              = 2070107 //买家账号为空
 	BusinessUserIsEmptyError         = 2070108 //商家账号为空
+	OPKEmptyError                    = 2070109 //商家OPK为空
 
 	RegisterPreKeysArrayEmptyError      = 2090101 //一次性公钥数量为零
 	RegisterPreKeysNotBusinessTypeError = 2090102 //用户不是商户类型，不能上传OPK

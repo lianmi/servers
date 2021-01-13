@@ -347,8 +347,9 @@ func CreateInitControllersFn(
 			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
 			storeGroup.GET("/lottersaletimes", pc.QueryLotterySaleTimes) //获取各种彩票的开售及停售时刻
 			storeGroup.DELETE("/clearallopk", pc.ClearAllOPK)            //清除当前商户的所有OPK
-			storeGroup.DELETE("/getallopks", pc.GetAllOPKS)              //获取当前商户的所有OPK
-			storeGroup.DELETE("/eraseopk", pc.EraseOPK)                  //删除当前商户的指定OPK
+			storeGroup.GET("/getallopks", pc.GetAllOPKS)                 //获取当前商户的所有OPK
+			storeGroup.POST("/eraseopk", pc.EraseOPK)                    //删除当前商户的指定OPK
+			storeGroup.POST("/defaultopk", pc.DefaultOPK)                //设置当前商户的默认OPK， 当OPK池为空，则需要用到此OPK
 
 		}
 

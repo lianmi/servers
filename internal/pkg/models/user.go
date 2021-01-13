@@ -50,6 +50,7 @@ type UserBase struct {
 	ModifiedBy         string `form:"modified_by" json:"modified_by,omitempty"`                    //最后由哪个操作员修改
 	VipEndDate         int64  `form:"vip_end_date" json:"vip_end_date,omitempty"`                  //VIP用户到期时间
 	ECouponCardUsed    bool   `form:"ecoupon_card_used" json:"ecoupon_card_used,omitempty"`        //VIP7天体验卡
+	
 }
 
 type User struct {

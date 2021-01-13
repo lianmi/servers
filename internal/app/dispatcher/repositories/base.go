@@ -234,6 +234,9 @@ type LianmiRepository interface {
 
 	//删除当前商户的指定OPK
 	EraseOPK(username string, req *Order.EraseOPKSReq) error
+
+	//设置当前商户默认OPK
+	SetDefaultOPK(username, opk string) error
 }
 
 type MysqlLianmiRepository struct {

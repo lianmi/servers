@@ -42,8 +42,7 @@ type KeyPair struct {
 type Service struct {
 	o        *Options
 	WsClient *ethclient.Client
-	// redisPool *redis.Pool
-	logger *zap.Logger
+	logger   *zap.Logger
 }
 
 // Options service options
@@ -83,8 +82,7 @@ func New(opts *Options, logger *zap.Logger) (*Service, error) {
 	// 	return nil, err
 	// }
 	return &Service{
-		o: opts,
-		// redisPool: redisPool,
+		o:        opts,
 		WsClient: client,
 		logger:   logger,
 	}, nil

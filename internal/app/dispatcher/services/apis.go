@@ -203,6 +203,9 @@ type LianmiApisService interface {
 
 	//删除当前商户的指定OPK
 	EraseOPK(username string, req *Order.EraseOPKSReq) error
+
+	//设置当前商户默认OPK
+	SetDefaultOPK(username, opk string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -791,4 +794,10 @@ func (s *DefaultLianmiApisService) GetAllOPKS(username string) (*Order.GetAllOPK
 //删除当前商户的指定OPK
 func (s *DefaultLianmiApisService) EraseOPK(username string, req *Order.EraseOPKSReq) error {
 	return s.Repository.EraseOPK(username, req)
+}
+
+//设置当前商户默认OPK
+func (s *DefaultLianmiApisService) SetDefaultOPK(username, opk string) error {
+	return s.Repository.SetDefaultOPK(username, opk)
+
 }

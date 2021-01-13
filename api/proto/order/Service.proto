@@ -140,3 +140,8 @@ message GetAllOPKSRsp {
 message EraseOPKSReq {
     repeated string opks =1;
 }
+
+//设置当前商户的默认OPK， 当OPK池为空，则需要用到此OPK
+message DefaultOPKReq{
+ string opk =1;
+}

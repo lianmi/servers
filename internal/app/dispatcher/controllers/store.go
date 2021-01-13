@@ -384,3 +384,32 @@ func (pc *LianmiApisController) EraseOPK(c *gin.Context) {
 	}
 
 }
+
+//设置当前商户的默认OPK， 当OPK池为空，则需要用到此OPK
+func (pc *LianmiApisController) DefaultOPK(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		return
+	}
+
+	var req Order.DefaultOPKReq
+
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+	} else {
+
+		err := pc.service.SetDefaultOPK(username, req.Opk)
+		if err != nil {
+			RespFail(c, http.StatusBadRequest, code, "设置当前商户的默认OPK错误")
+			return
+		}
+		code = codes.SUCCESS
+		RespOk(c, http.StatusOK, code)
+	}
+
+}
