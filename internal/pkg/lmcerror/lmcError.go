@@ -101,6 +101,8 @@ const (
 )
 
 var LmcErrors = map[int]string{
+	InternalServerError: "系统错误",
+
 	ProtobufUnmarshalError: "协议解包错误",
 
 	RedisError:           "缓存错误",
@@ -117,6 +119,7 @@ var LmcErrors = map[int]string{
 	BusinessUsernameIsEmptyError: "商户用户账号不能为空",
 
 	UserIsBlockedError:               "此用户已经被封号",
+	BusinessUserIsBlockedError:       "此商户已经被封号",
 	TargetUserIsNotBusinessTypeError: "目标用户不是商户类型",
 
 	GenerateSignatureUrlError: "生成临时凭证错误",
@@ -129,6 +132,8 @@ var LmcErrors = map[int]string{
 	UserModMarkTagParamNorFriendError: "参数错误, 不能给非好友打标",
 	UserModMarkTagAddError:            "添加打标出错",
 	UserModMarkTagRemoveError:         "移除打标出错",
+
+	AuthModNotRight: "从设备无权踢主设备",
 
 	IsNotFriendError:       "对方用户不是当前用户的好友",
 	IsBlackUserError:       "已被对方拉黑， 不能加好友",
@@ -195,6 +200,8 @@ var LmcErrors = map[int]string{
 	OrderStatusVipExpeditedError:         "VIP用户才允许加急",
 
 	PreKeyGetCountError: "只有商户才能查询OPK存量",
+
+	WalletTranferError: "钱包转账错误",
 }
 
 func ErrorMsg(errorCode int) string {
