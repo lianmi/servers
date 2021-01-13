@@ -880,7 +880,7 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 
 	if oldPendingNonceAt == nonce {
 		s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
-		return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
+		// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
 	}
 
 	//TODO 这里有幺蛾子，nonce不会增长,连续发起多个交易会堵塞
