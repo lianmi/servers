@@ -1189,7 +1189,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 			} else {
 				nc.logger.Warn("商户的prekeys有序集合为空, 取出此商户的默认的OPK")
-				opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefatltOPK:%s", req.UserName)))
+				opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", req.UserName)))
 
 			}
 			if opk == "" {

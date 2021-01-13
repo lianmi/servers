@@ -716,7 +716,7 @@ func (s *MysqlLianmiRepository) SetDefaultOPK(username, opk string) error {
 	if userType != 2 {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
-	_, err = redisConn.Do("SET", fmt.Sprintf("DefatltOPK:%s", username), opk)
+	_, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", username), opk)
 	if err != nil {
 		return err
 	}
