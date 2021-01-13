@@ -1194,6 +1194,10 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			}
 			if opk == "" {
 				nc.logger.Error("商户的OPK池是空的，并且默认OPK也是空")
+
+				//向商户推送9-10事件通知
+				go nc.SendOPKNoSufficientToMasterDevice(req.UserName, 0)
+
 				errorCode = LMCError.OPKEmptyError
 				goto COMPLETE
 			}
