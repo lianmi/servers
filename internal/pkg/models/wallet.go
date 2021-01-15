@@ -298,3 +298,18 @@ func (s *ChargeHistory) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
+
+//链上交易打包成功后返回的交易数据
+type TxInfo struct {
+	BlockNumber uint64
+	HashHex     string
+	Value       string
+	Gas         uint64
+	GasPrice    uint64
+	GasCost     uint64
+	EthAmount   float64
+	Nonce       uint64
+	Data        []byte
+	From        string
+	Status      uint64
+}

@@ -20,6 +20,7 @@ const (
 	TargetUserIsNotBusinessTypeError = 10014 // 目标用户不是商户类型
 	GenerateSignatureUrlError        = 10015 // 生成临时凭证错误
 	UserNotExistsError               = 10016 // 用户不存在或未注册
+	SmsCodeCheckError                = 10017 // 手机验证码错误
 
 	UserModUpdateProfileError = 2010201 //修改用户资料出错
 	UserModUpdateStoreError   = 2010202 //修改商户店铺资料出错
@@ -97,7 +98,28 @@ const (
 
 	PreKeyGetCountError = 2090601 // 只有商户才能查询OPK存量
 
-	WalletTranferError = 2100101 //钱包转账错误
+	WalletTranferError                      = 2100101 //钱包转账错误
+	WalletAddressIsEmptyError               = 2100102 //"钱包地址为空"
+	WalletAddressIsInvalid                  = 2100103 //非法钱包地址
+	WalletAddressHaveRegisted               = 2100104 //钱包地址已经注册过了，不能重复注册
+	WalletTranferOnlyOneWay                 = 2100105 //订单ID与收款方的用户账号只能两者选一
+	WalletOrderIDAndTargetUsernameBothEmpty = 2100106 //"订单ID与收款方的用户账号不能都是空"
+	WalletTansferAmountIsZeroError          = 2100107 //"转账金额错误，必须大于0"
+	TargetWalletAddressIsEmptyError         = 2100108 //"接收方钱包没注册，不能转账"
+	WalletToUsernameIsEmptyError            = 2100109 //严重错误, 接收方账号为空
+	GetLNMCTokenBalanceError                = 2100110 //查询钱包余额错误
+	GasBalanceIsNotSufficient               = 2100111 //"gas余额不足"
+	BalanceIsNotSufficientError             = 2100112 //"钱包余额不足"
+	SignedTxToTargetIsEmptyError            = 2100113 //签名数据为空
+	ConfirmTransferTwiceError               = 2100114 // 此转账已经支付成功，不能再次确认
+	PreUsernameNotEqualCurrentNameError     = 2100115 //此转账发起者与当前用户不匹配
+	TranferDataMissError                    = 2100116 //此转账数据缺失
+	GetVipUserPriceByProductIDError         = 2100117 //获取Vip会员价格表错误
+	VipPriceCheckError                      = 2100118 //核对Vip会员价格错误
+	SendSignedTxToGethError                 = 2100119 //交易数据广播到链上发生错误
+	GenerateTransferLNMCTokenTxError        = 2100120 //构造交易数据时发生错误
+	UserSignInError                         = 2100121 //"每天只能签到一次"
+	TranferUUIDIsEmptyError                 = 2100122 //交易流水号Uuid不能为空
 )
 
 var LmcErrors = map[int]string{
@@ -201,7 +223,27 @@ var LmcErrors = map[int]string{
 
 	PreKeyGetCountError: "只有商户才能查询OPK存量",
 
-	WalletTranferError: "钱包转账错误",
+	WalletTranferError:                      "钱包转账错误",
+	WalletAddressIsEmptyError:               "钱包地址为空",
+	WalletAddressIsInvalid:                  "非法钱包地址",
+	WalletAddressHaveRegisted:               "钱包地址已经注册过了，不能重复注册",
+	WalletTranferOnlyOneWay:                 "订单ID与收款方的用户账号只能两者选一",
+	WalletOrderIDAndTargetUsernameBothEmpty: "订单ID与收款方的用户账号不能都是空",
+	WalletTansferAmountIsZeroError:          "转账金额错误，必须大于0",
+	WalletToUsernameIsEmptyError:            "严重错误, 接收方账号为空",
+	GetLNMCTokenBalanceError:                "查询钱包余额错误",
+	GasBalanceIsNotSufficient:               "燃料余额不足导致转账失败",
+	BalanceIsNotSufficientError:             "钱包余额不足",
+	SignedTxToTargetIsEmptyError:            "签名数据为空",
+	ConfirmTransferTwiceError:               "此转账已经支付成功，不能再次确认",
+	PreUsernameNotEqualCurrentNameError:     "此转账发起者与当前用户不匹配",
+	TranferDataMissError:                    "此转账数据缺失",
+	GetVipUserPriceByProductIDError:         "获取Vip会员价格表错误",
+	VipPriceCheckError:                      "核对Vip会员价格错误",
+	SendSignedTxToGethError:                 "交易数据广播到链上发生错误",
+	GenerateTransferLNMCTokenTxError:        "构造交易数据时发生错误",
+	UserSignInError:                         "每天只能签到一次",
+	TranferUUIDIsEmptyError:                 "交易流水号Uuid不能为空",
 }
 
 func ErrorMsg(errorCode int) string {

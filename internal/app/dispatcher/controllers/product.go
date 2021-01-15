@@ -21,7 +21,7 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 	resp, err := pc.service.GetGeneralProductByID(productId)
 	if err != nil {
 		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 5000, "Get GeneralProduct by productId error")
+		RespFail(c, http.StatusBadRequest, 500, "Get GeneralProduct by productId error")
 		return
 	}
 

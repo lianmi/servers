@@ -87,6 +87,9 @@ type LianmiApisService interface {
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
 
+	// 用户端: 根据 OrderID 获取此订单在链上的pending状态
+	OrderPendingState(ctx context.Context, orderID string) (*Wallet.OrderPendingStateResp, error)
+
 	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
 
@@ -719,6 +722,22 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
 	return s.Repository.DownloadOrderImage(orderID)
+}
+
+// 用户端: 根据 OrderID 获取此订单在链上的pending状态
+func (s *DefaultLianmiApisService) OrderPendingState(ctx context.Context, orderID string) (*Wallet.OrderPendingStateResp, error) {
+	//调用钱包微服务
+	req := &Wallet.OrderPendingStateReq{
+		OrderID: orderID,
+	}
+	rsp, err := s.walletGrpcClientSvc.DoOrderPendingState(ctx, req)
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
+		return nil, err
+	} else {
+		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功")
+		return rsp, nil
+	}
 }
 
 //支付宝预支付
