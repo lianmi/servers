@@ -919,10 +919,10 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, uuidStr, sou
 
 	//TODO 从redis里取出上次的 PendingNonceAt 假如这两个nonce都相同，那么报错
 
-	if oldPendingNonceAt == nonce {
-		s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
-		// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
-	}
+	// if oldPendingNonceAt == nonce {
+	// 	s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// 	// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// }
 
 	//TODO 这里有幺蛾子，nonce不会增长,连续发起多个交易会堵塞
 	// see : https://blog.csdn.net/sinat_34070003/article/details/79919431
