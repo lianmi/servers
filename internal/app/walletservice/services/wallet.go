@@ -398,6 +398,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	//调用ETH接口
 	blockNumber, hash, err := s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
 	if err != nil {
+		s.logger.Error("调用ETH接口失败", zap.Error(err))
 		return nil, err
 	}
 	return &Wallet.OrderImagesOnBlockchainResp{

@@ -489,10 +489,9 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) ([]*models.TxInfo
 			From:        msg.From().Hex(),
 			Status:      receipt.Status,
 		})
-
+		return txInfos, nil
 	}
-	return txInfos, nil
-
+	return nil, errors.Wrap(err, "QueryTransactionByBlockNumber有错误")
 	// log.Println("=========queryTransactionByBlockNumber end==========")
 }
 
@@ -523,7 +522,7 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 //从第0号叶子账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
 //data是上链的数据
 func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, data []byte) (blockNumber uint64, hash string, err error) {
-
+	s.logger.Error("TransferEthToOtherAccount start...")
 	//第0号叶子私钥
 	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
@@ -534,8 +533,8 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKe")
-		return 0, "", errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKe")
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return 0, "", errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
@@ -1068,14 +1067,14 @@ func (s *Service) SendSignedTxToGeth(redisConn redis.Conn, uuidStr, rawTxHex str
 	//等待打包完成的回调
 	txInfos, err := s.WaitForBlockCompletation(signedTx.Hash().Hex())
 	if err != nil {
-		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		s.logger.Error("WaitForBlockCompletation failed", zap.Error(err))
 		return 0, "", err
 	}
 	if len(txInfos) > 0 {
 		//获取交易哈希里的打包状态，如果打包完成，isPending = false
 		tx2, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
-			s.logger.Error("TransactionByHash failed ", zap.Error(err))
+			s.logger.Error("TransactionByHash failed", zap.Error(err))
 			return 0, "", err
 		}
 		preTransferKey := fmt.Sprintf("PreTransfer:%s", uuidStr)
