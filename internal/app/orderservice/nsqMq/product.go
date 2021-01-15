@@ -2436,7 +2436,10 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
 			Time: uint64(time.Now().UnixNano() / 1e6),
 		}
-		//向商户发送订单消息的更改
+
+		//向目标用户发送订单消息状态的更改
+		nc.logger.Debug(fmt.Sprintf("向目标用户(%s)发送订单状态的更改", toUsername))
+
 		go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 		// }
 
