@@ -2417,28 +2417,28 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		//将redis里的订单信息哈希表状态字段设置为最新状态
 		_, err = redisConn.Do("HSET", orderIDKey, "State", int(req.State))
 
-		// if len(orderBodyData) > 0 {
-		//将最新订单状态转发到目标用户
-		if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
-			nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-			errorCode = LMCError.RedisError
-			goto COMPLETE
-		}
+		if len(orderBodyData) > 0 {
+			//将最新订单状态转发到目标用户
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", toUsername))); err != nil {
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				errorCode = LMCError.RedisError
+				goto COMPLETE
+			}
 
-		eRsp := &Msg.RecvMsgEventRsp{
-			Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
-			Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
-			Body:         orderBodyData,                 //发起方的body负载
-			From:         username,                      //谁发的
-			FromDeviceId: deviceID,                      //哪个设备发的
-			ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
-			Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-			// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
-			Time: uint64(time.Now().UnixNano() / 1e6),
+			eRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+				Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+				Body:         orderBodyData,                 //发起方的body负载
+				From:         username,                      //谁发的
+				FromDeviceId: deviceID,                      //哪个设备发的
+				ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+				Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+				// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
+				Time: uint64(time.Now().UnixNano() / 1e6),
+			}
+			//向商户发送订单消息的更改
+			go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 		}
-		//向商户发送订单消息的更改
-		go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
-		// }
 
 	}
 
