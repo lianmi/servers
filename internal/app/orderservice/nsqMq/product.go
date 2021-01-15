@@ -2438,7 +2438,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		}
 
 		//向目标用户发送订单消息状态的更改
-		nc.logger.Debug(fmt.Sprintf("向目标用户(%s)发送订单状态的更改", toUsername))
+		nc.logger.Debug(fmt.Sprintf("向目标用户(%s)发送订单状态的更改, 由状态(%d)改为(%d)", toUsername, curState, req.State))
 
 		go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 		// }
