@@ -139,6 +139,12 @@ const (
 	FEERATE float64 = 0.002
 )
 
+//eth相关
+const (
+	//使用Geth管理nonce
+	UsingGethPendingNonceAt = true
+)
+
 //会员返佣比例相关， 比例是49%
 const (
 	VipBusinessUsername    = "id3"  //Vip会员的商户id, 暂定，上线后需要重新设定
@@ -179,5 +185,3 @@ const (
 	RateFreeAmout = 30
 	Rate          = 0.08
 )
-
-

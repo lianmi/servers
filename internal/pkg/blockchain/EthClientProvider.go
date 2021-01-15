@@ -371,65 +371,74 @@ func (s *Service) KeystoreToPrivateKey(privateKeyFile, password string) (string,
 }
 
 //检查交易打包状态
-func (s *Service) CheckTransactionReceipt(_txHash string) int {
+func (s *Service) CheckTransactionReceipt(_txHash string) (*types.Receipt, error) {
 
 	txHash := common.HexToHash(_txHash)
 	receipt, err := s.WsClient.TransactionReceipt(context.Background(), txHash)
 	if err != nil {
-		return (-1)
+		return nil, err
 	}
-	return (int(receipt.Status))
+	return receipt, nil
 }
 
-//订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
-func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
+//订阅并检测交易是否成功, 并返回区块高度
+func (s *Service) WaitForBlockCompletation(hashToRead string) ([]*models.TxInfo, error) {
 	headers := make(chan *types.Header)
 	sub, err := s.WsClient.SubscribeNewHead(context.Background(), headers)
 	if err != nil {
 		s.logger.Error("SubscribeNewHead failed ", zap.Error(err))
-		return 0
+		return nil, err
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			_ = err
-			return 0
+			return nil, err
 		case header := <-headers:
-			// s.logger.Info(header.TxHash.Hex())
-			transactionStatus := s.CheckTransactionReceipt(hashToRead)
-			if transactionStatus == 0 {
+			receipt, err := s.CheckTransactionReceipt(hashToRead)
+			if err != nil {
+				s.logger.Error("CheckTransactionReceipt failed ", zap.Error(err))
+				return nil, err
+			}
+			if receipt.Status == 0 {
 				//FAILURE
 				sub.Unsubscribe()
-				return 0
-			} else if transactionStatus == 1 {
+				return nil, errors.Wrap(err, "CheckTransactionReceipt FAILURE")
+			} else if receipt.Status == 1 {
 				//SUCCESS
 				block, err := s.WsClient.BlockByHash(context.Background(), header.Hash())
 				if err != nil {
 					s.logger.Error("BlockByHash failed ", zap.Error(err))
-					return 0
+					return nil, err
 				}
 				// log.Println("区块: ", block.Hash().Hex())
 				// log.Println("区块编号: ", block.Number().Uint64())
-				s.logger.Info("区块信息", zap.String("Hash", block.Hash().Hex()), zap.Uint64("Number", block.Number().Uint64()))
-				s.QueryTransactionByBlockNumber(block.Number().Uint64())
+				s.logger.Info("打包成功, 区块信息", zap.String("Hash", block.Hash().Hex()), zap.Uint64("Number", block.Number().Uint64()))
+				txInfos, err := s.QueryTransactionByBlockNumber(block.Number().Uint64())
 				sub.Unsubscribe()
-				return block.Number().Uint64()
+				if err != nil {
+					return nil, err
+				} else {
+
+					return txInfos, nil
+				}
+
 			}
 		}
 	}
 }
 
 //根据区块高度查询里面所有交易
-func (s *Service) QueryTransactionByBlockNumber(number uint64) {
+func (s *Service) QueryTransactionByBlockNumber(number uint64) ([]*models.TxInfo, error) {
 
 	blockNumber := big.NewInt(int64(number))
 	block, err := s.WsClient.BlockByNumber(context.Background(), blockNumber)
 	if err != nil {
 		s.logger.Error("BlockByNumber failed ", zap.Error(err))
-		return
+		return nil, err
 	}
 	// log.Println("=========queryTransactionByBlockNumber start==========")
+	txInfos := make([]*models.TxInfo, 0)
 	for _, tx := range block.Transactions() {
 		gasCost := util.CalcGasCost(tx.Gas(), tx.GasPrice()) //计算交易所需要支付的总费用
 		ethAmount := util.ToDecimal(gasCost, 18)
@@ -438,19 +447,19 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 		chainID, err := s.WsClient.NetworkID(context.Background())
 		if err != nil {
 			s.logger.Error("NetworkID failed ", zap.Error(err))
-
+			return nil, err
 		}
 
 		msg, err := tx.AsMessage(types.NewEIP155Signer(chainID))
 		if err != nil {
 			s.logger.Error("NetworkID failed ", zap.Error(err))
-		} else {
-
+			return nil, err
 		}
 
 		receipt, err := s.WsClient.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			s.logger.Error("NetworkID failed ", zap.Error(err))
+			return nil, err
 		}
 
 		s.logger.Info("tx info",
@@ -467,7 +476,22 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 			zap.Uint64("Status", receipt.Status), //1-succeed
 		)
 
+		txInfos = append(txInfos, &models.TxInfo{
+			BlockNumber: number,
+			HashHex:     tx.Hash().Hex(),
+			Value:       tx.Value().String(),
+			Gas:         tx.Gas(),
+			GasPrice:    tx.GasPrice().Uint64(),
+			GasCost:     gasCost.Uint64(),
+			EthAmount:   ethAmountF64,
+			Nonce:       tx.Nonce(),
+			Data:        tx.Data(),
+			From:        msg.From().Hex(),
+			Status:      receipt.Status,
+		})
+
 	}
+	return txInfos, nil
 
 	// log.Println("=========queryTransactionByBlockNumber end==========")
 }
@@ -558,20 +582,25 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, 
 		输出： 1
 	*/
 
-	blockNumber = s.WaitForBlockCompletation(signedTx.Hash().Hex())
-	if blockNumber > 0 {
+	txInfos, err := s.WaitForBlockCompletation(signedTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return 0, "", err
+	}
+	if len(txInfos) > 0 {
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
 			s.logger.Error("TransferEthToOtherAccount(), TransactionByHash failed ", zap.Error(err))
 		}
 
+		//TODO 暂时取第一个
 		s.logger.Info("交易完成",
-			zap.Uint64("区块高度: ", blockNumber),
+			zap.Uint64("区块高度: ", txInfos[0].BlockNumber),
 			zap.String("交易哈希: ", tx.Hash().Hex()),
 			zap.Bool("isPending: ", isPending),
 		)
-		return blockNumber, tx.Hash().Hex(), nil
+		return txInfos[0].BlockNumber, tx.Hash().Hex(), nil
 
 	} else {
 		s.logger.Error("交易失败")
@@ -668,8 +697,12 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 	s.logger.Info("tx sent", zap.String("Hash", contractTx.Hash().Hex()))
 
 	//监听交易直到打包完成
-	blockNumber = s.WaitForBlockCompletation(contractTx.Hash().Hex())
-	if blockNumber > 0 {
+	txInfos, err := s.WaitForBlockCompletation(contractTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return 0, "", 0, err
+	}
+	if len(txInfos) > 0 {
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), contractTx.Hash())
 		if err != nil {
@@ -687,7 +720,7 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 			zap.Bool("isPending: ", isPending),
 			zap.Uint64("amountAfter: ", amountAfter),
 		)
-		return blockNumber, tx.Hash().Hex(), amountAfter, nil
+		return txInfos[0].BlockNumber, tx.Hash().Hex(), amountAfter, nil
 
 	} else {
 		s.logger.Error("交易失败")
@@ -754,8 +787,12 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 	)
 
 	//监听，直到合约部署成功,如果失败，则提示
-	blockNumber = s.WaitForBlockCompletation(deployMultiSigTx.Hash().Hex())
-	if blockNumber > 0 {
+	txInfos, err := s.WaitForBlockCompletation(deployMultiSigTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return "", 0, "", err
+	}
+	if len(txInfos) > 0 {
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), deployMultiSigTx.Hash())
 		if err != nil {
@@ -767,7 +804,7 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 			zap.String("Hash", tx.Hash().Hex()),
 			zap.Bool("isPending", isPending),
 		)
-		return contractAddress, blockNumber, tx.Hash().Hex(), nil
+		return contractAddress, txInfos[0].BlockNumber, tx.Hash().Hex(), nil
 
 	} else {
 		s.logger.Error("多签合约部署失败")
@@ -813,8 +850,12 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 	// fmt.Printf("tx sent: %s \n", transferTx.Hash().Hex())
 
 	//监听，直到转账成功,如果失败，则提示
-	blockNumber := s.WaitForBlockCompletation(transferTx.Hash().Hex())
-	if blockNumber > 0 {
+	txInfos, err := s.WaitForBlockCompletation(transferTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return 0, "", err
+	}
+	if len(txInfos) > 0 {
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferTx.Hash())
 		if err != nil {
 			s.logger.Error("TransactionByHash, TransferFrom failed", zap.Error(err))
@@ -825,12 +866,11 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 			zap.Bool("isPending", isPending),
 		)
 
-		return blockNumber, tx.Hash().Hex(), nil
+		return txInfos[0].BlockNumber, tx.Hash().Hex(), nil
 	} else {
 		s.logger.Error("代币转账到目标账户失败")
 		return 0, "", errors.New("代币转账到目标账户失败")
 	}
-
 }
 
 /*
@@ -838,9 +878,17 @@ func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, am
 source - 发起方钱包账号
 target - 接收者的钱包地址
 tokens - 代币数量，字符串格式
+TODO 这个方法采用了自行管理nonce， 自行管理nonce适用于冷热账户模式，也就是适用sendRawTransaction发送已经签名好的交易时，
+此时nonce值已经存在于交易中，并且已经被签名。这种模式下，需要在业务系统中维护nonce的自增序列，
+适用一个nonce之后，在业务系统中对nonce进行加一处理。
+此种方案也有限制条件。
+   第一，由于nonce统一进行维护，那么这个地址必须是内部地址，而且发起交易必须通过统一维护的nonce作为出口，否则在其他地方发起交易，原有维护的nonce将会出现混乱。
+   第二，一旦已经发出的交易发生异常，异常交易的nonce未被使用，那么异常交易的nonce需要重新被使用之后它后面的nonce才会生效。
 */
-func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, target string, tokens int64) (*models.RawDesc, error) {
+
+func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, uuidStr, source, target string, tokens int64) (*models.RawDesc, error) {
 	var err error
+	var newPendingNonce uint64
 	var balanceEth uint64 //用户当前ETH数量
 
 	s.logger.Debug("GenerateTransferLNMCTokenTx start...",
@@ -863,38 +911,58 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	}
 	fromAddress := common.HexToAddress(source)
 
-	successNonceAt, err := s.WsClient.NonceAt(context.Background(), fromAddress, nil)
+	//获取最后一个成功的nonce
+	latestSucceedNonce, err := s.WsClient.NonceAt(context.Background(), fromAddress, nil)
 	if err != nil {
-		s.logger.Error("Get NonceAt failed ", zap.Error(err))
+		s.logger.Error("Get nonce from the latest known block failed ", zap.Error(err))
 		return nil, err
 	}
 
-	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		s.logger.Error("PendingNonceAt failed", zap.Error(err))
-		return nil, err
-	}
 	//TODO 从redis里取出上次的 PendingNonceAt 假如这两个nonce都相同，那么报错
-	nonceAtKey := fmt.Sprintf("PendingNonceAt:%s", source)
-	oldPendingNonceAt, err := redis.Uint64(redisConn.Do("GET", nonceAtKey))
 
-	if oldPendingNonceAt == nonce {
-		s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
-		// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
-	}
+	// oldPendingNonceAt, err := redis.Uint64(redisConn.Do("GET", nonceAtKey))
+
+	// if oldPendingNonceAt == nonce {
+	// 	s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// 	// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// }
 
 	//TODO 这里有幺蛾子，nonce不会增长,连续发起多个交易会堵塞
 	// see : https://blog.csdn.net/sinat_34070003/article/details/79919431
 	// see: https://blog.csdn.net/qq_44373419/article/details/106492988 golang 实现 ETH 交易离线签名（冷签）--以太坊DPOS
 
-	s.logger.Debug("Get NonceAt succeed",
-		zap.Uint64("successNonceAt", successNonceAt),
-		zap.Uint64("PendingNonceAt", nonce),
-		zap.Uint64("nonce的值相差", nonce-successNonceAt),
-	)
-	_, err = redisConn.Do("SET", nonceAtKey, nonce)
+	// 判断 FailedNonceSet 是否存在
+	//SDIFFSTORE reuseNonceSet PendingNonceSet FailedNonceSet
 
-	// s.logger.Debug("Generate TransferLNMCTokenTx succeed", zap.Int64("nonce", int64(nonce)), zap.Int64("tokens", tokens))
+	// 判断此用户钱包对应的key是否存在
+	nonceAtKey := fmt.Sprintf("latestSucceedNonce:%s", source)
+	isExists, _ := redis.Bool(redisConn.Do("EXISTS", nonceAtKey))
+	if isExists {
+		newPendingNonce, _ = redis.Uint64(redisConn.Do("INCR", nonceAtKey))
+	} else {
+		_, err = redisConn.Do("SET", nonceAtKey, latestSucceedNonce+1)
+		newPendingNonce = latestSucceedNonce + 1
+	}
+
+	//增加到PendingNonceSet无序集合。集合成员是唯一的集合
+	_, err = redisConn.Do("SADD", fmt.Sprintf("PendingNonceSet:%s", source), newPendingNonce)
+
+	pendingNonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed", zap.Error(err))
+		return nil, err
+	}
+
+	s.logger.Debug("Generate nonce succeed",
+		zap.Uint64("latestSucceedNonce", latestSucceedNonce),
+		zap.Uint64("pendingNonce", pendingNonce),            //系统的
+		zap.Uint64("INCR newPendingNonce", newPendingNonce), //自增的
+		zap.Uint64("nonce的值相差", pendingNonce-newPendingNonce),
+	)
+	if pendingNonce-newPendingNonce != 0 {
+
+		s.logger.Warn("注意有幺蛾子")
+	}
 
 	value := big.NewInt(0) // in wei (0 eth) 由于进行的是代币转账，不设计以太币转账，因此这里填0
 	gasPrice, err := s.WsClient.SuggestGasPrice(context.Background())
@@ -913,10 +981,8 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write(transferFnSignature)
 	methodID := hash.Sum(nil)[:4]
-	// fmt.Println(hexutil.Encode(methodID)) // 0xa9059cbb
 
 	paddedAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
-	// fmt.Println(hexutil.Encode(paddedAddress))
 
 	amount := big.NewInt(tokens) //代币数量
 
@@ -930,17 +996,20 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
 
 	//构造代币转账的交易裸数据
-	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
+	if LMCommon.UsingGethPendingNonceAt { //采用Geth机制的nonce
+		newPendingNonce = pendingNonce
+	}
+
+	tx := types.NewTransaction(newPendingNonce, tokenAddress, value, gasLimit, gasPrice, data)
 
 	chainID, err := s.WsClient.NetworkID(context.Background())
 	if err != nil {
 		s.logger.Error("NetworkID failed ", zap.Error(err))
 		return nil, err
 	}
-	// fmt.Println("chainID:", chainID.String())
 
 	return &models.RawDesc{
-		Nonce:           nonce,
+		Nonce:           newPendingNonce,
 		GasPrice:        gasPrice.Uint64(),
 		GasLimit:        gasLimit,
 		ChainID:         chainID.Uint64(),
@@ -972,8 +1041,8 @@ func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
 
 }
 
-//根据客户端SDK签名后的裸交易数据，广播到链上
-func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
+//根据客户端SDK签名后的裸交易数据，广播到链上, 如果失败，将回收nonce
+func (s *Service) SendSignedTxToGeth(redisConn redis.Conn, uuidStr, rawTxHex string) (uint64, string, error) {
 	var blockHash string
 	rawTxBytes, err := hex.DecodeString(rawTxHex)
 
@@ -985,31 +1054,70 @@ func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
 		s.logger.Error("SendSignedTxToGeth(), SendTransaction failed ", zap.Error(err))
 		return 0, "", err
 	}
+	s.logger.Debug("SendSignedTxToGeth start....",
+		zap.String("signedTx.Hash", signedTx.Hash().Hex()),
+	)
+
+	//将signedTx.Hash保存到redis
+	preTransferKey := fmt.Sprintf("PreTransfer:%s", uuidStr)
+
+	_, err = redisConn.Do("HSET", preTransferKey, "SignedTxHash", signedTx.Hash().Hex())
 
 	// fmt.Printf("signedTx sent: %s", signedTx.Hash().Hex())
 
 	//等待打包完成的回调
-	blockNumber := s.WaitForBlockCompletation(signedTx.Hash().Hex())
-	if blockNumber > 0 {
+	txInfos, err := s.WaitForBlockCompletation(signedTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return 0, "", err
+	}
+	if len(txInfos) > 0 {
 		//获取交易哈希里的打包状态，如果打包完成，isPending = false
 		tx2, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
 			s.logger.Error("TransactionByHash failed ", zap.Error(err))
 			return 0, "", err
 		}
+		preTransferKey := fmt.Sprintf("PreTransfer:%s", uuidStr)
+		walletAddress, _ := redis.String(redisConn.Do("HGET", preTransferKey, "WalletAddress"))
+
+		if isPending == false { //打包完成
+
+			//将Nonce从PendingNonceSet
+			_, err = redisConn.Do("SADD", fmt.Sprintf("PendingNonceZSet:%s", walletAddress), txInfos[0].Nonce)
+			if err != nil {
+				s.logger.Error("将Nonce从PendingNonceZSet有序集合删除 failed ", zap.Error(err))
+
+			} else {
+				s.logger.Debug("将Nonce从PendingNonceZSet有序集合删除 succeed ",
+					zap.String("uuidStr", uuidStr),
+					zap.String("walletAddress", walletAddress),
+					zap.Uint64("Nonce", txInfos[0].Nonce),
+				)
+
+			}
+		} else { //打包失败
+
+			//增加到FailedNonceSet无序无重复集合, 记得要重复利用
+			_, err = redisConn.Do("SADD", fmt.Sprintf("FailedNonceSet:%s", walletAddress), txInfos[0].Nonce)
+
+		}
 
 		blockHash = tx2.Hash().Hex()
 		s.logger.Info("SendSignedTxToGeth",
+			zap.String("walletAddress", walletAddress),
 			zap.String("Hash", tx2.Hash().Hex()),
 			zap.Bool("isPending", isPending),
+			zap.Uint64("Nonce", txInfos[0].Nonce),
 		)
+		return txInfos[0].BlockNumber, blockHash, nil
 
 	} else {
 		// log.Println(" 打包失败")
 		s.logger.Error("SendSignedTxToGeth失败")
 		return 0, "", errors.New("SendSignedTxToGeth failed")
 	}
-	return blockNumber, blockHash, nil
+
 }
 
 /*
@@ -1079,8 +1187,12 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 	}
 	// fmt.Printf("tx of multisig contract sent: %s \n", transferMultiSigTx.Hash().Hex())
 
-	done := s.WaitForBlockCompletation(transferMultiSigTx.Hash().Hex())
-	if done == 1 {
+	txInfos, err := s.WaitForBlockCompletation(transferMultiSigTx.Hash().Hex())
+	if err != nil {
+		s.logger.Error("WaitForBlockCompletation failed ", zap.Error(err))
+		return err
+	}
+	if len(txInfos) > 0 {
 		tx2, isPending, err := s.WsClient.TransactionByHash(context.Background(), transferMultiSigTx.Hash())
 		if err != nil {
 
@@ -1178,4 +1290,5 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 
 }
 
+//
 var ProviderSet = wire.NewSet(New, NewEthClientProviderOptions)

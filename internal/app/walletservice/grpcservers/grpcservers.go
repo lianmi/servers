@@ -48,6 +48,11 @@ func (s *WalletServer) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq
 	return s.service.DoPreAlipay(ctx, req)
 }
 
+// 用户端: 根据 OrderID 获取此订单在链上的pending状态
+func (s *WalletServer) DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error) {
+	return s.service.DoOrderPendingState(ctx, req)
+}
+
 //支付宝支付成功的回调处理
 func (s *WalletServer) DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error) {
 	return s.service.DepositForPay(ctx, req)
