@@ -392,9 +392,6 @@ func CreateInitControllersFn(
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
 			orderGroup.GET("/orderimage/:orderid", pc.DownloadOrderImage)
-
-			//用户端: 根据 OrderID 获取此订单在链上的pending状态
-			orderGroup.GET("/orderpendingstate/:orderid", pc.OrderPendingState)
 		}
 
 		//=======钱包模块==========/
