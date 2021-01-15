@@ -192,7 +192,7 @@ var LmcErrors = map[int]string{
 	OrderModAddProductNotOnSellError: "此商品没有上架过",
 	BuyUserIsEmptyError:              "买家账号为空",
 	BusinessUserIsEmptyError:         "商家账号为空",
-	OPKEmptyError:                    "商家OPK为空",
+	OPKEmptyError:                    "OPK is empty", //"商家OPK为空",
 
 	RegisterPreKeysArrayEmptyError:      "一次性公钥数量为零",
 	RegisterPreKeysNotBusinessTypeError: "用户不是商户类型，不能上传OPK",
