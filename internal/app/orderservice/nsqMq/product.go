@@ -2307,6 +2307,13 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				goto COMPLETE
 			}
 
+			//如果当前状态不是已完成 ，买家不能确认收货
+			if Global.OrderState(curState) != Global.OrderState_OS_Done {
+				nc.logger.Error("买家确认收货, 但是此订单未完成")
+				errorCode = LMCError.OrderStatusNotDoneError
+				goto COMPLETE
+			}
+
 			//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{

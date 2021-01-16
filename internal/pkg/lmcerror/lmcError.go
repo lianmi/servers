@@ -95,6 +95,7 @@ const (
 	OrderStatusCannotChangetoPayingError = 2090511 //此状态不能由用户设置为支付中
 	OrderStatusOnceUrgedError            = 2090512 //买家催单, 只能催一次
 	OrderStatusVipExpeditedError         = 2090513 //VIP用户才允许加急
+	OrderStatusNotDoneError              = 2090514 //买家确认收货, 但是此订单未完成
 
 	PreKeyGetCountError = 2090601 // 只有商户才能查询OPK存量
 
@@ -220,6 +221,7 @@ var LmcErrors = map[int]string{
 	OrderStatusCannotChangetoPayingError: "此状态不能由用户设置为支付中",
 	OrderStatusOnceUrgedError:            "买家催单, 只能催一次",
 	OrderStatusVipExpeditedError:         "VIP用户才允许加急",
+	OrderStatusNotDoneError:              "买家确认收货, 但是此订单未完成",
 
 	PreKeyGetCountError: "只有商户才能查询OPK存量",
 
