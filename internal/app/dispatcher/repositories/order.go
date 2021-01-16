@@ -122,7 +122,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		)
 
 		// 超级用户创建OSSClient实例。
-		client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.AccessKey)
+		client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)
 
 		if err != nil {
 			return nil, errors.Wrapf(err, "oss.New失败[OrderID=%s]", orderID)
@@ -137,10 +137,16 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		}
 
 		//生成签名URL下载链接， 300s后过期
-		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 300)
+		objectName := orderImagesHistory.BusinessOssImage
+		// objectName = "orders/id58/2021/01/16/6E05AD9D654ADFAD155901843E71B870"
+
+		signedURL, err := bucket.SignURL(objectName, oss.HTTPGet, 300)
 		if err != nil {
 			s.logger.Error("bucket.SignURL error", zap.Error(err))
 			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", orderID)
+		} else {
+			s.logger.Debug("bucket.SignURL 生成成功")
+
 		}
 
 		return &Order.DownloadOrderImagesResp{
