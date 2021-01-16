@@ -1334,94 +1334,6 @@ func (nc *NsqClient) SendOPKNoSufficientToMasterDevice(toUsername string, count 
 	return nil
 }
 
-/*
-向目标用户账号的所有端推送消息， 接收端会触发接收消息事件
-业务号:  BusinessType_Msg(5)
-业务子号:  MsgSubType_RecvMsgEvent(2)
-*/
-func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUsername string) error {
-	data, _ := proto.Marshal(rsp)
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	//一次性删除7天前的缓存系统消息
-	nTime := time.Now()
-	yesTime := nTime.AddDate(0, 0, -7).Unix()
-
-	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUsername)
-
-	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
-
-	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
-		nc.logger.Error("ZADD Error", zap.Error(err))
-	}
-
-	//订单消息具体内容
-	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
-
-	_, err = redisConn.Do("HMSET",
-		systemMsgKey,
-		"Username", toUsername,
-		"SystemMsgAt", systemMsgAt,
-		"Seq", rsp.Seq,
-		"Data", data, //系统消息的数据体
-	)
-
-	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
-
-	//向toUser所有端发送
-	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
-
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Order", "", "Order.Frontend")
-
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUsername)
-		targetMsg.SetDeviceID(eDeviceID)
-		// opkAlertMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
-
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
-
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
-
-		//构建数据完成，向dispatcher发送
-		topic := "Order.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-		}
-
-		nc.logger.Info("Broadcast Msg To All Devices Succeed",
-			zap.String("Username:", toUsername),
-			zap.String("DeviceID:", eDeviceID),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-		_ = err
-
-	}
-
-	return nil
-}
-
 func (nc *NsqClient) DeleteAliyunOssFile(productInfo *models.ProductInfo) error {
 	// New client
 	client, err := oss.New(LMCommon.Endpoint, LMCommon.AccessID, LMCommon.AccessKey)
@@ -1790,7 +1702,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				} else { //普通下单
 
-					//彩票类型的订单， 但没付款的时候，也需要向商户转发
+					//彩票类型的订单
 					if Global.ProductType(productInfo.ProductType) == Global.ProductType_OT_Lottery {
 
 						orderProductBody.State = Global.OrderState_OS_RecvOK
@@ -1800,7 +1712,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
-						//将接单转发到用户
+						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
 							eRsp := &Msg.RecvMsgEventRsp{
 								Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
@@ -1814,19 +1726,13 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
+							nc.logger.Debug("向买家发送彩票类型的订单", zap.Int("State", int(orderProductBody.State)))
 							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
 						}
 
 					} else { //其它普通商品
-
-						//注意，预审核不需要发送给商家
-						// if Global.OrderState_OS_Prepare == Global.OrderState(orderProductBody.State) {
-
-						// 	nc.logger.Debug("注意，预审核不需要发送给商家", zap.Int("State", int(orderProductBody.State)))
-
-						// } else {
 						orderProductBody.State = Global.OrderState_OS_SendOK
-						nc.logger.Debug("注意， 除了预审核， 其它状态都需要发送给商家", zap.Int("State", int(orderProductBody.State)))
+						nc.logger.Debug("注意，除了预审核，其它状态都需要发送给商家", zap.Int("State", int(orderProductBody.State)))
 
 						orderProductBodyData, _ = proto.Marshal(orderProductBody)
 						//将订单转发到商户
@@ -1843,9 +1749,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
+							nc.logger.Debug("向商家发送非彩票普通商品的订单", zap.Int("State", int(orderProductBody.State)))
 							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 						}
-						// }
 					}
 
 					//对attach进行哈希计算，以便获知订单内容是否发生改变
@@ -2452,8 +2358,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			}
 
 			//向目标用户发送订单消息状态的更改
-			nc.logger.Debug(fmt.Sprintf("向目标用户(%s)发送订单状态的更改, 由状态(%d)改为(%d)", toUsername, curState, req.State))
-
+			nc.logger.Debug("HandleChangeOrderState, 发送订单状态的更改", zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)))
 			go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 		}
 
@@ -2614,6 +2519,94 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 			zap.String("Username:", toUsername),
 			zap.String("DeviceID:", eDeviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+	}
+
+	return nil
+}
+
+/*
+向目标用户账号的所有端推送消息， 接收端会触发接收消息事件
+业务号:  BusinessType_Msg(5)
+业务子号:  MsgSubType_RecvMsgEvent(2)
+*/
+func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUsername string) error {
+	data, _ := proto.Marshal(rsp)
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	//一次性删除7天前的缓存系统消息
+	nTime := time.Now()
+	yesTime := nTime.AddDate(0, 0, -7).Unix()
+
+	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUsername)
+
+	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+
+	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
+	systemMsgAt := time.Now().UnixNano() / 1e6
+	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
+		nc.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	//订单消息具体内容
+	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
+
+	_, err = redisConn.Do("HMSET",
+		systemMsgKey,
+		"Username", toUsername,
+		"SystemMsgAt", systemMsgAt,
+		"Seq", rsp.Seq,
+		"Data", data, //系统消息的数据体
+	)
+
+	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+
+	//向toUser所有端发送
+	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
+	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
+	//查询出当前在线所有主从设备
+	for _, eDeviceID := range deviceIDSliceNew {
+
+		targetMsg := &models.Message{}
+		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+
+		targetMsg.SetJwtToken(curJwtToken)
+		targetMsg.SetUserName(toUsername)
+		targetMsg.SetDeviceID(eDeviceID)
+		// opkAlertMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+
+		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Order.Frontend"
+		rawData, _ := json.Marshal(targetMsg)
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+		} else {
+			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+		nc.logger.Info("Broadcast Msg To All Devices Succeed",
+			zap.String("Username:", toUsername),
+			zap.String("DeviceID:", eDeviceID),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+		_ = err
 
 	}
 
