@@ -136,8 +136,8 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 
 		}
 
-		//生成签名URL下载链接， 60s后过期
-		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 60)
+		//生成签名URL下载链接， 300s后过期
+		signedURL, err := bucket.SignURL(orderImagesHistory.BusinessOssImage, oss.HTTPGet, 300)
 		if err != nil {
 			s.logger.Error("bucket.SignURL error", zap.Error(err))
 			return nil, errors.Wrapf(err, "bucket.SignURL失败[OrderID=%s]", orderID)
