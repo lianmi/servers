@@ -321,11 +321,12 @@ func (nc *NsqClient) RedisInit() (err error) {
 	if !isExists {
 		_, err = redisConn.Do("SET", "Bip32Index", 2) //0， 1,  2 的索引号已经用了
 	}
-	orderKeys, _ := redis.Strings(redisConn.Do("KEYS", "Order:*"))
-	for _, orderKey := range orderKeys {
-		nc.logger.Debug(fmt.Sprintf("DEL %s", orderKey))
-		_, err = redisConn.Do("DEL", fmt.Sprintf("%s", orderKey))
-	}
+	//为了方便调试，删除所有订单记录
+	// orderKeys, _ := redis.Strings(redisConn.Do("KEYS", "Order:*"))
+	// for _, orderKey := range orderKeys {
+	// 	nc.logger.Debug(fmt.Sprintf("DEL %s", orderKey))
+	// 	_, err = redisConn.Do("DEL", fmt.Sprintf("%s", orderKey))
+	// }
 	return nil
 
 }
