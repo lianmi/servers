@@ -1817,18 +1817,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
 						}
 
-					}
+					} else { //其它普通商品
 
-					//其它普通商品
+						//注意，预审核不需要发送给商家
+						// if Global.OrderState_OS_Prepare == Global.OrderState(orderProductBody.State) {
 
-					orderProductBody.State = Global.OrderState_OS_SendOK
+						// 	nc.logger.Debug("注意，预审核不需要发送给商家", zap.Int("State", int(orderProductBody.State)))
 
-					//注意，预审核不需要发送给商家
-					if Global.OrderState_OS_Prepare == Global.OrderState(orderProductBody.State) {
-
-						nc.logger.Debug("注意，预审核不需要发送给商家", zap.Int("State", int(orderProductBody.State)))
-
-					} else {
+						// } else {
+						orderProductBody.State = Global.OrderState_OS_SendOK
 						nc.logger.Debug("注意， 除了预审核， 其它状态都需要发送给商家", zap.Int("State", int(orderProductBody.State)))
 
 						orderProductBodyData, _ = proto.Marshal(orderProductBody)
@@ -1848,6 +1845,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 						}
+						// }
 					}
 
 					//对attach进行哈希计算，以便获知订单内容是否发生改变
