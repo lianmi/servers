@@ -144,7 +144,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 		}, errors.Wrap(err, "Get LNMC Token Balance error")
 	}
 
-	if req.PayType == LMCommon.OrderTransferForDone {
+	if req.PayType == LMCommon.OrderTransferForDone { //向商户支付
 
 		//商户钱包余额
 		balanceLNMCBusinessUser, err := s.ethService.GetLNMCTokenBalance(businessUserWalletAddress)
@@ -234,7 +234,7 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			s.logger.Debug("商户到账记录 AddeCollectionHistory succeed")
 		}
 
-	} else if req.PayType == LMCommon.OrderTransferForCancel {
+	} else if req.PayType == LMCommon.OrderTransferForCancel { //退款
 		//买家钱包余额
 		balanceLNMCBuyUser, err := s.ethService.GetLNMCTokenBalance(buyUserWalletAddress)
 		if err != nil {
