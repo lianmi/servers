@@ -324,7 +324,7 @@ func (nc *NsqClient) RedisInit() (err error) {
 	orderKeys, _ := redis.Strings(redisConn.Do("KEYS", "Order:*"))
 	for _, orderKey := range orderKeys {
 		nc.logger.Debug(fmt.Sprintf("DEL %s", orderKey))
-		_, err = redisConn.Do("DEL", orderKey)
+		_, err = redisConn.Do("DEL", fmt.Sprintf("%s", orderKey))
 	}
 	return nil
 
