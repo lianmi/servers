@@ -155,8 +155,8 @@ func NewNsqClient(o *NsqOptions, Repository repositories.WalletRepository, redis
 	}
 
 	//注册每个业务子类型的处理方法, BusinessType = 10
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet            //10-1 钱包账号注册
-	
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 1)] = nsqClient.HandleRegisterWallet //10-1 钱包账号注册
+
 	//取消 nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 2)] = nsqClient.HandleDeposit                   //10-2 充值
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 3)] = nsqClient.HandlePreTransfer               //10-3 发起转账
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(10, 4)] = nsqClient.HandleConfirmTransfer           //10-4 确认转账
@@ -321,7 +321,10 @@ func (nc *NsqClient) RedisInit() (err error) {
 	if !isExists {
 		_, err = redisConn.Do("SET", "Bip32Index", 2) //0， 1,  2 的索引号已经用了
 	}
-
+	orderKeys, _ := redis.Strings(redisConn.Do("KEYS", "Order:*"))
+	for _, orderKey := range orderKeys {
+		nc.logger.Debug(fmt.Sprintf("DEL %s", orderKey))
+	}
 	return nil
 
 }
