@@ -617,6 +617,7 @@ func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.Depo
 //获取某个订单的链上pending状态
 func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error) {
 	var pending bool
+	var err error
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -624,6 +625,10 @@ func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Walle
 	//根据OrderID查询出原始数据
 	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
 	uuidStr, _ := redis.String(redisConn.Do("HGET", orderIDKey, "TransferUUID"))
+	if uuidStr == "" {
+		s.logger.Error("uuidStr is empty")
+		return nil, errors.Wrap(err, "uuid is empty")
+	}
 
 	preTransferKey := fmt.Sprintf("PreTransfer:%s", uuidStr)
 
@@ -635,6 +640,11 @@ func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Walle
 		zap.String("signedTxHash", signedTxHash),
 		zap.Uint64("pendingNonce", pendingNonce),
 	)
+
+	if signedTxHash == "" {
+		s.logger.Error("signedTxHash is empty")
+		return nil, errors.Wrap(err, "TxHash is empty")
+	}
 
 	receipt, err := s.ethService.CheckTransactionReceipt(signedTxHash)
 	if err != nil {

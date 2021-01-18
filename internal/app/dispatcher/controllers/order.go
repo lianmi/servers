@@ -4,12 +4,12 @@
 package controllers
 
 import (
-	"time"
 	"context"
 	"github.com/gin-gonic/gin"
 	Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/common/codes"
 	"net/http"
+	"time"
 )
 
 //商户端: 将完成订单拍照所有图片上链
@@ -62,7 +62,6 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 
 // 用户端: 根据 OrderID 获取此订单在链上的pending状态
 func (pc *LianmiApisController) OrderPendingState(c *gin.Context) {
-	code := codes.InvalidParams
 	orderID := c.Param("orderid")
 	if orderID == "" {
 		RespFail(c, http.StatusBadRequest, 400, "orderid is empty")
@@ -72,7 +71,7 @@ func (pc *LianmiApisController) OrderPendingState(c *gin.Context) {
 		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 		resp, err := pc.service.OrderPendingState(ctx, orderID)
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取此订单在链上的pending状态时发生错误")
+			RespFail(c, http.StatusBadRequest, 500, "获取此订单在链上的pending状态时发生错误")
 			return
 		}
 
