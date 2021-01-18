@@ -616,7 +616,7 @@ func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.Depo
 
 //获取某个订单的链上pending状态
 func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error) {
-	var pending bool
+	// var pending bool
 	var err error
 
 	redisConn := s.redisPool.Get()
