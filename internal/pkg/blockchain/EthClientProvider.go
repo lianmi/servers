@@ -371,14 +371,15 @@ func (s *Service) KeystoreToPrivateKey(privateKeyFile, password string) (string,
 }
 
 //检查交易打包状态
-func (s *Service) CheckTransactionReceipt(_txHash string) (*types.Receipt, error) {
+// func (s *Service) CheckTransactionReceipt(_txHash string) (*types.Receipt, error) {
+func (s *Service) CheckTransactionReceipt(_txHash string) uint64 {
 
 	txHash := common.HexToHash(_txHash)
 	receipt, err := s.WsClient.TransactionReceipt(context.Background(), txHash)
 	if err != nil {
-		return nil, err
+		return uint64(0)
 	}
-	return receipt, nil
+	return receipt.Status
 }
 
 //订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
@@ -397,11 +398,12 @@ func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
 			return 0
 		case header := <-headers:
 			// s.logger.Info(header.TxHash.Hex())
-			receipt, err := s.CheckTransactionReceipt(hashToRead)
-			if err != nil {
-				s.logger.Error("CheckTransactionReceipt failed ", zap.Error(err))
-			}
-			transactionStatus := receipt.Status
+			// receipt, err := s.CheckTransactionReceipt(hashToRead)
+
+			// if err != nil {
+			// 	s.logger.Error("CheckTransactionReceipt failed ", zap.Error(err))
+			// }
+			transactionStatus := s.CheckTransactionReceipt(hashToRead)
 			if transactionStatus == 0 {
 				//FAILURE
 				sub.Unsubscribe()
