@@ -2625,6 +2625,7 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		rsp := &Wallet.TxHashInfoRsp{
+			IsPending: hashInfo.IsPending,
 			//区块高度
 			BlockNumber: hashInfo.BlockNumber,
 			//燃气值

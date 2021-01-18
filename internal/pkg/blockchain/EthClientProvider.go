@@ -382,6 +382,11 @@ func (s *Service) CheckTransactionReceipt(_txHash string) int {
 	return int(receipt.Status)
 }
 
+//检查交易打包状态
+func (s *Service) GetTransactionReceipt(_txHash string) (*types.Receipt, error) {
+	return s.WsClient.TransactionReceipt(context.Background(), common.HexToHash(_txHash))
+}
+
 //订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
 func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
 	headers := make(chan *types.Header)
@@ -482,7 +487,7 @@ func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) {
 	txHash := common.HexToHash(txHashHex)
 
-	tx, _, err := s.WsClient.TransactionByHash(context.Background(), txHash)
+	tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), txHash)
 	if err != nil {
 		s.logger.Error("QueryTxInfoByHash(), TransactionByHash failed ", zap.Error(err))
 	}
@@ -492,13 +497,15 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 		zap.String("Value: ", tx.Value().String()),
 		zap.Uint64("Gas: ", tx.Gas()),
 		zap.String("Value: ", tx.Value().String()),
+		zap.Bool("isPending: ", isPending),
 	)
 
 	return &models.HashInfo{
-		TxHash: tx.Hash().Hex(),
-		Nonce:  tx.Nonce(),
-		Gas:    tx.Gas(),
-		Data:   hex.EncodeToString(tx.Data()),
+		IsPending: isPending,
+		TxHash:    tx.Hash().Hex(),
+		Nonce:     tx.Nonce(),
+		Gas:       tx.Gas(),
+		Data:      hex.EncodeToString(tx.Data()),
 	}, nil
 }
 

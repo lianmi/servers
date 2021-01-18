@@ -10,19 +10,23 @@ message TxHashInfoReq {
     //交易哈希
     string  txHash=2;
 }
+
 message TxHashInfoRsp {
+    //isPending, false: 打包完成  true-打包中
+    bool isPending =1;
+
     //区块高度
-    fixed64 blockNumber=1;
+    fixed64 blockNumber=2;
 
     //燃气值 
-    fixed64 gas=2;
+    fixed64 gas=3;
 
     //随机数  
-    fixed64 nonce=3;
+    fixed64 nonce=4;
 
     //数据，hex格式
-    string data=4;
+    string data=5;
 
     //接收者账号
-    string to=5;
+    string to=6;
 }

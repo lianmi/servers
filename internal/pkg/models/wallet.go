@@ -181,6 +181,7 @@ type RawDesc struct {
 
 //裸成功交易结构体
 type HashInfo struct {
+	IsPending   bool   `json:"is_pending"`
 	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
 	TxHash      string `json:"tx_hash" `     //交易哈希
 	//nonce
