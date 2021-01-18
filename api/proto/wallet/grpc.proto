@@ -26,6 +26,10 @@ service LianmiWallet {
     //充值，从ERC20代币总账号转账到目标普通账号
     rpc DepositForPay(DepositForPayReq) returns  (DepositForPayResp);
 
+    //查询某个订单对应支付的pending状态
+    rpc DoOrderPendingState(OrderPendingStateReq) returns (OrderPendingStateResp);
+
+
 }
 
 
@@ -130,3 +134,40 @@ message DepositForPayResp{
     fixed64 time=4;
 }
 
+
+
+
+// 根据 OrderID 获取此订单在链上的pending状态
+message OrderPendingStateReq {
+     //订单ID
+    string orderID =1;
+
+}
+
+//用户端: 根据 OrderID 获取此订单在链上的pending状态
+message OrderPendingStateResp {
+    //pending状态, false表示打包成功， true表示等待中
+    bool pending =1;
+
+    //燃气值 
+    fixed64 cumulativeGasUsed=2;
+
+    //实际燃气值 
+    fixed64 gasUsed=3;
+
+    //当前交易的nonce
+    fixed64 nonce=4;
+
+    // 交易哈希hex
+    string txHash=5;
+
+    // 交易区块哈希，如果打包成功就有值 
+    string blockHash=6;
+
+    // 交易区块高度，如果打包成功就有值 
+    fixed64 blockNumber=7;
+
+    // 交易index，如果打包成功就有值 
+    fixed32 transactionIndex=8;
+
+}

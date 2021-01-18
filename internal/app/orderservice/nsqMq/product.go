@@ -1082,6 +1082,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 //9-2 获取网点OPK公钥及订单ID
 func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	var err error
+	// var sdkUUID string //SDK 传上来的 UUID
 	errorCode := 200
 
 	rsp := &Order.GetPreKeyOrderIDRsp{}

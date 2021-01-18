@@ -33,6 +33,9 @@ type WalletService interface {
 	//订单图片上链
 	OrderImagesOnBlockchain(ctx context.Context, req *Wallet.OrderImagesOnBlockchainReq) (*Wallet.OrderImagesOnBlockchainResp, error)
 
+	//获取某个订单的链上pending状态
+	DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error)
+
 	//支付宝预支付
 	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
 
@@ -609,4 +612,57 @@ func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.Depo
 		//时间
 		Time: uint64(time.Now().UnixNano() / 1e6),
 	}, nil
+}
+
+//获取某个订单的链上pending状态
+func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error) {
+	var pending bool
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//根据OrderID查询出原始数据
+	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
+	uuidStr, _ := redis.String(redisConn.Do("HGET", orderIDKey, "TransferUUID"))
+
+	preTransferKey := fmt.Sprintf("PreTransfer:%s", uuidStr)
+
+	signedTxHash, _ := redis.String(redisConn.Do("HGET", preTransferKey, "SignedTxHash"))
+	pendingNonce, _ := redis.Uint64(redisConn.Do("HGET", preTransferKey, "PendingNonce"))
+
+	s.logger.Debug("DoOrderPendingState start...",
+		zap.String("OrderID", req.OrderID),
+		zap.String("signedTxHash", signedTxHash),
+		zap.Uint64("pendingNonce", pendingNonce),
+	)
+
+	receipt, err := s.ethService.CheckTransactionReceipt(signedTxHash)
+	if err != nil {
+		s.logger.Error("CheckTransactionReceipt failed ", zap.Error(err))
+		return nil, err
+	}
+	if receipt.Status == 0 {
+		pending = false //打包完成
+	} else if receipt.Status == 1 {
+		pending = true //打包中
+	}
+
+	rsp := &Wallet.OrderPendingStateResp{
+		Pending: pending,
+		//燃气值
+		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		//实际燃气值
+		GasUsed: receipt.GasUsed,
+		//当前交易的nonce
+		Nonce: pendingNonce,
+		// 交易哈希hex
+		TxHash: receipt.TxHash.Hex(),
+		// 交易区块哈希，如果打包成功就有值
+		BlockHash: receipt.BlockHash.Hex(),
+		// 交易区块高度，如果打包成功就有值
+		BlockNumber: receipt.BlockNumber.Uint64(),
+		// 交易index，如果打包成功就有值
+		TransactionIndex: uint32(receipt.TransactionIndex),
+	}
+	return rsp, nil
 }
