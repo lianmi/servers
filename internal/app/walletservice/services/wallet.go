@@ -616,7 +616,6 @@ func (s *DefaultApisService) DepositForPay(ctx context.Context, req *Wallet.Depo
 
 //获取某个订单的链上pending状态
 func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Wallet.OrderPendingStateReq) (*Wallet.OrderPendingStateResp, error) {
-	var pending bool
 	var err error
 
 	redisConn := s.redisPool.Get()
@@ -646,33 +645,22 @@ func (s *DefaultApisService) DoOrderPendingState(ctx context.Context, req *Walle
 		return nil, errors.Wrap(err, "TxHash is empty")
 	}
 
-	receipt, err := s.ethService.GetTransactionReceipt(signedTxHash)
+	hashInfo, err := s.ethService.QueryTxInfoByHash(signedTxHash)
 	if err != nil {
-		s.logger.Error("GetTransactionReceipt failed ", zap.Error(err))
+		s.logger.Error("QueryTxInfoByHash failed ", zap.Error(err))
 		return nil, err
-	}
-	if receipt.Status == 0 {
-		pending = false //打包完成
-	} else if receipt.Status == 1 {
-		pending = true //打包中
 	}
 
 	rsp := &Wallet.OrderPendingStateResp{
-		Pending: pending,
-		//燃气值
-		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		IsPending: hashInfo.IsPending,
 		//实际燃气值
-		GasUsed: receipt.GasUsed,
+		GasUsed: hashInfo.Gas,
 		//当前交易的nonce
 		Nonce: pendingNonce,
 		// 交易哈希hex
-		TxHash: receipt.TxHash.Hex(),
-		// 交易区块哈希，如果打包成功就有值
-		BlockHash: receipt.BlockHash.Hex(),
+		TxHash: hashInfo.TxHash,
 		// 交易区块高度，如果打包成功就有值
-		BlockNumber: receipt.BlockNumber.Uint64(),
-		// 交易index，如果打包成功就有值
-		TransactionIndex: uint32(receipt.TransactionIndex),
+		BlockNumber: hashInfo.BlockNumber,
 	}
 	return rsp, nil
 

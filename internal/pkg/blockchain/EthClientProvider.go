@@ -371,7 +371,6 @@ func (s *Service) KeystoreToPrivateKey(privateKeyFile, password string) (string,
 }
 
 //检查交易打包状态
-// func (s *Service) CheckTransactionReceipt(_txHash string) (*types.Receipt, error) {
 func (s *Service) CheckTransactionReceipt(_txHash string) int {
 
 	txHash := common.HexToHash(_txHash)
@@ -380,11 +379,6 @@ func (s *Service) CheckTransactionReceipt(_txHash string) int {
 		return int(-1)
 	}
 	return int(receipt.Status)
-}
-
-//检查交易打包状态
-func (s *Service) GetTransactionReceipt(_txHash string) (*types.Receipt, error) {
-	return s.WsClient.TransactionReceipt(context.Background(), common.HexToHash(_txHash))
 }
 
 //订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
