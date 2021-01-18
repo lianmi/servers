@@ -372,14 +372,14 @@ func (s *Service) KeystoreToPrivateKey(privateKeyFile, password string) (string,
 
 //检查交易打包状态
 // func (s *Service) CheckTransactionReceipt(_txHash string) (*types.Receipt, error) {
-func (s *Service) CheckTransactionReceipt(_txHash string) uint64 {
+func (s *Service) CheckTransactionReceipt(_txHash string) int {
 
 	txHash := common.HexToHash(_txHash)
 	receipt, err := s.WsClient.TransactionReceipt(context.Background(), txHash)
 	if err != nil {
-		return uint64(0)
+		return int(-1)
 	}
-	return receipt.Status
+	return int(receipt.Status)
 }
 
 //订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
