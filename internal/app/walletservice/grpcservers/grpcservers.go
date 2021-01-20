@@ -48,6 +48,11 @@ func (s *WalletServer) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq
 	return s.service.DoPreAlipay(ctx, req)
 }
 
+//微信发起预支付
+func (s *WalletServer) DoPreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error) {
+	return s.service.DoPreWXpay(ctx, req)
+}
+
 //支付宝支付成功的回调处理
 func (s *WalletServer) DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error) {
 	return s.service.DepositForPay(ctx, req)

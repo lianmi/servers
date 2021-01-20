@@ -151,3 +151,41 @@ func (pc *LianmiApisController) AlipayNotify(c *gin.Context) {
 	pc.logger.Debug(fmt.Sprintf("AlipayNotify, 订单 %s 支付成功", outTradeNo))
 
 }
+
+//微信 预支付
+func (pc *LianmiApisController) PreWXpay(c *gin.Context) {
+	pc.logger.Debug("PreWXpay start ...")
+
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[LMCommon.IdentityKey].(string)
+
+	code := codes.InvalidParams
+	var req Wallet.PreWXpayReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("PreWXpay, binding JSON error ")
+		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+	} else {
+		if req.TotalAmount <= 0.00 {
+			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段: TotalAmount")
+		}
+		req.Username = userName
+		req.ClientIP = c.ClientIP() //客户端I
+		
+		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+		if resp, err := pc.service.PreWXpay(ctx, &req); err != nil {
+			code = codes.ERROR
+			RespFail(c, http.StatusBadRequest, code, "PreWXpay error")
+			return
+		} else {
+
+			RespData(c, http.StatusBadRequest, http.StatusOK, resp)
+		}
+
+	}
+}
+
+//微信支付回调通知
+func (pc *LianmiApisController) WXpayNotify(c *gin.Context) {
+	pc.logger.Debug("WXpayNotify start ...")
+
+}

@@ -8,15 +8,17 @@ import (
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/internal/pkg/wxpay"
 	"github.com/pkg/errors"
 	"github.com/smartwalle/alipay/v3"
 	"github.com/smartwalle/xid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	// "strconv"
+	"net/url"
+	"strconv"
 	// uuid "github.com/satori/go.uuid"
-	// "time"
+	"time"
 
 	"github.com/lianmi/servers/util/dateutil"
 )
@@ -25,6 +27,8 @@ type Amount struct{ Total float64 }
 
 type WalletRepository interface {
 	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
+
+	DoPreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
 
 	SaveDepositForPay(tradeNo, hash string, blockNumber, balanceLNMC uint64) error
 
@@ -172,6 +176,76 @@ func (m *MysqlWalletRepository) DoPreAlipay(ctx context.Context, req *Wallet.Pre
 		Signedinfo: param,
 	}, nil
 
+}
+
+//向微信官方支付服务器发起预支付
+func (m *MysqlWalletRepository) DoPreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error) {
+	var err error
+	var client *wxpay.Client
+	client = wxpay.New(LMCommon.WXAppID, LMCommon.WXApiKey, LMCommon.WXMchID, true)
+	if client == nil {
+		m.logger.Error("wxpay.Client 无法创建")
+		return nil, errors.Wrap(err, "wx  client cannot create!")
+	}
+	err = client.LoadCertFromBase64(LMCommon.WXCertDateBase64) //装载本地证书
+	if err != nil {
+		m.logger.Error("LoadCertFromBase64 错误 ", zap.Error(err))
+		return nil, err
+	}
+
+	var p = wxpay.UnifiedOrderParam{}
+	p.Body = req.Body //充值测试
+	p.NotifyURL = LMCommon.ServerDomain + "/v1/wallet/wxpaynotify"
+	p.TradeType = wxpay.TradeTypeApp //app支付
+	p.SpbillCreateIP = req.ClientIP
+	p.TotalFee = int(req.TotalAmount * 100)                          // 单位1分钱
+	p.OutTradeNo = "" + strconv.FormatInt(time.Now().UnixNano(), 10) // 后面增加渠道编号
+
+	result, err2 := client.UnifiedOrder(p)
+	if err2 != nil {
+		m.logger.Error("微信服务器返回错误", zap.Error(err2))
+
+		return nil, err2
+	}
+
+	// 下面获取一下微信给的信息，然后组成串，签名发给客户端
+	var wxmap = make(url.Values)
+	wxmap.Set("appid", LMCommon.WXAppID)
+	wxmap.Set("partnerid", LMCommon.WXMchID)
+	wxmap.Set("prepayid", result.PrepayId)
+	wxmap.Set("noncestr", result.NonceStr)
+	timeStamp := strconv.FormatInt(time.Now().Unix(), 10)
+	wxmap.Set("timestamp", timeStamp)
+	wxmap.Set("package", "Sign=WXPay")
+	var sign = wxpay.SignMD5(wxmap, LMCommon.WXApiKey)
+	wxmap.Set("sign", sign)
+
+	var re map[string]string = make(map[string]string, 0)
+	for k, v := range wxmap {
+		re[k] = v[0]
+	}
+	// RespData(c, http.StatusOK, 200, re)
+	//TODO
+
+	resp := &Wallet.PreWXpayResp{
+		Appid:     LMCommon.WXAppID, //APPID
+		Partnerid: LMCommon.WXMchID, //商户号
+		Prepayid:  result.PrepayId,  //预支付id
+		Noncestr:  result.NonceStr,  //nonce
+		Package:   "Sign=WXPay",     //package
+		Sign:      sign,             //签名
+		Timestamp: timeStamp,        //时间戳
+	}
+	m.logger.Debug("微信支付的七个数据",
+		zap.String("Appid", re["appid"]),
+		zap.String("Partnerid", re["partnerid"]),
+		zap.String("Prepayid", re["prepayid"]),
+		zap.String("Noncestr", re["noncestr"]),
+		zap.String("Package", re["package"]),
+		zap.String("Sign", re["sign"]),
+		zap.String("Timestamp", re["timeStamp"]),
+	)
+	return resp, nil
 }
 
 func (m *MysqlWalletRepository) SaveDepositForPay(tradeNo, hash string, blockNumber, balanceLNMC uint64) error {

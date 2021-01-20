@@ -195,6 +195,9 @@ type LianmiApisService interface {
 	//支付宝付款成功
 	AlipayDone(ctx context.Context, outTradeNo string) error
 
+	//微信预支付
+	PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
+
 	//获取各种彩票的开售及停售时刻
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 
@@ -785,6 +788,19 @@ func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo st
 			zap.String("Hash", rsp.Hash),
 		)
 		return nil
+	}
+}
+
+//微信预支付
+func (s *DefaultLianmiApisService) PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error) {
+	//调用钱包微服务
+	rsp, err := s.walletGrpcClientSvc.DoPreWXpay(ctx, req)
+	if err != nil {
+		s.logger.Error("walletGrpcClientSvc.DoPreWXspay 失败", zap.Error(err))
+		return nil, err
+	} else {
+		s.logger.Debug("walletGrpcClientSvc.DoPreWXspay 成功")
+		return rsp, nil
 	}
 }
 

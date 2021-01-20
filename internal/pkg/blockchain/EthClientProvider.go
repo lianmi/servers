@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"regexp"
+	"strings"
 
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -31,6 +32,9 @@ import (
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	MultiSig "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/MultiSig"
 	"github.com/lianmi/servers/internal/pkg/blockchain/util"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 type KeyPair struct {
@@ -328,6 +332,23 @@ func (s *Service) GetEthBalance(address string) (float64, error) {
 	return f64, nil
 }
 
+// 输出Eth为单位的账户等待余额
+func (s *Service) GetEthPendingBalance(address string) (float64, error) {
+
+	account := common.HexToAddress(address)
+	pendingBalance, err := s.WsClient.PendingBalanceAt(context.Background(), account)
+
+	if err != nil {
+		s.logger.Error("PendingBalanceAt ", zap.Error(err))
+		return 0, err
+	}
+	ethAmount := util.ToDecimal(pendingBalance, 18)
+	f64, _ := ethAmount.Float64()
+	return f64, nil
+}
+
+//
+
 //CheckIsvalidAddress 返回地址(普通  地址) 是否合法, 无须链上查询
 func (s *Service) CheckIsvalidAddress(addressHex string) bool {
 	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
@@ -384,6 +405,7 @@ func (s *Service) CheckTransactionReceipt(_txHash string) int {
 //订阅并检测交易是否成功, 并返回区块高度, 0- 表示失败
 func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
 	headers := make(chan *types.Header)
+	//订阅新区块
 	sub, err := s.WsClient.SubscribeNewHead(context.Background(), headers)
 	if err != nil {
 		s.logger.Error("SubscribeNewHead failed ", zap.Error(err))
@@ -1006,10 +1028,14 @@ func (s *Service) SendSignedTxToGeth(rawTxHex string) (uint64, string, error) {
 		}
 
 		blockHash = tx2.Hash().Hex()
-		s.logger.Info("SendSignedTxToGeth",
+		s.logger.Info("SendSignedTxToGeth succeed",
 			zap.String("Hash", tx2.Hash().Hex()),
 			zap.Bool("isPending", isPending),
 		)
+
+		if err := s.EventReadErc20(int64(blockNumber), int64(blockNumber)); err != nil {
+			s.logger.Error("EventReadErc20 failed ", zap.Error(err))
+		}
 
 	} else {
 		// log.Println(" 打包失败")
@@ -1183,6 +1209,101 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 		ContractAddress: s.o.ERC20DeployContractAddress,
 	}, nil
 
+}
+
+//根据erc20智能合约地址, 获取所需的块范围交易日志数据
+func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
+
+	// LNMC token address
+	contractAddress := common.HexToAddress(s.o.ERC20DeployContractAddress)
+
+	//按照ERC-20智能合约地址和所需的块范围创建一个“FilterQuery”
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(fromBlock),
+		ToBlock:   big.NewInt(toBlock),
+		Addresses: []common.Address{
+			contractAddress,
+		},
+	}
+
+	logs, err := s.WsClient.FilterLogs(context.Background(), query)
+	if err != nil {
+		s.logger.Error("FilterLogs failed", zap.Error(err))
+		return err
+	}
+
+	contractAbi, err := abi.JSON(strings.NewReader(string(ERC20.ERC20TokenABI)))
+	if err != nil {
+		s.logger.Error("abi.JSON failed", zap.Error(err))
+		return err
+	}
+
+	logTransferSig := []byte("Transfer(address,address,uint256)")
+	LogApprovalSig := []byte("Approval(address,address,uint256)")
+	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
+	logApprovalSigHash := crypto.Keccak256Hash(LogApprovalSig)
+
+	for _, vLog := range logs {
+		s.logger.Debug("Log Infomation ",
+			zap.Uint64("BlockNumber", vLog.BlockNumber),
+			zap.Uint("Index", vLog.Index),
+		)
+		// fmt.Printf("Log Block Number: %d\n", vLog.BlockNumber)
+		// fmt.Printf("Log Index: %d\n", vLog.Index)
+
+		switch vLog.Topics[0].Hex() {
+		case logTransferSigHash.Hex():
+			// fmt.Printf("Log Name: Transfer\n")
+
+			var transferEvent models.LogTransfer
+
+			err := contractAbi.Unpack(&transferEvent, "Transfer", vLog.Data)
+			if err != nil {
+				s.logger.Error("contractAbi.Unpack failed", zap.Error(err))
+				return err
+			}
+
+			transferEvent.From = common.HexToAddress(vLog.Topics[1].Hex())
+			transferEvent.To = common.HexToAddress(vLog.Topics[2].Hex())
+
+			// fmt.Printf("From: %s\n", transferEvent.From.Hex())
+			// fmt.Printf("To: %s\n", transferEvent.To.Hex())
+			// fmt.Printf("Tokens: %s\n", transferEvent.Tokens.String())
+
+			s.logger.Debug("Log Name: Transfer",
+				zap.String("From", transferEvent.From.Hex()),
+				zap.String("To", transferEvent.To.Hex()),
+				zap.String("Tokens", transferEvent.Tokens.String()),
+			)
+
+		case logApprovalSigHash.Hex():
+			// fmt.Printf("Log Name: Approval\n")
+
+			var approvalEvent models.LogApproval
+
+			err := contractAbi.Unpack(&approvalEvent, "Approval", vLog.Data)
+			if err != nil {
+				s.logger.Error("contractAbi.Unpack failed", zap.Error(err))
+				return err
+			}
+
+			approvalEvent.TokenOwner = common.HexToAddress(vLog.Topics[1].Hex())
+			approvalEvent.Spender = common.HexToAddress(vLog.Topics[2].Hex())
+
+			// fmt.Printf("Token Owner: %s\n", approvalEvent.TokenOwner.Hex())
+			// fmt.Printf("Spender: %s\n", approvalEvent.Spender.Hex())
+			// fmt.Printf("Tokens: %s\n", approvalEvent.Tokens.String())
+
+			s.logger.Debug("Log Name: Approval",
+				zap.String("Token Owner:", approvalEvent.TokenOwner.Hex()),
+				zap.String("Spender", approvalEvent.Spender.Hex()),
+				zap.String("Tokens", approvalEvent.Tokens.String()),
+			)
+		}
+
+		// fmt.Printf("\n\n")
+	}
+	return nil
 }
 
 var ProviderSet = wire.NewSet(New, NewEthClientProviderOptions)

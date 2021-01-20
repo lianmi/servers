@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.wallet;
+option go_package = "github.com/lianmi/servers/api/proto/wallet";
+
+//微信 发起预支付
+message PreWXpayReq{
+
+    //客户登录账户
+    string username=1;
+
+    //支付金额， 0.01元
+    double totalAmount =2;
+
+    //body, 测试充值
+    string body=3;
+
+    //客户端IP地址
+    string clientIP=4;
+
+}
+
+message PreWXpayResp{
+    
+    //APPID
+    string appid=1;
+
+    //nonce
+    string noncestr=2;
+
+    //package
+    string package=3;
+
+    //商户号
+    string partnerid=4;
+
+    //预支付id
+    string prepayid=5;
+
+    //签名
+    string sign=6;
+
+    //时间戳
+    string timestamp=7;
+
+}

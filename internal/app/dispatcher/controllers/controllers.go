@@ -407,6 +407,13 @@ func CreateInitControllersFn(
 			walletGroup.POST("/alipay/callback", pc.AlipayCallback)
 			//支付宝回调
 			walletGroup.POST("/alipay/notify", pc.AlipayNotify)
+
+			//微信预支付动作
+			walletGroup.POST("/wxpay", pc.PreWXpay)
+
+			//微信回调
+			walletGroup.POST("/wxpaynotify", pc.WXpayNotify)
+
 		}
 
 		//=======会员付费分销模块==========/

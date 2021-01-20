@@ -39,6 +39,9 @@ type WalletService interface {
 	//支付宝预支付
 	DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
 
+	//微信预支付
+	DoPreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
+
 	//支付宝回调处理，用户充值
 	DepositForPay(ctx context.Context, req *Wallet.DepositForPayReq) (*Wallet.DepositForPayResp, error)
 }
@@ -563,6 +566,11 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 //支付宝预支付
 func (s *DefaultApisService) DoPreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
 	return s.Repository.DoPreAlipay(ctx, req)
+}
+
+//微信预支付
+func (s *DefaultApisService) DoPreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error) {
+	return s.Repository.DoPreWXpay(ctx, req)
 }
 
 //支付宝回调处理，用户充值

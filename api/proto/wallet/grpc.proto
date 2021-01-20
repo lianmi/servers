@@ -1,5 +1,6 @@
 syntax = "proto3";
 import 'api/proto/wallet/Alipay.proto';
+import 'api/proto/wallet/WXPay.proto';
 //import 'api/proto/global/Global.proto';
 
 package cloud.lianmi.im.wallet;
@@ -22,6 +23,9 @@ service LianmiWallet {
 
     //支付宝发起预支付
     rpc DoPreAlipay(PreAlipayReq) returns (PreAlipayResp);
+
+    //微信发起预支付
+    rpc DoPreWXpay(PreWXpayReq) returns (PreWXpayResp);
 
     //充值，从ERC20代币总账号转账到目标普通账号
     rpc DepositForPay(DepositForPayReq) returns  (DepositForPayResp);

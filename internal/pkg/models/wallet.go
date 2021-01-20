@@ -2,8 +2,10 @@ package models
 
 import (
 	// "encoding/json"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
+	"math/big"
 	"time"
 )
 
@@ -313,4 +315,18 @@ type TxInfo struct {
 	Data        []byte
 	From        string
 	Status      uint64
+}
+
+// 根据erc20智能合约地址, 获取所需的块范围交易日志数据 LogTransfer ..
+type LogTransfer struct {
+	From   common.Address
+	To     common.Address
+	Tokens *big.Int
+}
+
+// LogApproval ..
+type LogApproval struct {
+	TokenOwner common.Address
+	Spender    common.Address
+	Tokens     *big.Int
 }
