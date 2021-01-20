@@ -1244,7 +1244,7 @@ func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
 	logApprovalSigHash := crypto.Keccak256Hash(LogApprovalSig)
 
 	for _, vLog := range logs {
-		s.logger.Debug("Log Infomation ",
+		s.logger.Debug("Log Infomation",
 			zap.Uint64("BlockNumber", vLog.BlockNumber),
 			zap.Uint("Index", vLog.Index),
 		)
@@ -1302,6 +1302,41 @@ func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
 		}
 
 		// fmt.Printf("\n\n")
+	}
+	return nil
+}
+
+//根据erc20智能合约地址, 订阅事件日志
+func (s *Service) EventSubscribe() error {
+	contractAddress := common.HexToAddress("0x147B8eb97fD247D06C4006D269c90C1908Fb5D54")
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{contractAddress},
+	}
+
+	logs := make(chan types.Log)
+	sub, err := s.WsClient.SubscribeFilterLogs(context.Background(), query, logs)
+	if err != nil {
+		s.logger.Error("SubscribeFilterLogs failed", zap.Error(err))
+		return err
+	}
+
+	for {
+		select {
+		case err := <-sub.Err():
+			s.logger.Error("sub.Err", zap.Error(err))
+			return err
+		case vLog := <-logs:
+			// fmt.Println(vLog) // pointer to log event
+			s.logger.Debug("vLog",
+				zap.String("Address", vLog.Address.Hex()),
+				zap.String("BlockHash", vLog.BlockHash.Hex()),
+				zap.String("TxHash", vLog.TxHash.Hex()),
+				zap.Uint64("BlockNumber", vLog.BlockNumber),
+				zap.Uint("TxIndex", vLog.TxIndex),
+				zap.Uint("logIndex", vLog.Index),
+			)
+
+		}
 	}
 	return nil
 }
