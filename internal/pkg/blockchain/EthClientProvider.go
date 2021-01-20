@@ -690,8 +690,7 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 		Value:  nil,
 	}, common.HexToAddress(target), big.NewInt(amount))
 	if err != nil {
-		// log.Fatalf("TransferFrom err: %v \n", err)
-		s.logger.Error("TransferLNMCFromLeaf1ToNormalAddress, TransferFrom failed", zap.Error(err))
+		s.logger.Error("TransferLNMCFromLeaf1ToNormalAddress, Transfer failed", zap.Error(err))
 		return 0, "", 0, err
 	}
 	s.logger.Info("tx sent", zap.String("Hash", contractTx.Hash().Hex()))
@@ -1259,7 +1258,7 @@ func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
 
 			err := contractAbi.Unpack(&transferEvent, "Transfer", vLog.Data)
 			if err != nil {
-				s.logger.Error("contractAbi.Unpack failed", zap.Error(err))
+				s.logger.Error("contractAbi.Unpack Transfer failed", zap.Error(err))
 				return err
 			}
 
@@ -1281,9 +1280,9 @@ func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
 
 			var approvalEvent models.LogApproval
 
-			err := contractAbi.Unpack(&approvalEvent, "Approval", vLog.Data)
+			err := contractAbi.Unpack(&approvalEvent, "Approve", vLog.Data)
 			if err != nil {
-				s.logger.Error("contractAbi.Unpack failed", zap.Error(err))
+				s.logger.Error("contractAbi.Unpack Approve failed", zap.Error(err))
 				return err
 			}
 
