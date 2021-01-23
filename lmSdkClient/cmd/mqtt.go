@@ -49,6 +49,50 @@ import (
 // 	}
 // }
 
+/*
+//测试与flutter的mqtt _client 5.0通信
+func mqttAct() {
+	topic := "lianmi/cloud/dispatcher"
+	localDeviceID := "localDeviceID-lishijia-0001"
+	taskIdStr := fmt.Sprintf("%d", 1)
+
+	pb := &paho.Publish{
+		Topic: topic,
+		QoS:   byte(1),
+		// Payload: content,
+		Properties: &paho.PublishProperties{
+			// ResponseTopic:   responseTopic,
+			User: map[string]string{
+				"jwtToken":        jwtToken, // jwt令牌
+				"deviceId":        localDeviceID, // 设备号
+				"businessType":    "10",          // 业务号
+				"businessSubType": "1",           // 业务子号
+				"taskId":          taskIdStr,
+				"code":            "0",
+				"errormsg":        "",
+			},
+		},
+	}
+
+	if _, err := client.Publish(context.Background(), pb); err != nil {
+		log.Println("Failed to Publish:", err)
+	} else {
+		log.Println("Succeed Publish to mqtt broker:", topic)
+	}
+
+	run := true
+	ticker := time.NewTicker(30 * time.Second) // 30s后退出
+	for run == true {
+		select {
+		case <-ticker.C:
+			run = false
+			break
+		}
+
+	}
+}
+*/
+
 // mqttCmd represents the mqtt command
 var mqttCmd = &cobra.Command{
 	Use:   "mqtt",

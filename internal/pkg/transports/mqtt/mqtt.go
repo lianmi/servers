@@ -184,7 +184,7 @@ func (mc *MQTTClient) Start() error {
 	mc.client = paho.NewClient(paho.ClientConfig{
 		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 			topic := m.Topic
-			jwtToken := string(m.Properties.CorrelationData)
+			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
@@ -372,9 +372,9 @@ func (mc *MQTTClient) Run() {
 					QoS:     byte(1),
 					Payload: msg.Content,
 					Properties: &paho.PublishProperties{
-						CorrelationData: []byte(jwtToken),   //jwt令牌
 						ResponseTopic:   mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
 						User: map[string]string{
+							"jwtToken":        jwtToken,
 							"deviceId":        msg.GetDeviceID(),
 							"businessType":    businessTypeStr,
 							"businessSubType": businessSubTypeStr,
@@ -507,9 +507,9 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 			QoS:     mc.QOS,
 			Payload: []byte{},
 			Properties: &paho.PublishProperties{
-				CorrelationData: []byte("error"), //jwt令牌，填error，客户端必须重新登录进行认证
 				ResponseTopic:   mc.o.ResponseTopic,
 				User: map[string]string{
+					"jwtToken":        "none",
 					"deviceId":        deviceID,
 					"businessType":    businessTypeStr,
 					"businessSubType": businessSUbTypeStr,

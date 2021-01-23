@@ -7,11 +7,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"context"
-	"crypto/tls"
+	// "crypto/tls"
+
 	"fmt"
 	"github.com/eclipse/paho.golang/paho"
 	"log"
-	// "net"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,19 +24,26 @@ var subCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("sub called")
+		fmt.Println("sub called")
 
 		logger := log.New(os.Stdout, "SUB: ", log.LstdFlags)
 
 		msgChan := make(chan *paho.Publish)
 
 		server, _ := cmd.PersistentFlags().GetString("server")
-		topic := "#"
+		topic := "lianmi/cloud/dispatcher"
 		qos, _ := cmd.PersistentFlags().GetInt("qos")
 		clientid, _ := cmd.PersistentFlags().GetString("clientid")
 
-		tlsConfig := NewTlsConfig()
-		conn, err := tls.Dial("tcp", server, tlsConfig)
+		/*
+			tlsConfig := NewTlsConfig()
+			conn, err := tls.Dial("tcp", server, tlsConfig)
+			if err != nil {
+				log.Fatalf("Failed to connect to %s: %s", server, err)
+			}
+		*/
+
+		conn, err := net.Dial("tcp", server)
 		if err != nil {
 			log.Fatalf("Failed to connect to %s: %s", server, err)
 		}
@@ -91,7 +99,58 @@ var subCmd = &cobra.Command{
 		log.Printf("Subscribed to %s", topic)
 
 		for m := range msgChan {
+			// log.Println("Received message:", string(m.Payload))
+			log.Println("=========================")
+			topic := m.Topic
+			log.Println("topic:", topic)
+
+			jwtToken := m.Properties.User["jwtToken"]
+			log.Println("jwtToken:", jwtToken)
+
+			deviceId := m.Properties.User["deviceId"]
+			log.Println("deviceId:", deviceId)
+
+			businessTypeStr := m.Properties.User["businessType"]
+			log.Println("businessType:", businessTypeStr)
+
+			businessSubTypeStr := m.Properties.User["businessSubType"]
+			log.Println("businessSubType:", businessSubTypeStr)
+
+			taskIdStr := m.Properties.User["taskId"]
+			log.Println("taskId:", taskIdStr)
+
 			log.Println("Received message:", string(m.Payload))
+			log.Println("=========================")
+			log.Println()
+
+			// jwtToken= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
+
+			if businessTypeStr == "1" && businessSubTypeStr == "1" {
+				message := "1-1,  响应参数: GetUsersResp"
+
+				if _, err = c.Publish(context.Background(), &paho.Publish{
+					Topic:   "lianmi/cloud/device/testdeviceid",
+					QoS:     byte(qos), 
+					Retain:  false,
+					Payload: []byte(message),
+					Properties: &paho.PublishProperties{
+						User: map[string]string{
+							"jwtToken":        jwtToken, // jwt令牌
+							"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
+							"businessType":    "1",
+							"businessSubType": "1",
+							"taskId":          "1",
+							"code":            "2001001",
+							"errormsg":        "用户不存在",
+						},
+					},
+				}); err != nil {
+					log.Println("error sending message:", err)
+					continue
+				}
+				log.Println("sent")
+				
+			}
 		}
 
 	},
@@ -100,7 +159,7 @@ var subCmd = &cobra.Command{
 func init() {
 	//子命令
 	mqttCmd.AddCommand(subCmd)
-	subCmd.PersistentFlags().StringP("server", "s", "mqtt.lianmi.cloud:1883", "The full URL of the MQTT server to connect to")
-	subCmd.PersistentFlags().IntP("qos", "q", 1, "qos")
+	subCmd.PersistentFlags().StringP("server", "s", "127.0.0.1:1883", "The full URL of the MQTT server to connect to")
+	subCmd.PersistentFlags().IntP("qos", "q", 2, "qos") //默认是 2
 	subCmd.PersistentFlags().StringP("clientid", "c", "", "clientid")
 }

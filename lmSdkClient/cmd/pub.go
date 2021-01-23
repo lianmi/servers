@@ -15,7 +15,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	// "net"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,6 +26,7 @@ const (
 	CaPath = "/Users/mac/developments/lianmi/lm-cloud/servers/lmSdkClient/ca"
 )
 
+//用于tls
 func NewTlsConfig() *tls.Config {
 	certpool := x509.NewCertPool()
 	ca, err := ioutil.ReadFile(CaPath + "/ca.crt")
@@ -65,10 +66,11 @@ var pubCmd = &cobra.Command{
 		retained, _ := cmd.PersistentFlags().GetBool("retained")
 		clientid, _ := cmd.PersistentFlags().GetString("clientid")
 
-		// conn, err := net.Dial("tcp", *server)
-		tlsConfig := NewTlsConfig()
-		// broker := fmt.Sprintf("%s:%d", "192.168.1.193", 1883)
-		conn, err := tls.Dial("tcp", server, tlsConfig)
+		conn, err := net.Dial("tcp", server)
+		/*
+			tlsConfig := NewTlsConfig()
+			conn, err := tls.Dial("tcp", server, tlsConfig)
+		*/
 		if err != nil {
 			log.Fatalf("Failed to connect to %s: %s", server, err)
 		}
@@ -115,11 +117,25 @@ var pubCmd = &cobra.Command{
 				os.Exit(0)
 			}
 
+			jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
+
 			if _, err = c.Publish(context.Background(), &paho.Publish{
 				Topic:   topic,
 				QoS:     byte(qos),
 				Retain:  retained,
 				Payload: []byte(message),
+				Properties: &paho.PublishProperties{
+					ResponseTopic:   "test/lol",                 // "lianmi/cloud/dispatcher",
+					User: map[string]string{
+						"jwtToken":        jwtToken, // jwt令牌
+						"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
+						"businessType":    "1",
+						"businessSubType": "1",
+						"taskId":          "1",
+						"code":            "200",
+						"errormsg":        "",
+					},
+				},
 			}); err != nil {
 				log.Println("error sending message:", err)
 				continue
@@ -130,11 +146,11 @@ var pubCmd = &cobra.Command{
 }
 
 func init() {
-	hostname, _ := os.Hostname()
+	// hostname, _ := os.Hostname()
 	//子命令
 	mqttCmd.AddCommand(pubCmd)
-	pubCmd.PersistentFlags().StringP("server", "s", "mqtt.lianmi.cloud:1883", "The full URL of the MQTT server to connect to")
-	pubCmd.PersistentFlags().StringP("topic", "t", hostname, "Topic to publish the messages on")
+	pubCmd.PersistentFlags().StringP("server", "s", "127.0.0.1:1883", "The full URL of the MQTT server to connect to")
+	pubCmd.PersistentFlags().StringP("topic", "t", "test/lol", "Topic to publish the messages on")
 	pubCmd.PersistentFlags().IntP("qos", "q", 1, "qos")
 	pubCmd.PersistentFlags().BoolP("retained", "r", false, "retained")
 	pubCmd.PersistentFlags().StringP("clientid", "c", "", "clientid")

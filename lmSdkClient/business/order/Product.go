@@ -75,9 +75,9 @@ func QueryProducts() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
+				"jwtToken":        jwtToken, // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "1",           // 业务子号
@@ -101,7 +101,7 @@ func QueryProducts() error {
 			log.Println("Incoming mqtt broker message")
 
 			topic := m.Topic
-			jwtToken := string(m.Properties.CorrelationData)
+			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
@@ -285,9 +285,9 @@ func AddProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
+				"jwtToken":        jwtToken, // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "2",           //  业务子号
@@ -311,7 +311,7 @@ func AddProduct() error {
 			log.Println("Incoming mqtt broker message")
 
 			topic := m.Topic
-			jwtToken := string(m.Properties.CorrelationData)
+			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
@@ -484,9 +484,9 @@ func UpdateProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
+				"jwtToken":        jwtToken, // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "3",           //  业务子号
@@ -510,7 +510,7 @@ func UpdateProduct() error {
 			log.Println("Incoming mqtt broker message")
 
 			topic := m.Topic
-			jwtToken := string(m.Properties.CorrelationData)
+			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
@@ -636,9 +636,9 @@ func SoldoutProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			CorrelationData: []byte(jwtToken), //jwt令牌
 			ResponseTopic:   responseTopic,
 			User: map[string]string{
+				"jwtToken":        jwtToken, // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "4",           //  业务子号
@@ -662,7 +662,7 @@ func SoldoutProduct() error {
 			log.Println("Incoming mqtt broker message")
 
 			topic := m.Topic
-			jwtToken := string(m.Properties.CorrelationData)
+			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
 			deviceId := m.Properties.User["deviceId"]
 			businessTypeStr := m.Properties.User["businessType"]
 			businessSubTypeStr := m.Properties.User["businessSubType"]
