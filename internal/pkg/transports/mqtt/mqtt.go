@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log"
-	// "net"
 	"io/ioutil"
+	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -35,6 +35,7 @@ const (
 	MQTT_CLIENT_CONNECTED    = "Conneted"
 	retryCount               = 1200
 	cloudAccessSleep         = 5 * time.Second
+	isUseCa                  = false
 )
 
 type MQTTOptions struct {
@@ -105,48 +106,71 @@ func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
 }
 
 func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *MQTTClient {
+	if isUseCa {
+		certpool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(o.CaPath + "/ca.crt")
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		certpool.AppendCertsFromPEM(ca)
+		// Import client certificate/key pair
+		clientKeyPair, err := tls.LoadX509KeyPair(o.CaPath+"/mqtt.lianmi.cloud.crt", o.CaPath+"/mqtt.lianmi.cloud.key")
+		if err != nil {
+			panic(err)
+		}
 
-	certpool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(o.CaPath + "/ca.crt")
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	certpool.AppendCertsFromPEM(ca)
-	// Import client certificate/key pair
-	clientKeyPair, err := tls.LoadX509KeyPair(o.CaPath+"/mqtt.lianmi.cloud.crt", o.CaPath+"/mqtt.lianmi.cloud.key")
-	if err != nil {
-		panic(err)
+		tlsConfig := &tls.Config{
+			RootCAs:            certpool,
+			ClientAuth:         tls.NoClientCert,
+			ClientCAs:          nil,
+			InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{clientKeyPair},
+		}
+
+		mc := &MQTTClient{
+			o:                   o,
+			Addr:                o.Addr,
+			User:                o.User,
+			Passwd:              o.Passwd,
+			ClientID:            o.ClientID,
+			Order:               false,
+			KeepAliveInterval:   120 * time.Second,
+			PingTimeout:         120 * time.Second,
+			MessageChannelDepth: 100,
+			QOS:                 byte(2), //1: QOSAtLeastOnce, 2: QOSExactlyOnce.
+			Retain:              false,
+			CleanSession:        true,
+			FileStorePath:       "memory",
+			WillTopic:           "", //no will topic.
+			TLSConfig:           tlsConfig,
+			nsqMqttChannel:      channel,
+			logger:              logger.With(zap.String("type", "mqtt.Client")),
+			redisPool:           redisPool,
+		}
+		return mc
+	} else {
+		return &MQTTClient{
+			o:                   o,
+			Addr:                o.Addr,
+			User:                o.User,
+			Passwd:              o.Passwd,
+			ClientID:            o.ClientID,
+			Order:               false,
+			KeepAliveInterval:   120 * time.Second,
+			PingTimeout:         120 * time.Second,
+			MessageChannelDepth: 100,
+			QOS:                 byte(2), //1: QOSAtLeastOnce, 2: QOSExactlyOnce.
+			Retain:              false,
+			CleanSession:        true,
+			FileStorePath:       "memory",
+			WillTopic:           "", //no will topic.
+			TLSConfig:           nil,
+			nsqMqttChannel:      channel,
+			logger:              logger.With(zap.String("type", "mqtt.Client")),
+			redisPool:           redisPool,
+		}
 	}
 
-	tlsConfig := &tls.Config{
-		RootCAs:            certpool,
-		ClientAuth:         tls.NoClientCert,
-		ClientCAs:          nil,
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{clientKeyPair},
-	}
-
-	mc := &MQTTClient{
-		o:                   o,
-		Addr:                o.Addr,
-		User:                o.User,
-		Passwd:              o.Passwd,
-		ClientID:            o.ClientID,
-		Order:               false,
-		KeepAliveInterval:   120 * time.Second,
-		PingTimeout:         120 * time.Second,
-		MessageChannelDepth: 100,
-		QOS:                 byte(2), //1: QOSAtLeastOnce, 2: QOSExactlyOnce.
-		Retain:              false,
-		CleanSession:        true,
-		FileStorePath:       "memory",
-		WillTopic:           "", //no will topic.
-		TLSConfig:           tlsConfig,
-		nsqMqttChannel:      channel,
-		logger:              logger.With(zap.String("type", "mqtt.Client")),
-		redisPool:           redisPool,
-	}
-	return mc
 }
 
 func (mc *MQTTClient) OnMQTTConnect(client paho.Client) {
@@ -167,120 +191,232 @@ func (mc *MQTTClient) Application(name string) {
 }
 
 func (mc *MQTTClient) Start() error {
-	//TODO 需要验证
-	//利用TCP协议连接broker
-	conn, err := tls.Dial("tcp", mc.Addr, mc.TLSConfig)
 
-	// conn, err := net.Dial("tcp", mc.Addr)
-	if err != nil {
-		mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-		return errors.New("tls.Dial error")
-	}
-	if conn == nil {
-		return errors.New("tls.Dial error, conn is nil")
-	}
+	if isUseCa { //利用TLS协议连接broker
+		conn, err := tls.Dial("tcp", mc.Addr, mc.TLSConfig)
 
-	// Create paho client.
-	mc.client = paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
+		if err != nil {
+			mc.logger.Error("tls.Dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+			return errors.New("tls.Dial error")
+		}
+		if conn == nil {
+			return errors.New("tls.Dial error, conn is nil")
+		}
 
-			taskId, _ := strconv.Atoi(taskIdStr)
-			businessType, _ := strconv.Atoi(businessTypeStr)
-			businessSubType, _ := strconv.Atoi(businessSubTypeStr)
+		// Create paho client.
+		mc.client = paho.NewClient(paho.ClientConfig{
+			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+				topic := m.Topic
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
 
-			//是否是必须经过授权的请求包
-			isAuthed := false
-			userName := ""
+				taskId, _ := strconv.Atoi(taskIdStr)
+				businessType, _ := strconv.Atoi(businessTypeStr)
+				businessSubType, _ := strconv.Atoi(businessSubTypeStr)
 
-			//从设备申请授权码，此时还没有令牌
-			if businessType == 2 && businessSubType == 7 {
-				mc.logger.Debug("从设备申请授权码，此时还没有令牌")
+				//是否是必须经过授权的请求包
+				isAuthed := false
+				userName := ""
 
-			} else {
-				//是否需要有效授权才能传递到后端
-				if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
-					mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
-					return
+				//从设备申请授权码，此时还没有令牌
+				if businessType == 2 && businessSubType == 7 {
+					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
+
 				} else {
-					if !isAuthed {
-						mc.logger.Warn("This message is unauthirized!!!")
+					//是否需要有效授权才能传递到后端
+					if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
+						mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
 						return
+					} else {
+						if !isAuthed {
+							mc.logger.Warn("This message is unauthirized!!!")
+							return
+						}
 					}
 				}
-			}
 
-			//输出
-			mc.logger.Debug("Incoming mqtt message",
-				zap.String("jwtToken", jwtToken),
-				zap.String("userName", userName),
-				zap.String("Topic", topic),
-				zap.String("DeviceId", deviceId),            // 设备id
-				zap.Int("TaskID", taskId),                   // 任务id
-				zap.Int("BusinessType", businessType),       // 业务类型
-				zap.Int("BusinessSubType", businessSubType), // 业务子类型
-			)
-
-			businessTypeName := Global.BusinessType_name[int32(businessType)]
-
-			nsqTopic := businessTypeName + ".Backend"
-			backendService := businessTypeName + "Service"
-
-			//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
-			backendMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6
-			backendMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
-
-			backendMsg.SetJwtToken(jwtToken)
-			backendMsg.SetUserName(userName)
-			backendMsg.SetDeviceID(string(deviceId))
-			backendMsg.SetTaskID(uint32(taskId))
-			backendMsg.SetBusinessTypeName(businessTypeName)
-			backendMsg.SetBusinessType(uint32(businessType))
-			backendMsg.SetBusinessSubType(uint32(businessSubType))
-
-			backendMsg.BuildHeader(backendService, now)
-			backendMsg.FillBody(m.Payload) //承载真正的业务数据
-
-			//分发
-			switch Global.BusinessType(businessType) {
-			case Global.BusinessType_User,
-				Global.BusinessType_Auth,
-				Global.BusinessType_Friends,
-				Global.BusinessType_Team,
-				Global.BusinessType_Sync,
-				Global.BusinessType_Msg,
-				Global.BusinessType_Product,
-				Global.BusinessType_Order,
-				Global.BusinessType_Wallet:
-
-				//发送到Nsq
-				mc.nsqMqttChannel.NsqChan <- backendMsg
-				mc.logger.Info("Message发送到Nsq通道",
-					zap.String("nsqTopic", nsqTopic),
-					zap.String("backendService", backendService),
-					zap.Int("businessType", businessType),
-					zap.Int("businessSubType", businessSubType),
-					zap.String("msgID", backendMsg.GetID()),
+				//输出
+				mc.logger.Debug("Incoming mqtt message",
+					zap.String("jwtToken", jwtToken),
+					zap.String("userName", userName),
+					zap.String("Topic", topic),
+					zap.String("DeviceId", deviceId),            // 设备id
+					zap.Int("TaskID", taskId),                   // 任务id
+					zap.Int("BusinessType", businessType),       // 业务类型
+					zap.Int("BusinessSubType", businessSubType), // 业务子类型
 				)
 
-			case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+				businessTypeName := Global.BusinessType_name[int32(businessType)]
 
-			default: //default case
-				mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
-				return
-			}
+				nsqTopic := businessTypeName + ".Backend"
+				backendService := businessTypeName + "Service"
 
-		}),
-		Conn: conn,
-	})
+				//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
+				backendMsg := &models.Message{}
+				now := time.Now().UnixNano() / 1e6
+				backendMsg.UpdateID()
+				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+				backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
+
+				backendMsg.SetJwtToken(jwtToken)
+				backendMsg.SetUserName(userName)
+				backendMsg.SetDeviceID(string(deviceId))
+				backendMsg.SetTaskID(uint32(taskId))
+				backendMsg.SetBusinessTypeName(businessTypeName)
+				backendMsg.SetBusinessType(uint32(businessType))
+				backendMsg.SetBusinessSubType(uint32(businessSubType))
+
+				backendMsg.BuildHeader(backendService, now)
+				backendMsg.FillBody(m.Payload) //承载真正的业务数据
+
+				//分发
+				switch Global.BusinessType(businessType) {
+				case Global.BusinessType_User,
+					Global.BusinessType_Auth,
+					Global.BusinessType_Friends,
+					Global.BusinessType_Team,
+					Global.BusinessType_Sync,
+					Global.BusinessType_Msg,
+					Global.BusinessType_Product,
+					Global.BusinessType_Order,
+					Global.BusinessType_Wallet:
+
+					//发送到Nsq
+					mc.nsqMqttChannel.NsqChan <- backendMsg
+					mc.logger.Info("Message发送到Nsq通道",
+						zap.String("nsqTopic", nsqTopic),
+						zap.String("backendService", backendService),
+						zap.Int("businessType", businessType),
+						zap.Int("businessSubType", businessSubType),
+						zap.String("msgID", backendMsg.GetID()),
+					)
+
+				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+
+				default: //default case
+					mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
+					return
+				}
+
+			}),
+			Conn: conn,
+		})
+	} else { //利用TCP协议连接broker
+		conn, err := net.Dial("tcp", mc.Addr)
+
+		if err != nil {
+			mc.logger.Error("net.Dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
+			return errors.New("net.Dial error")
+		}
+		if conn == nil {
+			return errors.New("net.Dial error, conn is nil")
+		}
+
+		// Create paho client.
+		mc.client = paho.NewClient(paho.ClientConfig{
+			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+				topic := m.Topic
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+
+				taskId, _ := strconv.Atoi(taskIdStr)
+				businessType, _ := strconv.Atoi(businessTypeStr)
+				businessSubType, _ := strconv.Atoi(businessSubTypeStr)
+
+				//是否是必须经过授权的请求包
+				isAuthed := false
+				userName := ""
+
+				//从设备申请授权码，此时还没有令牌
+				if businessType == 2 && businessSubType == 7 {
+					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
+
+				} else {
+					//是否需要有效授权才能传递到后端
+					if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
+						mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
+						return
+					} else {
+						if !isAuthed {
+							mc.logger.Warn("This message is unauthirized!!!")
+							return
+						}
+					}
+				}
+
+				//输出
+				mc.logger.Debug("Incoming mqtt message",
+					zap.String("jwtToken", jwtToken),
+					zap.String("userName", userName),
+					zap.String("Topic", topic),
+					zap.String("DeviceId", deviceId),            // 设备id
+					zap.Int("TaskID", taskId),                   // 任务id
+					zap.Int("BusinessType", businessType),       // 业务类型
+					zap.Int("BusinessSubType", businessSubType), // 业务子类型
+				)
+
+				businessTypeName := Global.BusinessType_name[int32(businessType)]
+
+				nsqTopic := businessTypeName + ".Backend"
+				backendService := businessTypeName + "Service"
+
+				//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
+				backendMsg := &models.Message{}
+				now := time.Now().UnixNano() / 1e6
+				backendMsg.UpdateID()
+				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+				backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
+
+				backendMsg.SetJwtToken(jwtToken)
+				backendMsg.SetUserName(userName)
+				backendMsg.SetDeviceID(string(deviceId))
+				backendMsg.SetTaskID(uint32(taskId))
+				backendMsg.SetBusinessTypeName(businessTypeName)
+				backendMsg.SetBusinessType(uint32(businessType))
+				backendMsg.SetBusinessSubType(uint32(businessSubType))
+
+				backendMsg.BuildHeader(backendService, now)
+				backendMsg.FillBody(m.Payload) //承载真正的业务数据
+
+				//分发
+				switch Global.BusinessType(businessType) {
+				case Global.BusinessType_User,
+					Global.BusinessType_Auth,
+					Global.BusinessType_Friends,
+					Global.BusinessType_Team,
+					Global.BusinessType_Sync,
+					Global.BusinessType_Msg,
+					Global.BusinessType_Product,
+					Global.BusinessType_Order,
+					Global.BusinessType_Wallet:
+
+					//发送到Nsq
+					mc.nsqMqttChannel.NsqChan <- backendMsg
+					mc.logger.Info("Message发送到Nsq通道",
+						zap.String("nsqTopic", nsqTopic),
+						zap.String("backendService", backendService),
+						zap.Int("businessType", businessType),
+						zap.Int("businessSubType", businessSubType),
+						zap.String("msgID", backendMsg.GetID()),
+					)
+
+				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+
+				default: //default case
+					mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
+					return
+				}
+
+			}),
+			Conn: conn,
+		})
+	}
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -372,7 +508,7 @@ func (mc *MQTTClient) Run() {
 					QoS:     byte(1),
 					Payload: msg.Content,
 					Properties: &paho.PublishProperties{
-						ResponseTopic:   mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
+						ResponseTopic: mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
 						User: map[string]string{
 							"jwtToken":        jwtToken,
 							"deviceId":        msg.GetDeviceID(),
@@ -507,7 +643,7 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 			QoS:     mc.QOS,
 			Payload: []byte{},
 			Properties: &paho.PublishProperties{
-				ResponseTopic:   mc.o.ResponseTopic,
+				ResponseTopic: mc.o.ResponseTopic,
 				User: map[string]string{
 					"jwtToken":        "none",
 					"deviceId":        deviceID,
