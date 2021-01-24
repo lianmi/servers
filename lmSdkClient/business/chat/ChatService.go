@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+
 	"time"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
@@ -15,8 +16,9 @@ import (
 	"github.com/gomodule/redigo/redis"
 
 	Msg "github.com/lianmi/servers/api/proto/msg"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
+	"net"
 )
 
 func NewTlsConfig() *tls.Config {
@@ -46,7 +48,7 @@ func NewTlsConfig() *tls.Config {
 // 5-12 获取阿里云临时令牌
 func GetOssToken(isPrivate bool) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -94,9 +96,9 @@ func GetOssToken(isPrivate bool) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "5",           // 业务号
 				"businessSubType": "12",          //  业务子号
@@ -107,79 +109,155 @@ func GetOssToken(isPrivate bool) error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	//使用ca
+	if LMCommon.IsUseCa {
+		//Connect mqtt broker using ssl
+		tlsConfig := NewTlsConfig()
+		conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
+		if err != nil {
+			log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
+		}
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
+		// Create paho client.
+		client := paho.NewClient(paho.ClientConfig{
+			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+				log.Println("Incoming mqtt broker message")
 
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
+				topic := m.Topic
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+				code := m.Properties.User["code"]
 
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
+				log.Println("topic: ", topic)
+				log.Println("jwtToken: ", jwtToken)
+				log.Println("deviceId: ", deviceId)
+				log.Println("businessType: ", businessTypeStr)
+				log.Println("businessSubType: ", businessSubTypeStr)
+				log.Println("taskId: ", taskIdStr)
+				log.Println("code: ", code)
 
-			if code == "200" {
-				log.Println("Wallet register succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Msg.GetOssTokenRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
+				if code == "200" {
+					log.Println("Wallet register succeed")
+					// 回包
+					//解包负载 m.Payload
+					var rsq Msg.GetOssTokenRsp
+					if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+						log.Println("Protobuf Unmarshal Error", err)
+
+					} else {
+
+						log.Println("回包内容---------------------")
+						log.Println("资源服务器地址 EndPoint: ", rsq.EndPoint)
+						log.Println("空间名称 BucketName: ", rsq.BucketName)
+						log.Println("Bucket访问凭证 AccessKeyId: ", rsq.AccessKeyId)
+						log.Println("Bucket访问密钥 AccessKeySecret: ", rsq.AccessKeySecret)
+						log.Println("安全凭证 SecurityToken: ", rsq.SecurityToken)
+						log.Println("oss的文件目录 Directory: ", rsq.Directory)
+
+						//保存到redis
+						redisConn.Do("SET", "OSSEndPoint", rsq.EndPoint)
+						redisConn.Do("SET", "OSSBucketName", rsq.BucketName)
+						redisConn.Do("SET", "OSSAccessKeyId", rsq.AccessKeyId)
+						redisConn.Do("SET", "OSSAccessKeySecret", rsq.AccessKeySecret)
+						redisConn.Do("SET", "OSSSecurityToken", rsq.SecurityToken)
+						redisConn.Do("SET", "OSSDirectory", rsq.Directory)
+						/*
+							2020/11/23 15:24:28 资源服务器地址 EndPoint:  https://oss-cn-hangzhou.aliyuncs.com
+							2020/11/23 15:24:28 空间名称 BucketName:  lianmi-ipfs
+							2020/11/23 15:24:28 Bucket访问凭证 AccessKeyId:  STS.NToa6SbpTV9XNNhjCG68FZWiB
+							2020/11/23 15:24:28 Bucket访问密钥 AccessKeySecret:  5EgiwHWw5YQojjiobyiwLxB49Hi2X5YUXQh134DtQAZ
+							2020/11/23 15:24:28 安全凭证 SecurityToken:  CAIS8QF1q6Ft5B2yfSjIr5faKoznj6914fuzTGjZjkMSOrdqtZLCoDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CcmyvJJyMRo22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABacemwmaJvPS4R/oV5wbS2QS7xZTnEU1HFDqNyFsP+QdhQTrRD/h1Utlg2z1+xcZr6J54nVO8xTH1pshEPlw3MBnsHW3Jq31NQHdPppMoE5d0Qd1aMnlFgC+pQUNu5n1TyxU8BVCfHFT62EhT+EZz6ugpQ1LmQh1/a35zlCOo6oQ=
+							2020/11/23 15:24:28 oss的文件目录 Directory:  2020/11/23/
+						*/
+
+						//
+
+					}
 
 				} else {
-
-					log.Println("回包内容---------------------")
-					log.Println("资源服务器地址 EndPoint: ", rsq.EndPoint)
-					log.Println("空间名称 BucketName: ", rsq.BucketName)
-					log.Println("Bucket访问凭证 AccessKeyId: ", rsq.AccessKeyId)
-					log.Println("Bucket访问密钥 AccessKeySecret: ", rsq.AccessKeySecret)
-					log.Println("安全凭证 SecurityToken: ", rsq.SecurityToken)
-					log.Println("oss的文件目录 Directory: ", rsq.Directory)
-
-					//保存到redis
-					redisConn.Do("SET", "OSSEndPoint", rsq.EndPoint)
-					redisConn.Do("SET", "OSSBucketName", rsq.BucketName)
-					redisConn.Do("SET", "OSSAccessKeyId", rsq.AccessKeyId)
-					redisConn.Do("SET", "OSSAccessKeySecret", rsq.AccessKeySecret)
-					redisConn.Do("SET", "OSSSecurityToken", rsq.SecurityToken)
-					redisConn.Do("SET", "OSSDirectory", rsq.Directory)
-					/*
-						2020/11/23 15:24:28 资源服务器地址 EndPoint:  https://oss-cn-hangzhou.aliyuncs.com
-						2020/11/23 15:24:28 空间名称 BucketName:  lianmi-ipfs
-						2020/11/23 15:24:28 Bucket访问凭证 AccessKeyId:  STS.NToa6SbpTV9XNNhjCG68FZWiB
-						2020/11/23 15:24:28 Bucket访问密钥 AccessKeySecret:  5EgiwHWw5YQojjiobyiwLxB49Hi2X5YUXQh134DtQAZ
-						2020/11/23 15:24:28 安全凭证 SecurityToken:  CAIS8QF1q6Ft5B2yfSjIr5faKoznj6914fuzTGjZjkMSOrdqtZLCoDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CcmyvJJyMRo22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABacemwmaJvPS4R/oV5wbS2QS7xZTnEU1HFDqNyFsP+QdhQTrRD/h1Utlg2z1+xcZr6J54nVO8xTH1pshEPlw3MBnsHW3Jq31NQHdPppMoE5d0Qd1aMnlFgC+pQUNu5n1TyxU8BVCfHFT62EhT+EZz6ugpQ1LmQh1/a35zlCOo6oQ=
-						2020/11/23 15:24:28 oss的文件目录 Directory:  2020/11/23/
-					*/
-
-					//
-
+					log.Println("GetOssToken failed")
 				}
 
-			} else {
-				log.Println("GetOssToken failed")
-			}
+			}),
+			Conn: conn,
+		})
 
-		}),
-		Conn: conn,
-	})
+	} else {
+		conn, err := net.Dial("tcp", clientcommon.BrokerAddr)
+		if err != nil {
+			log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
+		}
+
+		// Create paho client.
+		client := paho.NewClient(paho.ClientConfig{
+			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+				log.Println("Incoming mqtt broker message")
+
+				topic := m.Topic
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+				code := m.Properties.User["code"]
+
+				log.Println("topic: ", topic)
+				log.Println("jwtToken: ", jwtToken)
+				log.Println("deviceId: ", deviceId)
+				log.Println("businessType: ", businessTypeStr)
+				log.Println("businessSubType: ", businessSubTypeStr)
+				log.Println("taskId: ", taskIdStr)
+				log.Println("code: ", code)
+
+				if code == "200" {
+					log.Println("Wallet register succeed")
+					// 回包
+					//解包负载 m.Payload
+					var rsq Msg.GetOssTokenRsp
+					if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
+						log.Println("Protobuf Unmarshal Error", err)
+
+					} else {
+
+						log.Println("回包内容---------------------")
+						log.Println("资源服务器地址 EndPoint: ", rsq.EndPoint)
+						log.Println("空间名称 BucketName: ", rsq.BucketName)
+						log.Println("Bucket访问凭证 AccessKeyId: ", rsq.AccessKeyId)
+						log.Println("Bucket访问密钥 AccessKeySecret: ", rsq.AccessKeySecret)
+						log.Println("安全凭证 SecurityToken: ", rsq.SecurityToken)
+						log.Println("oss的文件目录 Directory: ", rsq.Directory)
+
+						//保存到redis
+						redisConn.Do("SET", "OSSEndPoint", rsq.EndPoint)
+						redisConn.Do("SET", "OSSBucketName", rsq.BucketName)
+						redisConn.Do("SET", "OSSAccessKeyId", rsq.AccessKeyId)
+						redisConn.Do("SET", "OSSAccessKeySecret", rsq.AccessKeySecret)
+						redisConn.Do("SET", "OSSSecurityToken", rsq.SecurityToken)
+						redisConn.Do("SET", "OSSDirectory", rsq.Directory)
+						/*
+							2020/11/23 15:24:28 资源服务器地址 EndPoint:  https://oss-cn-hangzhou.aliyuncs.com
+							2020/11/23 15:24:28 空间名称 BucketName:  lianmi-ipfs
+							2020/11/23 15:24:28 Bucket访问凭证 AccessKeyId:  STS.NToa6SbpTV9XNNhjCG68FZWiB
+							2020/11/23 15:24:28 Bucket访问密钥 AccessKeySecret:  5EgiwHWw5YQojjiobyiwLxB49Hi2X5YUXQh134DtQAZ
+							2020/11/23 15:24:28 安全凭证 SecurityToken:  CAIS8QF1q6Ft5B2yfSjIr5faKoznj6914fuzTGjZjkMSOrdqtZLCoDz2IH1Fe3ZtBu0Wvv42mGhR6vcblq94T55IQ1CcmyvJJyMRo22beIPkl5Gfz95t0e+IewW6Dxr8w7WhAYHQR8/cffGAck3NkjQJr5LxaTSlWS7OU/TL8+kFCO4aRQ6ldzFLKc5LLw950q8gOGDWKOymP2yB4AOSLjIx4FEk1T8hufngnpPBtEWFtjCglL9J/baWC4O/csxhMK14V9qIx+FsfsLDqnUNukcVqfgr3PweoGuf543MWkM14g2IKPfM9tpmIAJjdgmMmRj3JgeWGoABacemwmaJvPS4R/oV5wbS2QS7xZTnEU1HFDqNyFsP+QdhQTrRD/h1Utlg2z1+xcZr6J54nVO8xTH1pshEPlw3MBnsHW3Jq31NQHdPppMoE5d0Qd1aMnlFgC+pQUNu5n1TyxU8BVCfHFT62EhT+EZz6ugpQ1LmQh1/a35zlCOo6oQ=
+							2020/11/23 15:24:28 oss的文件目录 Directory:  2020/11/23/
+						*/
+
+						//
+
+					}
+
+				} else {
+					log.Println("GetOssToken failed")
+				}
+
+			}),
+			Conn: conn,
+		})
+	}
 
 	cp := &paho.Connect{
 		KeepAlive:  30,

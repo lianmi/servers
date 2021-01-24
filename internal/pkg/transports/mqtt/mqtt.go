@@ -27,7 +27,7 @@ import (
 	"github.com/lianmi/servers/internal/pkg/models"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/lianmi/servers/internal/common"
+	LMCommon "github.com/lianmi/servers/internal/common"
 )
 
 const (
@@ -35,7 +35,6 @@ const (
 	MQTT_CLIENT_CONNECTED    = "Conneted"
 	retryCount               = 1200
 	cloudAccessSleep         = 5 * time.Second
-	isUseCa                  = false
 )
 
 type MQTTOptions struct {
@@ -106,7 +105,7 @@ func NewMQTTOptions(v *viper.Viper) (*MQTTOptions, error) {
 }
 
 func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMqttChannel, logger *zap.Logger) *MQTTClient {
-	if isUseCa {
+	if LMCommon.IsUseCa {
 		certpool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(o.CaPath + "/ca.crt")
 		if err != nil {
@@ -192,7 +191,7 @@ func (mc *MQTTClient) Application(name string) {
 
 func (mc *MQTTClient) Start() error {
 
-	if isUseCa { //利用TLS协议连接broker
+	if LMCommon.IsUseCa { //利用TLS协议连接broker
 		conn, err := tls.Dial("tcp", mc.Addr, mc.TLSConfig)
 
 		if err != nil {
@@ -584,13 +583,13 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 
 			if tokenInRedis == jwtToken {
 				//验证token是否有效
-				claims, err := ParseToken(jwtToken, []byte(common.SecretKey))
+				claims, err := ParseToken(jwtToken, []byte(LMCommon.SecretKey))
 				if nil != err {
 					mc.logger.Error("ParseToken Error", zap.Error(err))
 				}
 
 				//jwt令牌里的用户名
-				jwtUserName = claims.(jwt.MapClaims)[common.IdentityKey].(string)
+				jwtUserName = claims.(jwt.MapClaims)[LMCommon.IdentityKey].(string)
 				jwtDeviceID = claims.(jwt.MapClaims)["deviceID"].(string)
 				mc.logger.Debug("jwt令牌", zap.String("jwtUserName", jwtUserName), zap.String("jwtDeviceID", jwtDeviceID))
 
