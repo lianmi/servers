@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "google/protobuf/timestamp.proto";
+//import "google/protobuf/timestamp.proto";
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
@@ -27,6 +27,7 @@ message UpdateUserProfileReq {
 }
 
 message UpdateUserProfileRsp {
-    google.protobuf.Timestamp updateAt = 1; //最后更新时间,Unix时间戳
+   // google.protobuf.Timestamp updateAt = 1; //最后更新时间,Unix时间戳
+   fixed64 updateAt = 1; //最后更新时间,Unix时间戳
 }
 

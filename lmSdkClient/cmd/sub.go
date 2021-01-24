@@ -11,6 +11,8 @@ import (
 
 	"fmt"
 	"github.com/eclipse/paho.golang/paho"
+	"github.com/golang/protobuf/proto"
+	User "github.com/lianmi/servers/api/proto/user"
 	"log"
 	"net"
 	"os"
@@ -119,37 +121,76 @@ var subCmd = &cobra.Command{
 			taskIdStr := m.Properties.User["taskId"]
 			log.Println("taskId:", taskIdStr)
 
-			log.Println("Received message:", string(m.Payload))
+			log.Println("Received message:", m.Payload)
 			log.Println("=========================")
 			log.Println()
 
 			// jwtToken= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
 
 			if businessTypeStr == "1" && businessSubTypeStr == "1" {
-				message := "1-1,  响应参数: GetUsersResp"
-
-				if _, err = c.Publish(context.Background(), &paho.Publish{
-					Topic:   "lianmi/cloud/device/testdeviceid",
-					QoS:     byte(qos), 
-					Retain:  false,
-					Payload: []byte(message),
-					Properties: &paho.PublishProperties{
-						User: map[string]string{
-							"jwtToken":        jwtToken, // jwt令牌
-							"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
-							"businessType":    "1",
-							"businessSubType": "1",
-							"taskId":          "1",
-							"code":            "2001001",
-							"errormsg":        "用户不存在",
-						},
-					},
-				}); err != nil {
-					log.Println("error sending message:", err)
+				//解包body
+				// bodyData := []byte{10, 3, 105, 100, 52}
+				// log.Println("bodyData:", bodyData)
+				var getUsersReq User.GetUsersReq
+				if err := proto.Unmarshal(m.Payload, &getUsersReq); err != nil {
+					log.Println("Protobuf Unmarshal bodyData Error:", err)
 					continue
+
+				} else {
+					for _, username := range getUsersReq.GetUsernames() {
+						log.Println("username", username)
+					}
+
+					rsp := &User.GetUsersResp{
+						Users: make([]*User.User, 0),
+					}
+
+					user := &User.User{
+						Username: "id4",
+						Nick:     "小吴哥哥",
+						Mobile:   "15875317540",
+						Avatar:   "https://zbj-bucket1.oss-cn-shenzhen.aliyuncs.com/avatar.JPG",
+						// Gender:        userBaseData.GetGender(),
+						// Label:         userBaseData.Label,
+						UserType: User.UserType(1),
+						State:    User.UserState(1),
+						// ContactPerson: userBaseData.ContactPerson,
+						Province: "广东省",
+						City:     "广州市",
+						County:   "天河区",
+						Street:   "体育西路",
+						Address:  "建和中心21楼 ",
+					}
+
+					rsp.Users = append(rsp.Users, user)
+					// message := "1-1,  响应参数: GetUsersResp"
+					data, _ := proto.Marshal(rsp)
+					// _ = data
+
+					if _, err = c.Publish(context.Background(), &paho.Publish{
+						Topic:   "lianmi/cloud/device/testdeviceid",
+						QoS:     byte(qos),
+						Retain:  false,
+						Payload: data,
+						Properties: &paho.PublishProperties{
+							User: map[string]string{
+								"jwtToken":        jwtToken, // jwt令牌
+								"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
+								"businessType":    "1",
+								"businessSubType": "1",
+								"taskId":          taskIdStr,
+								"code":            "200",
+								"errormsg":        "",
+							},
+						},
+					}); err != nil {
+						log.Println("error sending message:", err)
+						continue
+					}
+					log.Println("1-1 sent to flutter ok")
+
 				}
-				log.Println("sent")
-				
+
 			}
 		}
 

@@ -19,6 +19,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	User "github.com/lianmi/servers/api/proto/user"
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -112,20 +114,22 @@ var pubCmd = &cobra.Command{
 		}()
 
 		for {
-			message, err := stdin.ReadString('\n')
+			username, err := stdin.ReadString('\n')
 			if err == io.EOF {
 				os.Exit(0)
 			}
+			req := &User.GetUsersReq{}
+			req.Usernames = append(req.Usernames, username)
+			data, _ := proto.Marshal(req)
 
 			jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
 
 			if _, err = c.Publish(context.Background(), &paho.Publish{
-				Topic:   topic,
+				Topic:    topic,
 				QoS:     byte(qos),
 				Retain:  retained,
-				Payload: []byte(message),
+				Payload: data,
 				Properties: &paho.PublishProperties{
-					ResponseTopic:   "test/lol",                 // "lianmi/cloud/dispatcher",
 					User: map[string]string{
 						"jwtToken":        jwtToken, // jwt令牌
 						"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
@@ -150,8 +154,8 @@ func init() {
 	//子命令
 	mqttCmd.AddCommand(pubCmd)
 	pubCmd.PersistentFlags().StringP("server", "s", "127.0.0.1:1883", "The full URL of the MQTT server to connect to")
-	pubCmd.PersistentFlags().StringP("topic", "t", "test/lol", "Topic to publish the messages on")
-	pubCmd.PersistentFlags().IntP("qos", "q", 1, "qos")
+	pubCmd.PersistentFlags().StringP("topic", "t", "lianmi/cloud/dispatcher", "Topic to publish the messages on")
+	pubCmd.PersistentFlags().IntP("qos", "q", 2, "qos")
 	pubCmd.PersistentFlags().BoolP("retained", "r", false, "retained")
 	pubCmd.PersistentFlags().StringP("clientid", "c", "", "clientid")
 
