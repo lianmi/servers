@@ -934,6 +934,39 @@ func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, erro
 	}
 }
 
+//设置用户发送的校验码
+func (s *MysqlLianmiRepository) SetUserSmsCode(username, mobile, smscode string) error {
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	key1 := fmt.Sprintf("usersmscode:%s", username)
+	_, err = redisConn.Do("SET", key1, smscode)
+	key2 := fmt.Sprintf("usermobile:%s", username)
+	_, err = redisConn.Do("SET", key2, mobile)
+	return err
+}
+
+//检测登录用户的校验码是否正确
+func (s *MysqlLianmiRepository) CheckUserSmsCode(username string) bool {
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	key1 := fmt.Sprintf("usersmscode:%s", username)
+	smscode, _ := redis.String(redisConn.Do("GET", key1))
+
+	key2 := fmt.Sprintf("usersmscode:%s", username)
+	mobile, _ := redis.String(redisConn.Do("GET", key2))
+
+	//用完就要删除
+	_, err = redisConn.Do("DEL", key1) //删除usersmscode
+	_, err = redisConn.Do("DEL", key2) //删除usersmscode
+
+	_ = err
+	return s.CheckSmsCode(mobile, smscode)
+
+}
+
 //检测校验码是否正确
 func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 	var err error
@@ -956,6 +989,7 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 				return false
 			} else {
 				s.logger.Info("redisConn GET smscode ok ", zap.String("smscodeInRedis", smscodeInRedis))
+				_, err = redisConn.Do("DEL", key) //删除smscode
 				return smscodeInRedis == smscode
 			}
 		}

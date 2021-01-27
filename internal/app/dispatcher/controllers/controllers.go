@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common"
-	// "github.com/lianmi/servers/internal/common/codes"
+	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
 	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
@@ -177,11 +177,9 @@ func CreateInitControllersFn(
 					}
 				}
 
-				//检测校验码是否正确
-				if !pc.service.CheckSmsCode(mobile, smscode) {
-					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
-					// code = codes.ErrWrongSmsCode
-					// RespData(c, http.StatusOK, code, "SmsCode is wrong")
+				//保存校验码
+				if err := pc.service.SetUserSmsCode(username, mobile, smscode); err != nil {
+					pc.logger.Error("SetUserSmsCode error")
 					return nil, gin_jwt_v2.ErrMissingSecretKey
 				}
 
@@ -223,22 +221,8 @@ func CreateInitControllersFn(
 					return false
 				}
 
-				//暂时只有jwt有效，都放行
+				//只有jwt有效，都放行
 				return true
-
-				// if v, ok := data.(*models.UserRole); ok {
-				// 	for _, itemRole := range v.UserRoles {
-
-				// 		pc.logger.Debug("jwt携带的用户角色", zap.String("itemRole.Value", itemRole.Value))
-
-				// 		if itemRole.Value == "admin" { //超级管理员，目前只支持一种后台管理用户
-				// 			return true
-				// 		}
-				// 	}
-				// }
-				// pc.logger.Debug("Authorizator faild, must be admin")
-
-				// return false
 			},
 			//处理不进行授权的逻辑
 			Unauthorized: func(c *gin.Context, code int, message string) {
@@ -267,6 +251,16 @@ func CreateInitControllersFn(
 					RespData(c, http.StatusOK, 500, "Get User by userName error")
 					return
 				}
+
+				//检测校验码是否正确
+				if !pc.service.CheckUserSmsCode(userName) {
+					pc.logger.Error("CheckUserSmsCode, SmsCode is wrong")
+					code = codes.ErrWrongSmsCode
+					//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
+					RespData(c, http.StatusOK, code, "SmsCode is wrong")
+					return
+				}
+
 				var auditResult string
 				if int(user.User.UserType) == 2 && int(user.User.State) == 3 {
 					auditResult = "商户进驻已受理, 审核中..."
