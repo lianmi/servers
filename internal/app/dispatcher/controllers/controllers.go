@@ -89,6 +89,7 @@ func CreateInitControllersFn(
 						common.IdentityKey: v.UserName,           //用户账号
 						"deviceID":         v.DeviceID,           //设备id
 						"userRoles":        helper.B2S(jsonRole), //角色
+
 					}
 				} else {
 					pc.logger.Error("Can not find Username")
@@ -117,7 +118,6 @@ func CreateInitControllersFn(
 			},
 			//认证，根据登录信息对用户进行身份验证的回调函数
 			Authenticator: func(c *gin.Context) (interface{}, error) {
-
 				//handles the login logic. On success LoginResponse is called, on failure Unauthorized is called
 				var loginVals Login //重要！不能用models.User，因为有很多必填字段
 				if err := c.ShouldBind(&loginVals); err != nil {
@@ -177,6 +177,14 @@ func CreateInitControllersFn(
 					}
 				}
 
+				//检测校验码是否正确
+				if !pc.service.CheckSmsCode(mobile, smscode) {
+					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
+					// code = codes.ErrWrongSmsCode
+					// RespData(c, http.StatusOK, code, "SmsCode is wrong")
+					return nil, gin_jwt_v2.ErrMissingSecretKey
+				}
+
 				// 检测用户是否可以登录, true-可以允许登录
 				if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
@@ -195,28 +203,6 @@ func CreateInitControllersFn(
 			//授权, 接收用户信息并编写授权规则，本项目的API权限控制就是通过该函数编写授权规则的
 			Authorizator: func(data interface{}, c *gin.Context) bool {
 				pc.logger.Debug("Authorizator ...授权")
-				var loginVals Login //重要！不能用models.User，因为有很多必填字段
-				if err := c.ShouldBind(&loginVals); err == nil {
-					isMaster := loginVals.IsMaster
-					smscode := loginVals.SmsCode
-					mobile := loginVals.Mobile
-					username := loginVals.Username
-					password := loginVals.Password
-					deviceID := loginVals.DeviceID
-					clientType := loginVals.ClientType
-					os := loginVals.Os
-
-					pc.logger.Debug("Authorizator ... loginVals ",
-						zap.String("deviceID", deviceID),
-						zap.String("mobile", mobile),
-						zap.String("username", username),
-						zap.String("password", password),
-						zap.String("smscode", smscode),
-						zap.Int("clientType", clientType),
-						zap.String("os", os),
-						zap.Bool("isMaster", isMaster),
-					)
-				}
 
 				token := gin_jwt_v2.GetToken(c)
 
@@ -262,20 +248,6 @@ func CreateInitControllersFn(
 				})
 			},
 			LoginResponse: func(c *gin.Context, code int, token string, t time.Time) {
-				var loginVals Login //重要！不能用models.User，因为有很多必填字段
-				if err := c.ShouldBind(&loginVals); err != nil {
-					pc.logger.Error("LoginResponse ShouldBind Error", zap.Error(err))
-					return
-				}
-				smscode := loginVals.SmsCode
-				mobile := loginVals.Mobile
-				//检测校验码是否正确
-				if !pc.service.CheckSmsCode(mobile, smscode) {
-					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
-					code = codes.ErrWrongSmsCode
-					RespData(c, http.StatusOK, code, "SmsCode is wrong")
-					return
-				}
 
 				//解析JWT令牌
 				claims, err := ParseToken(token, []byte(common.SecretKey))

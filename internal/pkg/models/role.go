@@ -6,4 +6,6 @@ type Role struct {
 	UserID   uint   `json:"user_id"`
 	UserName string `json:"user_name"`
 	Value    string `json:"value"`
+	// Mobile   string `json:"mobile"`
+	// Smscode  string `json:"smscode"`
 }
