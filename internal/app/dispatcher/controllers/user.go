@@ -353,15 +353,18 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	var req Auth.ValidCodeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+		// RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+		RespFail(c, http.StatusBadRequest, 400, "")
 	} else {
 		if req.Mobile == "" {
 			pc.logger.Error("Mobile is empty")
-			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Mobile")
+			RespFail(c, http.StatusBadRequest, 400, "")
+			// RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Mobile")
 		}
 		if req.Smscode == "" {
 			pc.logger.Error("Smscode is empty")
-			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Smscode")
+			// RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Smscode")
+			RespFail(c, http.StatusBadRequest, 400, "")
 		}
 
 		pc.logger.Debug("ValidateCode",
