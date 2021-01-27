@@ -68,7 +68,7 @@ func CreateInitControllersFn(
 		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
 
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
-			Realm:       "test zone",
+			Realm:       "gin",
 			Key:         []byte(common.SecretKey),
 			Timeout:     24 * 30 * time.Hour, //30日， common.ExpireTime, //expire过期时间   time.Hour
 			MaxRefresh:  time.Hour,
