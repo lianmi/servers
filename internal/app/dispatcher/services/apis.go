@@ -47,9 +47,8 @@ type LianmiApisService interface {
 	//根据手机号返回注册账号
 	GetUsernameByMobile(mobile string) (string, error)
 
-	SetUserSmsCode(username, mobile, smscode string) error
-	//检测登录用户的校验码是否正确
-	CheckUserSmsCode(username string) bool
+	//根据注册账号返回手机号
+	GetMobileByUsername(username string) (string, error)
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
@@ -323,13 +322,9 @@ func (s *DefaultLianmiApisService) GetUsernameByMobile(mobile string) (string, e
 	return s.Repository.GetUsernameByMobile(mobile)
 }
 
-func (s *DefaultLianmiApisService) SetUserSmsCode(username, mobile, smscode string) error {
-	return s.Repository.SetUserSmsCode(username, mobile, smscode)
-}
-
-//检测登录用户的校验码是否正确
-func (s *DefaultLianmiApisService) CheckUserSmsCode(username string) bool {
-	return s.Repository.CheckUserSmsCode(username)
+//根据注册账号返回手机号
+func (s *DefaultLianmiApisService) GetMobileByUsername(username string) (string, error) {
+	return s.Repository.GetMobileByUsername(username)
 }
 
 //检测校验码是否正确

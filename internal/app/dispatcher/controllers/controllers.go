@@ -169,20 +169,31 @@ func CreateInitControllersFn(
 					if err != nil {
 						pc.logger.Warn("GetUsernameByMobile error")
 						return "", gin_jwt_v2.ErrMissingLoginValues
-					} else {
-						if username == "" {
-							pc.logger.Warn("username get error")
-							return "", gin_jwt_v2.ErrMissingLoginValues
-						}
 					}
 				}
-				/*
-					//保存校验码
-					if err := pc.service.SetUserSmsCode(username, mobile, smscode); err != nil {
-						pc.logger.Error("SetUserSmsCode error")
-						return nil, gin_jwt_v2.ErrMissingSecretKey
+				if mobile == "" && username != "" {
+					mobile, err = pc.service.GetMobileByUsername(username)
+					if err != nil {
+						pc.logger.Warn("GetMobileByUsername error")
+						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
-				*/
+				}
+
+				if username == "" {
+					pc.logger.Warn("username get error")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				}
+
+				if mobile == "" {
+					pc.logger.Warn("mobile get error")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				}
+
+				if password == "" {
+					pc.logger.Warn("password get error")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				}
+
 				//检测校验码是否正确
 				if !pc.service.CheckSmsCode(mobile, smscode) {
 					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
@@ -260,16 +271,7 @@ func CreateInitControllersFn(
 					RespData(c, http.StatusOK, 500, "Get User by userName error")
 					return
 				}
-				/*
-					//检测校验码是否正确
-					if !pc.service.CheckUserSmsCode(userName) {
-						pc.logger.Error("CheckUserSmsCode, SmsCode is wrong")
-						code = codes.ErrWrongSmsCode
-						//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
-						RespData(c, http.StatusOK, code, "SmsCode is wrong")
-						return
-					}
-				*/
+
 				var auditResult string
 				if int(user.User.UserType) == 2 && int(user.User.State) == 3 {
 					auditResult = "商户进驻已受理, 审核中..."

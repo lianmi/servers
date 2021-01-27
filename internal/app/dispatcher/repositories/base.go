@@ -78,14 +78,11 @@ type LianmiRepository interface {
 	//根据手机号获取注册账号id
 	GetUsernameByMobile(mobile string) (string, error)
 
-	//设置用户发送的校验码
-	SetUserSmsCode(username, mobile, smscode string) error
+	//根据注册账号返回手机号
+	GetMobileByUsername(username string) (string, error)
 
 	//检测校验码是否正确
 	CheckSmsCode(mobile, smscode string) bool
-
-	//检测登录用户的校验码是否正确
-	CheckUserSmsCode(username string) bool
 
 	//授权新创建的群组
 	ApproveTeam(teamID string) error

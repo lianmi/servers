@@ -393,31 +393,10 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 		}
 	}
 
-	if user.State == 3 {
+	if user.State == 2 {
 		s.logger.Error("用户被封号")
 		return false
 	}
-
-	mobile := user.Mobile
-	if mobile == "" {
-		s.logger.Error("用户手机不存在")
-		return false
-	}
-
-	// //检测校验码
-	// if !s.CheckSmsCode(mobile, smscode) {
-	// 	s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", smscode))
-	// 	return false
-	// }
-
-	// //用完就要删除
-	// smscodeKey := fmt.Sprintf("smscode:%s", mobile)
-	// _, err = redisConn.Do("DEL", smscodeKey) //删除smscode
-	// if err != nil {
-	// 	s.logger.Error("DEL smscodeKey err", zap.Error(err))
-	// 	return false
-
-	// }
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)
 
@@ -934,37 +913,21 @@ func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, erro
 	}
 }
 
-//设置用户发送的校验码
-func (s *MysqlLianmiRepository) SetUserSmsCode(username, mobile, smscode string) error {
+//根据注册账号返回手机号
+func (s *MysqlLianmiRepository) GetMobileByUsername(username string) (string, error) {
 	var err error
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-	key1 := fmt.Sprintf("usersmscode:%s", username)
-	_, err = redisConn.Do("SET", key1, smscode)
-	key2 := fmt.Sprintf("usermobile:%s", username)
-	_, err = redisConn.Do("SET", key2, mobile)
-	return err
-}
+	user := new(models.User)
 
-//检测登录用户的校验码是否正确
-func (s *MysqlLianmiRepository) CheckUserSmsCode(username string) bool {
-	var err error
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
-	key1 := fmt.Sprintf("usersmscode:%s", username)
-	smscode, _ := redis.String(redisConn.Do("GET", key1))
-
-	key2 := fmt.Sprintf("usersmscode:%s", username)
-	mobile, _ := redis.String(redisConn.Do("GET", key2))
-
-	//用完就要删除
-	_, err = redisConn.Do("DEL", key1) //删除usersmscode
-	_, err = redisConn.Do("DEL", key2) //删除usersmscode
-
-	_ = err
-	return s.CheckSmsCode(mobile, smscode)
-
+	if err = s.db.Model(user).Where(&models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}).First(user).Error; err != nil {
+		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
+		return "", errors.Wrapf(err, "Get username error[username=%s]", username)
+	} else {
+		return user.Mobile, nil
+	}
 }
 
 //检测校验码是否正确
