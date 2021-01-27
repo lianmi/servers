@@ -276,7 +276,7 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
 
 		code = codes.InvalidParams
-		RespFail(c, http.StatusOK, code, "Mobile is empty")
+		RespData(c, http.StatusOK, code, "Mobile is empty")
 		return
 	}
 
@@ -285,7 +285,7 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
 
 		code = codes.InvalidParams
-		RespFail(c, http.StatusOK, code, "Mobile is not valid")
+		RespData(c, http.StatusOK, code, "Mobile is not valid")
 		return
 	}
 
@@ -293,7 +293,7 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 	if !conv.IsDigit(mobile) {
 		pc.logger.Warn("Mobile Is not Digit")
 		code = codes.ERROR
-		RespFail(c, http.StatusOK, code, "Mobile is not Digit")
+		RespData(c, http.StatusOK, code, "Mobile is not Digit")
 		return
 	}
 
