@@ -2,21 +2,19 @@ package order
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/lmSdkClient/business"
 	"github.com/lianmi/servers/util/array"
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"log"
-	"time"
 )
 
 // 7-1  查询某个商户的所有商品信息
@@ -75,9 +73,9 @@ func QueryProducts() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "1",           // 业务子号
@@ -88,75 +86,11 @@ func QueryProducts() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if businessTypeStr == "7" && businessSubTypeStr == "1" {
-				if code == "200" {
-					log.Println("response succeed")
-					// 回包
-					//解包负载 m.Payload
-					var rsq Order.QueryProductsRsp
-					if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-						log.Println("Protobuf Unmarshal Error", err)
-
-					} else {
-
-						log.Println("回包内容 QueryProductsRsp ---------------------")
-						log.Println("")
-						log.Println(" 商户商品明细 rsq.Products---------------------")
-
-						// for _, product := range rsq.Products {
-						// 	log.Println("商品ID ProductId: ", product.ProductId)
-						// 	log.Println("商品名称 ProductName: ", product.ProductName)
-						// 	log.Println("商品描述 ProductDesc: ", product.ProductDesc)
-						// }
-
-						array.PrintPretty(rsq.Products)
-
-						log.Println("")
-						log.Println(" 下架商品明细 ---------------------")
-
-						for _, ProductId := range rsq.SoldoutProducts {
-							log.Println("商品ID ProductId: ", ProductId)
-
-						}
-
-					}
-
-				} else {
-					log.Println("QueryProducts failed")
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -188,13 +122,34 @@ func QueryProducts() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Order.QueryProductsRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("回包内容 QueryProductsRsp ---------------------")
+		log.Println("")
+		log.Println(" 商户商品明细 rsq.Products---------------------")
+
+		// for _, product := range rsq.Products {
+		// 	log.Println("商品ID ProductId: ", product.ProductId)
+		// 	log.Println("商品名称 ProductName: ", product.ProductName)
+		// 	log.Println("商品描述 ProductDesc: ", product.ProductDesc)
+		// }
+
+		array.PrintPretty(rsq.Products)
+
+		log.Println("")
+		log.Println(" 下架商品明细 ---------------------")
+
+		for _, ProductId := range rsq.SoldoutProducts {
+			log.Println("商品ID ProductId: ", ProductId)
+
 		}
 
 	}
@@ -285,9 +240,9 @@ func AddProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "2",           //  业务子号
@@ -298,62 +253,11 @@ func AddProduct() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if businessTypeStr == "7" && businessSubTypeStr == "2" {
-				if code == "200" {
-					log.Println("response succeed")
-					// 回包
-					//解包负载 m.Payload
-					var rsq Order.AddProductRsp
-					if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-						log.Println("Protobuf Unmarshal Error", err)
-
-					} else {
-
-						log.Println("回包内容 AddProductRsp ---------------------")
-						log.Println("商品ID productID: ", rsq.ProductID)
-						pkey := fmt.Sprintf("ProductID:%s", localUserName)
-						redisConn.Do("SET", pkey, rsq.ProductID)
-
-						//
-
-					}
-
-				} else {
-					log.Println("AddProduct failed")
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -385,16 +289,22 @@ func AddProduct() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
 
+	//解包负载 payload
+	var rsq Order.AddProductRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("回包内容 AddProductRsp ---------------------")
+		log.Println("商品ID productID: ", rsq.ProductID)
+		pkey := fmt.Sprintf("ProductID:%s", localUserName)
+		redisConn.Do("SET", pkey, rsq.ProductID)
 	}
+
 	log.Println("AddProduct is Done.")
 
 	return nil
@@ -484,9 +394,9 @@ func UpdateProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "3",           //  业务子号
@@ -497,46 +407,11 @@ func UpdateProduct() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if businessTypeStr == "7" && businessSubTypeStr == "3" {
-				if code == "200" {
-					log.Println("response succeed")
-
-				} else {
-					log.Println("UpdateProduct failed")
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -568,16 +443,13 @@ func UpdateProduct() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
 
-	}
+	//解包负载 payload
+
+	_ = payload
+
 	log.Println("UpdateProduct is Done.")
 
 	return nil
@@ -636,9 +508,9 @@ func SoldoutProduct() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "7",           // 业务号
 				"businessSubType": "4",           //  业务子号
@@ -649,46 +521,11 @@ func SoldoutProduct() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if businessTypeStr == "7" && businessSubTypeStr == "4" {
-				if code == "200" {
-					log.Println("response succeed")
-
-				} else {
-					log.Println("SoldoutProduct failed")
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -720,16 +557,12 @@ func SoldoutProduct() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
 
-	}
+	//解包负载 payload
+	_ = payload
+
 	log.Println("SoldoutProduct is Done.")
 
 	return nil

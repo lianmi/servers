@@ -6,12 +6,12 @@ package order
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
@@ -23,10 +23,8 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/lianmi/servers/util/array"
 	"log"
-	"time"
 )
 
 //向商户id3 购买Vip会员
@@ -133,12 +131,12 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 	pb := &paho.Publish{
 		Topic:   topic,
-		QoS:     byte(1),
+		QoS:     byte(2),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "5",           // 业务号
 				"businessSubType": "1",           // 业务子号
@@ -149,88 +147,11 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				log.Println("response succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Msg.RecvMsgEventRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("购买Vip会员下单 回包内容 ---------------------")
-
-					//解包body
-					var orderProductBody = new(Order.OrderProductBody)
-					if err := proto.Unmarshal(rsq.Body, orderProductBody); err != nil {
-						log.Println("Protobuf Unmarshal Error", err)
-					} else {
-						array.PrintPretty(orderProductBody)
-						attachData, _ := hex.DecodeString(orderProductBody.Attach) //反hex
-						attachBase := new(models.AttachBase)
-						if err := json.Unmarshal([]byte(attachData), attachBase); err != nil {
-							log.Println("解包attachData failed, error: ", err)
-							return
-						}
-						if attachBase.BodyType == 99 {
-							// log.Println("attach解析 payType:", vu.PayType)
-							// if orderProductBody.State == 4 {
-							//OS_Taked        = 4;     /**< 已接单*/
-							vu := new(models.VipUser)
-							bodyData, err := base64.StdEncoding.DecodeString(attachBase.Body)
-							if err != nil {
-								log.Println("base64.StdEncoding.DecodeString failed, error: ", err)
-								return
-							}
-							vu, err = models.VipUserFromJson(bodyData)
-							if err != nil {
-								log.Println("VipUserFromJson failed, error: ", err)
-								return
-							}
-							log.Printf("已接单, Vip会员类型: %d,  价格是: %f, 下一步请发起支付", vu.PayType, vu.Price)
-							// }
-						}
-
-					}
-
-				}
-
-			} else {
-				log.Println("BuyVipUser failed")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -262,16 +183,53 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Msg.RecvMsgEventRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+		return err
+
+	} else {
+
+		log.Println("购买Vip会员下单 回包内容 ---------------------")
+
+		//解包body
+		var orderProductBody = new(Order.OrderProductBody)
+		if err := proto.Unmarshal(rsq.Body, orderProductBody); err != nil {
+			log.Println("Protobuf Unmarshal Error", err)
+		} else {
+			array.PrintPretty(orderProductBody)
+			attachData, _ := hex.DecodeString(orderProductBody.Attach) //反hex
+			attachBase := new(models.AttachBase)
+			if err := json.Unmarshal([]byte(attachData), attachBase); err != nil {
+				log.Println("解包attachData failed, error: ", err)
+				return err
+			}
+			if attachBase.BodyType == 99 {
+				// log.Println("attach解析 payType:", vu.PayType)
+				// if orderProductBody.State == 4 {
+				//OS_Taked        = 4;     /**< 已接单*/
+				vu := new(models.VipUser)
+				bodyData, err := base64.StdEncoding.DecodeString(attachBase.Body)
+				if err != nil {
+					log.Println("base64.StdEncoding.DecodeString failed, error: ", err)
+					return err
+				}
+				vu, err = models.VipUserFromJson(bodyData)
+				if err != nil {
+					log.Println("VipUserFromJson failed, error: ", err)
+					return err
+				}
+				log.Printf("已接单, Vip会员类型: %d,  价格是: %f, 下一步请发起支付", vu.PayType, vu.Price)
+			}
+
 		}
 
 	}
+
 	log.Println("BuyVipUser is Done.")
 
 	return nil

@@ -2,12 +2,10 @@ package user
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"time"
+
+	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"github.com/golang/protobuf/proto"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -17,30 +15,6 @@ import (
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/gomodule/redigo/redis"
 )
-
-func NewTlsConfig() *tls.Config {
-	certpool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(clientcommon.CaPath + "/ca.crt")
-	if err != nil {
-		log.Fatalln(err.Error())
-	} else {
-		log.Println("ReadFile ok")
-	}
-	certpool.AppendCertsFromPEM(ca)
-	clientKeyPair, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
-	if err != nil {
-		panic(err)
-	} else {
-		log.Println("LoadX509KeyPair ok")
-	}
-	return &tls.Config{
-		RootCAs:            certpool,
-		ClientAuth:         tls.NoClientCert,
-		ClientCAs:          nil,
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{clientKeyPair},
-	}
-}
 
 //1-1
 func SendGetUsers(userNames []string) error {
@@ -88,12 +62,12 @@ func SendGetUsers(userNames []string) error {
 
 	pb := &paho.Publish{
 		Topic:   topic,
-		QoS:     byte(1),
+		QoS:     byte(2),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "1",           // 业务号
 				"businessSubType": "1",           //  业务子号
@@ -104,61 +78,11 @@ func SendGetUsers(userNames []string) error {
 		},
 	}
 
-	//send req to mqtt
-	//利用TLS协议连接broker
-	cer, err := tls.LoadX509KeyPair(clientcommon.CaPath+"/mqtt.lianmi.cloud.crt", clientcommon.CaPath+"/mqtt.lianmi.cloud.key")
-	if err != nil {
-		log.Println("LoadX509KeyPair error: ", err.Error())
-		return err
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	//Connect mqtt broker using ssl
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		// mc.logger.Error("Client dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-		log.Println("Dial error: ", err.Error())
-		return errors.New("BrokerServer dial error")
-	}
-
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-
-			//解包负载 m.Payload
-			var rsq User.GetUsersResp
-			if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-				log.Println("Protobuf Unmarshal Error", err)
-
-			} else {
-				for _, user := range rsq.Users {
-					log.Println("---------------------")
-					log.Println("Username: ", user.Username)
-					log.Println("Nick: ", user.Nick)
-					log.Println("Gender: ", user.Gender)
-					log.Println("Avatar: ", user.Avatar)
-					log.Println("Label: ", user.Label)
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -186,20 +110,30 @@ func SendGetUsers(userNames []string) error {
 
 	if _, err := client.Publish(context.Background(), pb); err != nil {
 		log.Println("Failed to Publish:", err)
+		return err
 	} else {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
 
+	//解包负载 payload
+	var rsq User.GetUsersResp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+		for _, user := range rsq.Users {
+			log.Println("---------------------")
+			log.Println("Username: ", user.Username)
+			log.Println("Nick: ", user.Nick)
+			log.Println("Gender: ", user.Gender)
+			log.Println("Avatar: ", user.Avatar)
+			log.Println("Label: ", user.Label)
+		}
 	}
+
 	log.Println("GetUsers Done.")
 
 	return nil

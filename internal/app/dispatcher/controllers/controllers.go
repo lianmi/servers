@@ -38,6 +38,7 @@ type Login struct {
 }
 
 type LoginResp struct {
+	// IsLogined   bool   `form:"islogined" json:"islogined"`       // 是否登录成功
 	Username    string `form:"username" json:"username"`         // 注册账号
 	UserType    int    `form:"user_type" json:"user_type"`       // 用户类型 1-普通，2-商户
 	State       int    `form:"state" json:"state"`               // 普通用户： 0-非VIP 1-付费用户(购买会员) 2-封号  商户：0-预审核, 1-审核通过, 2 -占位, 3-审核中
@@ -272,6 +273,7 @@ func CreateInitControllersFn(
 
 				//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
 				RespData(c, http.StatusOK, code, &LoginResp{
+					// IsLogined:   true,
 					Username:    userName,
 					UserType:    int(user.User.UserType),
 					State:       int(user.User.State),

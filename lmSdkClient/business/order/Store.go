@@ -7,9 +7,9 @@ package order
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
@@ -18,9 +18,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"log"
-	"time"
 )
 
 //9-1 商户上传订单DH加密公钥
@@ -88,9 +86,9 @@ func RegisterPreKeys() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "9",           // 业务号
 				"businessSubType": "1",           // 业务子号
@@ -101,46 +99,11 @@ func RegisterPreKeys() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if businessTypeStr == "9" && businessSubTypeStr == "1" {
-				if code == "200" {
-					log.Println("response succeed")
-
-				} else {
-					log.Println("RegisterPreKeys failed")
-				}
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -172,16 +135,13 @@ func RegisterPreKeys() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
 
-	}
+	//解包负载 payload
+
+	_ = payload
+
 	log.Println("RegisterPreKeys is Done.")
 
 	return nil
@@ -246,9 +206,9 @@ func GetPreKeyOrderID(productId string) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "9",           // 业务号
 				"businessSubType": "2",           // 业务子号
@@ -259,63 +219,11 @@ func GetPreKeyOrderID(productId string) error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				log.Println("response succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Order.GetPreKeyOrderIDRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("回包内容 GetPreKeyOrderIDRsp ---------------------")
-					log.Println("商户的账号id userName: ", rsq.UserName)
-					log.Println("商品ID productID: ", rsq.ProductID)
-					log.Println("订单类型 orderType: ", int(rsq.OrderType))
-					log.Println("一次性公钥, hex方式 pubKey: ", rsq.PubKey)
-					log.Println("订单ID orderID: ", rsq.OrderID)
-
-					okey := fmt.Sprintf("OrderID:%s", localUserName)
-					redisConn.Do("SET", okey, rsq.OrderID)
-
-				}
-
-			} else {
-				log.Println("GetPreKeyOrderID failed")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -347,16 +255,29 @@ func GetPreKeyOrderID(productId string) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(5 * time.Second) // 5s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+
+	var rsq Order.GetPreKeyOrderIDRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("回包内容 GetPreKeyOrderIDRsp ---------------------")
+		log.Println("商户的账号id userName: ", rsq.UserName)
+		log.Println("商品ID productID: ", rsq.ProductID)
+		log.Println("订单类型 orderType: ", int(rsq.OrderType))
+		log.Println("一次性公钥, hex方式 pubKey: ", rsq.PubKey)
+		log.Println("订单ID orderID: ", rsq.OrderID)
+
+		okey := fmt.Sprintf("OrderID:%s", localUserName)
+		redisConn.Do("SET", okey, rsq.OrderID)
 
 	}
+
 	log.Println("GetPreKeyOrderID is Done.")
 
 	return nil

@@ -2,13 +2,12 @@ package wallet
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/lianmi/servers/lmSdkClient/business"
 	"log"
 	"math/big"
-	"time"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +19,6 @@ import (
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
 const (
@@ -50,7 +48,7 @@ func CreateHDWallet(localUserName string) string {
 	}
 
 	defer redisConn.Close()
-	
+
 	if localUserName == "id1" {
 		// 用户账号id1的助记词
 		mnemonic = "cloth have cage erase shrug slot album village surprise fence erode direct"
@@ -214,9 +212,9 @@ func RegisterWallet() error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "1",           // 业务子号
@@ -227,59 +225,11 @@ func RegisterWallet() error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				log.Println("Wallet register succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.RegisterWalletRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("回包内容---------------------")
-					log.Println("blockNumber: ", rsq.BlockNumber)
-					log.Println("hash: ", rsq.Hash)
-					log.Println("amountEth: ", rsq.AmountEth)
-					log.Println("amountLNMC: ", rsq.AmountLNMC)
-					log.Println("time: ", rsq.Time)
-
-				}
-
-			} else {
-				log.Println("Wallet register failed")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -311,14 +261,22 @@ func RegisterWallet() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.RegisterWalletRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("回包内容---------------------")
+		log.Println("blockNumber: ", rsq.BlockNumber)
+		log.Println("hash: ", rsq.Hash)
+		log.Println("amountEth: ", rsq.AmountEth)
+		log.Println("amountLNMC: ", rsq.AmountLNMC)
+		log.Println("time: ", rsq.Time)
 
 	}
 	log.Println("RegisterWallet is Done.")
@@ -382,9 +340,9 @@ func Deposit(rechargeAmount float64) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "2",           // 业务子号
@@ -395,59 +353,11 @@ func Deposit(rechargeAmount float64) error {
 		},
 	}
 
-	//Connect mqtt broker using ssl
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				log.Println("Deposit succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.DepositRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("回包内容---------------------")
-					// log.Println("blockNumber: ", rsq.BlockNumber)
-					// log.Println("hash: ", rsq.Hash)
-					// log.Println("AmountLNMC: ", rsq.AmountLNMC)
-					// log.Println("Time: ", rsq.Time)
-
-				}
-
-			} else {
-				log.Println("Deposit failed")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -479,14 +389,21 @@ func Deposit(rechargeAmount float64) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.DepositRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("回包内容---------------------")
+		// log.Println("blockNumber: ", rsq.BlockNumber)
+		// log.Println("hash: ", rsq.Hash)
+		// log.Println("AmountLNMC: ", rsq.AmountLNMC)
+		// log.Println("Time: ", rsq.Time)
 
 	}
 	log.Println("Deposit is Done.")
@@ -533,7 +450,7 @@ func buildTx(rawDesc *Wallet.RawDesc, privKeyHex string) (string, error) {
 }
 
 /*
-10-3 发起预转账 
+10-3 发起预转账
 */
 func PreTransfer(orderID, targetUserName string, amount float64) error {
 
@@ -599,9 +516,9 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "3",           //  业务子号
@@ -612,90 +529,11 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.PreTransferRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-					rsq.RawDescToTarget.ChainID = 1
-					log.Println("10-3 发起转账 回包内容 : \n RawDescToTarget---------------------")
-					log.Println("")
-					log.Println("RawDescToTarget---------------------")
-					log.Println("RawDescToTarget.Uuid: ", rsq.Uuid)
-					log.Println("RawDescToTarget.Nonce: ", rsq.RawDescToTarget.Nonce)
-					log.Println("RawDescToTarget.GasPrice: ", rsq.RawDescToTarget.GasPrice)
-					log.Println("RawDescToTarget.GasLimit: ", rsq.RawDescToTarget.GasLimit)
-					log.Println("RawDescToTarget.ChainID: ", rsq.RawDescToTarget.ChainID)
-					log.Println("RawDescToTarget.Value: ", rsq.RawDescToTarget.Value)
-					log.Println("RawDescToTarget.TxHash: ", rsq.RawDescToTarget.TxHash)
-					log.Println("RawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawDescToTarget.Txdata))
-					log.Println("RawDescToTarget.ToWalletAddress: ", rsq.RawDescToTarget.ToWalletAddress)
-					log.Println("RawDescToTarget.ContractAddress: ", rsq.RawDescToTarget.ContractAddress)
-					log.Println("")
-					log.Println("Time: ", rsq.Time)
-
-					log.Println("=======")
-
-					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
-					privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
-					log.Println("privKeyHex", privKeyHex)
-
-					signedTxToTarget, err := buildTx(rsq.RawDescToTarget, privKeyHex)
-					if err != nil {
-						log.Fatalln(err)
-
-					}
-					// _ = rawTxHex
-
-					//TODO 调用10-4 确认转账
-
-					go func() {
-						err = ConfirmTransfer(rsq.Uuid, signedTxToTarget)
-						if err != nil {
-							log.Fatalln(err)
-						}
-					}()
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -727,16 +565,56 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.PreTransferRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+		rsq.RawDescToTarget.ChainID = 1
+		log.Println("10-3 发起转账 回包内容 : \n RawDescToTarget---------------------")
+		log.Println("")
+		log.Println("RawDescToTarget---------------------")
+		log.Println("RawDescToTarget.Uuid: ", rsq.Uuid)
+		log.Println("RawDescToTarget.Nonce: ", rsq.RawDescToTarget.Nonce)
+		log.Println("RawDescToTarget.GasPrice: ", rsq.RawDescToTarget.GasPrice)
+		log.Println("RawDescToTarget.GasLimit: ", rsq.RawDescToTarget.GasLimit)
+		log.Println("RawDescToTarget.ChainID: ", rsq.RawDescToTarget.ChainID)
+		log.Println("RawDescToTarget.Value: ", rsq.RawDescToTarget.Value)
+		log.Println("RawDescToTarget.TxHash: ", rsq.RawDescToTarget.TxHash)
+		log.Println("RawDescToTarget.Txdata: ", hex.EncodeToString(rsq.RawDescToTarget.Txdata))
+		log.Println("RawDescToTarget.ToWalletAddress: ", rsq.RawDescToTarget.ToWalletAddress)
+		log.Println("RawDescToTarget.ContractAddress: ", rsq.RawDescToTarget.ContractAddress)
+		log.Println("")
+		log.Println("Time: ", rsq.Time)
+
+		log.Println("=======")
+
+		//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
+		privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
+		log.Println("privKeyHex", privKeyHex)
+
+		signedTxToTarget, err := buildTx(rsq.RawDescToTarget, privKeyHex)
+		if err != nil {
+			log.Fatalln(err)
+
 		}
+		// _ = rawTxHex
+
+		//TODO 调用10-4 确认转账
+
+		go func() {
+			err = ConfirmTransfer(rsq.Uuid, signedTxToTarget)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}()
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -795,9 +673,9 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "4",           //  业务子号
@@ -808,57 +686,11 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.ConfirmTransferRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-4 确认转账回包内容 : ---------------------")
-					log.Println("blockNumber: ", rsq.BlockNumber)
-					log.Println("hash: ", rsq.Hash)
-					log.Println("time: ", rsq.Time)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -890,16 +722,23 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.ConfirmTransferRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-4 确认转账回包内容 : ---------------------")
+		log.Println("blockNumber: ", rsq.BlockNumber)
+		log.Println("hash: ", rsq.Hash)
+		log.Println("time: ", rsq.Time)
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -952,9 +791,9 @@ func Balance() error {
 		QoS:     byte(1),
 		Payload: nil, //不需要包体
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "5",           // 业务子号
@@ -965,57 +804,11 @@ func Balance() error {
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.BalanceRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-					log.Println("10-5 查询账号余额,  回包内容---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("amountLNMC: ", rsq.AmountLNMC)
-					log.Println("amountETH: ", rsq.AmountETH)
-					log.Println("time: ", rsq.Time)
-
-				}
-
-			} else {
-				log.Println("Failed, server return an error")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1047,16 +840,23 @@ func Balance() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(5 * time.Second) //5s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.BalanceRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+		log.Println("10-5 查询账号余额,  回包内容---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("amountLNMC: ", rsq.AmountLNMC)
+		log.Println("amountETH: ", rsq.AmountETH)
+		log.Println("time: ", rsq.Time)
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -1109,9 +909,9 @@ func UserSignIn() error {
 		QoS:     byte(1),
 		Payload: nil, //不需要包体
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "13",          // 业务子号
@@ -1122,57 +922,11 @@ func UserSignIn() error {
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				log.Println("UserSignIn succeed")
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.UserSignInRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-					log.Println("10-13 签到,  回包内容---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("count: ", rsq.Count)
-					log.Println("totalSignIn: ", rsq.TotalSignIn)
-
-				}
-
-			} else {
-				log.Println("UserSignIn failed")
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1204,14 +958,19 @@ func UserSignIn() error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.UserSignInRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+		log.Println("10-13 签到,  回包内容---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("count: ", rsq.Count)
+		log.Println("totalSignIn: ", rsq.TotalSignIn)
 
 	}
 	log.Println("UserSignIn is Done.")
@@ -1292,9 +1051,9 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "6",           // 业务子号
@@ -1305,95 +1064,11 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.PreWithDrawRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-6 发起提现预审核 回包内容 : \n rawDescToPlatform---------------------")
-					log.Println("username: ", localUserName)
-					// log.Println(rsq.Time)
-					// log.Println(rsq.RawDescToPlatform)
-
-					// rawTxToPlatform := &models.RawDesc{
-					// 	Nonce: rsq.RawDescToPlatform.Nonce,
-					// 	// gas价格
-					// 	GasPrice: rsq.RawDescToPlatform.GasPrice,
-					// 	// 最低gas
-					// 	GasLimit: rsq.RawDescToPlatform.GasLimit,
-					// 	//链id
-					// 	ChainID: rsq.RawDescToPlatform.ChainID,
-					// 	// 交易数据
-					// 	Txdata: rsq.RawDescToPlatform.Txdata,
-					// 	//ether，设为0
-					// 	Value: 0,
-					// 	//交易哈希
-					// 	TxHash: rsq.RawDescToPlatform.TxHash,
-					// 	//发币合约地址
-					// 	ContractAddress: rsq.RawDescToPlatform.ToWalletAddress,
-					// }
-
-					// log.Println(rawTxToPlatform)
-
-					//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
-					privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
-
-					rawTxHex, err := buildTx(rsq.RawDescToPlatform, privKeyHex)
-					if err != nil {
-						log.Fatalln(err)
-
-					}
-
-					//TODO 调用10-7 确认转账
-
-					go func() {
-						err = WithDraw(rsq.WithdrawUUID, rawTxHex)
-						if err != nil {
-							log.Fatalln(err)
-						}
-					}()
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1425,16 +1100,61 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.PreWithDrawRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-6 发起提现预审核 回包内容 : \n rawDescToPlatform---------------------")
+		log.Println("username: ", localUserName)
+		// log.Println(rsq.Time)
+		// log.Println(rsq.RawDescToPlatform)
+
+		// rawTxToPlatform := &models.RawDesc{
+		// 	Nonce: rsq.RawDescToPlatform.Nonce,
+		// 	// gas价格
+		// 	GasPrice: rsq.RawDescToPlatform.GasPrice,
+		// 	// 最低gas
+		// 	GasLimit: rsq.RawDescToPlatform.GasLimit,
+		// 	//链id
+		// 	ChainID: rsq.RawDescToPlatform.ChainID,
+		// 	// 交易数据
+		// 	Txdata: rsq.RawDescToPlatform.Txdata,
+		// 	//ether，设为0
+		// 	Value: 0,
+		// 	//交易哈希
+		// 	TxHash: rsq.RawDescToPlatform.TxHash,
+		// 	//发币合约地址
+		// 	ContractAddress: rsq.RawDescToPlatform.ToWalletAddress,
+		// }
+
+		// log.Println(rawTxToPlatform)
+
+		//privKeyHex 是用户自己的私钥，约定为第0号叶子的子私钥
+		privKeyHex := GetKeyPairsFromLeafIndex(mnemonic, 0).PrivateKeyHex
+
+		rawTxHex, err := buildTx(rsq.RawDescToPlatform, privKeyHex)
+		if err != nil {
+			log.Fatalln(err)
+
 		}
 
+		//TODO 调用10-7 确认转账
+
+		go func() {
+			err = WithDraw(rsq.WithdrawUUID, rawTxHex)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}()
+
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -1493,9 +1213,9 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "7",           // 业务子号
@@ -1506,59 +1226,11 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.WithDrawRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-7 确认提现回包内容 : ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("blockNumber: ", rsq.BlockNumber)
-					log.Println("hash: ", rsq.Hash)
-					log.Println("balanceLNMC: ", rsq.BalanceLNMC)
-					log.Println("time: ", rsq.Time)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1590,16 +1262,25 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.WithDrawRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-7 确认提现回包内容 : ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("blockNumber: ", rsq.BlockNumber)
+		log.Println("hash: ", rsq.Hash)
+		log.Println("balanceLNMC: ", rsq.BalanceLNMC)
+		log.Println("time: ", rsq.Time)
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -1667,9 +1348,9 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "10",          // 业务子号
@@ -1680,57 +1361,11 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.SyncDepositHistoryPageRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-10 同步充值历史 回包内容 : \n ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("total", rsq.Total)
-					log.Println(rsq.Deposits)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1762,14 +1397,20 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.SyncDepositHistoryPageRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-10 同步充值历史 回包内容 : \n ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("total", rsq.Total)
+		log.Println(rsq.Deposits)
 
 	}
 	log.Println("Cmd is Done.")
@@ -1838,9 +1479,9 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "11",          // 业务子号
@@ -1851,57 +1492,11 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.SyncWithdrawHistoryPageRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-11 同步提现历史 回包内容 : \n ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("total", rsq.Total)
-					log.Println(rsq.Withdraws)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -1933,16 +1528,23 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.SyncWithdrawHistoryPageRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-11 同步提现历史 回包内容 : \n ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("total", rsq.Total)
+		log.Println(rsq.Withdraws)
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil
@@ -2010,9 +1612,9 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "9",           // 业务子号
@@ -2023,57 +1625,11 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.SyncCollectionHistoryPageRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-9 同步收款历史 回包内容 : \n ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("total", rsq.Total)
-					log.Println(rsq.Collections)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -2105,14 +1661,20 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.SyncCollectionHistoryPageRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-9 同步收款历史 回包内容 : \n ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("total", rsq.Total)
+		log.Println(rsq.Collections)
 
 	}
 	log.Println("Cmd is Done.")
@@ -2181,9 +1743,9 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "12",          // 业务子号
@@ -2194,57 +1756,11 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		},
 	}
 
-	//send req to mqtt
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
-
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
-
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
-
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.SyncTransferHistoryPageRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
-
-				} else {
-
-					log.Println("10-12 同步转账历史 回包内容 : \n ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("total", rsq.Total)
-					log.Println(rsq.Transfers)
-
-				}
-
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
-
-		}),
-		Conn: conn,
-	})
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -2276,14 +1792,20 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.SyncTransferHistoryPageRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-12 同步转账历史 回包内容 : \n ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("total", rsq.Total)
+		log.Println(rsq.Transfers)
 
 	}
 	log.Println("Cmd is Done.")
@@ -2348,9 +1870,9 @@ func DoTxHashInfo(txType int32, txHash string) error {
 		QoS:     byte(1),
 		Payload: content,
 		Properties: &paho.PublishProperties{
-			ResponseTopic:   responseTopic,
+			ResponseTopic: responseTopic,
 			User: map[string]string{
-				"jwtToken":        jwtToken, // jwt令牌
+				"jwtToken":        jwtToken,      // jwt令牌
 				"deviceId":        localDeviceID, // 设备号
 				"businessType":    "10",          // 业务号
 				"businessSubType": "14",          // 业务子号
@@ -2361,61 +1883,56 @@ func DoTxHashInfo(txType int32, txHash string) error {
 		},
 	}
 
-	//send req to mqtt
-	//利用TLS协议连接broker
-	tlsConfig := NewTlsConfig()
-	conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
-	}
+	/*
+		//send req to mqtt
+		//利用TLS协议连接broker
+		tlsConfig := NewTlsConfig()
+		conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
+		if err != nil {
+			log.Fatalf("Failed to connect to %s: %s", clientcommon.BrokerAddr, err)
+		}
 
-	// Create paho client.
-	client := paho.NewClient(paho.ClientConfig{
-		Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-			log.Println("Incoming mqtt broker message")
+		// Create paho client.
+		client := paho.NewClient(paho.ClientConfig{
+			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
+				log.Println("Incoming mqtt broker message")
 
-			topic := m.Topic
-			jwtToken :=  m.Properties.User["jwtToken"]  // Add by lishijia  for flutter mqtt
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
-			code := m.Properties.User["code"]
+				topic := m.Topic
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+				code := m.Properties.User["code"]
 
-			log.Println("topic: ", topic)
-			log.Println("jwtToken: ", jwtToken)
-			log.Println("deviceId: ", deviceId)
-			log.Println("businessType: ", businessTypeStr)
-			log.Println("businessSubType: ", businessSubTypeStr)
-			log.Println("taskId: ", taskIdStr)
-			log.Println("code: ", code)
+				log.Println("topic: ", topic)
+				log.Println("jwtToken: ", jwtToken)
+				log.Println("deviceId: ", deviceId)
+				log.Println("businessType: ", businessTypeStr)
+				log.Println("businessSubType: ", businessSubTypeStr)
+				log.Println("taskId: ", taskIdStr)
+				log.Println("code: ", code)
 
-			if code == "200" {
-				// 回包
-				//解包负载 m.Payload
-				var rsq Wallet.TxHashInfoRsp
-				if err := proto.Unmarshal(m.Payload, &rsq); err != nil {
-					log.Println("Protobuf Unmarshal Error", err)
+				if code == "200" {
+					// 回包
+					//解包负载 m.Payload
+
 
 				} else {
-
-					log.Println("10-14 查询交易哈希详情 回包内容 : \n ---------------------")
-					log.Println("username: ", localUserName)
-					log.Println("blockNumber", rsq.BlockNumber)
-					log.Println("gas", rsq.Gas)
-					log.Println("nonce", rsq.Nonce)
-					log.Println("data", rsq.Data)
-					log.Println("to", rsq.To)
-
+					log.Println("Cmd failed, code: ", code)
 				}
 
-			} else {
-				log.Println("Cmd failed, code: ", code)
-			}
+			}),
+			Conn: conn,
+		})
 
-		}),
-		Conn: conn,
-	})
+	*/
+
+	var client *paho.Client
+	var payloadCh chan []byte
+	payloadCh = make(chan []byte, 0)
+
+	client = business.CreateClient(payloadCh)
 
 	cp := &paho.Connect{
 		KeepAlive:  30,
@@ -2447,16 +1964,26 @@ func DoTxHashInfo(txType int32, txHash string) error {
 		log.Println("Succeed Publish to mqtt broker:", topic)
 	}
 
-	run := true
-	ticker := time.NewTicker(30 * time.Second) // 30s后退出
-	for run == true {
-		select {
-		case <-ticker.C:
-			run = false
-			break
-		}
+	//堵塞
+	payload := <-payloadCh
+
+	//解包负载 payload
+	var rsq Wallet.TxHashInfoRsp
+	if err := proto.Unmarshal(payload, &rsq); err != nil {
+		log.Println("Protobuf Unmarshal Error", err)
+
+	} else {
+
+		log.Println("10-14 查询交易哈希详情 回包内容 : \n ---------------------")
+		log.Println("username: ", localUserName)
+		log.Println("blockNumber", rsq.BlockNumber)
+		log.Println("gas", rsq.Gas)
+		log.Println("nonce", rsq.Nonce)
+		log.Println("data", rsq.Data)
+		log.Println("to", rsq.To)
 
 	}
+
 	log.Println("Cmd is Done.")
 
 	return nil

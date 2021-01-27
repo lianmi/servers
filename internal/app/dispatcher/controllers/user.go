@@ -272,6 +272,14 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 	mobile := c.Param("mobile")
 	pc.logger.Debug("GetUsernameByMobile start ...", zap.String("mobile", mobile))
 
+	if mobile == "" {
+		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
+
+		code = codes.InvalidParams
+		RespFail(c, http.StatusNotFound, code, "Mobile is empty")
+		return
+	}
+
 	//不是手机
 	if len(mobile) != 11 {
 		pc.logger.Warn("GetUsernameByMobile error", zap.Int("len", len(mobile)))
@@ -283,9 +291,9 @@ func (pc *LianmiApisController) GetUsernameByMobile(c *gin.Context) {
 
 	//不是全数字
 	if !conv.IsDigit(mobile) {
-		pc.logger.Warn("GetUsernameByMobile Is not Digit")
+		pc.logger.Warn("Mobile Is not Digit")
 		code = codes.ERROR
-		RespOk(c, http.StatusOK, code)
+		RespFail(c, http.StatusBadRequest, code, "Mobile is not Digit")
 		return
 	}
 
