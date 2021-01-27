@@ -30,17 +30,17 @@ func (pc *LianmiApisController) PreAlipay(c *gin.Context) {
 	var req Wallet.PreAlipayReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("PreAlipay, binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if req.TotalAmount <= 0.00 {
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段: TotalAmount")
+			RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段: TotalAmount")
 		}
 		req.Username = userName
 
 		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 		if resp, err := pc.service.PreAlipay(ctx, &req); err != nil {
 			code = codes.ERROR
-			RespFail(c, http.StatusBadRequest, code, "PreAlipay error")
+			RespData(c, http.StatusOK, code, "PreAlipay error")
 			return
 		} else {
 
@@ -163,10 +163,10 @@ func (pc *LianmiApisController) PreWXpay(c *gin.Context) {
 	var req Wallet.PreWXpayReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("PreWXpay, binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if req.TotalAmount <= 0.00 {
-			RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段: TotalAmount")
+			RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段: TotalAmount")
 		}
 		req.Username = userName
 		req.ClientIP = c.ClientIP() //客户端I
@@ -174,7 +174,7 @@ func (pc *LianmiApisController) PreWXpay(c *gin.Context) {
 		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 		if resp, err := pc.service.PreWXpay(ctx, &req); err != nil {
 			code = codes.ERROR
-			RespFail(c, http.StatusBadRequest, code, "PreWXpay error")
+			RespData(c, http.StatusOK, code, "PreWXpay error")
 			return
 		} else {
 

@@ -29,7 +29,7 @@ func (pc *LianmiApisController) GetVipPriceList(c *gin.Context) {
 	resp, err := pc.service.GetVipPriceList(payType)
 
 	if err != nil {
-		RespFail(c, http.StatusBadRequest, 400, "GetVipPriceList failed")
+		RespData(c, http.StatusOK, 400, "GetVipPriceList failed")
 	} else {
 
 		RespData(c, http.StatusOK, 200, resp)
@@ -41,13 +41,13 @@ func (pc *LianmiApisController) GetBusinessMembership(c *gin.Context) {
 	var req Auth.GetBusinessMembershipReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		resp, err := pc.service.GetBusinessMembership(req.BusinessUsername)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Get BusinessMembership failed")
+			RespData(c, http.StatusOK, 400, "Get BusinessMembership failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)
@@ -61,14 +61,14 @@ func (pc *LianmiApisController) CommissonSatistics(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	username := claims[LMCommon.IdentityKey].(string)
 	if username == "" {
-		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		RespData(c, http.StatusOK, 500, "username is empty")
 		return
 	} else {
 		pc.logger.Debug("CommissonSatistics", zap.String("username", username))
 		resp, err := pc.service.CommissonSatistics(username)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "CommissonSatistics failed")
+			RespData(c, http.StatusOK, 400, "CommissonSatistics failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)
@@ -82,14 +82,14 @@ func (pc *LianmiApisController) GetCommissionStatistics(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	username := claims[LMCommon.IdentityKey].(string)
 	if username == "" {
-		RespFail(c, http.StatusBadRequest, 500, "username is empty")
+		RespData(c, http.StatusOK, 500, "username is empty")
 		return
 	} else {
 		pc.logger.Debug("GetCommissionStatistics", zap.String("username", username))
 		resp, err := pc.service.GetCommissionStatistics(username)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "GetCommissionStatistics failed")
+			RespData(c, http.StatusOK, 400, "GetCommissionStatistics failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)
@@ -103,16 +103,16 @@ func (pc *LianmiApisController) SubmitCommssionWithdraw(c *gin.Context) {
 	var req Auth.CommssionWithdrawReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if req.Username == "" || req.YearMonth == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Submit Commssion Withdraw failed")
+			RespData(c, http.StatusOK, 400, "Submit Commssion Withdraw failed")
 		}
 
 		resp, err := pc.service.SubmitCommssionWithdraw(req.Username, req.YearMonth)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Submit Commssion Withdraw failed")
+			RespData(c, http.StatusOK, 400, "Submit Commssion Withdraw failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, resp)

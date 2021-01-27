@@ -49,14 +49,14 @@ func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 	pc.logger.Debug("BlockUser start ...")
 	username := c.Param("username")
 	if username == "" {
-		RespFail(c, http.StatusNotFound, 404, "Param is  empty")
+		RespData(c, http.StatusOK, 404, "Param is empty")
 		return
 	}
 
 	err := pc.service.BlockUser(username)
 	if err != nil {
 		pc.logger.Error("Block User by username error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 500, "Block User by username error")
+		RespData(c, http.StatusOK, 500, "Block User by username error")
 
 		return
 	}
@@ -73,14 +73,14 @@ func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 	pc.logger.Debug("DisBlockUser start ...")
 	username := c.Param("username")
 	if username == "" {
-		RespFail(c, http.StatusNotFound, 404, "Param is empty")
+		RespData(c, http.StatusOK, 404, "Param is empty")
 		return
 	}
 
 	err := pc.service.DisBlockUser(username)
 	if err != nil {
 		pc.logger.Error("DisBlockUser User by username error", zap.Error(err))
-		RespFail(c, http.StatusNotFound, 404, "username  not found")
+		RespData(c, http.StatusOK, 404, "username  not found")
 		return
 	}
 
@@ -106,7 +106,7 @@ func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
-		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
+		RespData(c, http.StatusOK, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.ApproveTeam(teamID); err == nil {
@@ -114,7 +114,7 @@ func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	} else {
 		pc.logger.Debug("ApproveTeam run FAILD")
-		RespFail(c, http.StatusBadRequest, 400, "授权新创建的群组失败")
+		RespData(c, http.StatusOK, 400, "授权新创建的群组失败")
 
 	}
 
@@ -129,7 +129,7 @@ func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 	//读取
 	teamID := c.Param("teamid")
 	if teamID == "" {
-		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
+		RespData(c, http.StatusOK, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.BlockTeam(teamID); err == nil {
@@ -137,7 +137,7 @@ func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	} else {
 		pc.logger.Debug("BlockTeam  run FAILD")
-		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
+		RespData(c, http.StatusOK, 400, "封禁群组失败")
 
 	}
 
@@ -153,7 +153,7 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 	teamID := c.Param("teamid")
 	if teamID == "" {
 
-		RespFail(c, http.StatusBadRequest, 400, "Param is empty")
+		RespData(c, http.StatusOK, 400, "Param is empty")
 		return
 	}
 	if err := pc.service.DisBlockTeam(teamID); err == nil {
@@ -161,7 +161,7 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	} else {
 		pc.logger.Debug("DisBlockTeam  run FAILD")
-		RespFail(c, http.StatusBadRequest, 400, "封禁群组失败")
+		RespData(c, http.StatusOK, 400, "封禁群组失败")
 
 	}
 
@@ -175,11 +175,11 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 	var req Order.GetGeneralProductPageReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		resp, err := pc.service.GetGeneralProductPage(&req)
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取店铺商品列表错误")
+			RespData(c, http.StatusOK, code, "获取店铺商品列表错误")
 			return
 		}
 
@@ -197,7 +197,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 	var og Order.GeneralProduct
 	if c.BindJSON(&og) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		//增加
 		var productPic1Large, productPic2Large, productPic3Large string
@@ -248,7 +248,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 			RespOk(c, http.StatusOK, 200)
 		} else {
 			pc.logger.Warn("AddGeneralProduct run FAILD")
-			RespFail(c, http.StatusBadRequest, 400, "增加通用商品失败")
+			RespData(c, http.StatusOK, 400, "增加通用商品失败")
 		}
 
 	}
@@ -263,17 +263,17 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 	var og Order.GeneralProduct
 	if c.BindJSON(&og) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		//修改
 		if og.ProductId == "" {
 			pc.logger.Warn("ProductId is empty")
-			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductId 不能为空")
+			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductId 不能为空")
 		}
 
 		if len(og.ProductPics) == 0 {
 			pc.logger.Warn("ProductPics length is 0")
-			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败, ProductPics length is 0")
+			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductPics length is 0")
 		}
 		var productPic1Large, productPic2Large, productPic3Large string
 		if len(og.ProductPics) >= 1 {
@@ -323,7 +323,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 			RespOk(c, http.StatusOK, 200)
 		} else {
 			pc.logger.Warn("AddGeneralProduct  run FAILD")
-			RespFail(c, http.StatusBadRequest, 400, "修改通用商品失败")
+			RespData(c, http.StatusOK, 400, "修改通用商品失败")
 
 		}
 
@@ -338,14 +338,14 @@ func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
 
 	productId := c.Param("productid")
 	if productId == "" {
-		RespFail(c, http.StatusBadRequest, 404, "productid is empty")
+		RespData(c, http.StatusOK, 404, "productid is empty")
 		return
 	}
 	if pc.service.DeleteGeneralProduct(productId) {
 
 		RespOk(c, http.StatusOK, 200)
 	} else {
-		RespFail(c, http.StatusBadRequest, 400, "delete GeneralProduct failed")
+		RespData(c, http.StatusOK, 400, "delete GeneralProduct failed")
 	}
 
 }
@@ -359,29 +359,29 @@ func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 	var req Auth.AddCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		if !(req.Type == 1 || req.Type == 2) {
-			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
+			RespData(c, http.StatusOK, 400, "Type参数错误")
 		}
 		if req.Username == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+			RespData(c, http.StatusOK, 400, "Username参数错误")
 		}
 		if req.JobNumber == "" {
-			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
+			RespData(c, http.StatusOK, 400, "JobNumber参数错误")
 		}
 		if req.Evaluation == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
+			RespData(c, http.StatusOK, 400, "Evaluation参数错误")
 		}
 		if req.NickName == "" {
-			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
+			RespData(c, http.StatusOK, 400, "NickName参数错误")
 		}
 
 		err := pc.service.AddCustomerService(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Add CustomerService failed")
+			RespData(c, http.StatusOK, 400, "Add CustomerService failed")
 		} else {
 			RespOk(c, http.StatusOK, 200)
 		}
@@ -398,15 +398,15 @@ func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 	var req Auth.DeleteCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		if req.Username == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+			RespData(c, http.StatusOK, 400, "Username参数错误")
 		}
 
 		if pc.service.DeleteCustomerService(&req) == false {
-			RespFail(c, http.StatusBadRequest, 400, "Delete CustomerServices failed")
+			RespData(c, http.StatusOK, 400, "Delete CustomerServices failed")
 		} else {
 			RespOk(c, http.StatusOK, 200)
 		}
@@ -423,28 +423,28 @@ func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 	var req Auth.UpdateCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if !(req.Type == 1 || req.Type == 2) {
-			RespFail(c, http.StatusBadRequest, 400, "Type参数错误")
+			RespData(c, http.StatusOK, 400, "Type参数错误")
 		}
 		if req.Username == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Username参数错误")
+			RespData(c, http.StatusOK, 400, "Username参数错误")
 		}
 		if req.JobNumber == "" {
-			RespFail(c, http.StatusBadRequest, 400, "JobNumber参数错误")
+			RespData(c, http.StatusOK, 400, "JobNumber参数错误")
 		}
 		if req.Evaluation == "" {
-			RespFail(c, http.StatusBadRequest, 400, "Evaluation参数错误")
+			RespData(c, http.StatusOK, 400, "Evaluation参数错误")
 		}
 		if req.NickName == "" {
-			RespFail(c, http.StatusBadRequest, 400, "NickName参数错误")
+			RespData(c, http.StatusOK, 400, "NickName参数错误")
 		}
 		//修改在线客服资料
 		err := pc.service.UpdateCustomerService(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Update CustomerServices failed")
+			RespData(c, http.StatusOK, 400, "Update CustomerServices failed")
 		} else {
 			RespOk(c, http.StatusOK, 200)
 		}
@@ -461,16 +461,16 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if req.BusinessUsername == "" {
-			RespFail(c, http.StatusBadRequest, 400, "BusinessUsername参数错误")
+			RespData(c, http.StatusOK, 400, "BusinessUsername参数错误")
 		}
 
 		err := pc.service.AuditStore(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "AuditStore failed")
+			RespData(c, http.StatusOK, 400, "AuditStore failed")
 		} else {
 			RespOk(c, http.StatusOK, 200)
 		}

@@ -25,14 +25,14 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	username := c.Param("id")
 
 	if username == "" {
-		RespFail(c, http.StatusBadRequest, 500, "id is empty")
+		RespData(c, http.StatusOK, 500, "id is empty")
 		return
 	}
 
 	user, err := pc.service.GetUser(username)
 	if err != nil {
 		pc.logger.Error("Get User by id error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 500, "Get  User by id error")
+		RespData(c, http.StatusOK, 500, "Get  User by id error")
 		return
 	}
 
@@ -47,11 +47,11 @@ func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
 	var req User.QueryUsersReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("Query Users, binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		if resp, err := pc.service.QueryUsers(&req); err != nil {
 			code = codes.ERROR
-			RespFail(c, http.StatusBadRequest, code, "Query users error")
+			RespData(c, http.StatusOK, code, "Query users error")
 			return
 		} else {
 
@@ -71,7 +71,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到user变量中，必填字段一定要填
 	if c.BindJSON(&userReq) != nil {
 		pc.logger.Error("Register, binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		pc.logger.Debug("注册body部分的字段",
 			zap.String("Nick", userReq.Nick),                         //呢称
@@ -89,7 +89,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if !conv.IsDigit(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is not digital")
 			code = codes.ErrNotDigital
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			RespData(c, http.StatusOK, code, "Mobile is not digital")
 			return
 		}
 
@@ -97,7 +97,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if pc.service.ExistUserByMobile(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is already registered")
 			code = codes.ErrExistMobile
-			RespFail(c, http.StatusBadRequest, code, "Mobile is already registered")
+			RespData(c, http.StatusOK, code, "Mobile is already registered")
 			return
 		}
 
@@ -105,7 +105,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if !pc.service.CheckSmsCode(userReq.Mobile, userReq.Smscode) {
 			pc.logger.Error("Register user error, SmsCode is wrong")
 			code = codes.ErrWrongSmsCode
-			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
+			RespData(c, http.StatusOK, code, "SmsCode is wrong")
 			return
 		}
 
@@ -114,7 +114,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			if !pc.service.ExistUserByName(userReq.ReferrerUsername) {
 				pc.logger.Error("Register user error, ReferrerUsername is not registered")
 				code = codes.ErrNotFoundInviter
-				RespFail(c, http.StatusBadRequest, code, "ReferrerUsername is not registered")
+				RespData(c, http.StatusOK, code, "ReferrerUsername is not registered")
 				return
 			}
 
@@ -150,7 +150,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		} else {
 			pc.logger.Error("Register user error", zap.Error(err))
 			code = codes.ERROR
-			RespFail(c, http.StatusBadRequest, code, "Register user error")
+			RespData(c, http.StatusOK, code, "Register user error")
 			return
 		}
 		RespData(c, http.StatusOK, code, Auth.RegisterResp{
@@ -168,7 +168,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 	// binding JSON,本质是将request中的Body中的数据按照JSON格式解析到ResetPassword变量中，必填字段一定要填
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		pc.logger.Debug("Binding JSON succeed",
@@ -179,7 +179,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		if !conv.IsDigit(req.Mobile) {
 			pc.logger.Error("Reset Password error, Mobile is not digital")
 			code = codes.InvalidParams
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			RespData(c, http.StatusOK, code, "Mobile is not digital")
 			return
 		}
 		//不是手机
@@ -187,7 +187,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 			pc.logger.Warn("Reset Password error", zap.Int("len", len(req.Mobile)))
 
 			code = codes.InvalidParams
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
+			RespData(c, http.StatusOK, code, "Mobile is not valid")
 			return
 		}
 
@@ -195,7 +195,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		if !pc.service.ExistUserByMobile(req.Mobile) {
 			pc.logger.Error("Reset Password error, Mobile is not registered")
 			code = codes.ErrNotRegisterMobile
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not registered")
+			RespData(c, http.StatusOK, code, "Mobile is not registered")
 			return
 		}
 
@@ -209,7 +209,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		if !pc.service.CheckSmsCode(req.Mobile, req.SmsCode) {
 			pc.logger.Error("Reset Password error, SmsCode is wrong")
 			code = codes.InvalidParams
-			RespFail(c, http.StatusBadRequest, code, "SmsCode is wrong")
+			RespData(c, http.StatusOK, code, "SmsCode is wrong")
 			return
 		}
 
@@ -220,7 +220,7 @@ func (pc *LianmiApisController) ResetPassword(c *gin.Context) {
 		} else {
 			pc.logger.Error("Reset Password error", zap.Error(err))
 			code = codes.ERROR
-			RespFail(c, http.StatusBadRequest, code, "Reset password error")
+			RespData(c, http.StatusOK, code, "Reset password error")
 			return
 		}
 
@@ -243,7 +243,7 @@ func (pc *LianmiApisController) GenerateSmsCode(c *gin.Context) {
 		pc.logger.Warn("GenerateSmsCode error", zap.Int("len", len(mobile)))
 
 		code = codes.InvalidParams
-		RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
+		RespData(c, http.StatusOK, code, "Mobile is not valid")
 		return
 	}
 
@@ -353,15 +353,15 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	var req Auth.ValidCodeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.Mobile == "" {
 			pc.logger.Error("Mobile is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Mobile")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Mobile")
 		}
 		if req.Smscode == "" {
 			pc.logger.Error("Smscode is empty")
-			RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段Smscode")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段Smscode")
 		}
 
 		pc.logger.Debug("ValidateCode",
@@ -372,7 +372,7 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 		if !conv.IsDigit(req.Mobile) {
 			pc.logger.Error("ValidateCode error, Mobile is not digital")
 			code = codes.InvalidParams
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not digital")
+			RespData(c, http.StatusOK, code, "Mobile is not digital")
 			return
 		}
 
@@ -381,7 +381,7 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 			pc.logger.Warn("ValidateCode error", zap.Int("len", len(req.Mobile)))
 
 			code = codes.InvalidParams
-			RespFail(c, http.StatusBadRequest, code, "Mobile is not valid")
+			RespData(c, http.StatusOK, code, "Mobile is not valid")
 			return
 		}
 

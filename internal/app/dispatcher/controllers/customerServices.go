@@ -20,12 +20,12 @@ func (pc *LianmiApisController) QueryCustomerServices(c *gin.Context) {
 	var req Auth.QueryCustomerServiceReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		csList, err := pc.service.QueryCustomerServices(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Query CustomerServices failed")
+			RespData(c, http.StatusOK, 400, "Query CustomerServices failed")
 		} else {
 			resp := &Auth.QueryCustomerServiceResp{}
 			for _, onlineCustomerService := range csList {
@@ -50,7 +50,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 	var req Auth.GradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 		pageIndex := int(req.Page)
 		pageSize := int(req.Limit)
@@ -69,7 +69,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 		pfList, err := pc.service.QueryGrades(&req, pageIndex, pageSize, total, maps)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Query Grades( failed")
+			RespData(c, http.StatusOK, 400, "Query Grades( failed")
 		} else {
 			pages := Auth.GradesPage{
 				TotalPage: uint64(*total),
@@ -101,17 +101,17 @@ func (pc *LianmiApisController) AddGrade(c *gin.Context) {
 	var req Auth.AddGradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		if req.CustomerServiceUsername == "" {
-			RespFail(c, http.StatusBadRequest, 400, "CustomerServiceUsername参数错误")
+			RespData(c, http.StatusOK, 400, "CustomerServiceUsername参数错误")
 		}
 
 		title, err := pc.service.AddGrade(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Add Grade failed")
+			RespData(c, http.StatusOK, 400, "Add Grade failed")
 		} else {
 
 			RespData(c, http.StatusOK, 200, &Auth.GradeTitleInfo{
@@ -128,17 +128,17 @@ func (pc *LianmiApisController) SubmitGrade(c *gin.Context) {
 	var req Auth.SubmitGradeReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, 400, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	} else {
 
 		if req.AppUsername == "" {
-			RespFail(c, http.StatusBadRequest, 400, "AppUsername参数错误")
+			RespData(c, http.StatusOK, 400, "AppUsername参数错误")
 		}
 
 		err := pc.service.SubmitGrade(&req)
 
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, 400, "Submit Grade failed")
+			RespData(c, http.StatusOK, 400, "Submit Grade failed")
 		} else {
 
 			RespOk(c, http.StatusOK, 200)

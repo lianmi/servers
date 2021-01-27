@@ -14,14 +14,14 @@ import (
 func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 	productId := c.Param("productid")
 	if productId == "" {
-		RespFail(c, http.StatusBadRequest, 400, "productid is empty")
+		RespData(c, http.StatusOK, 400, "productid is empty")
 		return
 	}
 
 	resp, err := pc.service.GetGeneralProductByID(productId)
 	if err != nil {
 		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 500, "Get GeneralProduct by productId error")
+		RespData(c, http.StatusOK, 500, "Get GeneralProduct by productId error")
 		return
 	}
 
@@ -31,14 +31,14 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 	productId := c.Param("productid")
 	if productId == "" {
-		RespFail(c, http.StatusBadRequest, 400, "productid is empty")
+		RespData(c, http.StatusOK, 400, "productid is empty")
 		return
 	}
 
 	resp, err := pc.service.GetProductInfo(productId)
 	if err != nil {
 		pc.logger.Error("get Product by productId error", zap.Error(err))
-		RespFail(c, http.StatusBadRequest, 500, "Get Product by productId error")
+		RespData(c, http.StatusOK, 500, "Get Product by productId error")
 		return
 	}
 
@@ -53,12 +53,12 @@ func (pc *LianmiApisController) GetProductsList(c *gin.Context) {
 
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 
 		resp, err := pc.service.GetProductsList(&req)
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "获取店铺商品列表错误")
+			RespData(c, http.StatusOK, code, "获取店铺商品列表错误")
 			return
 		}
 
@@ -74,16 +74,16 @@ func (pc *LianmiApisController) SetProductSubType(c *gin.Context) {
 
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(c, http.StatusBadRequest, code, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.ProductId == "" {
-			RespFail(c, http.StatusBadRequest, code, "商品ID不能为空")
+			RespData(c, http.StatusOK, code, "商品ID不能为空")
 			return
 		}
 
 		err := pc.service.SetProductSubType(&req)
 		if err != nil {
-			RespFail(c, http.StatusBadRequest, code, "设置商品的子类型发生错误")
+			RespData(c, http.StatusOK, code, "设置商品的子类型发生错误")
 			return
 		}
 
