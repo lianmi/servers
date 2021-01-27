@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common"
-	"github.com/lianmi/servers/internal/common/codes"
+	// "github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
 	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
@@ -176,11 +176,20 @@ func CreateInitControllersFn(
 						}
 					}
 				}
-
-				//保存校验码
-				if err := pc.service.SetUserSmsCode(username, mobile, smscode); err != nil {
-					pc.logger.Error("SetUserSmsCode error")
-					return nil, gin_jwt_v2.ErrMissingSecretKey
+				/*
+					//保存校验码
+					if err := pc.service.SetUserSmsCode(username, mobile, smscode); err != nil {
+						pc.logger.Error("SetUserSmsCode error")
+						return nil, gin_jwt_v2.ErrMissingSecretKey
+					}
+				*/
+				//检测校验码是否正确
+				if !pc.service.CheckSmsCode(mobile, smscode) {
+					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
+					// code = codes.ErrWrongSmsCode
+					//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
+					// RespData(c, http.StatusOK, code, "SmsCode is wrong")
+					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
 
 				// 检测用户是否可以登录, true-可以允许登录
@@ -251,16 +260,16 @@ func CreateInitControllersFn(
 					RespData(c, http.StatusOK, 500, "Get User by userName error")
 					return
 				}
-
-				//检测校验码是否正确
-				if !pc.service.CheckUserSmsCode(userName) {
-					pc.logger.Error("CheckUserSmsCode, SmsCode is wrong")
-					code = codes.ErrWrongSmsCode
-					//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
-					RespData(c, http.StatusOK, code, "SmsCode is wrong")
-					return
-				}
-
+				/*
+					//检测校验码是否正确
+					if !pc.service.CheckUserSmsCode(userName) {
+						pc.logger.Error("CheckUserSmsCode, SmsCode is wrong")
+						code = codes.ErrWrongSmsCode
+						//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
+						RespData(c, http.StatusOK, code, "SmsCode is wrong")
+						return
+					}
+				*/
 				var auditResult string
 				if int(user.User.UserType) == 2 && int(user.User.State) == 3 {
 					auditResult = "商户进驻已受理, 审核中..."
