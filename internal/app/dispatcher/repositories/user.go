@@ -367,7 +367,7 @@ ZRANGEBYSCORE devices:lsj001 4 4
 HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS" protocolversion "2.0" sdkversion "3.0"
 
 */
-func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
 	s.logger.Debug("CheckUser start...")
 	var err error
 	redisConn := s.redisPool.Get()
@@ -404,20 +404,20 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, smscode, username, pass
 		return false
 	}
 
-	//检测校验码
-	if !s.CheckSmsCode(mobile, smscode) {
-		s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", smscode))
-		return false
-	}
+	// //检测校验码
+	// if !s.CheckSmsCode(mobile, smscode) {
+	// 	s.logger.Error("校验码不匹配", zap.String("mobile", mobile), zap.String("smscode", smscode))
+	// 	return false
+	// }
 
-	//用完就要删除
-	smscodeKey := fmt.Sprintf("smscode:%s", mobile)
-	_, err = redisConn.Do("DEL", smscodeKey) //删除smscode
-	if err != nil {
-		s.logger.Error("DEL smscodeKey err", zap.Error(err))
-		return false
+	// //用完就要删除
+	// smscodeKey := fmt.Sprintf("smscode:%s", mobile)
+	// _, err = redisConn.Do("DEL", smscodeKey) //删除smscode
+	// if err != nil {
+	// 	s.logger.Error("DEL smscodeKey err", zap.Error(err))
+	// 	return false
 
-	}
+	// }
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)
 

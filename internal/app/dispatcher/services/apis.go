@@ -31,7 +31,7 @@ type LianmiApisService interface {
 	QueryAllUsernames() ([]string, error)
 
 	//检测用户登录
-	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool
 
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
@@ -364,9 +364,9 @@ func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role 
 }
 
 //CheckUser 身份验证
-func (s *DefaultLianmiApisService) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
+func (s *DefaultLianmiApisService) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
 
-	return s.Repository.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
+	return s.Repository.CheckUser(isMaster, username, password, deviceID, os, clientType)
 }
 
 func (s *DefaultLianmiApisService) ExistUserByName(username string) bool {

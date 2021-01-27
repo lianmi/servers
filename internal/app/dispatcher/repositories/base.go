@@ -43,7 +43,7 @@ type LianmiRepository interface {
 	GetUserRoles(where interface{}) []*models.Role
 
 	// 检测用户是否可以登陆
-	CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool
+	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool
 
 	//更新用户
 	UpdateUser(username string, user *models.User) error

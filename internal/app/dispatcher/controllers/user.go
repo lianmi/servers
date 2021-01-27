@@ -313,8 +313,8 @@ func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 	return pc.service.GetUserRoles(username)
 }
 
-func (pc *LianmiApisController) CheckUser(isMaster bool, smscode, username, password, deviceID, os string, clientType int) bool {
-	return pc.service.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType)
+func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
+	return pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
 }
 
 func (pc *LianmiApisController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {

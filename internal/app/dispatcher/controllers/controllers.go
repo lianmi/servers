@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common"
+	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
 	httpImpl "github.com/lianmi/servers/internal/pkg/transports/http"
@@ -177,7 +178,7 @@ func CreateInitControllersFn(
 				}
 
 				// 检测用户是否可以登录, true-可以允许登录
-				if pc.CheckUser(isMaster, smscode, username, password, deviceID, os, clientType) {
+				if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
 					return &models.UserRole{
 						UserName: username,
@@ -261,6 +262,21 @@ func CreateInitControllersFn(
 				})
 			},
 			LoginResponse: func(c *gin.Context, code int, token string, t time.Time) {
+				var loginVals Login //重要！不能用models.User，因为有很多必填字段
+				if err := c.ShouldBind(&loginVals); err != nil {
+					pc.logger.Error("LoginResponse ShouldBind Error", zap.Error(err))
+					return
+				}
+				smscode := loginVals.SmsCode
+				mobile := loginVals.Mobile
+				//检测校验码是否正确
+				if !pc.service.CheckSmsCode(mobile, smscode) {
+					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
+					code = codes.ErrWrongSmsCode
+					RespData(c, http.StatusOK, code, "SmsCode is wrong")
+					return
+				}
+
 				//解析JWT令牌
 				claims, err := ParseToken(token, []byte(common.SecretKey))
 				if nil != err {
