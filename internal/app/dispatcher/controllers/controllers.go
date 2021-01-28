@@ -244,8 +244,14 @@ func CreateInitControllersFn(
 				//只有jwt有效，都放行
 				return true
 			},
+			
 			//处理不进行授权的逻辑
 			Unauthorized: func(c *gin.Context, code int, message string) {
+				pc.logger.Debug("Unauthorized",
+					zap.Int("code", code),
+					zap.String("message", message),
+				)
+
 				c.JSON(code, gin.H{
 					"code":    code,
 					"message": message,
