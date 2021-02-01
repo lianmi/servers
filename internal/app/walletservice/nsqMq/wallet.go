@@ -892,7 +892,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			Content:     content,                             //附言
 			Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
 		})
-		go nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			nc.logger.Debug("延时100ms连米币到账通知事件, 5-2",
+				zap.String("to", toUsername),
+			)
+			nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
+		}()
 
 		//订单支付  9-12，通知双方
 		if orderID != "" {
@@ -979,12 +985,26 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 			//向接收者推送 9-12 订单支付完成的事件
 			nc.logger.Debug("向接收者推送 9-12 订单支付完成的事件", zap.String("toUsername", toUsername), zap.String("orderID", orderID))
-			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
+					zap.String("to", toUsername),
+				)
+				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
+			}()
 
 			//向支付发起者推送 9-12 支付订单完成的事件
 			nc.logger.Debug("向支付发起者推送 9-12 订单支付完成的事件", zap.String("username", username))
-			go nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
+					zap.String("to", username),
+				)
+				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
+			}()
+
+			s
 			//向发起支付的买家及商户推送订单已支付成功的状态
 			nc.logger.Debug("向发起支付的买家及商户推送订单已支付成功的状态", zap.String("username", username))
 
@@ -1014,7 +1034,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					nc.logger.Debug("延时100ms通知买家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
-					go nc.BroadcastOrderMsgToAllDevices(eRsp, username)
+					nc.BroadcastOrderMsgToAllDevices(eRsp, username)
 				}()
 
 			}
@@ -1037,7 +1057,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					nc.logger.Debug("延时100ms通知商家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
-					go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+					nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 				}()
 
 			}

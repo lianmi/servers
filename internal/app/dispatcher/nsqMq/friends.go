@@ -307,8 +307,14 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", userA),
+							)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+						}()
 
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
 					}
 
 					//下发通知给B所有端
@@ -343,7 +349,13 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", userB),
+							)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
+						}()
 					}
 
 					//更新redis的sync:{用户账号} friendsAt 时间戳
@@ -416,21 +428,36 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					if !isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A和B互相不为好友，B所有终端均会收到该消息。下发系统通知给B", zap.String("userB", userB))
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
+
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", userB),
+							)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
+						}()
+
 					}
 
 					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 					if isAhaveB && !isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
+						nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 					}
 
 					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
 					if !isAhaveB && isBhaveA {
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", userA),
+							)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+						}()
 					}
 
 				}
@@ -591,7 +618,15 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					}
 					if isSend {
 						nc.logger.Debug(fmt.Sprintf("好友添加成功，下发通知给A, userA: %s, userB: %s", userA, userB))
-						go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", userA),
+							)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+						}()
+
 					} else {
 						nc.logger.Warn(fmt.Sprintf("警告: isSend=false, userA: %s, userB: %s", userA, userB))
 					}
@@ -654,7 +689,15 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 					nc.logger.Debug(fmt.Sprintf("下发通知给A, userA: %s, userB: %s", userA, userB))
-					go nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", userA),
+						)
+						nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+					}()
+
 				}
 
 			}
@@ -860,7 +903,15 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastSystemMsgToAllDevices(eRsp, targetUsername)
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", targetUsername),
+				)
+				nc.BroadcastSystemMsgToAllDevices(eRsp, targetUsername)
+			}()
+
 		}
 
 		//向当前用户的其它端推送
@@ -892,7 +943,15 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", targetUsername),
+				)
+				nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
+			}()
+
 		}
 	}
 

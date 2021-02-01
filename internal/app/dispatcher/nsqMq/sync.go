@@ -724,7 +724,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	topic := "Msg.Frontend"
 	rawData, _ := json.Marshal(targetMsg)
 
-	go nc.Producer.Public(topic, rawData)
+	nc.Producer.Public(topic, rawData)
 
 	nc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
 		zap.String("Username:", toUser),

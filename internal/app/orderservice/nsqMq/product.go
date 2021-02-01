@@ -504,7 +504,7 @@ COMPLETE:
 			productData, _ := proto.Marshal(addProductEventRsp)
 
 			//向所有关注了此商户的用户推送 7-5 新商品上架事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+			nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
 		}
 	}()
 
@@ -686,7 +686,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 				productData, _ := proto.Marshal(updateProductEventRsp)
 
 				//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
-				go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
+				nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
 			}
 
 		}()
@@ -818,7 +818,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			productData, _ := proto.Marshal(soldoutProductEventRsp)
 
 			//向所有关注了此商户的用户推送 7-7 商品下架事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
+			nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
 		}
 	}
 
@@ -1080,7 +1080,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 			zap.String("to", orderProductBody.BuyUser),
 			zap.Int("State", int(orderProductBody.State)),
 		)
-		go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+		nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
 	}()
 
 	return nil
@@ -1205,7 +1205,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 				nc.logger.Error("商户的OPK池是空的，并且默认OPK也是空")
 
 				//向商户推送9-10事件通知
-				go nc.SendOPKNoSufficientToMasterDevice(req.UserName, 0)
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms向商户推送9-10事件通知",
+						zap.String("to", req.UserName),
+					)
+					nc.SendOPKNoSufficientToMasterDevice(req.UserName, 0)
+				}()
 
 				errorCode = LMCError.OPKEmptyError
 				goto COMPLETE
@@ -1222,7 +1228,13 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 					nc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
 
 					//向商户推送9-10事件通知
-					go nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms向商户推送9-10事件通知",
+							zap.String("to", req.UserName),
+						)
+						nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
+					}()
 
 				} else {
 					nc.logger.Debug("商户的prekeys存量", zap.Int("count", count))
@@ -1720,8 +1732,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						//为配合flutter调试，暂时不发
-						
-						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
+
+						nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
@@ -1777,7 +1789,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
 								)
-								go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+								nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
 							}()
 
 						}
@@ -2393,7 +2405,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 					zap.String("to", toUsername),
 					zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)),
 				)
-				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+				nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 			}()
 
 		}

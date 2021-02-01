@@ -715,7 +715,15 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
-						go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							nc.logger.Debug("延时100ms消息, 5-2",
+								zap.String("to", manager),
+							)
+							nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+						}()
+
 					}
 
 				}
@@ -834,7 +842,15 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, inviter,
 				}
 
 				//向被邀请加群的用户推送系统通知
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, inviteUsername)
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", inviteUsername),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, inviteUsername)
+				}()
+
 			}
 		}
 	}
@@ -1030,7 +1046,14 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(time.Now().UnixNano() / 1e6),
 								}
-								go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+								go func() {
+									time.Sleep(100 * time.Millisecond)
+									nc.logger.Debug("延时100ms消息, 5-2",
+										zap.String("to", teamMember),
+									)
+									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								}()
 
 							}
 
@@ -1333,7 +1356,14 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				}()
+
 			}
 
 			//计算群成员数量。
@@ -1527,10 +1557,23 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", req.GetFrom()),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetFrom()) //向邀请者发送此用户拒绝入群的通知
+			}()
 
 			//向自己的其它端推送
-			go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", username),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
+			}()
 
 		}
 	}
@@ -1773,7 +1816,15 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", teamMember),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+					}()
+
 				}
 
 			case Team.VerifyType_Vt_Apply: //需要审核加入
@@ -1808,7 +1859,15 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", manager),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+					}()
+
 				}
 
 			case Team.VerifyType_Vt_Private: //仅限邀请加入
@@ -2037,7 +2096,15 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				}()
+
 			}
 			/*
 				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
@@ -2246,7 +2313,14 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, targetUsername)
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", targetUsername),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, targetUsername)
+			}()
 
 			//向群的群主及管理员发送拒绝入群消息
 			managers, _ := nc.GetOwnerAndManagers(teamID)
@@ -2280,7 +2354,15 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向群的群主及管理员广播
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", manager),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向群的群主及管理员广播
+				}()
+
 			}
 
 		}
@@ -2499,7 +2581,14 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(curAt),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+				}()
 
 				//更新redis的sync:{用户账号} teamsAt 时间戳
 				redisConn.Send("HSET",
@@ -2694,7 +2783,14 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 								Time:         uint64(curAt),
 							}
-							go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+							go func() {
+								time.Sleep(100 * time.Millisecond)
+								nc.logger.Debug("延时100ms消息, 5-2",
+									zap.String("to", teamMember),
+								)
+								nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+							}()
 
 						}
 
@@ -2940,7 +3036,14 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(curAt),
 								}
-								go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+								go func() {
+									time.Sleep(100 * time.Millisecond)
+									nc.logger.Debug("延时100ms消息, 5-2",
+										zap.String("to", teamMember),
+									)
+									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								}()
 
 							}
 
@@ -3170,7 +3273,14 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 									Time:         uint64(curAt),
 								}
-								go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+								go func() {
+									time.Sleep(100 * time.Millisecond)
+									nc.logger.Debug("延时100ms消息, 5-2",
+										zap.String("to", teamMember),
+									)
+									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								}()
 
 							}
 							redisConn.Flush()
@@ -3375,7 +3485,14 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(curAt),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+				}()
 
 			}
 		}
@@ -3599,7 +3716,14 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", teamMember),
+						)
+						nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
+					}()
+
 				}
 
 			} else {
@@ -3885,7 +4009,15 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
-			go nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				nc.logger.Debug("延时100ms消息, 5-2",
+					zap.String("to", username),
+				)
+				nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
+			}()
+
 		}
 	}
 
@@ -4066,7 +4198,15 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", username),
+						)
+						nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
+					}()
+
 				}
 
 			} else {
@@ -4517,7 +4657,14 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetInvitee()) //向受邀请人推送
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", username),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetInvitee()) //向受邀请人推送
+				}()
 
 				//向其它管理员推送
 				managers, _ := nc.GetOwnerAndManagers(teamID)
@@ -4550,7 +4697,15 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", username),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					}()
+
 				}
 
 			} else { //拒绝了
@@ -4585,7 +4740,14 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetInviter()) //向邀请人推送
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms消息, 5-2",
+						zap.String("to", username),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.GetInviter()) //向邀请人推送
+				}()
 
 				//向其它管理员推送
 				managers, _ := nc.GetOwnerAndManagers(teamID)
@@ -4617,7 +4779,15 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("延时100ms消息, 5-2",
+							zap.String("to", username),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					}()
+
 				}
 			}
 
