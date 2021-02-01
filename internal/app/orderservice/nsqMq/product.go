@@ -1620,7 +1620,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				//判断商户的账号id不能为空
 				if orderProductBody.BusinessUser == "" {
-					nc.logger.Error("BusinessUse is empty")
+					nc.logger.Error("BusinessUser is empty")
 					errorCode = LMCError.BusinessUserIsEmptyError
 					goto COMPLETE
 				}
@@ -2587,8 +2587,8 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		targetMsg.SetDeviceID(eDeviceID)
 		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5 
+		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件 2
 
 		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
