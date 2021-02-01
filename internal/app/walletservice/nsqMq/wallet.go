@@ -1009,7 +1009,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastOrderMsgToAllDevices(eRsp, username)
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms通知买家订单已支付成功的状态, 5-2",
+						zap.String("to", username),
+					)
+					go nc.BroadcastOrderMsgToAllDevices(eRsp, username)
+				}()
 
 			}
 
@@ -1026,7 +1032,13 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					// Uuid:         req.Uuid,                   //客户端分配的消息ID，SDK生成的消息id
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
-				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					nc.logger.Debug("延时100ms通知商家订单已支付成功的状态, 5-2",
+						zap.String("to", username),
+					)
+					go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+				}()
 
 			}
 
@@ -1770,9 +1782,9 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		topic := "Order.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("Order Message succeed send to ProduceChannel", zap.String("topic", topic))
+			nc.logger.Info("5-2 Message succeed send to dispatccher", zap.String("topic", topic))
 		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error("Failed to send 5-2 message to dispatccher", zap.Error(err))
 		}
 
 		nc.logger.Info("Order Message(5-2) send Succeed",
