@@ -2604,9 +2604,9 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		topic := "Order.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("Message succeed send to dispatcher", zap.String("topic", topic))
+			nc.logger.Info("5-2 Message succeed send to dispatcher", zap.String("topic", topic))
 		} else {
-			nc.logger.Error("Failed to send message to dispatcher", zap.Error(err))
+			nc.logger.Error("Failed to send 5-2 message to dispatcher", zap.Error(err))
 		}
 
 		nc.logger.Info("Broadcast Msg To All Devices Succeed",
