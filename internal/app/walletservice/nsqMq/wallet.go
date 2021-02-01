@@ -1004,7 +1004,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 			}()
 
-			s
 			//向发起支付的买家及商户推送订单已支付成功的状态
 			nc.logger.Debug("向发起支付的买家及商户推送订单已支付成功的状态", zap.String("username", username))
 
