@@ -1719,18 +1719,22 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
 							eRsp := &Msg.RecvMsgEventRsp{
-								Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
-								Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
-								Body:         orderProductBodyData,          //订单载体 OrderProductBody
-								From:         username,                      //谁发的
-								FromDeviceId: deviceID,                      //哪个设备发的
-								Recv:         req.To,                        //商户账户id
-								ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
-								Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
+								Scene: Msg.MessageScene_MsgScene_S2C, //系统消息
+								Type:  Msg.MessageType_MsgType_Order, //类型-订单消息
+								//暂时屏蔽
+								// Body:         orderProductBodyData,          //订单载体 OrderProductBody
+								From:         username,    //谁发的
+								FromDeviceId: deviceID,    //哪个设备发的
+								Recv:         req.To,      //商户账户id
+								ServerMsgId:  msg.GetID(), //服务器分配的消息ID
+								Seq:          newSeq,      //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+								Uuid:         req.Uuid,    //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
-							nc.logger.Debug("向买家发送彩票类型的订单, 5-2", zap.Int("State", int(orderProductBody.State)))
+							nc.logger.Debug("向买家发送彩票类型的订单, 5-2",
+								zap.String("to", orderProductBody.BuyUser),
+								zap.Int("State", int(orderProductBody.State)),
+							)
 							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
 							// _ = eRsp
 						}
@@ -2578,6 +2582,7 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
 		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
 		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
 		targetMsg.UpdateID()
 		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
@@ -2590,8 +2595,6 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		targetMsg.SetBusinessTypeName("Order")
 		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件 2
-
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
 		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
