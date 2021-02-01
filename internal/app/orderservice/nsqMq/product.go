@@ -1731,8 +1731,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
 							nc.logger.Debug("向买家发送彩票类型的订单, 5-2", zap.Int("State", int(orderProductBody.State)))
-							// go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
-							_ = eRsp
+							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+							// _ = eRsp
 						}
 
 					} else { //其它普通商品
