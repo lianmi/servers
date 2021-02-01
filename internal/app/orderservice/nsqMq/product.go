@@ -1714,6 +1714,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						//为配合flutter调试，暂时不发
 						// go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
+						_ = isVip
 
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
@@ -2599,9 +2600,9 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		topic := "Order.Frontend"
 		rawData, _ := json.Marshal(targetMsg)
 		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+			nc.logger.Info("Message succeed send to dispatcher", zap.String("topic", topic))
 		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+			nc.logger.Error("Failed to send message to dispatcher", zap.Error(err))
 		}
 
 		nc.logger.Info("Broadcast Msg To All Devices Succeed",
