@@ -1720,8 +1720,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
 						//为配合flutter调试，暂时不发
-						// go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
-						_ = isVip
+						
+						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
