@@ -1722,13 +1722,13 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Scene: Msg.MessageScene_MsgScene_S2C, //系统消息
 								Type:  Msg.MessageType_MsgType_Order, //类型-订单消息
 								//暂时屏蔽
-								// Body:         orderProductBodyData,          //订单载体 OrderProductBody
-								From:         username,    //谁发的
-								FromDeviceId: deviceID,    //哪个设备发的
-								Recv:         req.To,      //商户账户id
-								ServerMsgId:  msg.GetID(), //服务器分配的消息ID
-								Seq:          newSeq,      //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-								Uuid:         req.Uuid,    //客户端分配的消息ID，SDK生成的消息id
+								Body:         orderProductBodyData, //订单载体 OrderProductBody
+								From:         username,             //谁发的
+								FromDeviceId: deviceID,             //哪个设备发的
+								Recv:         req.To,               //商户账户id
+								ServerMsgId:  msg.GetID(),          //服务器分配的消息ID
+								Seq:          newSeq,               //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+								Uuid:         req.Uuid,             //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
 							nc.logger.Debug("向买家发送彩票类型的订单, 5-2",
