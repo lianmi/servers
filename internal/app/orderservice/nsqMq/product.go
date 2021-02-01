@@ -1074,7 +1074,14 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	)
 
 	//向买家发送 服务费 订单ID消息
-	go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+	go func() {
+		time.Sleep(1 * time.Second)
+		nc.logger.Debug("延时1s向买家发送 服务费 订单ID消息, 5-2",
+			zap.String("to", orderProductBody.BuyUser),
+			zap.Int("State", int(orderProductBody.State)),
+		)
+		go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+	}()
 
 	return nil
 
@@ -1733,8 +1740,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							go func() {
-								time.Sleep(2 * time.Second)
-								nc.logger.Debug("延时2s向买家发送彩票类型的订单, 5-2",
+								time.Sleep(1 * time.Second)
+								nc.logger.Debug("延时1s向买家发送彩票类型的订单, 5-2",
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
 								)
@@ -1763,8 +1770,16 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
-							nc.logger.Debug("向商家发送非彩票普通商品的订单", zap.Int("State", int(orderProductBody.State)))
-							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+
+							go func() {
+								time.Sleep(1 * time.Second)
+								nc.logger.Debug("延时1s向商家发送非彩票普通商品的订单消息, 5-2",
+									zap.String("to", orderProductBody.BuyUser),
+									zap.Int("State", int(orderProductBody.State)),
+								)
+								go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+							}()
+
 						}
 					}
 
@@ -2372,8 +2387,15 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			}
 
 			//向目标用户发送订单消息状态的更改
-			nc.logger.Debug("HandleChangeOrderState, 发送订单状态的更改", zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)))
-			go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+			go func() {
+				time.Sleep(1 * time.Second)
+				nc.logger.Debug("延时1s向目标用户发送订单消息状态的更改, 5-2",
+					zap.String("to", toUsername),
+					zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)),
+				)
+				go nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
+			}()
+
 		}
 
 	}
