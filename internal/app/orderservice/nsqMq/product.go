@@ -1731,11 +1731,16 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Uuid:         req.Uuid,             //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
-							nc.logger.Debug("向买家发送彩票类型的订单, 5-2",
-								zap.String("to", orderProductBody.BuyUser),
-								zap.Int("State", int(orderProductBody.State)),
-							)
-							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+
+							go func() {
+								time.Sleep(2 * time.Second)
+								nc.logger.Debug("延时2s向买家发送彩票类型的订单, 5-2",
+									zap.String("to", orderProductBody.BuyUser),
+									zap.Int("State", int(orderProductBody.State)),
+								)
+								nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+							}()
+
 							// _ = eRsp
 						}
 
