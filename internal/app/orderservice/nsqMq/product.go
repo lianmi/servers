@@ -1819,9 +1819,9 @@ COMPLETE:
 	topic := msg.GetSource() + ".Frontend"
 	rawData, _ := json.Marshal(msg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("HandleOrderMsg: Message succeed send to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("HandleOrderMsg 5-1: Message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
-		nc.logger.Error("HandleOrderMsg: Failed to send  message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("HandleOrderMsg 5-1: Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
