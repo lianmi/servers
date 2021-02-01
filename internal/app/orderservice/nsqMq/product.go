@@ -1075,7 +1075,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 
 	//向买家发送 服务费 订单ID消息
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(300 * time.Millisecond)
 		nc.logger.Debug("延时1s向买家发送 服务费 订单ID消息, 5-2",
 			zap.String("to", orderProductBody.BuyUser),
 			zap.Int("State", int(orderProductBody.State)),
@@ -1740,7 +1740,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							go func() {
-								time.Sleep(1 * time.Second)
+								time.Sleep(300 * time.Millisecond)
 								nc.logger.Debug("延时1s向买家发送彩票类型的订单, 5-2",
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
@@ -1772,7 +1772,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							go func() {
-								time.Sleep(1 * time.Second)
+								time.Sleep(300 * time.Millisecond)
 								nc.logger.Debug("延时1s向商家发送非彩票普通商品的订单消息, 5-2",
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
@@ -2388,7 +2388,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			//向目标用户发送订单消息状态的更改
 			go func() {
-				time.Sleep(1 * time.Second)
+				time.Sleep(300 * time.Millisecond)
 				nc.logger.Debug("延时1s向目标用户发送订单消息状态的更改, 5-2",
 					zap.String("to", toUsername),
 					zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)),
