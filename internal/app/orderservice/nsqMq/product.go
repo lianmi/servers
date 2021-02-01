@@ -1730,8 +1730,9 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
-							nc.logger.Debug("向买家发送彩票类型的订单", zap.Int("State", int(orderProductBody.State)))
-							go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+							nc.logger.Debug("向买家发送彩票类型的订单, 5-2", zap.Int("State", int(orderProductBody.State)))
+							// go nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+							_ = eRsp
 						}
 
 					} else { //其它普通商品
@@ -2587,7 +2588,7 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 		targetMsg.SetDeviceID(eDeviceID)
 		// opkAlertMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5 
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5
 		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件 2
 
 		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
