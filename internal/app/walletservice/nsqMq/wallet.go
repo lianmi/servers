@@ -456,7 +456,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			errorCode = LMCError.GenerateTransferLNMCTokenTxError
 			goto COMPLETE
 		} else {
-			nc.logger.Debug("构造发起者向接收者转账的交易成功",
+			nc.logger.Debug("预支付成功，构造发起者向接收者转账的交易",
 				zap.String("walletAddress", walletAddress),
 				zap.String("toWalletAddress", toWalletAddress),
 				zap.Uint64("Nonce", rawDescToTarget.Nonce),

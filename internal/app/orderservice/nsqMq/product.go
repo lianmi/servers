@@ -1042,6 +1042,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	chargeMsg := &models.Message{}
 
 	chargeMsg.UpdateID()
+	chargeMsg.SetTaskID(0)
 
 	eRsp := &Msg.RecvMsgEventRsp{
 		Scene:        Msg.MessageScene_MsgScene_S2C,   //系统消息
@@ -1711,7 +1712,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
-						go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
+						//为配合flutter调试，暂时不发
+						// go nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
@@ -2496,7 +2498,7 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 		targetMsg.SetJwtToken(curJwtToken)
 		targetMsg.SetUserName(toUsername)
 		targetMsg.SetDeviceID(eDeviceID)
-		// opkAlertMsg.SetTaskID(uint32(taskId))
+		// targetMsg.SetTaskID(uint32(taskId))
 		targetMsg.SetBusinessTypeName("Order")
 		targetMsg.SetBusinessType(businessType)       //业务号
 		targetMsg.SetBusinessSubType(businessSubType) //业务子号
