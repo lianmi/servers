@@ -893,8 +893,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
 		})
 		go func() {
-			time.Sleep(10 * time.Millisecond)
-			nc.logger.Debug("延时10ms连米币到账通知事件, 5-2",
+			time.Sleep(100 * time.Millisecond)
+			nc.logger.Debug("延时100ms连米币到账通知事件, 5-2",
 				zap.String("to", toUsername),
 			)
 			nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
@@ -985,7 +985,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 			//向接收者推送 9-12 订单支付完成的事件
 			go func() {
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
 					zap.String("to", toUsername),
 					zap.String("orderID", orderID),
@@ -996,7 +996,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			//向支付发起者推送 9-12 支付订单完成的事件
 
 			go func() {
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				nc.logger.Debug("延时100ms向支付发起者推送 9-12 订单支付完成的事件",
 					zap.String("to", username),
 					zap.String("orderID", orderID),
@@ -1029,7 +1029,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(20 * time.Millisecond)
+					time.Sleep(200 * time.Millisecond)
 					nc.logger.Debug("延时200ms通知买家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
@@ -1052,7 +1052,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(20 * time.Millisecond)
+					time.Sleep(200 * time.Millisecond)
 					nc.logger.Debug("延时200ms通知商家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
