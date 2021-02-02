@@ -984,22 +984,22 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			}
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 			//向接收者推送 9-12 订单支付完成的事件
-			nc.logger.Debug("向接收者推送 9-12 订单支付完成的事件", zap.String("toUsername", toUsername), zap.String("orderID", orderID))
 			go func() {
 				time.Sleep(100 * time.Millisecond)
 				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
 					zap.String("to", toUsername),
+					zap.String("orderID", orderID),
 				)
 				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
 			}()
 
 			//向支付发起者推送 9-12 支付订单完成的事件
-			nc.logger.Debug("向支付发起者推送 9-12 订单支付完成的事件", zap.String("username", username))
 
 			go func() {
 				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
+				nc.logger.Debug("延时100ms向支付发起者推送 9-12 订单支付完成的事件",
 					zap.String("to", username),
+					zap.String("orderID", orderID),
 				)
 				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
 			}()
@@ -1029,8 +1029,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(100 * time.Millisecond)
-					nc.logger.Debug("延时100ms通知买家订单已支付成功的状态, 5-2",
+					time.Sleep(200 * time.Millisecond)
+					nc.logger.Debug("延时200ms通知买家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
 					nc.BroadcastOrderMsgToAllDevices(eRsp, username)
@@ -1052,8 +1052,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(100 * time.Millisecond)
-					nc.logger.Debug("延时100ms通知商家订单已支付成功的状态, 5-2",
+					time.Sleep(200 * time.Millisecond)
+					nc.logger.Debug("延时200ms通知商家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
 					nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
