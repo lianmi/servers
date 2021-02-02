@@ -1075,8 +1075,8 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 
 	//向买家发送 服务费 订单ID消息
 	go func() {
-		time.Sleep(100 * time.Millisecond)
-		nc.logger.Debug("延时100ms向买家发送 服务费 订单ID消息, 5-2",
+		time.Sleep(10 * time.Millisecond)
+		nc.logger.Debug("延时10ms向买家发送 服务费 订单ID消息, 5-2",
 			zap.String("to", orderProductBody.BuyUser),
 			zap.Int("State", int(orderProductBody.State)),
 		)
@@ -1206,8 +1206,8 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 				//向商户推送9-10事件通知
 				go func() {
-					time.Sleep(100 * time.Millisecond)
-					nc.logger.Debug("延时100ms向商户推送9-10事件通知",
+					time.Sleep(10 * time.Millisecond)
+					nc.logger.Debug("延时10ms向商户推送9-10事件通知",
 						zap.String("to", req.UserName),
 					)
 					nc.SendOPKNoSufficientToMasterDevice(req.UserName, 0)
@@ -1229,8 +1229,8 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 
 					//向商户推送9-10事件通知
 					go func() {
-						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("延时100ms向商户推送9-10事件通知",
+						time.Sleep(10 * time.Millisecond)
+						nc.logger.Debug("延时10ms向商户推送9-10事件通知",
 							zap.String("to", req.UserName),
 						)
 						nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
@@ -1752,15 +1752,14 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							go func() {
-								time.Sleep(100 * time.Millisecond)
-								nc.logger.Debug("延时100ms向买家发送彩票类型的订单, 5-2",
+								time.Sleep(15 * time.Millisecond)
+								nc.logger.Debug("延时15ms向买家发送彩票类型的订单, 5-2",
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
 								)
 								nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
 							}()
 
-							// _ = eRsp
 						}
 
 					} else { //其它普通商品
@@ -1784,8 +1783,8 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							}
 
 							go func() {
-								time.Sleep(100 * time.Millisecond)
-								nc.logger.Debug("延时100ms向商家发送非彩票普通商品的订单消息, 5-2",
+								time.Sleep(15 * time.Millisecond)
+								nc.logger.Debug("延时15ms向商家发送非彩票普通商品的订单消息, 5-2",
 									zap.String("to", orderProductBody.BuyUser),
 									zap.Int("State", int(orderProductBody.State)),
 								)
@@ -2400,8 +2399,8 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 			//向目标用户发送订单消息状态的更改
 			go func() {
-				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms向目标用户发送订单消息状态的更改, 5-2",
+				time.Sleep(10 * time.Millisecond)
+				nc.logger.Debug("延时10ms向目标用户发送订单消息状态的更改, 5-2",
 					zap.String("to", toUsername),
 					zap.String("状态改变", fmt.Sprintf("目标用户(%s), (%d)->(%d)", toUsername, curState, req.State)),
 				)

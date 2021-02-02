@@ -494,7 +494,7 @@ func (mc *MQTTClient) Run() {
 				businessSubTypeStr := fmt.Sprintf("%d", msg.GetBusinessSubType())
 				taskIdStr := fmt.Sprintf("%d", msg.GetTaskID())
 				codeStr := fmt.Sprintf("%d", msg.GetCode())
-				mc.logger.Info("Consume backend nsq message",
+				mc.logger.Info("Consume backend nsq message for send to mqtt broker",
 					zap.String("topic", topic),
 					zap.String("deviceId", msg.GetDeviceID()),
 					zap.String("businessType", businessTypeStr),
@@ -502,6 +502,7 @@ func (mc *MQTTClient) Run() {
 					zap.String("taskId", taskIdStr),
 					zap.String("code", codeStr))
 
+				//TODO 这里统一对单独一个设备id 做延迟发送， 一个设备id每隔50毫秒发送一次
 				pb := &paho.Publish{
 					Topic:   topic,
 					QoS:     byte(1),

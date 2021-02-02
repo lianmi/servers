@@ -893,8 +893,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
 		})
 		go func() {
-			time.Sleep(100 * time.Millisecond)
-			nc.logger.Debug("延时100ms连米币到账通知事件, 5-2",
+			time.Sleep(10 * time.Millisecond)
+			nc.logger.Debug("延时10ms连米币到账通知事件, 5-2",
 				zap.String("to", toUsername),
 			)
 			nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
@@ -985,7 +985,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			payData, _ := proto.Marshal(orderPayDoneEventRsp)
 			//向接收者推送 9-12 订单支付完成的事件
 			go func() {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
 					zap.String("to", toUsername),
 					zap.String("orderID", orderID),
@@ -996,7 +996,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			//向支付发起者推送 9-12 支付订单完成的事件
 
 			go func() {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				nc.logger.Debug("延时100ms向支付发起者推送 9-12 订单支付完成的事件",
 					zap.String("to", username),
 					zap.String("orderID", orderID),
@@ -1029,7 +1029,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(200 * time.Millisecond)
+					time.Sleep(20 * time.Millisecond)
 					nc.logger.Debug("延时200ms通知买家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
@@ -1052,7 +1052,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					time.Sleep(200 * time.Millisecond)
+					time.Sleep(20 * time.Millisecond)
 					nc.logger.Debug("延时200ms通知商家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
@@ -2431,26 +2431,31 @@ func (nc *NsqClient) HandleUserSignIn(msg *models.Message) error {
 		//如果count累计大于或等于2次，则奖励并重置为0
 		if count >= 2 {
 			redisConn.Do("HSET", key, "Count", 0)
+
+			balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)
+			awardEth = uint64(LMCommon.AWARDGAS)
+			nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth), nil)
+			balanceEth, err = nc.ethService.GetWeiBalance(walletAddress)
+			nc.logger.Info("奖励ETH",
+				zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
+				zap.Uint64("奖励之后用户的eth数量", balanceEth),
+			)
+
+			//向用户推送10-15 ETH奖励到账通知事件
+			ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
+				AmountETH: awardEth,
+				Time:      uint64(time.Now().UnixNano() / 1e6),
+			}
+			awardData, _ = proto.Marshal(ethReceivedEventRsp)
+
 			go func() {
-				balanceEthBefore, err = nc.ethService.GetWeiBalance(walletAddress)
-				awardEth = uint64(LMCommon.AWARDGAS)
-				nc.ethService.TransferEthToOtherAccount(walletAddress, int64(awardEth), nil)
-				balanceEth, err = nc.ethService.GetWeiBalance(walletAddress)
-				nc.logger.Info("奖励ETH",
-					zap.Uint64("奖励之前用户的eth数量", balanceEthBefore),
-					zap.Uint64("奖励之后用户的eth数量", balanceEth),
+				time.Sleep(20 * time.Millisecond)
+				nc.logger.Debug("延时200ms向用户推送10-15 ETH奖励到账通知事件, 5-2",
+					zap.String("to", username),
 				)
-
-				//向用户推送10-15 ETH奖励到账通知事件
-				ethReceivedEventRsp = &Wallet.EthReceivedEventRsp{
-					AmountETH: awardEth,
-					Time:      uint64(time.Now().UnixNano() / 1e6),
-				}
-				awardData, _ = proto.Marshal(ethReceivedEventRsp)
-
 				nc.BroadcastSpecialMsgToAllDevices(awardData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_EthReceivedEvent), username)
-
 			}()
+
 		}
 
 	}
