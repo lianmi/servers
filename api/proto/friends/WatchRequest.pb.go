@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.7.0
-// source: api/proto/friends/WatchRequest.proto.proto
+// source: api/proto/friends/WatchRequest.proto
 
 package friends
 
@@ -48,7 +48,7 @@ type WatchRequestReq struct {
 func (x *WatchRequestReq) Reset() {
 	*x = WatchRequestReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_friends_WatchRequest_proto_proto_msgTypes[0]
+		mi := &file_api_proto_friends_WatchRequest_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -61,7 +61,7 @@ func (x *WatchRequestReq) String() string {
 func (*WatchRequestReq) ProtoMessage() {}
 
 func (x *WatchRequestReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_friends_WatchRequest_proto_proto_msgTypes[0]
+	mi := &file_api_proto_friends_WatchRequest_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -74,7 +74,7 @@ func (x *WatchRequestReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequestReq.ProtoReflect.Descriptor instead.
 func (*WatchRequestReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_friends_WatchRequest_proto_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_friends_WatchRequest_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *WatchRequestReq) GetUsername() string {
@@ -108,7 +108,7 @@ type WatchRequestRsp struct {
 func (x *WatchRequestRsp) Reset() {
 	*x = WatchRequestRsp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_friends_WatchRequest_proto_proto_msgTypes[1]
+		mi := &file_api_proto_friends_WatchRequest_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -121,7 +121,7 @@ func (x *WatchRequestRsp) String() string {
 func (*WatchRequestRsp) ProtoMessage() {}
 
 func (x *WatchRequestRsp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_friends_WatchRequest_proto_proto_msgTypes[1]
+	mi := &file_api_proto_friends_WatchRequest_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -134,47 +134,46 @@ func (x *WatchRequestRsp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequestRsp.ProtoReflect.Descriptor instead.
 func (*WatchRequestRsp) Descriptor() ([]byte, []int) {
-	return file_api_proto_friends_WatchRequest_proto_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_friends_WatchRequest_proto_rawDescGZIP(), []int{1}
 }
 
-var File_api_proto_friends_WatchRequest_proto_proto protoreflect.FileDescriptor
+var File_api_proto_friends_WatchRequest_proto protoreflect.FileDescriptor
 
-var file_api_proto_friends_WatchRequest_proto_proto_rawDesc = []byte{
-	0x0a, 0x2a, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x66, 0x72, 0x69, 0x65,
+var file_api_proto_friends_WatchRequest_proto_rawDesc = []byte{
+	0x0a, 0x24, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x66, 0x72, 0x69, 0x65,
 	0x6e, 0x64, 0x73, 0x2f, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x17, 0x63, 0x6c,
-	0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x66, 0x72,
-	0x69, 0x65, 0x6e, 0x64, 0x73, 0x22, 0x55, 0x0a, 0x0f, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72,
-	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72,
-	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x70, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x02, 0x70, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x11, 0x0a, 0x0f,
-	0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x73, 0x70, 0x42,
-	0x2d, 0x5a, 0x2b, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69,
-	0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x17, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
+	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73, 0x22,
+	0x55, 0x0a, 0x0f, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52,
+	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x0e,
+	0x0a, 0x02, 0x70, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x70, 0x73, 0x12, 0x16,
+	0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x11, 0x0a, 0x0f, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x73, 0x70, 0x42, 0x2d, 0x5a, 0x2b, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2f, 0x73,
+	0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2f, 0x66, 0x72, 0x69, 0x65, 0x6e, 0x64, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_api_proto_friends_WatchRequest_proto_proto_rawDescOnce sync.Once
-	file_api_proto_friends_WatchRequest_proto_proto_rawDescData = file_api_proto_friends_WatchRequest_proto_proto_rawDesc
+	file_api_proto_friends_WatchRequest_proto_rawDescOnce sync.Once
+	file_api_proto_friends_WatchRequest_proto_rawDescData = file_api_proto_friends_WatchRequest_proto_rawDesc
 )
 
-func file_api_proto_friends_WatchRequest_proto_proto_rawDescGZIP() []byte {
-	file_api_proto_friends_WatchRequest_proto_proto_rawDescOnce.Do(func() {
-		file_api_proto_friends_WatchRequest_proto_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_friends_WatchRequest_proto_proto_rawDescData)
+func file_api_proto_friends_WatchRequest_proto_rawDescGZIP() []byte {
+	file_api_proto_friends_WatchRequest_proto_rawDescOnce.Do(func() {
+		file_api_proto_friends_WatchRequest_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_friends_WatchRequest_proto_rawDescData)
 	})
-	return file_api_proto_friends_WatchRequest_proto_proto_rawDescData
+	return file_api_proto_friends_WatchRequest_proto_rawDescData
 }
 
-var file_api_proto_friends_WatchRequest_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_api_proto_friends_WatchRequest_proto_proto_goTypes = []interface{}{
+var file_api_proto_friends_WatchRequest_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_api_proto_friends_WatchRequest_proto_goTypes = []interface{}{
 	(*WatchRequestReq)(nil), // 0: cloud.lianmi.im.friends.WatchRequestReq
 	(*WatchRequestRsp)(nil), // 1: cloud.lianmi.im.friends.WatchRequestRsp
 }
-var file_api_proto_friends_WatchRequest_proto_proto_depIdxs = []int32{
+var file_api_proto_friends_WatchRequest_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -182,13 +181,13 @@ var file_api_proto_friends_WatchRequest_proto_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_friends_WatchRequest_proto_proto_init() }
-func file_api_proto_friends_WatchRequest_proto_proto_init() {
-	if File_api_proto_friends_WatchRequest_proto_proto != nil {
+func init() { file_api_proto_friends_WatchRequest_proto_init() }
+func file_api_proto_friends_WatchRequest_proto_init() {
+	if File_api_proto_friends_WatchRequest_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_api_proto_friends_WatchRequest_proto_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_friends_WatchRequest_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WatchRequestReq); i {
 			case 0:
 				return &v.state
@@ -200,7 +199,7 @@ func file_api_proto_friends_WatchRequest_proto_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_friends_WatchRequest_proto_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_friends_WatchRequest_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WatchRequestRsp); i {
 			case 0:
 				return &v.state
@@ -217,18 +216,18 @@ func file_api_proto_friends_WatchRequest_proto_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_api_proto_friends_WatchRequest_proto_proto_rawDesc,
+			RawDescriptor: file_api_proto_friends_WatchRequest_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_api_proto_friends_WatchRequest_proto_proto_goTypes,
-		DependencyIndexes: file_api_proto_friends_WatchRequest_proto_proto_depIdxs,
-		MessageInfos:      file_api_proto_friends_WatchRequest_proto_proto_msgTypes,
+		GoTypes:           file_api_proto_friends_WatchRequest_proto_goTypes,
+		DependencyIndexes: file_api_proto_friends_WatchRequest_proto_depIdxs,
+		MessageInfos:      file_api_proto_friends_WatchRequest_proto_msgTypes,
 	}.Build()
-	File_api_proto_friends_WatchRequest_proto_proto = out.File
-	file_api_proto_friends_WatchRequest_proto_proto_rawDesc = nil
-	file_api_proto_friends_WatchRequest_proto_proto_goTypes = nil
-	file_api_proto_friends_WatchRequest_proto_proto_depIdxs = nil
+	File_api_proto_friends_WatchRequest_proto = out.File
+	file_api_proto_friends_WatchRequest_proto_rawDesc = nil
+	file_api_proto_friends_WatchRequest_proto_goTypes = nil
+	file_api_proto_friends_WatchRequest_proto_depIdxs = nil
 }

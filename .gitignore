@@ -17,6 +17,7 @@
 /out/
 *.idea/
 /temp/
+/dart_out/
 /dist/
 /third-party/
 /api/proto/out

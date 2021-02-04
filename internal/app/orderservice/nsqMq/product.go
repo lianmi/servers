@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/api/proto/global"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -113,7 +114,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				Expire:            uint64(productInfo.Expire),                  //商品过期时间
 				ProductName:       productInfo.ProductName,                     //商品名称
 				ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-				SubType:           int32(Global.LotteryType_LT_Shuangseqiu),    //TODO  暂时全部都是双色球
+				SubType:           Global.LotteryType_LT_Shuangseqiu,           //TODO  暂时全部都是双色球
 				ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
 				ShortVideo:        productInfo.ShortVideo,                      //商品短视频
 				Thumbnail:         thumbnail,                                   //商品短视频缩略图
@@ -446,7 +447,7 @@ COMPLETE:
 				ProductName: req.Product.ProductName,                     //商品名称
 				ProductType: Global.ProductType(req.Product.ProductType), //商品种类类型  枚举
 				//TODO  暂时全部都是双色球
-				SubType:     int32(Global.LotteryType_LT_Shuangseqiu),
+				SubType:     Global.LotteryType_LT_Shuangseqiu,
 				ProductDesc: req.Product.ProductDesc, //商品详细介绍
 				ShortVideo:  shortVideo,
 				Thumbnail:   thumbnail,
@@ -988,7 +989,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	// 将服务费数据保存到MySQL
 	err = nc.service.SaveChargeHistory(&models.ChargeHistory{
 		BuyerUsername:    orderProductBody.BuyUser,          //买家
-		BusinessUsername: LMCommon.ChargeBusinessUsername,   // 系统 商户
+		BusinessUsername: LMCommon.ChargeBusinessUsername,   //系统商户
 		ChargeProductID:  systemChargeProductID,             //服务费的商品D
 		ChargeOrderID:    chargeOrderID,                     //本次服务费的订单ID
 		BusinessOrderID:  orderProductBody.OrderID,          //商品订单ID, 买家支付的订单ID
@@ -1000,14 +1001,19 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	})
 
 	// 将服务费订单ID信息缓存在redis里的一个哈希表里(Order:{订单ID}), 以 orderID 对应
+
+	//上链服务费的附件类型
+	attachType := int(Msg.AttachType_AttachType_BlockServiceCharge)
 	_, err = redisConn.Do("HMSET",
-		fmt.Sprintf("Order:%s", chargeOrderID), //charge订单id
-		"ProductID", systemChargeProductID,     //服务费的商品ID
+		fmt.Sprintf("Order:%s", chargeOrderID),        //charge订单id
+		"OrderType", int(Global.OrderType_ORT_Server), //订单类型是服务费
+		"ProductID", systemChargeProductID, //服务费的商品ID
 		"BuyUser", orderProductBody.BuyUser, //买家
 		"OpkBuyUser", "",
 		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户
 		"OpkBusinessUser", "",
 		"OrderTotalAmount", mathtool.FloatRound(charge, 2), //服务费, 取小数点后两位的精度
+		"AttachType", attachType, //附件类型
 		"Attach", attachHex, //hex
 		"State", int(Global.OrderState_OS_Prepare), //订单状态
 		"IsPayed", LMCommon.REDISFALSE, //此charge订单支付状态， true- 支付完成，false-未支付
@@ -1021,14 +1027,16 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 	//TODO 将服务费订单ID 发给买家
 	chargeOrderProductBody := &Order.OrderProductBody{
 		OrderID:          chargeOrderID,                   //charge订单id
+		OrderType:        global.OrderType_ORT_Server,     //服务端发起的收费
 		ProductID:        systemChargeProductID,           //服务费的商品ID
 		BuyUser:          orderProductBody.BuyUser,        //发起订单的用户id
 		OpkBuyUser:       "",                              //买家的协商公钥 留空
 		BusinessUser:     LMCommon.ChargeBusinessUsername, //商户的用户id, 暂定为id10
 		OpkBusinessUser:  "",                              //商户的协商公钥 留空
 		OrderTotalAmount: mathtool.FloatRound(charge, 2),  //服务费, 取小数点后两位的精度
-		Attach:           attachHex,                       // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
-		State:            Global.OrderState_OS_RecvOK,     //订单的状态
+		AttachType:       Msg.AttachType_AttachType_BlockServiceCharge,
+		Attach:           attachHex,                   // hex json格式的内容 , 由 ui 层处理 sdk 仅透传  传输会进过sdk处理,  这里存放的是真正的订单ID
+		State:            Global.OrderState_OS_RecvOK, //订单的状态
 	}
 	nc.logger.Debug("chargeOrderProductBody", zap.String("chargeOrderID", chargeOrderID), zap.Float64("OrderTotalAmount", mathtool.FloatRound(charge, 2)))
 
@@ -1046,7 +1054,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 
 	eRsp := &Msg.RecvMsgEventRsp{
 		Scene:        Msg.MessageScene_MsgScene_S2C,   //系统消息
-		Type:         Msg.MessageType_MsgType_Order,   //类型-订单消息
+		Type:         Msg.MessageType_MsgType_Order,   //类型- 手续费 消息
 		Body:         chargeOrderProductBodyData,      //订单载体
 		From:         LMCommon.ChargeBusinessUsername, //谁发的, 暂定为 id10
 		FromDeviceId: "",                              //哪个设备发的
@@ -1257,6 +1265,7 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		//订单详情
 		_, err = redisConn.Do("HMSET",
 			fmt.Sprintf("Order:%s", orderID),
+			"OrderType", int(Global.OrderType_ORT_Normal), //订单类型是普通订单
 			"BuyUser", username, //发起订单的用户id
 			"BusinessUser", req.UserName, //商户的用户id
 			"OrderID", orderID, //订单id
@@ -1499,7 +1508,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 	//经过服务端更改状态后的新的OrderProductBody字节流
 	var orderProductBodyData []byte
-	// var toUser string
 
 	rsp := &Msg.SendMsgRsp{}
 
@@ -1593,6 +1601,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 			nc.logger.Debug("OrderProductBody payload",
 				zap.String("OrderID", orderProductBody.OrderID),                    // 商品的订单id
+				zap.String("OrderType", orderProductBody.OrderType.String()),       // 商品的订单类型
 				zap.String("ProductID", orderProductBody.ProductID),                //商品id
 				zap.String("BuyUser", orderProductBody.BuyUser),                    //买家
 				zap.String("OpkBuyUser", orderProductBody.OpkBuyUser),              //买家的OPK公钥
@@ -1707,6 +1716,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 							bodyTemp, _ := vipUser.ToJson()
 							attachBase.Body = base64.StdEncoding.EncodeToString([]byte(bodyTemp)) // base64
 							attachStr, _ := attachBase.ToJson()
+							orderProductBody.AttachType = Msg.AttachType_AttachType_VipPrice
 							orderProductBody.Attach = hex.EncodeToString([]byte(attachStr)) //hex
 
 							//接单成功，当用户收到后即可发起预支付
@@ -1721,7 +1731,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 					}
 
-				} else { //普通下单
+				} else { // 订单下单
 
 					//彩票类型的订单
 					if Global.ProductType(productInfo.ProductType) == Global.ProductType_OT_Lottery {
@@ -1738,16 +1748,15 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						//将接单转发到买家
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
 							eRsp := &Msg.RecvMsgEventRsp{
-								Scene: Msg.MessageScene_MsgScene_S2C, //系统消息
-								Type:  Msg.MessageType_MsgType_Order, //类型-订单消息
-								//暂时屏蔽
-								Body:         orderProductBodyData, //订单载体 OrderProductBody
-								From:         username,             //谁发的
-								FromDeviceId: deviceID,             //哪个设备发的
-								Recv:         req.To,               //商户账户id
-								ServerMsgId:  msg.GetID(),          //服务器分配的消息ID
-								Seq:          newSeq,               //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-								Uuid:         req.Uuid,             //客户端分配的消息ID，SDK生成的消息id
+								Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+								Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+								Body:         orderProductBodyData,          //订单载体 OrderProductBody
+								From:         username,                      //谁发的
+								FromDeviceId: deviceID,                      //哪个设备发的
+								Recv:         req.To,                        //商户账户id
+								ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+								Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
 								Time:         uint64(time.Now().UnixNano() / 1e6),
 							}
 
@@ -1803,12 +1812,14 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						orderProductBodyKey,
 						"Username", username,
 						"OrderID", orderProductBody.OrderID,
+						"OrderType", int(orderProductBody.OrderType),
 						"ProductID", orderProductBody.ProductID,
 						"BuyUser", orderProductBody.BuyUser,
 						"OpkBuyUser", orderProductBody.OpkBuyUser,
 						"BusinessUser", orderProductBody.BusinessUser,
 						"OpkBusinessUser", orderProductBody.OpkBusinessUser,
 						"OrderTotalAmount", orderProductBody.OrderTotalAmount, //订单金额
+						"AttachType", int(orderProductBody.AttachType), //附件类型
 						"Attach", orderProductBody.Attach, //订单内容，UI负责构造
 						"AttachHash", attachHash, //订单内容的哈希值
 						"UserData", orderProductBody.Userdata, //透传数据
@@ -1874,6 +1885,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 
 	var orderBodyData []byte
 	var orderID, productID string
+	var orderType int //订单类型
 
 	var buyUser, businessUser string
 	var toUsername string //目标用户账号id，可能是商户，可能是买家
@@ -1924,6 +1936,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			goto COMPLETE
 		}
 		orderID = req.OrderBody.OrderID
+		orderType = int(req.OrderBody.OrderType)
 
 		//根据订单id获取buyUser及businessUser是谁
 		orderIDKey = fmt.Sprintf("Order:%s", orderID)
@@ -1987,6 +2000,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			zap.Int("State", int(req.State)), //需要更新的状态
 			zap.Uint64("TimeAt", req.TimeAt),
 			zap.String("OrderID", orderID),
+			zap.Int("OrderType", int(orderType)),
 			zap.String("ProductID", productID),
 			zap.String("BuyUser", buyUser),
 			zap.String("BusinessUser", businessUser),
@@ -2120,6 +2134,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2151,6 +2166,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			if orderTotalAmount != req.OrderBody.GetOrderTotalAmount() || attachHash != cur_attachHash {
 				nc.logger.Debug("OrderBody change，订单内容或金额发生改变",
 					zap.String("OrderID", req.OrderBody.OrderID),
+					zap.String("OrderTyp[e", req.OrderBody.OrderType.String()),
 					zap.String("ProductID", req.OrderBody.GetProductID()),
 					zap.String("BuyUser", req.OrderBody.GetBuyUser()),
 					zap.String("OpkBuyUser", req.OrderBody.GetOpkBuyUser()),
@@ -2182,6 +2198,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2196,6 +2213,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知商家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2228,6 +2246,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2238,6 +2257,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2276,6 +2296,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知商户
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2322,6 +2343,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2343,6 +2365,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知商户
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,
@@ -2364,6 +2387,7 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			//通知商户
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
 				OrderID:      orderID,
+				OrderType:    Global.OrderType(int32(orderType)), //订单类型
 				ProductID:    productID,
 				BuyUser:      buyUser,
 				BusinessUser: businessUser,

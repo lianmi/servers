@@ -15,10 +15,12 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
+
 	// "strings"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -33,6 +35,7 @@ import (
 
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
+
 	// "github.com/lianmi/servers/util/array"
 	"go.uber.org/zap"
 )
@@ -726,7 +729,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 
 	nc.Producer.Public(topic, rawData)
 
-	nc.logger.Info("SyncOfflineSysMsgsEvent Succeed",
+	nc.logger.Info("SendOffLineMsg Succeed",
 		zap.String("Username:", toUser),
 		zap.String("DeviceID:", deviceID),
 		zap.Int64("Now", time.Now().UnixNano()/1e6))
@@ -1021,7 +1024,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					Expire:            uint64(productInfo.Expire),                  //商品过期时间
 					ProductName:       productInfo.ProductName,                     //商品名称
 					ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-					SubType:           int32(Global.LotteryType_LT_Shuangseqiu),    //TODO  暂时全部都是双色球
+					SubType:           Global.LotteryType_LT_Shuangseqiu,           //TODO  暂时全部都是双色球
 					ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
 					ShortVideo:        productInfo.ShortVideo,                      //商品短视频
 					Thumbnail:         thumbnail,                                   //商品短视频缩略图

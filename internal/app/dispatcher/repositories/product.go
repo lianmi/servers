@@ -9,11 +9,12 @@ import (
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/internal/common"
 
+	"math"
+
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"math"
 )
 
 //获取某个商户的所有商品列表
@@ -77,7 +78,7 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 			ProductName: product.ProductName,                     //商品名称
 			ProductType: Global.ProductType(product.ProductType), //商品种类类型  枚举
 			//TODO  暂时全部都是双色球
-			SubType:           int32(Global.LotteryType_LT_Shuangseqiu),
+			SubType:           Global.LotteryType_LT_Shuangseqiu,
 			ProductDesc:       product.ProductDesc,               //商品详细介绍
 			ShortVideo:        product.ShortVideo,                //商品短视频
 			Thumbnail:         thumbnail,                         //商品短视频缩略图
@@ -214,7 +215,7 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 		ProductName: product.ProductName,                     //商品名称
 		ProductType: Global.ProductType(product.ProductType), //商品种类类型  枚举
 		//TODO  暂时全部都是双色球
-		SubType:           int32(Global.LotteryType_LT_Shuangseqiu),
+		SubType:           Global.LotteryType_LT_Shuangseqiu,
 		ProductDesc:       product.ProductDesc,               //商品详细介绍
 		ShortVideo:        product.ShortVideo,                //商品短视频
 		Thumbnail:         thumbnail,                         //商品短视频缩略图

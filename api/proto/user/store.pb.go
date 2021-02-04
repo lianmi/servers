@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.7.0
-// source: api/proto/user/store.proto
+// source: api/proto/user/Store.proto
 
 package user
 
@@ -62,7 +62,7 @@ type Store struct {
 func (x *Store) Reset() {
 	*x = Store{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_user_store_proto_msgTypes[0]
+		mi := &file_api_proto_user_Store_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -75,7 +75,7 @@ func (x *Store) String() string {
 func (*Store) ProtoMessage() {}
 
 func (x *Store) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_user_store_proto_msgTypes[0]
+	mi := &file_api_proto_user_Store_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -88,7 +88,7 @@ func (x *Store) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Store.ProtoReflect.Descriptor instead.
 func (*Store) Descriptor() ([]byte, []int) {
-	return file_api_proto_user_store_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_user_Store_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Store) GetStoreUUID() string {
@@ -278,7 +278,7 @@ type BusinessUserUploadLicenseReq struct {
 func (x *BusinessUserUploadLicenseReq) Reset() {
 	*x = BusinessUserUploadLicenseReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_user_store_proto_msgTypes[1]
+		mi := &file_api_proto_user_Store_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -291,7 +291,7 @@ func (x *BusinessUserUploadLicenseReq) String() string {
 func (*BusinessUserUploadLicenseReq) ProtoMessage() {}
 
 func (x *BusinessUserUploadLicenseReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_user_store_proto_msgTypes[1]
+	mi := &file_api_proto_user_Store_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -304,7 +304,7 @@ func (x *BusinessUserUploadLicenseReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BusinessUserUploadLicenseReq.ProtoReflect.Descriptor instead.
 func (*BusinessUserUploadLicenseReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_user_store_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_user_Store_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *BusinessUserUploadLicenseReq) GetBusinessusername() string {
@@ -336,7 +336,7 @@ type UserLikesResp struct {
 func (x *UserLikesResp) Reset() {
 	*x = UserLikesResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_user_store_proto_msgTypes[2]
+		mi := &file_api_proto_user_Store_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -349,7 +349,7 @@ func (x *UserLikesResp) String() string {
 func (*UserLikesResp) ProtoMessage() {}
 
 func (x *UserLikesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_user_store_proto_msgTypes[2]
+	mi := &file_api_proto_user_Store_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -362,7 +362,7 @@ func (x *UserLikesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLikesResp.ProtoReflect.Descriptor instead.
 func (*UserLikesResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_user_store_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_user_Store_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UserLikesResp) GetUsername() string {
@@ -394,7 +394,7 @@ type StoreLikesResp struct {
 func (x *StoreLikesResp) Reset() {
 	*x = StoreLikesResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_user_store_proto_msgTypes[3]
+		mi := &file_api_proto_user_Store_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -407,7 +407,7 @@ func (x *StoreLikesResp) String() string {
 func (*StoreLikesResp) ProtoMessage() {}
 
 func (x *StoreLikesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_user_store_proto_msgTypes[3]
+	mi := &file_api_proto_user_Store_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +420,7 @@ func (x *StoreLikesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreLikesResp.ProtoReflect.Descriptor instead.
 func (*StoreLikesResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_user_store_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_user_Store_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StoreLikesResp) GetBusinessUsername() string {
@@ -437,11 +437,11 @@ func (x *StoreLikesResp) GetUsernames() []string {
 	return nil
 }
 
-var File_api_proto_user_store_proto protoreflect.FileDescriptor
+var File_api_proto_user_Store_proto protoreflect.FileDescriptor
 
-var file_api_proto_user_store_proto_rawDesc = []byte{
+var file_api_proto_user_Store_proto_rawDesc = []byte{
 	0x0a, 0x1a, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x75, 0x73, 0x65, 0x72,
-	0x2f, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x14, 0x63, 0x6c,
+	0x2f, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x14, 0x63, 0x6c,
 	0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x75, 0x73,
 	0x65, 0x72, 0x1a, 0x1d, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x6c,
 	0x6f, 0x62, 0x61, 0x6c, 0x2f, 0x47, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x2e, 0x70, 0x72, 0x6f, 0x74,
@@ -522,26 +522,26 @@ var file_api_proto_user_store_proto_rawDesc = []byte{
 }
 
 var (
-	file_api_proto_user_store_proto_rawDescOnce sync.Once
-	file_api_proto_user_store_proto_rawDescData = file_api_proto_user_store_proto_rawDesc
+	file_api_proto_user_Store_proto_rawDescOnce sync.Once
+	file_api_proto_user_Store_proto_rawDescData = file_api_proto_user_Store_proto_rawDesc
 )
 
-func file_api_proto_user_store_proto_rawDescGZIP() []byte {
-	file_api_proto_user_store_proto_rawDescOnce.Do(func() {
-		file_api_proto_user_store_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_user_store_proto_rawDescData)
+func file_api_proto_user_Store_proto_rawDescGZIP() []byte {
+	file_api_proto_user_Store_proto_rawDescOnce.Do(func() {
+		file_api_proto_user_Store_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_user_Store_proto_rawDescData)
 	})
-	return file_api_proto_user_store_proto_rawDescData
+	return file_api_proto_user_Store_proto_rawDescData
 }
 
-var file_api_proto_user_store_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_api_proto_user_store_proto_goTypes = []interface{}{
+var file_api_proto_user_Store_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_api_proto_user_Store_proto_goTypes = []interface{}{
 	(*Store)(nil),                        // 0: cloud.lianmi.im.user.Store
 	(*BusinessUserUploadLicenseReq)(nil), // 1: cloud.lianmi.im.user.BusinessUserUploadLicenseReq
 	(*UserLikesResp)(nil),                // 2: cloud.lianmi.im.user.UserLikesResp
 	(*StoreLikesResp)(nil),               // 3: cloud.lianmi.im.user.StoreLikesResp
 	(global.StoreType)(0),                // 4: cloud.lianmi.im.global.StoreType
 }
-var file_api_proto_user_store_proto_depIdxs = []int32{
+var file_api_proto_user_Store_proto_depIdxs = []int32{
 	4, // 0: cloud.lianmi.im.user.Store.storeType:type_name -> cloud.lianmi.im.global.StoreType
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
@@ -550,13 +550,13 @@ var file_api_proto_user_store_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_user_store_proto_init() }
-func file_api_proto_user_store_proto_init() {
-	if File_api_proto_user_store_proto != nil {
+func init() { file_api_proto_user_Store_proto_init() }
+func file_api_proto_user_Store_proto_init() {
+	if File_api_proto_user_Store_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_api_proto_user_store_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_user_Store_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Store); i {
 			case 0:
 				return &v.state
@@ -568,7 +568,7 @@ func file_api_proto_user_store_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_user_store_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_user_Store_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*BusinessUserUploadLicenseReq); i {
 			case 0:
 				return &v.state
@@ -580,7 +580,7 @@ func file_api_proto_user_store_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_user_store_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_user_Store_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UserLikesResp); i {
 			case 0:
 				return &v.state
@@ -592,7 +592,7 @@ func file_api_proto_user_store_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_user_store_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_user_Store_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StoreLikesResp); i {
 			case 0:
 				return &v.state
@@ -609,18 +609,18 @@ func file_api_proto_user_store_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_api_proto_user_store_proto_rawDesc,
+			RawDescriptor: file_api_proto_user_Store_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_api_proto_user_store_proto_goTypes,
-		DependencyIndexes: file_api_proto_user_store_proto_depIdxs,
-		MessageInfos:      file_api_proto_user_store_proto_msgTypes,
+		GoTypes:           file_api_proto_user_Store_proto_goTypes,
+		DependencyIndexes: file_api_proto_user_Store_proto_depIdxs,
+		MessageInfos:      file_api_proto_user_Store_proto_msgTypes,
 	}.Build()
-	File_api_proto_user_store_proto = out.File
-	file_api_proto_user_store_proto_rawDesc = nil
-	file_api_proto_user_store_proto_goTypes = nil
-	file_api_proto_user_store_proto_depIdxs = nil
+	File_api_proto_user_Store_proto = out.File
+	file_api_proto_user_Store_proto_rawDesc = nil
+	file_api_proto_user_Store_proto_goTypes = nil
+	file_api_proto_user_Store_proto_depIdxs = nil
 }

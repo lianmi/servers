@@ -19,19 +19,25 @@ enum MessageScene {
 enum MessageType {
     //无效
     MsgType_Undefined = 0;
-    //Text(0)-文本
+
+    //Text-文本
     MsgType_Text = 1;
+
     // 附件类型
     //　数据经过　json 处理　的
     MsgType_Attach = 2;
+
     // 通知类型的数据
     MsgType_Notification = 3;
+
     // 加密类型
     // 在基础类型　中增加了　加密封装
     MsgType_Secret = 4;
+
     //  二进制
     //　直接二进制流bytes
     MsgType_Bin = 5;
+
     // 订单 类型
     MsgType_Order = 6;
 
@@ -41,28 +47,45 @@ enum MessageType {
     //吸顶式群消息,只能是群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
     MsgType_Roof = 8 ;
 
+
     //用户自定义
     MSgType_Customer = 100;
 
 }
+
 //附件类型枚举定义
 enum AttachType {
     //　未定义的附件类型
     AttachType_Undefined = 0;
+
     //   图片
     AttachType_Image = 1;
+
     //Audio(2) - 音频文件
     AttachType_Audio = 2;
+
     //Video(3) - 视频文件
     AttachType_Video = 3;
+
     //File(4) - 文件
     AttachType_File = 4;
+
     // 地理位置
     AttachType_Geo = 5;
+
     // 订单数据
     AttachType_Order = 6;
+
     //钱包相关的交易数据(提现，充值 ，转账，收款 ，退款等)
     AttachType_Transaction = 7;
+
+    //上链服务费
+    AttachType_BlockServiceCharge = 8;
+
+    //Vip会员费
+    AttachType_VipPrice = 9;
+
+
 }
 
 
@@ -134,21 +157,6 @@ enum MessageStatus{
     MOS_Done = 7 ; ///<  已完成订单
     MOS_Cancel = 8 ; ///<  撤单
     MOS_Processing = 9 ; ///< 处理中
-}
-
-// 商品类型
-enum MessageOrderType{
-   MOT_Undefined = 0 ; ///< 默认
-   MOT_FreshProduct = 1 ; ///< 生鲜产品
-   MOT_Meat = 2 ; ///< 肉类
-   MOT_Fruits = 3 ; ///< 水果蔬菜类
-   MOT_GrainOil = 4 ; ///< 粮油类
-   MOT_Delicatessen = 5 ; ///< 熟食类
-   MOT_Bakery = 6 ; ///< 面包糕饼类
-   MOT_HouseKeeping = 7 ; ///< 家政
-   MOT_Lottery = 8 ; ///< 彩票
-   MOT_Carry = 9 ; ///< 搬运
-   MOT_Maintenance = 10 ; ///< 维修
 }
 
 

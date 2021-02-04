@@ -1,7 +1,7 @@
 syntax = "proto3"; 
 import "api/proto/global/Global.proto";
 import "api/proto/user/Store.proto";
-
+import "api/proto/msg/MsgTypeEnum.proto";
 
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
@@ -36,7 +36,7 @@ message Product {
     global.ProductType productType= 4;
 
     //商品子类型 UI约定 应用在彩票店  1- 双色球  2- 大乐透,  3- 福彩3d ...  如果应用在肉类，1- 排骨 2-五花肉 3-纯瘦肉。。。
-    int32 subType= 5;
+    global.LotteryType subType= 5;
 
     //商品详细介绍
     //是否必须-是
@@ -99,29 +99,43 @@ message Product {
 message OrderProductBody {
     //服务端生成订单ID,用于以后此订单的追踪
     string OrderID =1;
+
     //商品id
     string productID =2;  
+
     //买家账号
     string buyUser =3;
+
     //买家的协商公钥
     string opkBuyUser =4;
+
     //商户账号
     string businessUser=5;
+
     //商户的协商公钥
     string opkBusinessUser =6;
     
     // 订单的总金额, 支付的时候以这个金额 计算服务手续费
     double OrderTotalAmount = 7 ;
 
-    // json 格式的内容 , 由 ui 层处理 sdk 仅透传
+    // 附件类型
+    msg.AttachType attachType = 8 ; 
+
+    // 附件 , 由 ui 层处理 sdk 仅透传
     // 传输会进过sdk 处理
-    string attach=8;
+    string attach=9;
 
     // 透传信息 , 不加密 ，直接传过去 不处理
-    bytes userdata = 9 ;
+    bytes userdata = 10 ;
 
     //订单的状态;
-    global.OrderState state = 10 ;
+    global.OrderState state = 11 ;
+
+    //订单类型, 默认是 正常类型 1
+    global.OrderType orderType = 12;
+
+    //彩票类型, 默认是0 则不是彩票, 1-99 由UI来定
+    global.LotteryType subType = 13;
 }
 
 
@@ -139,7 +153,7 @@ message GeneralProduct {
     global.ProductType productType = 3;
 
     //商品子类型 UI约定 应用在彩票店  1- 双色球  2- 大乐透,  3- 福彩3d ...  如果应用在肉类，1- 排骨 2-五花肉 3-纯瘦肉。。。
-    int32 subType= 4;
+    global.LotteryType subType= 4;
 
     //商品详细介绍
     //是否必须-是
@@ -296,7 +310,7 @@ message ProductSetSubTypeReq {
     string ProductId = 1;
 
     //子类型
-    int32 subType = 2; 
+    global.LotteryType subType = 2; 
 }
 
 message ProductSetSubTypeResp {}

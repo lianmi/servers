@@ -206,6 +206,7 @@ enum StoreType {
     ST_Services      = 12;     /**< 服务行业*/
     ST_Others        = 13;     /**<其它*/
 }
+
 //商品类型
 enum ProductType {
     OT_Undefined     = 0;     //proto3必须从0开始
@@ -250,6 +251,7 @@ enum OrderType {
      ORT_Normal        = 1;     //正常类型
      ORT_Grabbing      = 2;     //任务抢单类型
      ORT_Walking       = 3;     //竞猜类
+     ORT_Server        = 4;     //服务端发起的收费
 }
 
 //支付接口类型

@@ -819,6 +819,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		acsAvatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/avatars/%s/*", username)
 		acsGeneralavatars := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/generalavatars/%s/*", username)
 		acsMsg := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msg/%s/*", username)
+		acsMsgs := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/msgs/%s/*", username)
 		acsProducts := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/products/%s/*", username)
 		acsStores := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/stores/%s/*", username)
 		acsOrders := fmt.Sprintf("acs:oss:*:*:lianmi-ipfs/orders/%s/*", username)
@@ -832,7 +833,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 				Effect: "Allow",
 				Action: []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
 				// Action: []string{"oss:*"},  // 开放所有权限
-				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
+				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsMsgs, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
 				// Resource: []string{"acs:oss:*:*:lianmi-ipfs", "acs:oss:*:*:lianmi-ipfs/*"},
 			}},
 		}

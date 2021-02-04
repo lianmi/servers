@@ -275,180 +275,6 @@ func (x *MessageNotificationBody) GetTo() string {
 	return ""
 }
 
-type MessageOrderBody struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// 订单事件类型
-	Type MessageOrderEventType `protobuf:"varint,1,opt,name=type,proto3,enum=cloud.lianmi.im.msg.MessageOrderEventType" json:"type,omitempty"`
-	//  订单id
-	Orderid       string           `protobuf:"bytes,2,opt,name=orderid,proto3" json:"orderid,omitempty"`
-	LeaveComments string           `protobuf:"bytes,3,opt,name=LeaveComments,proto3" json:"LeaveComments,omitempty"` /// 留言
-	Ordertype     MessageOrderType `protobuf:"varint,4,opt,name=ordertype,proto3,enum=cloud.lianmi.im.msg.MessageOrderType" json:"ordertype,omitempty"`
-	//最后处理人
-	//添加好友，对方接收/拒绝后，该字段填充为对方ID
-	//申请入群，管理员通过/拒绝后，该字段填充管理员ID
-	//邀请入群，用户通过/拒绝后，该字段填充目标用户ID
-	//是否必填-否
-	HandledAccount string `protobuf:"bytes,5,opt,name=handledAccount,proto3" json:"handledAccount,omitempty"`
-	//获取处理者添加的附加信息
-	//添加好友，拒绝附言
-	//申请入群，拒绝附言
-	//邀请入群，拒绝附言
-	//是否必填-否
-	HandledMsg string `protobuf:"bytes,6,opt,name=handledMsg,proto3" json:"handledMsg,omitempty"`
-}
-
-func (x *MessageOrderBody) Reset() {
-	*x = MessageOrderBody{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MessageOrderBody) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MessageOrderBody) ProtoMessage() {}
-
-func (x *MessageOrderBody) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MessageOrderBody.ProtoReflect.Descriptor instead.
-func (*MessageOrderBody) Descriptor() ([]byte, []int) {
-	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *MessageOrderBody) GetType() MessageOrderEventType {
-	if x != nil {
-		return x.Type
-	}
-	return MessageOrderEventType_MOET_UNDEFINE
-}
-
-func (x *MessageOrderBody) GetOrderid() string {
-	if x != nil {
-		return x.Orderid
-	}
-	return ""
-}
-
-func (x *MessageOrderBody) GetLeaveComments() string {
-	if x != nil {
-		return x.LeaveComments
-	}
-	return ""
-}
-
-func (x *MessageOrderBody) GetOrdertype() MessageOrderType {
-	if x != nil {
-		return x.Ordertype
-	}
-	return MessageOrderType_MOT_Undefined
-}
-
-func (x *MessageOrderBody) GetHandledAccount() string {
-	if x != nil {
-		return x.HandledAccount
-	}
-	return ""
-}
-
-func (x *MessageOrderBody) GetHandledMsg() string {
-	if x != nil {
-		return x.HandledMsg
-	}
-	return ""
-}
-
-// 如果是加密消息的时候的Body
-type MessageSecretBody struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Type MessageSecretType `protobuf:"varint,1,opt,name=type,proto3,enum=cloud.lianmi.im.msg.MessageSecretType" json:"type,omitempty"`
-	// 消息负载
-	Body []byte `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
-	// 解开 本个body 的 临时公钥
-	EpkPub []byte `protobuf:"bytes,3,opt,name=epk_pub,json=epkPub,proto3" json:"epk_pub,omitempty"`
-	// 其他特殊结构
-	UserData []byte `protobuf:"bytes,4,opt,name=user_data,json=userData,proto3" json:"user_data,omitempty"`
-}
-
-func (x *MessageSecretBody) Reset() {
-	*x = MessageSecretBody{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MessageSecretBody) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MessageSecretBody) ProtoMessage() {}
-
-func (x *MessageSecretBody) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MessageSecretBody.ProtoReflect.Descriptor instead.
-func (*MessageSecretBody) Descriptor() ([]byte, []int) {
-	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *MessageSecretBody) GetType() MessageSecretType {
-	if x != nil {
-		return x.Type
-	}
-	return MessageSecretType_MST_UNDEFINE
-}
-
-func (x *MessageSecretBody) GetBody() []byte {
-	if x != nil {
-		return x.Body
-	}
-	return nil
-}
-
-func (x *MessageSecretBody) GetEpkPub() []byte {
-	if x != nil {
-		return x.EpkPub
-	}
-	return nil
-}
-
-func (x *MessageSecretBody) GetUserData() []byte {
-	if x != nil {
-		return x.UserData
-	}
-	return nil
-}
-
 // 消息事件 类型为文本的时候的 body
 type MessageTextBody struct {
 	state         protoimpl.MessageState
@@ -461,7 +287,7 @@ type MessageTextBody struct {
 func (x *MessageTextBody) Reset() {
 	*x = MessageTextBody{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4]
+		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -474,7 +300,7 @@ func (x *MessageTextBody) String() string {
 func (*MessageTextBody) ProtoMessage() {}
 
 func (x *MessageTextBody) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4]
+	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +313,7 @@ func (x *MessageTextBody) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageTextBody.ProtoReflect.Descriptor instead.
 func (*MessageTextBody) Descriptor() ([]byte, []int) {
-	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *MessageTextBody) GetText() string {
@@ -510,7 +336,7 @@ type MessageAttachBody struct {
 func (x *MessageAttachBody) Reset() {
 	*x = MessageAttachBody{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[5]
+		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -523,7 +349,7 @@ func (x *MessageAttachBody) String() string {
 func (*MessageAttachBody) ProtoMessage() {}
 
 func (x *MessageAttachBody) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[5]
+	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +362,7 @@ func (x *MessageAttachBody) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageAttachBody.ProtoReflect.Descriptor instead.
 func (*MessageAttachBody) Descriptor() ([]byte, []int) {
-	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *MessageAttachBody) GetType() AttachType {
@@ -563,7 +389,7 @@ type MessageSystemUpdate struct {
 func (x *MessageSystemUpdate) Reset() {
 	*x = MessageSystemUpdate{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[6]
+		mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -576,7 +402,7 @@ func (x *MessageSystemUpdate) String() string {
 func (*MessageSystemUpdate) ProtoMessage() {}
 
 func (x *MessageSystemUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[6]
+	mi := &file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +415,7 @@ func (x *MessageSystemUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageSystemUpdate.ProtoReflect.Descriptor instead.
 func (*MessageSystemUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP(), []int{4}
 }
 
 var File_api_proto_msg_RecvMsgEvent_proto protoreflect.FileDescriptor
@@ -638,48 +464,20 @@ var file_api_proto_msg_RecvMsgEvent_proto_rawDesc = []byte{
 	0x6d, 0x73, 0x67, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75,
 	0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74,
 	0x61, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x0e, 0x0a,
-	0x02, 0x74, 0x6f, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x74, 0x6f, 0x22, 0x9f, 0x02,
-	0x0a, 0x10, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x42, 0x6f,
-	0x64, 0x79, 0x12, 0x3e, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e,
-	0x32, 0x2a, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e,
-	0x69, 0x6d, 0x2e, 0x6d, 0x73, 0x67, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4f, 0x72,
-	0x64, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79,
-	0x70, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x69, 0x64, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x07, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x69, 0x64, 0x12, 0x24, 0x0a, 0x0d,
-	0x4c, 0x65, 0x61, 0x76, 0x65, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x0d, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
-	0x74, 0x73, 0x12, 0x43, 0x0a, 0x09, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x74, 0x79, 0x70, 0x65, 0x18,
-	0x04, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x25, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x6d, 0x73, 0x67, 0x2e, 0x4d, 0x65, 0x73, 0x73,
-	0x61, 0x67, 0x65, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x52, 0x09, 0x6f, 0x72,
-	0x64, 0x65, 0x72, 0x74, 0x79, 0x70, 0x65, 0x12, 0x26, 0x0a, 0x0e, 0x68, 0x61, 0x6e, 0x64, 0x6c,
-	0x65, 0x64, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x0e, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x64, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x12,
-	0x1e, 0x0a, 0x0a, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x64, 0x4d, 0x73, 0x67, 0x18, 0x06, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x0a, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x64, 0x4d, 0x73, 0x67, 0x22,
-	0x99, 0x01, 0x0a, 0x11, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x53, 0x65, 0x63, 0x72, 0x65,
-	0x74, 0x42, 0x6f, 0x64, 0x79, 0x12, 0x3a, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0e, 0x32, 0x26, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e,
-	0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x6d, 0x73, 0x67, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
-	0x65, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70,
-	0x65, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x04, 0x62, 0x6f, 0x64, 0x79, 0x12, 0x17, 0x0a, 0x07, 0x65, 0x70, 0x6b, 0x5f, 0x70, 0x75, 0x62,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x65, 0x70, 0x6b, 0x50, 0x75, 0x62, 0x12, 0x1b,
-	0x0a, 0x09, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0c, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61, 0x22, 0x25, 0x0a, 0x0f, 0x4d,
-	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x65, 0x78, 0x74, 0x42, 0x6f, 0x64, 0x79, 0x12, 0x12,
-	0x0a, 0x04, 0x74, 0x65, 0x78, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x65,
-	0x78, 0x74, 0x22, 0x60, 0x0a, 0x11, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x41, 0x74, 0x74,
-	0x61, 0x63, 0x68, 0x42, 0x6f, 0x64, 0x79, 0x12, 0x33, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69,
-	0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x6d, 0x73, 0x67, 0x2e, 0x41, 0x74, 0x74, 0x61,
-	0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x16, 0x0a, 0x06,
-	0x61, 0x74, 0x74, 0x61, 0x63, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x61, 0x74,
-	0x74, 0x61, 0x63, 0x68, 0x22, 0x15, 0x0a, 0x13, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x53,
-	0x79, 0x73, 0x74, 0x65, 0x6d, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x42, 0x29, 0x5a, 0x27, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69,
-	0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x2f, 0x6d, 0x73, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x02, 0x74, 0x6f, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x74, 0x6f, 0x22, 0x25, 0x0a,
+	0x0f, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x65, 0x78, 0x74, 0x42, 0x6f, 0x64, 0x79,
+	0x12, 0x12, 0x0a, 0x04, 0x74, 0x65, 0x78, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x74, 0x65, 0x78, 0x74, 0x22, 0x60, 0x0a, 0x11, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x41,
+	0x74, 0x74, 0x61, 0x63, 0x68, 0x42, 0x6f, 0x64, 0x79, 0x12, 0x33, 0x0a, 0x04, 0x74, 0x79, 0x70,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e,
+	0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x6d, 0x73, 0x67, 0x2e, 0x41, 0x74,
+	0x74, 0x61, 0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x16,
+	0x0a, 0x06, 0x61, 0x74, 0x74, 0x61, 0x63, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06,
+	0x61, 0x74, 0x74, 0x61, 0x63, 0x68, 0x22, 0x15, 0x0a, 0x13, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x42, 0x29, 0x5a,
+	0x27, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x69, 0x61, 0x6e,
+	0x6d, 0x69, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6d, 0x73, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -694,38 +492,30 @@ func file_api_proto_msg_RecvMsgEvent_proto_rawDescGZIP() []byte {
 	return file_api_proto_msg_RecvMsgEvent_proto_rawDescData
 }
 
-var file_api_proto_msg_RecvMsgEvent_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_api_proto_msg_RecvMsgEvent_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_api_proto_msg_RecvMsgEvent_proto_goTypes = []interface{}{
 	(*RecvMsgEventRsp)(nil),         // 0: cloud.lianmi.im.msg.RecvMsgEventRsp
 	(*MessageNotificationBody)(nil), // 1: cloud.lianmi.im.msg.MessageNotificationBody
-	(*MessageOrderBody)(nil),        // 2: cloud.lianmi.im.msg.MessageOrderBody
-	(*MessageSecretBody)(nil),       // 3: cloud.lianmi.im.msg.MessageSecretBody
-	(*MessageTextBody)(nil),         // 4: cloud.lianmi.im.msg.MessageTextBody
-	(*MessageAttachBody)(nil),       // 5: cloud.lianmi.im.msg.MessageAttachBody
-	(*MessageSystemUpdate)(nil),     // 6: cloud.lianmi.im.msg.MessageSystemUpdate
-	(MessageScene)(0),               // 7: cloud.lianmi.im.msg.MessageScene
-	(MessageType)(0),                // 8: cloud.lianmi.im.msg.MessageType
-	(MessageNotificationType)(0),    // 9: cloud.lianmi.im.msg.MessageNotificationType
-	(MessageStatus)(0),              // 10: cloud.lianmi.im.msg.MessageStatus
-	(MessageOrderEventType)(0),      // 11: cloud.lianmi.im.msg.MessageOrderEventType
-	(MessageOrderType)(0),           // 12: cloud.lianmi.im.msg.MessageOrderType
-	(MessageSecretType)(0),          // 13: cloud.lianmi.im.msg.MessageSecretType
-	(AttachType)(0),                 // 14: cloud.lianmi.im.msg.AttachType
+	(*MessageTextBody)(nil),         // 2: cloud.lianmi.im.msg.MessageTextBody
+	(*MessageAttachBody)(nil),       // 3: cloud.lianmi.im.msg.MessageAttachBody
+	(*MessageSystemUpdate)(nil),     // 4: cloud.lianmi.im.msg.MessageSystemUpdate
+	(MessageScene)(0),               // 5: cloud.lianmi.im.msg.MessageScene
+	(MessageType)(0),                // 6: cloud.lianmi.im.msg.MessageType
+	(MessageNotificationType)(0),    // 7: cloud.lianmi.im.msg.MessageNotificationType
+	(MessageStatus)(0),              // 8: cloud.lianmi.im.msg.MessageStatus
+	(AttachType)(0),                 // 9: cloud.lianmi.im.msg.AttachType
 }
 var file_api_proto_msg_RecvMsgEvent_proto_depIdxs = []int32{
-	7,  // 0: cloud.lianmi.im.msg.RecvMsgEventRsp.scene:type_name -> cloud.lianmi.im.msg.MessageScene
-	8,  // 1: cloud.lianmi.im.msg.RecvMsgEventRsp.type:type_name -> cloud.lianmi.im.msg.MessageType
-	9,  // 2: cloud.lianmi.im.msg.MessageNotificationBody.type:type_name -> cloud.lianmi.im.msg.MessageNotificationType
-	10, // 3: cloud.lianmi.im.msg.MessageNotificationBody.status:type_name -> cloud.lianmi.im.msg.MessageStatus
-	11, // 4: cloud.lianmi.im.msg.MessageOrderBody.type:type_name -> cloud.lianmi.im.msg.MessageOrderEventType
-	12, // 5: cloud.lianmi.im.msg.MessageOrderBody.ordertype:type_name -> cloud.lianmi.im.msg.MessageOrderType
-	13, // 6: cloud.lianmi.im.msg.MessageSecretBody.type:type_name -> cloud.lianmi.im.msg.MessageSecretType
-	14, // 7: cloud.lianmi.im.msg.MessageAttachBody.type:type_name -> cloud.lianmi.im.msg.AttachType
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	5, // 0: cloud.lianmi.im.msg.RecvMsgEventRsp.scene:type_name -> cloud.lianmi.im.msg.MessageScene
+	6, // 1: cloud.lianmi.im.msg.RecvMsgEventRsp.type:type_name -> cloud.lianmi.im.msg.MessageType
+	7, // 2: cloud.lianmi.im.msg.MessageNotificationBody.type:type_name -> cloud.lianmi.im.msg.MessageNotificationType
+	8, // 3: cloud.lianmi.im.msg.MessageNotificationBody.status:type_name -> cloud.lianmi.im.msg.MessageStatus
+	9, // 4: cloud.lianmi.im.msg.MessageAttachBody.type:type_name -> cloud.lianmi.im.msg.AttachType
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_msg_RecvMsgEvent_proto_init() }
@@ -760,30 +550,6 @@ func file_api_proto_msg_RecvMsgEvent_proto_init() {
 			}
 		}
 		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageOrderBody); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageSecretBody); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MessageTextBody); i {
 			case 0:
 				return &v.state
@@ -795,7 +561,7 @@ func file_api_proto_msg_RecvMsgEvent_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MessageAttachBody); i {
 			case 0:
 				return &v.state
@@ -807,7 +573,7 @@ func file_api_proto_msg_RecvMsgEvent_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_msg_RecvMsgEvent_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MessageSystemUpdate); i {
 			case 0:
 				return &v.state
@@ -826,7 +592,7 @@ func file_api_proto_msg_RecvMsgEvent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_msg_RecvMsgEvent_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
