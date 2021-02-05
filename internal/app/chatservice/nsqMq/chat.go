@@ -868,13 +868,11 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			zap.String("Expiration", sjson.Get("Credentials").Get("Expiration").MustString()),
 		)
 
-		/*
-			//计算出Expire
-			dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
-			format := "2006-01-02T15:04:05Z"
-			now, _ := time.Parse(format, time.Now().Format(format))
-			expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
-		*/
+		//计算出Expire
+		dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
+		format := "2006-01-02T15:04:05Z"
+		now, _ := time.Parse(format, time.Now().Format(format))
+		expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
 
 		rsp = &Msg.GetOssTokenRsp{
 			EndPoint:        LMCommon.Endpoint,
@@ -882,9 +880,10 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			AccessKeyId:     sjson.Get("Credentials").Get("AccessKeyId").MustString(),
 			AccessKeySecret: sjson.Get("Credentials").Get("AccessKeySecret").MustString(),
 			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),
+			Expiration:      sjson.Get("Credentials").Get("Expiration").MustString(),
 			Directory:       time.Now().Format("2006/01/02/"),
-			Expire:          LMCommon.EXPIRESECONDS, //默认3600s
-			Callback:        "",                     //不填
+			Expire:          expire, //LMCommon.EXPIRESECONDS
+			Callback:        "",     //不填
 		}
 	}
 

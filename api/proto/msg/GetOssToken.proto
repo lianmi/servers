@@ -21,12 +21,15 @@ message GetOssTokenRsp {
     string accessKeySecret = 4;
     // 安全凭证
     string securityToken = 5;
+    // 有效时间
+    string expiration = 6;
+
     // oss的文件目录，日期为目录名, 如：  2020/8/28， 客户端需要拼接为完整的上传文件名 
-    string directory = 6;
+    string directory = 7;
     //token有效时长(单位S)
-    fixed64 expire = 7;
+    fixed64 expire = 8;
     //服务器按json格式组装
-    string callback = 8;
+    string callback = 9;
 
     //废除：服务器为新文件分配的文件名，注：该名字不带文件后缀，客户端自行将后缀拼接完整
     //改为以上传文件的md5作为文件名， string name = md5; 
