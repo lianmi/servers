@@ -831,7 +831,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			Version: "1",
 			Statement: []sts.StatementBase{sts.StatementBase{
 				Effect: "Allow",
-				Action: []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:AbortMultipartUpload"},
+				Action: []string{"oss:GetObject", "oss:ListObjects", "oss:PutObject", "oss:PutObjectRequest", "oss:AbortMultipartUpload"},
 				// Action: []string{"oss:*"},  // 开放所有权限
 				Resource: []string{acsAvatars, acsGeneralavatars, acsMsg, acsMsgs, acsProducts, acsStores, acsOrders, acsTeamIcons, acsUsers},
 				// Resource: []string{"acs:oss:*:*:lianmi-ipfs", "acs:oss:*:*:lianmi-ipfs/*"},

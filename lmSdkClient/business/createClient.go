@@ -4,6 +4,7 @@ import (
 	// "context"
 	"crypto/tls"
 	"crypto/x509"
+
 	// "errors"
 	// "fmt"
 	"io/ioutil"
@@ -16,9 +17,10 @@ import (
 	// "github.com/gomodule/redigo/redis"
 
 	// Msg "github.com/lianmi/servers/api/proto/msg"
+	"net"
+
 	LMCommon "github.com/lianmi/servers/internal/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
-	"net"
 )
 
 func NewTlsConfig() *tls.Config {
@@ -83,7 +85,7 @@ func CreateClient(payloadCh chan []byte) *paho.Client {
 					payloadCh <- m.Payload
 
 				} else {
-					log.Println("GetOssToken failed")
+					log.Println("Response failed")
 				}
 
 			}),
