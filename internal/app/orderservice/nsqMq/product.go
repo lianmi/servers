@@ -1793,7 +1793,7 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						go func() {
 							nc.logger.Debug("向商家发送商品的订单消息, 5-2",
-								zap.String("to", orderProductBody.BuyUser),
+								zap.String("to", orderProductBody.BusinessUser),
 								zap.Int("State", int(orderProductBody.State)),
 							)
 							nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)

@@ -1030,8 +1030,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					// time.Sleep(200 * time.Millisecond)
-					nc.logger.Debug("延时200ms通知买家订单已支付成功的状态, 5-2",
+					time.Sleep(50 * time.Millisecond)
+					nc.logger.Debug("延时50ms通知买家订单已支付成功的状态, 5-2",
 						zap.String("to", username),
 					)
 					nc.BroadcastOrderMsgToAllDevices(eRsp, username)
@@ -1053,9 +1053,9 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					Time: uint64(time.Now().UnixNano() / 1e6),
 				}
 				go func() {
-					// time.Sleep(200 * time.Millisecond)
-					nc.logger.Debug("延时200ms通知商家订单已支付成功的状态, 5-2",
-						zap.String("to", username),
+					// time.Sleep(20 * time.Millisecond)
+					nc.logger.Debug("通知商家订单已支付成功的状态, 5-2",
+						zap.String("to", toUsername),
 					)
 					nc.BroadcastOrderMsgToAllDevices(eRsp, toUsername)
 				}()
