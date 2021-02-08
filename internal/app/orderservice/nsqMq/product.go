@@ -1741,8 +1741,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 						orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
 						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
-						//为配合flutter调试，暂时不发
-
 						nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
 						//将接单转发到买家
@@ -1771,36 +1769,36 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 						}
 
-					} else { //其它普通商品
-						orderProductBody.State = Global.OrderState_OS_SendOK
-						nc.logger.Debug("注意，除了预审核，其它状态都需要发送给商家", zap.Int("State", int(orderProductBody.State)))
+					}
 
-						orderProductBodyData, _ = proto.Marshal(orderProductBody)
-						//将订单转发到商户
-						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err == nil {
-							eRsp := &Msg.RecvMsgEventRsp{
-								Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
-								Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
-								Body:         orderProductBodyData,          //订单载体 OrderProductBody
-								From:         username,                      //谁发的
-								FromDeviceId: deviceID,                      //哪个设备发的
-								Recv:         req.To,                        //商户账户id
-								ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
-								Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
-								Time:         uint64(time.Now().UnixNano() / 1e6),
-							}
+					//将订单转发到商户
+					orderProductBody.State = Global.OrderState_OS_SendOK
+					nc.logger.Debug("注意，除了预审核，其它状态都需要发送给商家", zap.Int("State", int(orderProductBody.State)))
 
-							go func() {
-								time.Sleep(250 * time.Millisecond)
-								nc.logger.Debug("延时150ms向商家发送非彩票普通商品的订单消息, 5-2",
-									zap.String("to", orderProductBody.BuyUser),
-									zap.Int("State", int(orderProductBody.State)),
-								)
-								nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
-							}()
+					orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BusinessUser))); err == nil {
+						eRsp := &Msg.RecvMsgEventRsp{
+							Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+							Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+							Body:         orderProductBodyData,          //订单载体 OrderProductBody
+							From:         username,                      //谁发的
+							FromDeviceId: deviceID,                      //哪个设备发的
+							Recv:         req.To,                        //商户账户id
+							ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+							Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+							Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
+							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
+
+						go func() {
+							nc.logger.Debug("向商家发送商品的订单消息, 5-2",
+								zap.String("to", orderProductBody.BuyUser),
+								zap.Int("State", int(orderProductBody.State)),
+							)
+							nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BusinessUser)
+						}()
+
 					}
 
 					//对attach进行哈希计算，以便获知订单内容是否发生改变
