@@ -872,7 +872,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 		dt, _ := time.Parse("2006-01-02T15:04:05Z", sjson.Get("Credentials").Get("Expiration").MustString())
 		format := "2006-01-02T15:04:05Z"
 		now, _ := time.Parse(format, time.Now().Format(format))
-		expire := uint64(dt.Unix() - now.UTC().Unix() + 8*3600)
+		expire := uint64(dt.Unix()-now.UTC().Unix()+8*3600) * 1000
 
 		rsp = &Msg.GetOssTokenRsp{
 			EndPoint:        LMCommon.Endpoint,
@@ -882,7 +882,7 @@ func (nc *NsqClient) HandleGetOssToken(msg *models.Message) error {
 			SecurityToken:   sjson.Get("Credentials").Get("SecurityToken").MustString(),
 			Expiration:      sjson.Get("Credentials").Get("Expiration").MustString(),
 			Directory:       time.Now().Format("2006/01/02/"),
-			Expire:          expire, //LMCommon.EXPIRESECONDS
+			Expire:          expire, //毫秒
 			Callback:        "",     //不填
 		}
 	}
