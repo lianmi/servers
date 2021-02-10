@@ -459,6 +459,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 		} else {
 			nc.logger.Debug("预支付成功，构造发起者向接收者转账的交易",
 				zap.String("walletAddress", walletAddress),
+				zap.String("toUsername", toUsername),
 				zap.String("toWalletAddress", toWalletAddress),
 				zap.Uint64("Nonce", rawDescToTarget.Nonce),
 				zap.Uint64("GasPrice", rawDescToTarget.GasPrice),
