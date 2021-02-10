@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/google/wire"
 	"golang.org/x/crypto/sha3"
+
 	// "github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
@@ -904,12 +905,12 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	}
 	//TODO 从redis里取出上次的 PendingNonceAt 假如这两个nonce都相同，那么报错
 	nonceAtKey := fmt.Sprintf("PendingNonceAt:%s", source)
-	oldPendingNonceAt, err := redis.Uint64(redisConn.Do("GET", nonceAtKey))
+	// oldPendingNonceAt, err := redis.Uint64(redisConn.Do("GET", nonceAtKey))
 
-	if oldPendingNonceAt == nonce {
-		s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
-		// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
-	}
+	// if oldPendingNonceAt == nonce {
+	// s.logger.Error("oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// return nil, errors.Wrapf(err, "oldPendingNonceAt 等于 nonce, 不能上链交易")
+	// }
 
 	//TODO 这里有幺蛾子，nonce不会增长,连续发起多个交易会堵塞
 	// see : https://blog.csdn.net/sinat_34070003/article/details/79919431
