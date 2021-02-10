@@ -458,8 +458,8 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			goto COMPLETE
 		} else {
 			nc.logger.Debug("预支付成功，构造发起者向接收者转账的交易",
-				zap.String("walletAddress", walletAddress),
 				zap.String("toUsername", toUsername),
+				zap.String("walletAddress", walletAddress),
 				zap.String("toWalletAddress", toWalletAddress),
 				zap.Uint64("Nonce", rawDescToTarget.Nonce),
 				zap.Uint64("GasPrice", rawDescToTarget.GasPrice),
@@ -733,26 +733,25 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			zap.String("walletAddress", walletAddress),
 			zap.Uint64("代币当前余额", balanceLNMC),
 		)
-		/*
-			//平台HD钱包利用bip32派生一个子私钥及子地址，作为证明人 - B签
-			newBip32Index, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
-			if err != nil {
-				errorCode = LMCError.RedisError
-				goto COMPLETE
-			}
-			if newBip32Index == 0 {
-				errorCode = LMCError.InternalServerError
-				goto COMPLETE
-			}
-			newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
 
-			nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
-				zap.String("username", username),
-				zap.Uint64("newBip32Index", newBip32Index),
-				zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
-				zap.String("AddressHex", newKeyPair.AddressHex),
-			)
-		*/
+		//平台HD钱包利用bip32派生一个子私钥及子地址，作为中转
+		newBip32Index, err = redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
+		if err != nil {
+			errorCode = LMCError.RedisError
+			goto COMPLETE
+		}
+		if newBip32Index == 0 {
+			errorCode = LMCError.InternalServerError
+			goto COMPLETE
+		}
+		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(newBip32Index)
+
+		nc.logger.Info("平台HD钱包利用bip32派生一个子私钥及子地址",
+			zap.String("username", username),
+			zap.Uint64("newBip32Index", newBip32Index),
+			zap.String("PrivateKeyHex", newKeyPair.PrivateKeyHex),
+			zap.String("AddressHex", newKeyPair.AddressHex),
+		)
 
 		//本次转账的代币数量
 		amountLNMC, err = redis.Uint64(redisConn.Do("HGET", PreTransferKey, "AmountLNMC"))
