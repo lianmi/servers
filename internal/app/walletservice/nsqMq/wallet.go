@@ -370,7 +370,15 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			}
 
 			toUsername = businessUser
-			toWalletAddress = newKeyPair.AddressHex //中转账号
+			if toUsername == LMCommon.ChargeBusinessUsername {
+				toWalletAddress = LMCommon.ChargeReveiveWallet //手续费接收地址
+			} else {
+
+				toWalletAddress = newKeyPair.AddressHex //中转账号???
+			}
+
+			//TODO,  当订单为手续费时，这个目标地址不对应 id10 的地址
+			nc.logger.Warn("目标用户账号信息", zap.String("toUsername", toUsername), zap.String("toWalletAddress", toWalletAddress))
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_Paying 及订单金额
 			_, err = redisConn.Do("HSET", orderIDKey, "State", int(Global.OrderState_OS_Paying))

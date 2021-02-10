@@ -1011,7 +1011,7 @@ func (nc *NsqClient) SendChargeOrderIDToBuyer(sdkUuid string, isVip bool, orderP
 		"ProductID", systemChargeProductID, //服务费的商品ID
 		"BuyUser", orderProductBody.BuyUser, //买家
 		"OpkBuyUser", "",
-		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户
+		"BusinessUser", LMCommon.ChargeBusinessUsername, //系统商户 id10
 		"OpkBusinessUser", "",
 		"OrderTotalAmount", mathtool.FloatRound(charge, 2), //服务费, 取小数点后两位的精度
 		"AttachType", attachType, //附件类型

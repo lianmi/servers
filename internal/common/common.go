@@ -147,8 +147,9 @@ const (
 
 //会员返佣比例相关， 比例是49%
 const (
-	VipBusinessUsername    = "id3"  //Vip会员的商户id, 暂定，上线后需要重新设定
-	ChargeBusinessUsername = "id10" // 接收服务费的商户id, 暂定，上线后需要重新设定
+	VipBusinessUsername    = "id3"                                        //Vip会员的商户id, 暂定，上线后需要重新设定
+	ChargeBusinessUsername = "id10"                                       // 接收服务费的商户id, 暂定，上线后需要重新设定
+	ChargeReveiveWallet    = "0xc5a60be98722fef4266b08ac3dec3465dcf99fb5" // 接收服务费的商户钱包 , 暂定，上线后需要重新设定
 	CommissionOne          = float64(0.3)
 	CommissionTwo          = float64(0.1)
 	CommissionThree        = float64(0.09)
