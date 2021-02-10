@@ -6,6 +6,8 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 
 //响应参数
 message SoldoutProductEventRsp {
+    //商户注册id 
+    string businessUsername=1;
     //商品ID
-    string productID=1;
+    string productID=2;
 }

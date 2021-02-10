@@ -814,7 +814,8 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		for _, watchingUser := range watchingUsers {
 			//7-7 商品下架事件
 			soldoutProductEventRsp := &Order.SoldoutProductEventRsp{
-				ProductID: req.ProductID,
+				BusinessUsername: username,
+				ProductID:        req.ProductID,
 			}
 			productData, _ := proto.Marshal(soldoutProductEventRsp)
 
