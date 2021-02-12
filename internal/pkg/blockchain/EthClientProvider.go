@@ -449,6 +449,17 @@ func (s *Service) WaitForBlockCompletation(hashToRead string) uint64 {
 	}
 }
 
+// 获取最新的gasLimit
+func (s *Service) GetGasLimit() (uint64, error) {
+
+	header, err := s.WsClient.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return 0, err
+	}
+	s.logger.Debug("获取最新的gasLimit ", zap.Uint64("GasLimit", header.GasLimit))
+	return header.GasLimit, nil
+}
+
 //根据区块高度查询里面所有交易
 func (s *Service) QueryTransactionByBlockNumber(number uint64) {
 
@@ -552,8 +563,11 @@ func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, 
 		return 0, "", err
 	}
 
-	value := big.NewInt(amount)           // in wei (1 eth)
-	gasLimit := uint64(LMCommon.GASLIMIT) // in units
+	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return 0, "", err
+	}
+	value := big.NewInt(amount) // in wei (1 eth)
 	gasPrice := s.GetGasPrice()
 
 	//接收账号
@@ -639,7 +653,11 @@ func (s *Service) TransferEtherToOtherAccount(targetAccount string, ether float6
 	amount := decimal.NewFromFloat(ether)
 	value := util.ToWei(amount, 18)
 
-	gasLimit := uint64(LMCommon.GASLIMIT) // in units
+
+	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return 0, "", err
+	}
 	gasPrice := s.GetGasPrice()
 
 	//接收账号
@@ -768,7 +786,12 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)                // in wei
-	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
+
+	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return 0, "", 0, err
+	}
+
 	auth.GasPrice = gasPrice
 
 	//调用合约里的转账函数
@@ -847,7 +870,10 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)                // in wei
-	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
+	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return  "", 0,"", err
+	}
 	auth.GasPrice = gasPrice
 
 	address, deployMultiSigTx, _, err := MultiSig.DeployMultiSig(
@@ -970,7 +996,12 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	if err != nil {
 		return nil, err
 	}
-	if balanceEth < LMCommon.GASLIMIT {
+	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return nil, err
+	}
+
+	if balanceEth < gasLimit {
 		s.logger.Error("用户链上Eth余额不足以支付交易gas手续费 ",
 			zap.String("walletAddress", source),
 			zap.Uint64("当前余额 balanceEth", balanceEth),
@@ -1042,8 +1073,6 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	data = append(data, methodID...)
 	data = append(data, paddedAddress...)
 	data = append(data, paddedAmount...)
-
-	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1183,7 +1212,11 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)                // in wei
-	auth.GasLimit = uint64(LMCommon.GASLIMIT) // in units
+	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return  err
+	}
+
 	auth.GasPrice = gasPrice
 
 	//调用合约里的转账函数
@@ -1268,8 +1301,11 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 	// fmt.Println("data:", data)
 	// fmt.Println("data hex:", hex.EncodeToString(data))
 
-	gasLimit := uint64(LMCommon.GASLIMIT) //必须强行指定，否则无法打包
-	// fmt.Println("gasLimit:", gasLimit)
+
+	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	if err != nil {
+		return  nil, err
+	}
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)

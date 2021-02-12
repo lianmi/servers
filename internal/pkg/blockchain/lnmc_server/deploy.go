@@ -42,7 +42,6 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 554089674 //5000000  这个到底怎么正确填写？
 
 )
 
@@ -53,7 +52,7 @@ func main() {
 		if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
 			log.Println(err.Error())
 		}
-		输出: Contract pending deploy:0x307831443262444441383935346234303166454235323030384336333837386536393862364238343434
+		输出: Contract pending deploy:0x1D2bDDA8954b401fEB52008C63878e698b6B8444
 			2021/02/12 21:46:50 区块:  0xf58af6138743d13463a6deee5930ea2b055b54974e9a42aa27f6521f63938f17
 			2021/02/12 21:46:50 区块编号:  1193
 			2021/02/12 21:46:50 =========queryTransactionByBlockNumber start==========
@@ -283,7 +282,8 @@ func deploy(privateKeyHex string) error {
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)       // in wei
-	auth.GasLimit = uint64(GASLIMIT) // in units
+	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
+
 	auth.GasPrice = big.NewInt(1)
 
 	address, deployTx, _, err := ERC20.DeployERC20Token(
@@ -627,7 +627,8 @@ func deployMultiSig(privateKeyHex string) error {
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)       // in wei
-	auth.GasLimit = uint64(GASLIMIT) // in units
+		auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
+
 	auth.GasPrice = gasPrice
 
 	//用户A的私钥
@@ -883,6 +884,8 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	}
 	if erc20DeployContractAddress == "" {
 		return errors.New("erc20DeployContractAddress is required")
+	} else {
+		log.Println("发币合约地址: ", erc20DeployContractAddress)
 	}
 
 	//使用发币合约地址
@@ -918,8 +921,6 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	auth.Value = big.NewInt(0) // in wei
 
 	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
-
-	// auth.GasLimit = uint64(GASLIMIT) // in units
 
 	auth.GasPrice = gasPrice
 
@@ -1002,7 +1003,8 @@ func transferTokenFromABToC(multiSigContractAddress, privateKeySource, target st
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)       // in wei
-	auth.GasLimit = uint64(GASLIMIT) // in units
+	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
+
 	auth.GasPrice = gasPrice
 
 	//调用合约里的转账函数, 返回已经签名的tx交易哈希
@@ -1063,7 +1065,6 @@ func transferEth(sourcePrivateKey, target string, ether float64) {
 	amount := decimal.NewFromFloat(ether)
 	value := util.ToWei(amount, 18)
 
-	// gasLimit := uint64(GASLIMIT) // in units
 	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
@@ -1138,7 +1139,8 @@ func transferWEI(sourcePrivateKey, target string, amount string) {
 
 	//big.NewInt(amount)
 
-	gasLimit := uint64(GASLIMIT) // in units
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
+
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
@@ -1274,8 +1276,8 @@ func transferToken() error {
 	// }
 	// fmt.Println("gasLimit:", gasLimit) // 21572
 
-	//注意！！！不能用上面的，否则无法打包
-	gasLimit := uint64(GASLIMIT) // in units
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
+
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1384,8 +1386,7 @@ func transferMultiSigToken(contractAddress, privKey, target string, tokens strin
 	fmt.Println("data:", data)
 	fmt.Println("data hex:", hex.EncodeToString(data))
 
-	gasLimit := uint64(GASLIMIT) //必须强行指定，否则无法打包
-	fmt.Println("gasLimit:", gasLimit)
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1479,8 +1480,7 @@ func GenerateRawDesc(contractAddress, fromAddressHex, target, tokens string) ([]
 	fmt.Println("data:", data)
 	fmt.Println("data hex:", hex.EncodeToString(data))
 
-	gasLimit := uint64(GASLIMIT) //必须强行指定，否则无法打包
-	fmt.Println("gasLimit:", gasLimit)
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1577,8 +1577,7 @@ func transferLNMCTokenToContractAddress(privKeyHex, target, tokens string) ([]by
 	fmt.Println("data:", data)
 	fmt.Println("data hex:", hex.EncodeToString(data))
 
-	gasLimit := uint64(GASLIMIT) //必须强行指定，否则无法打包
-	fmt.Println("gasLimit:", gasLimit)
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1694,8 +1693,7 @@ func generateTransferLNMCTokenTx(source, target, tokens string) (*RawDesc, error
 	fmt.Println("data:", data)
 	fmt.Println("data hex:", hex.EncodeToString(data))
 
-	gasLimit := uint64(GASLIMIT) //必须强行指定，否则无法打包
-	fmt.Println("gasLimit:", gasLimit)
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)

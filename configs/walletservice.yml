@@ -19,7 +19,7 @@ redis:
   db: 0
 ethereum:
   wsURI: ws://127.0.0.1:8546
-  erc20DeployContractAddress: "0x1d2bdda8954b401feb52008c63878e698b6b8444"
+  erc20DeployContractAddress: "v"
 log:
   filename: /tmp/walletservice.log
   maxSize: 500

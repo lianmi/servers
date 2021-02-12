@@ -158,14 +158,14 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//给用户钱包发送10000000个gas
-		if blockNumber, hash, err = nc.ethService.TransferWeiToOtherAccount(req.WalletAddress, 2*LMCommon.GASLIMIT, nil); err != nil {
+		//给用户钱包发送1个ETHER
+		if blockNumber, hash, err = nc.ethService.TransferWeiToOtherAccount(req.WalletAddress, LMCommon.ETHER, nil); err != nil {
 			errorCode = LMCError.WalletTranferError
 			goto COMPLETE
 		}
 
 		//增加 到MySQL 表 UserWallet
-		ethAmountString := fmt.Sprintf("%d", LMCommon.GASLIMIT)
+		ethAmountString := fmt.Sprintf("%d", LMCommon.ETHER)
 
 		if err := nc.Repository.AddUserWallet(username, req.WalletAddress, ethAmountString); err != nil {
 			nc.logger.Error("AddUserWallet ", zap.Error(err))
@@ -180,7 +180,7 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
 			"EthAmount",
-			0) //LMCommon.GASLIMIT
+			0) 
 
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
@@ -201,7 +201,7 @@ COMPLETE:
 		rsp := &Wallet.RegisterWalletRsp{
 			BlockNumber: blockNumber,
 			Hash:        hash,
-			AmountEth:   LMCommon.GASLIMIT,
+			AmountEth:   LMCommon.ETHER,
 			AmountLNMC:  0,
 			Time:        uint64(time.Now().UnixNano() / 1e6), // 当前时间
 		}
@@ -419,11 +419,7 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 			zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
 		)
-		if balanceETH < LMCommon.GASLIMIT {
-			nc.logger.Warn("gas余额不足")
-			errorCode = LMCError.GasBalanceIsNotSufficient
-			goto COMPLETE
-		}
+		
 
 		//判断是否有足够代币数量
 		if balanceLNMC < amountLNMC {
@@ -1359,11 +1355,6 @@ func (nc *NsqClient) HandlePreWithDraw(msg *models.Message) error {
 		//当前用户的Eth余额
 		balanceETH, err = nc.ethService.GetWeiBalance(walletAddress)
 
-		if balanceETH < LMCommon.GASLIMIT {
-			nc.logger.Warn("gas余额不足")
-			errorCode = LMCError.GasBalanceIsNotSufficient
-			goto COMPLETE
-		}
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
