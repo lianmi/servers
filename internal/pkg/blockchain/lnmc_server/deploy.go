@@ -41,38 +41,45 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 5000000 //0xffffffff 3775280774
+	GASLIMIT = 1338884012 //5000000
 
-	PrivateKeyAHEX = "91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1" //用户A私钥
-	AddressAHEX    = "0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538"                       //用户A地址
-
-	PrivateKeyBHEX = "b65e1f6e3b449c35c18518cfdf8de3c361ccf6f4a51817e0709a917fac688423" //用户B私钥
-	AddressBHEX    = "0xac243c2FED19d085bF682d0D74e677c1d9911e83"                       //用户B地址
-
-	AddressCHEX = "0xBa8d69ba4D65802039cfE2ae373072639026D457" //用户C地址
-	AddressDHEX = "0x59aC768b416C035c8DB50B4F54faaa1E423c070D" //用户D地址
 )
 
 func main() {
 	// 传参是第1号叶子的私钥，也就是说 部署合约于第1号叶子 ,  获取发币合约地址
 	// 只需部署一次即可
-	if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
-		log.Println(err.Error())
-	}
-	//输出: Contract pending deploy:0x1d2bdda8954b401feb52008c63878e698b6b8444
+	/*
+		if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
+			log.Println(err.Error())
+		}
+		输出: Contract pending deploy:0x307831443262444441383935346234303166454235323030384336333837386536393862364238343434
+			2021/02/12 21:46:50 区块:  0xf58af6138743d13463a6deee5930ea2b055b54974e9a42aa27f6521f63938f17
+			2021/02/12 21:46:50 区块编号:  1193
+			2021/02/12 21:46:50 =========queryTransactionByBlockNumber start==========
+			2021/02/12 21:46:50 tx.Hash:  0xb591a9c8a76469476c69f6d678fb03e479140600bd0c7dfbb7c75ea6a15fe5d8
+			2021/02/12 21:46:50 tx.Value:  0
+			2021/02/12 21:46:50 tx.Gas:  5000000
+			2021/02/12 21:46:50 tx.GasPrice:  1
+			2021/02/12 21:46:50 交易总费用(Wei):  5000000
+			2021/02/12 21:46:50 交易总费用(eth):  0.000000000005
+			2021/02/12 21:46:50 tx.Nonce:  0
+	*/
 
 	//查询第1号叶子的LNMC余额
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	//从第1号叶子转账 10000000000000000000 wei到id1
-	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", "10000000000000000000")
+	ether := float64(1) //1个以太币
+	fmt.Println("ehter: ", ether)
 
-	//从第1号叶子转账500代币给A
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
+	// 从第1号叶子转账 1 ether 到id1作为gas
+	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-	//从第1号叶子转账 500000000 代币给id81
-	// amout := int64(500000)
+	//从第1号叶子转账5000代币给id1的地址
+	amountLNMCAmount := int64(5000)
+	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
+
+	// 从第1号叶子转账 500000000 代币给id81
 	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amout)
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
@@ -478,7 +485,7 @@ func queryTransactionByBlockNumber(number uint64) {
 	for _, tx := range block.Transactions() {
 		log.Println("tx.Hash: ", tx.Hash().Hex())            //
 		log.Println("tx.Value: ", tx.Value().String())       // 10000000000000000
-		log.Println("tx.Gas: ", tx.Gas())                    // 6000000
+		log.Println("tx.Gas: ", tx.Gas())                    // 5000000
 		log.Println("tx.GasPrice: ", tx.GasPrice().Uint64()) // 1000000000
 
 		// cost := tx.Gas() * tx.GasPrice().Uint64() //计算交易所需要支付的总费用
@@ -486,7 +493,7 @@ func queryTransactionByBlockNumber(number uint64) {
 		log.Println("交易总费用(Wei): ", gasCost)                 //6000000000000000Wei
 		ethAmount := util.ToDecimal(gasCost, 18)
 		log.Println("交易总费用(eth): ", ethAmount) //0.003Eth
-		log.Println("tx.Nonce: ", tx.Nonce())
+		// log.Println("tx.Nonce: ", tx.Nonce())
 		log.Println("tx.Data: ", tx.Data())
 		log.Println("tx.Data Hex: ", hex.EncodeToString(tx.Data()))
 		// log.Println("tx.To: ", tx.To().Hex()) //目标地址
@@ -970,8 +977,82 @@ func transferTokenFromABToC(multiSigContractAddress, privateKeySource, target st
 
 }
 
+//Eth转账, 从sourcePrivateKey转到目标账号target, amount  单位是 ether
+func transferEth(sourcePrivateKey, target string, ether float64) {
+	client, err := ethclient.Dial(WSURIIPC)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKey, err := crypto.HexToECDSA(sourcePrivateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// value := new(big.Int)
+	// value.SetString(amount, 10) // in wei sets the value to eth
+	value := big.NewInt(int64(ether * 1000000000000000000)) // in wei (1 eth)
+
+	//big.NewInt(amount)
+
+	gasLimit := uint64(GASLIMIT) // in units
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	toAddress := common.HexToAddress(target)
+	var data []byte
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("tx sent: %s\n", signedTx.Hash().Hex())
+	//等待打包完成的回调
+	done := WaitForBlockCompletation(client, signedTx.Hash().Hex())
+	if done == 1 {
+		//获取交易哈希里的打包状态，如果打包完成，isPending = false
+		tx2, isPending, err := client.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("打包成功, 交易哈希: ", tx2.Hash().Hex()) //
+		log.Println("isPending: ", isPending)         // false
+
+	} else {
+		log.Println(" 打包失败")
+	}
+
+}
+
 //Eth转账, 从sourcePrivateKey转到目标账号target, amount  单位是 wei
-func transferEth(sourcePrivateKey, target string, amount string) {
+func transferWEI(sourcePrivateKey, target string, amount string) {
 	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
@@ -1688,7 +1769,3 @@ func mulsigDeployMain() {
 	// queryLNMCBalance(AddressCHEX)
 
 }
-
-/*
-eth.sendTransaction({from:account1,to:account3,value:web3.toWei(1,"ether")})
-*/
