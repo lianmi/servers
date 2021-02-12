@@ -70,14 +70,14 @@ func main() {
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	ether := float64(1) //1个以太币
-	fmt.Println("ehter: ", ether)
+	// ether := float64(1) //1个以太币
+	// fmt.Println("ehter: ", ether)
 
-	// 从第1号叶子转账 1 ether 到id1作为gas
-	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
+	// // 从第1号叶子转账 1 ether 到id1作为gas
+	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
 	//从第1号叶子转账5000代币给id1的地址
-	amountLNMCAmount := int64(5000)
+	amountLNMCAmount := int64(100)
 	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
 
 	// 从第1号叶子转账 500000000 代币给id81
@@ -210,6 +210,20 @@ func getLatestBlockInfo() (*types.Block, error) {
 
 	fmt.Println(count)
 	return block, nil
+}
+
+// 获取最新的gasLimit
+func GetGasLimit() (uint64, error) {
+	client, err := ethclient.Dial(WSURIIPC)
+	if err != nil {
+		return 0, err
+	}
+	header, err := client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return header.GasLimit, nil
 }
 
 /*
@@ -901,8 +915,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0) // in wei
 
-	block, err := getLatestBlockInfo() //获取最后一个区块的gasLimit
-	auth.GasLimit = block.GasLimit()
+	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
 
 	// auth.GasLimit = uint64(GASLIMIT) // in units
 
@@ -1049,8 +1062,7 @@ func transferEth(sourcePrivateKey, target string, ether float64) {
 	value := util.ToWei(amount, 18)
 
 	// gasLimit := uint64(GASLIMIT) // in units
-	block, err := getLatestBlockInfo() //获取最后一个区块的gasLimit
-	gasLimit := block.GasLimit()
+	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
