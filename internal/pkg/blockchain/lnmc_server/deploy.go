@@ -76,8 +76,8 @@ func main() {
 	// // 从第1号叶子转账 1 ether 到id1作为gas
 	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-	//从第1号叶子转账5000代币给id1的地址
-	amountLNMCAmount := int64(100)
+	//从第1号叶子转账 500000 代币给id1的地址
+	amountLNMCAmount := int64(500000)
 	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
 	//查询id1代币余额
 	queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
