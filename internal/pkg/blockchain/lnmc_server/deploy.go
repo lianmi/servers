@@ -34,6 +34,7 @@ import (
 	ERC20 "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/ERC20"
 	MultiSig "github.com/lianmi/servers/internal/pkg/blockchain/lnmc/contracts/MultiSig"
 	"github.com/lianmi/servers/internal/pkg/blockchain/util"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -41,7 +42,7 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 554089674 //5000000
+	GASLIMIT = 554089674 //5000000  这个到底怎么正确填写？
 
 )
 
@@ -64,6 +65,7 @@ func main() {
 			2021/02/12 21:46:50 交易总费用(eth):  0.000000000005
 			2021/02/12 21:46:50 tx.Nonce:  0
 	*/
+	getLatestBlockInfo()
 
 	//查询第1号叶子的LNMC余额
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
@@ -172,6 +174,42 @@ func main() {
 	//查询id2的多签合约的余额
 	// queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
 
+}
+
+// 获取最新区块的信息
+func getLatestBlockInfo() {
+	client, err := ethclient.Dial(WSURIIPC)
+	if err != nil {
+		log.Fatalf("Unable to connect to network:%v \n", err)
+	}
+	header, err := client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("header.Number", header.Number.String())
+	fmt.Println("header.GasLimit", header.GasLimit)
+
+	// blockNumber := big.NewInt(header.Number)
+	block, err := client.BlockByNumber(context.Background(), header.Number)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("block.Number: ", block.Number().Uint64())        // 区块号
+	fmt.Println("block.Time:", block.Time())                      // 区块时间戳
+	fmt.Println("block.GasLimit:", block.GasLimit())              // gas上限
+	fmt.Println("block.Number:", block.GasUsed())                 // 已用gase
+	fmt.Println("block.Difficulty:", block.Difficulty().Uint64()) // 区块难度
+	fmt.Println("block.Hash:", block.Hash().Hex())                // 区块哈希
+	fmt.Println("block.Transactions:", len(block.Transactions())) // 1交易列表
+
+	count, err := client.TransactionCount(context.Background(), block.Hash())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(count) // 144
 }
 
 /*
@@ -1002,11 +1040,8 @@ func transferEth(sourcePrivateKey, target string, ether float64) {
 		log.Fatal(err)
 	}
 
-	// value := new(big.Int)
-	// value.SetString(amount, 10) // in wei sets the value to eth
-	value := big.NewInt(int64(ether * 1000000000000000000)) // in wei (1 eth)
-
-	//big.NewInt(amount)
+	amount := decimal.NewFromFloat(ether)
+	value := util.ToWei(amount, 18)
 
 	gasLimit := uint64(GASLIMIT) // in units
 	gasPrice, err := client.SuggestGasPrice(context.Background())

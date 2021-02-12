@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	// Global "github.com/lianmi/servers/api/proto/global"
+	"time"
+
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/walletservice/repositories"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
-	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/blockchain"
@@ -551,7 +553,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	amount := int64(orderTotalAmount * 100)
 
 	//调用ETH接口
-	blockNumber, hash, err := s.ethService.TransferEthToOtherAccount(buyUserWalletAddress, amount, data)
+	blockNumber, hash, err := s.ethService.TransferWeiToOtherAccount(buyUserWalletAddress, amount, data)
 	if err != nil {
 		return nil, err
 	}

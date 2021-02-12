@@ -36,6 +36,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/shopspring/decimal"
 )
 
 type KeyPair struct {
@@ -528,7 +529,7 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 
 //从第0号叶子账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
 //data是上链的数据
-func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, data []byte) (blockNumber uint64, hash string, err error) {
+func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, data []byte) (blockNumber uint64, hash string, err error) {
 
 	//第0号叶子私钥
 	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
@@ -574,7 +575,7 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, 
 
 	err = s.WsClient.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		s.logger.Error("TransferEthToOtherAccount(), SendTransaction failed ", zap.Error(err))
+		s.logger.Error("TransferWeiToOtherAccount(), SendTransaction failed ", zap.Error(err))
 		return 0, "", err
 	}
 
@@ -593,7 +594,93 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, 
 
 		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
-			s.logger.Error("TransferEthToOtherAccount(), TransactionByHash failed ", zap.Error(err))
+			s.logger.Error("TransferWeiToOtherAccount(), TransactionByHash failed ", zap.Error(err))
+		}
+
+		s.logger.Info("交易完成",
+			zap.Uint64("区块高度: ", blockNumber),
+			zap.String("交易哈希: ", tx.Hash().Hex()),
+			zap.Bool("isPending: ", isPending),
+		)
+		return blockNumber, tx.Hash().Hex(), nil
+
+	} else {
+		s.logger.Error("交易失败")
+		return 0, "", errors.New("交易失败")
+	}
+
+}
+
+//从第0号叶子账号地址转账Eth到其它普通账号地址, 以ether为单位,
+//data是上链的数据
+func (s *Service) TransferEtherToOtherAccount(targetAccount string, ether float64, data []byte) (blockNumber uint64, hash string, err error) {
+
+	//第0号叶子私钥
+	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
+	privateKey, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		s.logger.Error("BlockByNumber failed ", zap.Error(err))
+		return 0, "", err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		s.logger.Error("cannot assert type: publicKey is not of type *ecdsa.PublicKe")
+		return 0, "", errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKe")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
+		return 0, "", err
+	}
+
+	amount := decimal.NewFromFloat(ether)
+	value := util.ToWei(amount, 18)
+
+	gasLimit := uint64(LMCommon.GASLIMIT) // in units
+	gasPrice := s.GetGasPrice()
+
+	//接收账号
+	toAddress := common.HexToAddress(targetAccount)
+
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+
+	chainID, err := s.WsClient.NetworkID(context.Background())
+	if err != nil {
+		s.logger.Error("NetworkID failed ", zap.Error(err))
+		return 0, "", err
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		s.logger.Error("SignTx failed ", zap.Error(err))
+		return 0, "", err
+	}
+
+	err = s.WsClient.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		s.logger.Error("TransferWeiToOtherAccount(), SendTransaction failed ", zap.Error(err))
+		return 0, "", err
+	}
+
+	s.logger.Info("tx sent", zap.String("Hash", signedTx.Hash().Hex()))
+
+	/*
+		等待检测交易是否完成，挖矿工需要工作才能出块
+		> miner.start()
+		> var leaf1="0x4acea697f366C47757df8470e610a2d9B559DbBE"
+		> web3.fromWei(web3.eth.getBalance(leaf1), 'ether')
+		输出： 1
+	*/
+
+	blockNumber = s.WaitForBlockCompletation(signedTx.Hash().Hex())
+	if blockNumber > 0 {
+
+		tx, isPending, err := s.WsClient.TransactionByHash(context.Background(), signedTx.Hash())
+		if err != nil {
+			s.logger.Error("TransferWeiToOtherAccount(), TransactionByHash failed ", zap.Error(err))
 		}
 
 		s.logger.Info("交易完成",
