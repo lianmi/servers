@@ -65,7 +65,6 @@ func main() {
 			2021/02/12 21:46:50 交易总费用(eth):  0.000000000005
 			2021/02/12 21:46:50 tx.Nonce:  0
 	*/
-	getLatestBlockInfo()
 
 	//查询第1号叶子的LNMC余额
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
@@ -177,7 +176,7 @@ func main() {
 }
 
 // 获取最新区块的信息
-func getLatestBlockInfo() {
+func getLatestBlockInfo() (*types.Block, error) {
 	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatalf("Unable to connect to network:%v \n", err)
@@ -209,7 +208,8 @@ func getLatestBlockInfo() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(count) // 144
+	fmt.Println(count)
+	return block, nil
 }
 
 /*
@@ -899,8 +899,13 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)       // in wei
-	auth.GasLimit = uint64(GASLIMIT) // in units
+	auth.Value = big.NewInt(0) // in wei
+
+	block, err := getLatestBlockInfo() //获取最后一个区块的gasLimit
+	auth.GasLimit = block.GasLimit()
+
+	// auth.GasLimit = uint64(GASLIMIT) // in units
+
 	auth.GasPrice = gasPrice
 
 	//调用合约里的转账函数
@@ -1043,7 +1048,10 @@ func transferEth(sourcePrivateKey, target string, ether float64) {
 	amount := decimal.NewFromFloat(ether)
 	value := util.ToWei(amount, 18)
 
-	gasLimit := uint64(GASLIMIT) // in units
+	// gasLimit := uint64(GASLIMIT) // in units
+	block, err := getLatestBlockInfo() //获取最后一个区块的gasLimit
+	gasLimit := block.GasLimit()
+
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
