@@ -518,6 +518,7 @@ func queryTransactionByBlockNumber(number uint64) {
 }
 
 //部署多签合约
+/*
 func deployMultiSig(privateKeyHex string) error {
 
 	client, err := ethclient.Dial(WSURIIPC)
@@ -707,7 +708,7 @@ func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount 
 	}
 	return nil
 }
-
+*/
 //ERC20代币余额查询， 传参1是发送者合约地址，传参2是接收者账号地址
 func querySendAndReceive2(sender, receiver string) error {
 
