@@ -222,7 +222,7 @@ func GetGasLimit() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	fmt.Println("header.GasLimit: ", header.GasLimit)
 	return header.GasLimit, nil
 }
 
