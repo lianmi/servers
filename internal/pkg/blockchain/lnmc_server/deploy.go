@@ -217,6 +217,7 @@ func deploy(privateKeyHex string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("SuggestGasPrice: ", gasPrice)
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
