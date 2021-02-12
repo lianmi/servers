@@ -180,7 +180,7 @@ func (nc *NsqClient) HandleRegisterWallet(msg *models.Message) error {
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
 			"EthAmount",
-			0) 
+			0)
 
 		redisConn.Do("HSET",
 			fmt.Sprintf("userWallet:%s", username),
@@ -419,7 +419,6 @@ func (nc *NsqClient) HandlePreTransfer(msg *models.Message) error {
 			zap.Uint64("当前ETH余额 balanceETH", balanceETH),
 			zap.Uint64("转账代币数量  amountLNMC", amountLNMC),
 		)
-		
 
 		//判断是否有足够代币数量
 		if balanceLNMC < amountLNMC {
@@ -888,25 +887,56 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 			}
 			nc.Repository.AddeCollectionHistory(lnmcCollectionHistory)
 
+			// // 9-12 支付订单完成的事件
+			// orderPayDoneEventRsp := &Order.OrderPayDoneEventRsp{
+			// 	OrderID:      orderID,
+			// 	FromUsername: username,
+			// 	Amount:       amountLNMC,
+			// 	BlockNumber:  blockNumber,
+			// 	Hash:         hash,
+			// 	Time:         uint64(time.Now().UnixNano() / 1e6),
+			// }
+			// payData, _ := proto.Marshal(orderPayDoneEventRsp)
+			// //向接收者推送 9-12 订单支付完成的事件
+			// go func() {
+			// 	// time.Sleep(100 * time.Millisecond)
+			// 	nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
+			// 		zap.String("to", toUsername),
+			// 		zap.String("orderID", orderID),
+			// 	)
+			// 	nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
+			// }()
+
+			// //向支付发起者推送 9-12 支付订单完成的事件
+
+			// go func() {
+			// 	// time.Sleep(100 * time.Millisecond)
+			// 	nc.logger.Debug("延时100ms向支付发起者推送 9-12 订单支付完成的事件",
+			// 		zap.String("to", username),
+			// 		zap.String("orderID", orderID),
+			// 	)
+			// 	nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
+			// }()
+
 		}
 
-		// 10-16 连米币到账通知事件
-		lnmcReceivedEventRspData, _ := proto.Marshal(&Wallet.LNMCReceivedEventRsp{
-			BlockNumber: blockNumber,                         // 区块高度
-			Hash:        hash,                                // 交易哈希hex
-			AmountLNMC:  amountLNMC,                          //本次转账接收到的连米币数量
-			Content:     content,                             //附言
-			Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
-		})
-		go func() {
-			// time.Sleep(100 * time.Millisecond)
-			nc.logger.Debug("延时100ms连米币到账通知事件, 5-2",
-				zap.String("to", toUsername),
-			)
-			nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
-		}()
+		// // 10-16 连米币到账通知事件
+		// lnmcReceivedEventRspData, _ := proto.Marshal(&Wallet.LNMCReceivedEventRsp{
+		// 	BlockNumber: blockNumber,                         // 区块高度
+		// 	Hash:        hash,                                // 交易哈希hex
+		// 	AmountLNMC:  amountLNMC,                          //本次转账接收到的连米币数量
+		// 	Content:     content,                             //附言
+		// 	Time:        uint64(time.Now().UnixNano() / 1e6), //到账时间
+		// })
+		// go func() {
+		// 	// time.Sleep(100 * time.Millisecond)
+		// 	nc.logger.Debug("延时100ms连米币到账通知事件, 5-2",
+		// 		zap.String("to", toUsername),
+		// 	)
+		// 	nc.BroadcastSpecialMsgToAllDevices(lnmcReceivedEventRspData, uint32(Global.BusinessType_Wallet), uint32(Global.WalletSubType_LNMCReceivedEvent), toUsername)
+		// }()
 
-		//订单支付  9-12，通知双方
+		//订单支付，通知双方
 		if orderID != "" {
 			//购买会员，进行佣金分配
 			if businessUsername == LMCommon.VipBusinessUsername {
@@ -967,6 +997,8 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					TxHash:        hash,
 				})
 
+			} else {
+
 			}
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
@@ -978,37 +1010,6 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 				errorCode = LMCError.RedisError
 				goto COMPLETE
 			}
-
-			// 9-12 支付订单完成的事件
-			orderPayDoneEventRsp := &Order.OrderPayDoneEventRsp{
-				OrderID:      orderID,
-				FromUsername: username,
-				Amount:       amountLNMC,
-				BlockNumber:  blockNumber,
-				Hash:         hash,
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
-			payData, _ := proto.Marshal(orderPayDoneEventRsp)
-			//向接收者推送 9-12 订单支付完成的事件
-			go func() {
-				// time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms向接收者推送 9-12 订单支付完成的事件",
-					zap.String("to", toUsername),
-					zap.String("orderID", orderID),
-				)
-				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), toUsername)
-			}()
-
-			//向支付发起者推送 9-12 支付订单完成的事件
-
-			go func() {
-				// time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms向支付发起者推送 9-12 订单支付完成的事件",
-					zap.String("to", username),
-					zap.String("orderID", orderID),
-				)
-				nc.BroadcastSpecialMsgToAllDevices(payData, uint32(Global.BusinessType_Order), uint32(Global.OrderSubType_OrderPayDoneEvent), username)
-			}()
 
 			//向发起支付的买家及商户推送订单已支付成功的状态
 			nc.logger.Debug("向发起支付的买家及商户推送订单已支付成功的状态", zap.String("username", username))
