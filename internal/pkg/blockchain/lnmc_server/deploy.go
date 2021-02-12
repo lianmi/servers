@@ -187,7 +187,7 @@ func deploy(privateKeyHex string) error {
 	}
 
 	defer redisConn.Close()
-	//
+	// 利用redis记录是否已经部署过，如果是重新部署，需要 del ERC20DeployContractAddress
 	erc20DeployContractAddress, _ := redis.String(redisConn.Do("GET", "ERC20DeployContractAddress"))
 	if err != nil {
 		log.Fatal(err)
@@ -222,7 +222,7 @@ func deploy(privateKeyHex string) error {
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)       // in wei
 	auth.GasLimit = uint64(GASLIMIT) // in units
-	auth.GasPrice = gasPrice
+	auth.GasPrice = big.NewInt(1)
 
 	address, deployTx, _, err := ERC20.DeployERC20Token(
 		auth,
