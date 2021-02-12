@@ -29,8 +29,7 @@ const (
 	//服务端的id4助记词
 	// mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
-	//发布合约地址
-	ERC20DeployContractAddress = ""
+
 )
 
 type KeyPair struct {
