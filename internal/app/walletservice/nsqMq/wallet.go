@@ -562,7 +562,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 	var amountLNMC uint64                      //本次转账的代币数量, 无小数点
 	var balanceAfter uint64                    //转账之后的代币数量, 无小数点
 	var toBalanceBefore, toBalanceAfter uint64 //接收者在AB签名前后的代币数量
-	var content string                         //附言
+	// var content string                         //附言
 	var orderTotalAmount float64
 	var payType int
 
