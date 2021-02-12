@@ -1,3 +1,14 @@
+/*
+-- 第0号叶子信息 --
+	m/44'/60'/0'/0/0	{"Account address": "0xe14D151e0511b61357DDe1B35a74E9c043c34C47"} //leaf0
+	m/44'/60'/0'/0/0	{"Private key": "4c88e6ccffec59b6c3df5ab51a4e6c42c421f58274d653d716aafd4aff376f5b"}
+	m/44'/60'/0'/0/0	{"Public key": "b97cf13c8758594fb59c14765f365d05b9e67539e8f50721f8f6b8401f13af93e623ee620d9de8058b4043a0bc8be99e9135b6aa1c10e9ca8e85e0c4828e3070"}
+
+-- 第1号叶子信息 --
+	m/44'/60'/0'/0/1	{"Account1 address": "0x4acea697f366C47757df8470e610a2d9B559DbBE"} //leaf1
+	m/44'/60'/0'/0/1	{"Private key": "fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"}
+	m/44'/60'/0'/0/1	{"Public key": "553d2e5a5ad1ac9b2ae2dab3ddc28df74e1a549a753706715ec238e3e5c55008e45995b0d3271f8120890c74acc3602829207cefd432cfe1c1ca25767fd7a439"}
+*/
 package main
 
 import (
@@ -30,7 +41,7 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 5000000 //6000000
+	GASLIMIT = 4294967295 //0xffffffff
 
 	PrivateKeyAHEX = "91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1" //用户A私钥
 	AddressAHEX    = "0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538"                       //用户A地址
@@ -41,6 +52,120 @@ const (
 	AddressCHEX = "0xBa8d69ba4D65802039cfE2ae373072639026D457" //用户C地址
 	AddressDHEX = "0x59aC768b416C035c8DB50B4F54faaa1E423c070D" //用户D地址
 )
+
+func main() {
+	// 传参是第1号叶子的私钥，也就是说 部署合约于第1号叶子 ,  获取发币合约地址
+	// 只需部署一次即可
+	if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
+		log.Println(err.Error())
+	}
+	//输出: Contract pending deploy:0x1d2bdda8954b401feb52008c63878e698b6b8444
+
+	//查询第1号叶子的LNMC余额
+	// getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
+	//输出: Token of LNMC: 10000000000
+
+	//从第1号叶子转账 10000000000000000000 wei到id1
+	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", "10000000000000000000")
+
+	//从第1号叶子转账500代币给A
+	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
+
+	//从第1号叶子转账 500000000 代币给id81
+	// amout := int64(500000)
+	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amout)
+
+	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
+	// queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
+	//查询id81代币余额
+	// queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+	//查询id4代币余额
+	// queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
+	//查询用户A的余额
+	// queryLNMCBalance(AddressAHEX)
+	//查询用户B的余额
+	// queryLNMCBalance(AddressBHEX)
+
+	fmt.Println("========")
+
+	// re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	// addressHex := "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55"
+	// if re.MatchString(addressHex) == true {
+	// 	fmt.Println("address is valid")
+	// } else {
+	// 	fmt.Println("address is not valid")
+	// }
+
+	// //查询新注册用户的ETH余额
+	// queryLNMCBalance(AddressCHEX)
+
+	//   代币转账
+	// transferToken()
+
+	// 模拟客户端A签
+	// transferMultiSigToken(
+	// 	"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
+	// 	PrivateKeyAHEX, //A私钥
+	// 	AddressDHEX,    //D账号地址
+	// 	"50",
+	// )
+
+	// 模拟 服务端B签 审核
+	// transferMultiSigToken(
+	// 	"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
+	// 	PrivateKeyBHEX, //B私钥
+	// 	AddressDHEX,    //D账号地址
+	// 	"50",
+	// )
+
+	// 从第1号叶子转账10代币给D
+	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x59aC768b416C035c8DB50B4F54faaa1E423c070D", 10)
+
+	/*
+		rawTx, err := GenerateRawTx(
+			"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
+			AddressAHEX, //from
+			AddressDHEX, //D账号地址
+			"50",
+		)
+		if err != nil {
+			fmt.Println("GenerateRawTx error :", err)
+
+			return
+		}
+		log.Println("rawTx:", rawTx)
+	*/
+
+	//查询用户D的余额
+	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
+
+	/*
+		//构造普通用户转账到多签合约的裸交易数据
+		rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+
+		//模仿SDK，进行签名，注意：第三个参数必须是erc20发币合约地址
+		rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX, ERC20DeployContractAddress)
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+		err = sendSignedTxToGeth(rawTxHex)
+		if err != nil {
+			log.Fatalln(err)
+
+		}
+		//查询刚刚部署多签合约的余额， 应该是150
+		queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
+	*/
+
+	//查询id2的多签合约的余额
+	// queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
+
+}
 
 /*
 发币合约部署
@@ -1560,119 +1685,6 @@ func mulsigDeployMain() {
 
 	//查询用户C的余额
 	// queryLNMCBalance(AddressCHEX)
-
-}
-
-func main() {
-	//部署合约于第1号叶子 ,  获取发币合约地址 用在首次
-	// if err := deploy("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"); err != nil {
-	// 	log.Println(err.Error())
-	// }
-	//输出: Contract pending deploy:0x1d2bdda8954b401feb52008c63878e698b6b8444
-
-	//查询第1号叶子的LNMC余额
-	// getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
-	//输出: Token of LNMC: 10000000000
-
-	//从第1号叶子转账 10000000000000000000 wei到id1
-	transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", "10000000000000000000")
-
-	//从第1号叶子转账500代币给A
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", AddressAHEX, 200)
-
-	//从第1号叶子转账 500000000 代币给id81
-	// amout := int64(500000)
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amout)
-
-	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
-	queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
-	//查询id81代币余额
-	queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
-	//查询id4代币余额
-	// queryLNMCBalance("0x9858effd232b4033e47d90003d41ec34ecaeda94")
-	//查询用户A的余额
-	// queryLNMCBalance(AddressAHEX)
-	//查询用户B的余额
-	// queryLNMCBalance(AddressBHEX)
-
-	fmt.Println("========")
-
-	// re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	// addressHex := "0x9d8D057020C6d5e2994520a74298ACB80aAdDB55"
-	// if re.MatchString(addressHex) == true {
-	// 	fmt.Println("address is valid")
-	// } else {
-	// 	fmt.Println("address is not valid")
-	// }
-
-	// //查询新注册用户的ETH余额
-	// queryLNMCBalance(AddressCHEX)
-
-	//   代币转账
-	// transferToken()
-
-	// 模拟客户端A签
-	// transferMultiSigToken(
-	// 	"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
-	// 	PrivateKeyAHEX, //A私钥
-	// 	AddressDHEX,    //D账号地址
-	// 	"50",
-	// )
-
-	// 模拟 服务端B签 审核
-	// transferMultiSigToken(
-	// 	"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
-	// 	PrivateKeyBHEX, //B私钥
-	// 	AddressDHEX,    //D账号地址
-	// 	"50",
-	// )
-
-	// 从第1号叶子转账10代币给D
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x59aC768b416C035c8DB50B4F54faaa1E423c070D", 10)
-
-	/*
-		rawTx, err := GenerateRawTx(
-			"0x3Eb7A38688e6805DA14c02F1aE925a85562367C7",
-			AddressAHEX, //from
-			AddressDHEX, //D账号地址
-			"50",
-		)
-		if err != nil {
-			fmt.Println("GenerateRawTx error :", err)
-
-			return
-		}
-		log.Println("rawTx:", rawTx)
-	*/
-
-	//查询用户D的余额
-	// queryLNMCBalance("0x59aC768b416C035c8DB50B4F54faaa1E423c070D")
-
-	/*
-		//构造普通用户转账到多签合约的裸交易数据
-		rawDesc, err := generateTransferLNMCTokenTx(AddressAHEX, "0x3Eb7A38688e6805DA14c02F1aE925a85562367C7", "50")
-		if err != nil {
-			log.Fatalln(err)
-
-		}
-
-		//模仿SDK，进行签名，注意：第三个参数必须是erc20发币合约地址
-		rawTxHex, err := buildTx(rawDesc, PrivateKeyAHEX, ERC20DeployContractAddress)
-		if err != nil {
-			log.Fatalln(err)
-
-		}
-		err = sendSignedTxToGeth(rawTxHex)
-		if err != nil {
-			log.Fatalln(err)
-
-		}
-		//查询刚刚部署多签合约的余额， 应该是150
-		queryLNMCBalance("0x3Eb7A38688e6805DA14c02F1aE925a85562367C7")
-	*/
-
-	//查询id2的多签合约的余额
-	// queryLNMCBalance("0x2a2D3d88f9F385559CC7C3283Be95E3CcaE6029E")
 
 }
 

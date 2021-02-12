@@ -126,8 +126,8 @@ const (
 	//1个eth
 	ETHER = 100000000000000000
 
-	//gas最低消耗
-	GASLIMIT = 5000000
+	//gas最低消耗, oxffffffff
+	GASLIMIT = 4294967295
 
 	// 每签到2次奖励的gas
 	AWARDGAS = 10000000

@@ -207,10 +207,10 @@ func (s *Service) CreateHDWallet() {
 
 	}
 	/*
-		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Account address": "0xe14D151e0511b61357DDe1B35a74E9c043c34C47"}
+		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Account address": "0xe14D151e0511b61357DDe1B35a74E9c043c34C47"} //leaf0
 		2020-10-02T00:18:25.721+0800	INFO	m/44'/60'/0'/0/0	{"Private key": "4c88e6ccffec59b6c3df5ab51a4e6c42c421f58274d653d716aafd4aff376f5b"}
 		2020-10-02T00:18:25.722+0800	INFO	m/44'/60'/0'/0/0	{"Public key": "b97cf13c8758594fb59c14765f365d05b9e67539e8f50721f8f6b8401f13af93e623ee620d9de8058b4043a0bc8be99e9135b6aa1c10e9ca8e85e0c4828e3070"}
-		2020-10-02T00:18:25.722+0800	INFO	m/44'/60'/0'/0/1	{"Account1 address": "0x4acea697f366C47757df8470e610a2d9B559DbBE"}
+		2020-10-02T00:18:25.722+0800	INFO	m/44'/60'/0'/0/1	{"Account1 address": "0x4acea697f366C47757df8470e610a2d9B559DbBE"} //leaf1
 		2020-10-02T00:18:25.723+0800	INFO	m/44'/60'/0'/0/1	{"Private key": "fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915"}
 		2020-10-02T00:18:25.723+0800	INFO	m/44'/60'/0'/0/1	{"Public key": "553d2e5a5ad1ac9b2ae2dab3ddc28df74e1a549a753706715ec238e3e5c55008e45995b0d3271f8120890c74acc3602829207cefd432cfe1c1ca25767fd7a439"}
 	*/
@@ -583,8 +583,8 @@ func (s *Service) TransferEthToOtherAccount(targetAccount string, amount int64, 
 	/*
 		等待检测交易是否完成，挖矿工需要工作才能出块
 		> miner.start()
-		> var account2="0x4acea697f366C47757df8470e610a2d9B559DbBE"
-		> web3.fromWei(web3.eth.getBalance(account2), 'ether')
+		> var leaf1="0x4acea697f366C47757df8470e610a2d9B559DbBE"
+		> web3.fromWei(web3.eth.getBalance(leaf1), 'ether')
 		输出： 1
 	*/
 
