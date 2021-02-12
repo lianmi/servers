@@ -41,7 +41,7 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-	GASLIMIT = 3775280774 //0xffffffff 3775280774
+	GASLIMIT = 5000000 //0xffffffff 3775280774
 
 	PrivateKeyAHEX = "91e5f2d81444905af5f94d6b36be36d69363420b9edd59808caec17830d50ff1" //用户A私钥
 	AddressAHEX    = "0x6d9CFbC20E1b210d25b84F83Ba546ea4264DA538"                       //用户A地址
