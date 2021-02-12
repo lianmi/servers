@@ -42,7 +42,6 @@ const (
 	RedisAddr = "127.0.0.1:6379"
 
 	PASSWORD = "LianmiSky8900388"
-
 )
 
 func main() {
@@ -69,21 +68,44 @@ func main() {
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//输出: Token of LNMC: 10000000000
 
-	// ether := float64(1) //1个以太币
-	// fmt.Println("ehter: ", ether)
-
-	// // 从第1号叶子转账 1 ether 到id1作为gas
-	// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
+	ether := float64(1) //1个以太币
+	fmt.Println("ehter: ", ether)
 
 	//从第1号叶子转账 500000 代币给id1的地址
 	amountLNMCAmount := int64(500000)
-	transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
-	//查询id1代币余额
-	queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+	fmt.Println("amountLNMCAmount: ", amountLNMCAmount)
 
-	// 从第1号叶子转账 500000000 代币给id81
-	// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amout)
+	{
+		// 从第1号叶子转账 1 ether 到id1作为gas
+		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
+		// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
+		// 查询id1代币余额
+		// queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+
+	}
+
+	
+	{
+		// 从第1号叶子转账 1 ether 到 id4 作为gas
+		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", ether)
+
+		// 从第1号叶子转账 500000 代币给 id4
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", amountLNMCAmount)
+		// //查询 id4 代币余额
+		queryLNMCBalance("0x415b67aa834cdac3b32ec3ff38203461041b6d69")
+	}
+
+	{
+		// 从第1号叶子转账 1 ether 到id81作为gas
+		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", ether)
+
+		// 从第1号叶子转账 500000 代币给id81
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", amountLNMCAmount)
+		// //查询id81代币余额
+		queryLNMCBalance("0x50770b64db3c2455dd1477454259ac0b1ff6ee79")
+	}
+	
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	// queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//查询id81代币余额
@@ -281,7 +303,7 @@ func deploy(privateKeyHex string) error {
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)       // in wei
+	auth.Value = big.NewInt(0)         // in wei
 	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
 
 	auth.GasPrice = big.NewInt(1)
@@ -1002,7 +1024,7 @@ func transferTokenFromABToC(multiSigContractAddress, privateKeySource, target st
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)       // in wei
+	auth.Value = big.NewInt(0)         // in wei
 	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
 
 	auth.GasPrice = gasPrice
@@ -1277,7 +1299,6 @@ func transferToken() error {
 	// fmt.Println("gasLimit:", gasLimit) // 21572
 
 	gasLimit, err := GetGasLimit() //获取最后一个区块的gasLimit
-
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
