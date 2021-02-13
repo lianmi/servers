@@ -1063,24 +1063,11 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	data = append(data, paddedAddress...)
 	data = append(data, paddedAmount...)
 
-	// 方法一
 	gasLimit, err = s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
 		return nil, err
 	} else {
-		s.logger.Debug(" 方法一 s.GetGasLimit", zap.Uint64("gasLimit", gasLimit))
-	}
-
-	//方法二
-	gasLimit, err = s.WsClient.EstimateGas(context.Background(), ethereum.CallMsg{
-		To:   &toAddress,
-		Data: data,
-	})
-	if err != nil {
-		return nil, err
-	} else {
-		s.logger.Debug(" 方法二 s.GetGasLimit", zap.Uint64("gasLimit", gasLimit))
-
+		s.logger.Debug("获取最新的gasLimit", zap.Uint64("gasLimit", gasLimit))
 	}
 
 	if balanceEth < gasLimit {
