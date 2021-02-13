@@ -99,7 +99,7 @@ func deploy(privateKeyHex string) error {
 	auth.GasLimit = uint64(GASLIMIT) // in units
 	auth.GasPrice = gasPrice
 
-	address, deployTx, _, err := ERC20.DeployERC20Token(
+	address, deployTx, _, err := ERC20.DeployContracts(
 		auth,
 		client,
 		big.NewInt(1000000000000), //10000亿枚，一枚等于1分钱
@@ -184,7 +184,7 @@ func getTokenBalance(accountAddress string) error {
 	}
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -208,7 +208,7 @@ func querySendAndReceive(sender, receiver string) {
 	}
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(sender), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(sender), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -531,7 +531,7 @@ func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount 
 	}
 
 	//使用总发币的合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 		return err
@@ -601,11 +601,11 @@ func querySendAndReceive2(sender, receiver string) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	} else {
-		log.Println("NewERC20Token succeed")
+		log.Println("NewContracts succeed")
 	}
 
 	// privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
@@ -656,11 +656,11 @@ func queryLNMCBalance(addressHex string) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	} else {
-		log.Println("NewERC20Token succeed")
+		log.Println("NewContracts succeed")
 	}
 
 	if accountBalance, err := contract.BalanceOf(nil, common.HexToAddress(addressHex)); err != nil {
@@ -698,7 +698,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}

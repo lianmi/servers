@@ -86,25 +86,25 @@ func main() {
 	}
 
 	/*
-	{
-		// 从第1号叶子转账 1 ether 到 id4 作为gas
-		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", ether)
+		{
+			// 从第1号叶子转账 1 ether 到 id4 作为gas
+			transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", ether)
 
-		// 从第1号叶子转账 500000 代币给 id4
-		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", amountLNMCAmount)
-		// //查询 id4 代币余额
-		queryLNMCBalance("0x415b67aa834cdac3b32ec3ff38203461041b6d69")
-	}
+			// 从第1号叶子转账 500000 代币给 id4
+			transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", amountLNMCAmount)
+			// //查询 id4 代币余额
+			queryLNMCBalance("0x415b67aa834cdac3b32ec3ff38203461041b6d69")
+		}
 
-	{
-		// 从第1号叶子转账 1 ether 到id81作为gas
-		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", ether)
+		{
+			// 从第1号叶子转账 1 ether 到id81作为gas
+			transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", ether)
 
-		// 从第1号叶子转账 500000 代币给id81
-		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", amountLNMCAmount)
-		// //查询id81代币余额
-		queryLNMCBalance("0x50770b64db3c2455dd1477454259ac0b1ff6ee79")
-	}
+			// 从第1号叶子转账 500000 代币给id81
+			transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x50770b64db3c2455dd1477454259ac0b1ff6ee79", amountLNMCAmount)
+			// //查询id81代币余额
+			queryLNMCBalance("0x50770b64db3c2455dd1477454259ac0b1ff6ee79")
+		}
 	*/
 
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
@@ -309,7 +309,7 @@ func deploy(privateKeyHex string) error {
 
 	auth.GasPrice = big.NewInt(1)
 
-	address, deployTx, _, err := ERC20.DeployERC20Token(
+	address, deployTx, _, err := ERC20.DeployContracts(
 		auth,
 		client,
 		big.NewInt(1000000000000), //10000亿枚，一枚等于1分钱
@@ -394,7 +394,7 @@ func getTokenBalance(accountAddress string) error {
 	}
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -418,7 +418,7 @@ func querySendAndReceive(sender, receiver string) {
 	}
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(sender), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(sender), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -743,7 +743,7 @@ func sendTokenToMultisigContractAddress(sourcePrivateKey, target string, amount 
 	}
 
 	//使用总发币的合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 		return err
@@ -813,11 +813,11 @@ func querySendAndReceive2(sender, receiver string) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	} else {
-		log.Println("NewERC20Token succeed")
+		log.Println("NewContracts succeed")
 	}
 
 	// privateKey, err := crypto.HexToECDSA("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915")
@@ -868,11 +868,11 @@ func queryLNMCBalance(addressHex string) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	} else {
-		log.Println("NewERC20Token succeed")
+		log.Println("NewContracts succeed")
 	}
 
 	if accountBalance, err := contract.BalanceOf(nil, common.HexToAddress(addressHex)); err != nil {
@@ -887,7 +887,7 @@ func queryLNMCBalance(addressHex string) error {
 
 //LNMC代币转账, 从第1号叶子转到目标账号, amount 以LNMC为单位，每一枚=1分钱
 func transferLNMC(sourcePrivateKey, target string, amount int64) error {
-	var gasLimit uint64
+	// var gasLimit uint64
 	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
@@ -913,7 +913,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	}
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(erc20DeployContractAddress), client)
+	contract, err := ERC20.NewContracts(common.HexToAddress(erc20DeployContractAddress), client)
 	if err != nil {
 		log.Fatalf("conn contract: %v \n", err)
 	}
@@ -944,7 +944,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0) // in wei
 
-	auth.GasLimit = gasLimit
+	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
 
 	auth.GasPrice = gasPrice
 

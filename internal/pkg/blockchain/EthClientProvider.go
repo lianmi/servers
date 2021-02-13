@@ -718,7 +718,7 @@ func (s *Service) TransferEtherToOtherAccount(targetAccount string, ether float6
 func (s *Service) GetLNMCTokenBalance(accountAddress string) (uint64, error) {
 
 	//使用合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	contract, err := ERC20.NewContracts(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
 		s.logger.Error("conn contracts failed ", zap.Error(err))
 		return 0, err
@@ -750,7 +750,7 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 	}
 
 	//使用第1号叶子的发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	contract, err := ERC20.NewContracts(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
 		// log.Fatalf("conn contract: %v \n", err)
 		s.logger.Error("conn contracts failed ", zap.Error(err))
@@ -926,9 +926,9 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 func (s *Service) TransferLNMCTokenToAddress(sourcePrivateKey, target string, amount int64) (uint64, string, error) {
 
 	//使用总发币的合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	contract, err := ERC20.NewContracts(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
-		s.logger.Error("NewERC20Token failed ", zap.Error(err))
+		s.logger.Error("NewContracts failed ", zap.Error(err))
 		return 0, "", err
 	}
 
@@ -1117,9 +1117,9 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 func (s *Service) QueryLNMCBalance(addressHex string) (int64, error) {
 
 	//使用发币合约地址
-	contract, err := ERC20.NewERC20Token(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
+	contract, err := ERC20.NewContracts(common.HexToAddress(s.o.ERC20DeployContractAddress), s.WsClient)
 	if err != nil {
-		s.logger.Error("NewERC20Token failed ", zap.Error(err))
+		s.logger.Error("NewContracts failed ", zap.Error(err))
 		return 0, err
 	}
 
@@ -1371,7 +1371,7 @@ func (s *Service) EventReadErc20(fromBlock, toBlock int64) error {
 		return err
 	}
 
-	contractAbi, err := abi.JSON(strings.NewReader(string(ERC20.ERC20TokenABI)))
+	contractAbi, err := abi.JSON(strings.NewReader(string(ERC20.ContractsABI)))
 	if err != nil {
 		s.logger.Error("abi.JSON failed", zap.Error(err))
 		return err
