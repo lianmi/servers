@@ -53,9 +53,9 @@ contract ERC20Token is IERC20 {
 
     function transfer(address recipient, uint256 amount)
         public
-        override
         returns (bool)
     {
+        require(recipient != 0x0);
         require(balances[msg.sender] >= amount, "token balance too low");
         balances[msg.sender] -= amount;
         balances[recipient] += amount;
@@ -67,7 +67,7 @@ contract ERC20Token is IERC20 {
         address sender,
         address recipient,
         uint256 amount
-    ) public override returns (bool) {
+    ) public returns (bool) {
         uint256 allowance = allowed[sender][msg.sender];
         require(allowance >= amount, "allowance too low");
         require(balances[sender] >= amount, "token balance too low");
@@ -80,7 +80,6 @@ contract ERC20Token is IERC20 {
 
     function approve(address spender, uint256 amount)
         public
-        override
         returns (bool)
     {
         allowed[msg.sender][spender] = amount;
@@ -90,18 +89,17 @@ contract ERC20Token is IERC20 {
 
     function allowance(address owner, address spender)
         public
-        override
         view
         returns (uint256)
     {
         return allowed[owner][spender];
     }
 
-    function balanceOf(address account) public override view returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return balances[account];
     }
 
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 }

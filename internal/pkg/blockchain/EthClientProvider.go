@@ -563,7 +563,7 @@ func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, 
 		return 0, "", err
 	}
 
-	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	gasLimit, err := s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
 		return 0, "", err
 	}
@@ -653,8 +653,7 @@ func (s *Service) TransferEtherToOtherAccount(targetAccount string, ether float6
 	amount := decimal.NewFromFloat(ether)
 	value := util.ToWei(amount, 18)
 
-
-	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	gasLimit, err := s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
 		return 0, "", err
 	}
@@ -785,9 +784,9 @@ func (s *Service) TransferLNMCFromLeaf1ToNormalAddress(target string, amount int
 
 	auth := bind.NewKeyedTransactor(privateKey) //第1号叶子的子私钥
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)                // in wei
+	auth.Value = big.NewInt(0) // in wei
 
-	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	auth.GasLimit, err = s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
 		return 0, "", 0, err
 	}
@@ -869,10 +868,10 @@ func (s *Service) DeployMultiSig(addressHexA, addressHexB string) (contractAddre
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)                // in wei
-	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	auth.Value = big.NewInt(0)           // in wei
+	auth.GasLimit, err = s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
-		return  "", 0,"", err
+		return "", 0, "", err
 	}
 	auth.GasPrice = gasPrice
 
@@ -983,7 +982,7 @@ tokens - 代币数量，字符串格式
 */
 func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, target string, tokens int64) (*models.RawDesc, error) {
 	var err error
-	var balanceEth uint64 //用户当前ETH数量
+	var gasLimit, balanceEth uint64 //用户当前ETH数量
 
 	s.logger.Debug("GenerateTransferLNMCTokenTx start...",
 		zap.String("source", source),
@@ -996,18 +995,8 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	if err != nil {
 		return nil, err
 	}
-	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
-	if err != nil {
-		return nil, err
-	}
+	//有两种方法获取
 
-	if balanceEth < gasLimit {
-		s.logger.Error("用户链上Eth余额不足以支付交易gas手续费 ",
-			zap.String("walletAddress", source),
-			zap.Uint64("当前余额 balanceEth", balanceEth),
-		)
-		return nil, errors.New("Not sufficient funds")
-	}
 	fromAddress := common.HexToAddress(source)
 
 	successNonceAt, err := s.WsClient.NonceAt(context.Background(), fromAddress, nil)
@@ -1073,6 +1062,34 @@ func (s *Service) GenerateTransferLNMCTokenTx(redisConn redis.Conn, source, targ
 	data = append(data, methodID...)
 	data = append(data, paddedAddress...)
 	data = append(data, paddedAmount...)
+
+	// 方法一
+	gasLimit, err = s.GetGasLimit() //获取最新的gasLimit
+	if err != nil {
+		return nil, err
+	} else {
+		s.logger.Debug(" 方法一 s.GetGasLimit", zap.Uint64("gasLimit", gasLimit))
+	}
+
+	//方法二
+	gasLimit, err = s.WsClient.EstimateGas(context.Background(), ethereum.CallMsg{
+		To:   &toAddress,
+		Data: data,
+	})
+	if err != nil {
+		return nil, err
+	} else {
+		s.logger.Debug(" 方法二 s.GetGasLimit", zap.Uint64("gasLimit", gasLimit))
+
+	}
+
+	if balanceEth < gasLimit {
+		s.logger.Error("用户链上Eth余额不足以支付交易gas手续费 ",
+			zap.String("walletAddress", source),
+			zap.Uint64("当前余额 balanceEth", balanceEth),
+		)
+		return nil, errors.New("Not sufficient funds")
+	}
 
 	//构造代币转账的交易裸数据
 	tx := types.NewTransaction(nonce, tokenAddress, value, gasLimit, gasPrice, data)
@@ -1211,10 +1228,10 @@ func (s *Service) TransferTokenFromABToC(multiSigContractAddress, privateKeySour
 
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)                // in wei
-	auth.GasLimit, err = s.GetGasLimit()  //获取最新的gasLimit
+	auth.Value = big.NewInt(0)           // in wei
+	auth.GasLimit, err = s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
-		return  err
+		return err
 	}
 
 	auth.GasPrice = gasPrice
@@ -1301,10 +1318,9 @@ func (s *Service) GenerateRawTx(contractAddress, fromAddressHex, target string, 
 	// fmt.Println("data:", data)
 	// fmt.Println("data hex:", hex.EncodeToString(data))
 
-
-	gasLimit, err := s.GetGasLimit()  //获取最新的gasLimit
+	gasLimit, err := s.GetGasLimit() //获取最新的gasLimit
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 
 	//构造代币转账的交易裸数据

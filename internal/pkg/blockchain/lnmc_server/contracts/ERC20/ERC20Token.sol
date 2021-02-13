@@ -30,6 +30,8 @@ interface IERC20 {
         address indexed spender,
         uint256 value
     );
+
+    event NewOrderAttach(address spender, string orderAttach);
 }
 
 contract ERC20Token is IERC20 {
@@ -39,6 +41,7 @@ contract ERC20Token is IERC20 {
     uint256 private _totalSupply;
     mapping(address => uint256) public balances;
     mapping(address => mapping(address => uint256)) public allowed;
+    mapping(address => string[]) public orderAttachs;
 
     constructor(
         uint256 initialSupply,
@@ -63,6 +66,12 @@ contract ERC20Token is IERC20 {
         return true;
     }
 
+    // 添加订单的附件哈希
+    function addOrderAttach(string memory orderAttach) public {
+        orderAttachs[msg.sender].push(orderAttach);
+        emit NewOrderAttach(msg.sender, orderAttach);
+    }
+    
     function transferFrom(
         address sender,
         address recipient,
@@ -103,5 +112,9 @@ contract ERC20Token is IERC20 {
 
     function totalSupply() public override view returns (uint256) {
         return _totalSupply;
+    }
+
+    function getOrderAttachsLen(address own) public view returns (uint256) {
+        return orderAttachs[own].length;
     }
 }

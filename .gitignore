@@ -27,3 +27,4 @@ go.mod
 go.sum
 cmd/web/node_modules
 internal/app/gin-vue-admin/log
+internal/pkg/blockchain/lnmc/contracts/ERC20/build

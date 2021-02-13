@@ -71,21 +71,21 @@ func main() {
 	ether := float64(1) //1个以太币
 	fmt.Println("ehter: ", ether)
 
-	//从第1号叶子转账 500000 代币给id1的地址
-	amountLNMCAmount := int64(500000)
+	//从第1号叶子转账 10 代币给id1的地址
+	amountLNMCAmount := int64(10) //500000
 	fmt.Println("amountLNMCAmount: ", amountLNMCAmount)
 
 	{
 		// 从第1号叶子转账 1 ether 到id1作为gas
 		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-		// transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
 		// 查询id1代币余额
-		// queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+		queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
 
 	}
 
-	
+	/*
 	{
 		// 从第1号叶子转账 1 ether 到 id4 作为gas
 		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x415b67aa834cdac3b32ec3ff38203461041b6d69", ether)
@@ -105,7 +105,8 @@ func main() {
 		// //查询id81代币余额
 		queryLNMCBalance("0x50770b64db3c2455dd1477454259ac0b1ff6ee79")
 	}
-	
+	*/
+
 	//查询第1号叶子余额，约定为第1号叶子的地址 用于验证
 	// queryLNMCBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 	//查询id81代币余额
@@ -886,6 +887,7 @@ func queryLNMCBalance(addressHex string) error {
 
 //LNMC代币转账, 从第1号叶子转到目标账号, amount 以LNMC为单位，每一枚=1分钱
 func transferLNMC(sourcePrivateKey, target string, amount int64) error {
+	var gasLimit uint64
 	client, err := ethclient.Dial(WSURIIPC)
 	if err != nil {
 		log.Fatal(err)
@@ -942,7 +944,7 @@ func transferLNMC(sourcePrivateKey, target string, amount int64) error {
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0) // in wei
 
-	auth.GasLimit, err = GetGasLimit() //获取最后一个区块的gasLimit
+	auth.GasLimit = gasLimit
 
 	auth.GasPrice = gasPrice
 
