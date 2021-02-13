@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	// "fmt"
+	"time"
+
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
@@ -11,7 +13,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"time"
 
 	pb "github.com/lianmi/servers/api/proto/user"
 )
@@ -252,7 +253,8 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			UserType:         User.UserType(fUserData.UserType),
 			State:            User.UserState(fUserData.State),
 			Extend:           fUserData.Extend,
-			ContactPerson:    fUserData.ContactPerson,
+			TrueName:         fUserData.TrueName,
+			IdentityCard:     fUserData.IdentityCard,
 			Province:         fUserData.Province,
 			City:             fUserData.City,
 			County:           fUserData.County,
@@ -275,21 +277,22 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 
 		for _, userData := range users {
 			resp.Users = append(resp.Users, &User.User{
-				Username:      userData.Username,
-				Gender:        User.Gender(userData.Gender),
-				Nick:          userData.Nick,
-				Avatar:        userData.Avatar,
-				Label:         userData.Label,
-				Mobile:        userData.Mobile,
-				Email:         userData.Email,
-				UserType:      User.UserType(userData.UserType),
-				Extend:        userData.Extend,
-				ContactPerson: userData.ContactPerson,
-				Province:      userData.Province,
-				City:          userData.City,
-				County:        userData.County,
-				Street:        userData.Street,
-				Address:       userData.Address,
+				Username:     userData.Username,
+				Gender:       User.Gender(userData.Gender),
+				Nick:         userData.Nick,
+				Avatar:       userData.Avatar,
+				Label:        userData.Label,
+				Mobile:       userData.Mobile,
+				Email:        userData.Email,
+				UserType:     User.UserType(userData.UserType),
+				Extend:       userData.Extend,
+				TrueName:     userData.TrueName,
+				IdentityCard: userData.IdentityCard,
+				Province:     userData.Province,
+				City:         userData.City,
+				County:       userData.County,
+				Street:       userData.Street,
+				Address:      userData.Address,
 			})
 
 		}

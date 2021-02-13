@@ -127,7 +127,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				userBaseData.Address = pUser.Address
 				userBaseData.State = pUser.State
 				userBaseData.Extend = pUser.Extend
-				userBaseData.ContactPerson = pUser.ContactPerson
+				userBaseData.IdentityCard = pUser.IdentityCard
 				userBaseData.ReferrerUsername = pUser.ReferrerUsername
 				userBaseData.BelongBusinessUser = pUser.BelongBusinessUser
 				userBaseData.CreatedBy = pUser.CreatedBy
@@ -143,19 +143,19 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 			}
 
 			user := &User.User{
-				Username:      userBaseData.Username,
-				Nick:          userBaseData.Nick,
-				Gender:        userBaseData.GetGender(),
-				Avatar:        userBaseData.Avatar,
-				Label:         userBaseData.Label,
-				UserType:      User.UserType(userBaseData.UserType),
-				State:         User.UserState(userBaseData.State),
-				ContactPerson: userBaseData.ContactPerson,
-				Province:      userBaseData.Province,
-				City:          userBaseData.City,
-				County:        userBaseData.County,
-				Street:        userBaseData.Street,
-				Address:       userBaseData.Address,
+				Username: userBaseData.Username,
+				Nick:     userBaseData.Nick,
+				Gender:   userBaseData.GetGender(),
+				Avatar:   userBaseData.Avatar,
+				Label:    userBaseData.Label,
+				UserType: User.UserType(userBaseData.UserType),
+				State:    User.UserState(userBaseData.State),
+				// TrueName: userBaseData.TrueName,
+				Province: userBaseData.Province,
+				City:     userBaseData.City,
+				County:   userBaseData.County,
+				Street:   userBaseData.Street,
+				Address:  userBaseData.Address,
 			}
 
 			rsp.Users = append(rsp.Users, user)

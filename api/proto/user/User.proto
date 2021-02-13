@@ -55,19 +55,20 @@ message User {
     string label     = 8;
     string mobile    = 9;
     string email     = 10;
-    UserType user_type         = 11;
-    UserState state            = 12;
-    string extend              = 13;
-    string contact_person      = 14;
-    string province            = 15;  //省份, 如广东省
-    string city                = 16;  //城市，如广州市
-    string county              = 17;  //区，如天河区
-    string street              = 18;  //街道
-    string address             = 19; //地址
-    string referrer_username   = 20; //推荐人
-    fixed64 vipEndDate         = 21;  //VIP用户到期时间
-    fixed64 createdAt          = 22;     //用户注册时间,Unix时间戳
-    fixed64 updatedaAt         = 23;     //用户资料最后更新时间,Unix时间戳
+    string referrer_username   = 11; //推荐人
+    UserType user_type         = 12;
+    UserState state            = 13;
+    string extend              = 14;
+    string trueName            = 15;  //实名
+    string identityCard        = 16;  //身份证号码
+    string province            = 17;  //省份, 如广东省
+    string city                = 18;  //城市，如广州市
+    string county              = 19;  //区，如天河区
+    string street              = 20;  //街道
+    string address             = 21;  //地址
+    fixed64 vipEndDate         = 22;  //VIP用户到期时间
+    fixed64 createdAt          = 23;  //用户注册时间,Unix时间戳
+    fixed64 updatedaAt         = 24;  //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表
@@ -76,7 +77,7 @@ message QueryUsersReq {
     UserType userType       = 2;   //用户类型
     UserState state         = 3;   //状态
     string referrerUsername = 4;   //推荐人
-    string contactPerson    = 5;   //联系人
+    string trueName         = 5;   //实名
     fixed64 startAt         = 6;   //注册开始时间, 按时间段查询
     fixed64 endAt           = 7;   //注册结束时间
     int32 page              = 8;   //页数,第几页

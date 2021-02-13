@@ -82,16 +82,17 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				rsp := &User.SyncUserProfileEventRsp{
 					TimeTag: uint64(time.Now().UnixNano() / 1e6),
 					UInfo: &User.User{
-						Username:      username,
-						Gender:        User.Gender(userData.Gender),
-						Nick:          userData.Nick,
-						Avatar:        userData.Avatar,
-						Label:         userData.Label,
-						Mobile:        userData.Mobile,
-						Email:         userData.Email,
-						UserType:      User.UserType(userData.UserType),
-						Extend:        userData.Extend,
-						ContactPerson: userData.ContactPerson,
+						Username:     username,
+						Gender:       User.Gender(userData.Gender),
+						Nick:         userData.Nick,
+						Avatar:       userData.Avatar,
+						Label:        userData.Label,
+						Mobile:       userData.Mobile,
+						Email:        userData.Email,
+						UserType:     User.UserType(userData.UserType),
+						Extend:       userData.Extend,
+						TrueName:     userData.TrueName,
+						IdentityCard: userData.IdentityCard,
 					},
 				}
 				data, _ := proto.Marshal(rsp)
@@ -326,16 +327,17 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 
 				} else {
 					rsp.UInfos = append(rsp.UInfos, &User.User{
-						Username:      username,
-						Gender:        User.Gender(fUserData.Gender),
-						Nick:          fUserData.Nick,
-						Avatar:        fUserData.Avatar,
-						Label:         fUserData.Label,
-						Mobile:        fUserData.Mobile,
-						Email:         fUserData.Email,
-						UserType:      User.UserType(fUserData.UserType),
-						Extend:        fUserData.Extend,
-						ContactPerson: fUserData.ContactPerson,
+						Username:     username,
+						Gender:       User.Gender(fUserData.Gender),
+						Nick:         fUserData.Nick,
+						Avatar:       fUserData.Avatar,
+						Label:        fUserData.Label,
+						Mobile:       fUserData.Mobile,
+						Email:        fUserData.Email,
+						UserType:     User.UserType(fUserData.UserType),
+						Extend:       fUserData.Extend,
+						TrueName:     fUserData.TrueName,
+						IdentityCard: fUserData.IdentityCard,
 					})
 				}
 			}

@@ -79,7 +79,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			zap.String("Avatar", userReq.Avatar),                     //头像objid
 			zap.String("Mobile", userReq.Mobile),                     //手机号
 			zap.String("SmsCode", userReq.Smscode),                   //短信校验码
-			zap.String("ContactPerson", userReq.ContactPerson),       //联系人
+			zap.String("TrueName", userReq.TrueName),                 //实名
 			zap.Int("UserType", int(userReq.UserType)),               //用户类型 1-普通 2-商户
 			zap.Int("Gender", int(userReq.Gender)),                   //性别
 			zap.String("ReferrerUsername", userReq.ReferrerUsername), //推荐人
@@ -139,7 +139,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 				AllowType:        3,                        //用户加好友枚举，默认是3
 				UserType:         int(userReq.UserType),    //用户类型 1-普通，2-商户
 				State:            0,                        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-				ContactPerson:    userReq.ContactPerson,    //联系人
+				TrueName:         userReq.TrueName,         //实名
 				ReferrerUsername: userReq.ReferrerUsername, //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 			},
 		}
