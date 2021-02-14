@@ -20,15 +20,16 @@ enum UserType {
     //操作员, 例如admin
     Ut_Operator = 10086;
 }
+
 enum UserState {
-    Ss_Unknow = 0;
-    Ss_Normal = 1;
+    Ss_Normal = 0;
+    Ss_Vip = 1;
     Ss_Blocked = 2;
 }
 
 //获取用户加好友的选项,3是默认
 enum AllowType {
-    UAT_Unknow = 0;
+    UAT_Unknow = 0;     
     UAT_AllowAny = 1;
     UAT_DenyAny = 2;
     UAT_NeedConfirm = 3; 
