@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 	// "fmt"
-	"time"
 	"strings"
+	"time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	LMCommon "github.com/lianmi/servers/internal/common"
 	pb "github.com/lianmi/servers/api/proto/user"
+	LMCommon "github.com/lianmi/servers/internal/common"
 )
 
 type LianmiApisService interface {
@@ -238,7 +238,7 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 
 func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, error) {
 	s.logger.Debug("GetUser", zap.String("username", username))
-	var avatar string 
+	var avatar string
 
 	fUserData, err := s.Repository.GetUser(username)
 	if err != nil {
@@ -256,7 +256,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 		zap.Int("UserType", fUserData.UserType),
 		zap.Int("State", fUserData.State),
 	)
-	if (fUserData.Avatar != "") && strings.HasPrefix(fUserData.Avatar, "/")  {
+	if (fUserData.Avatar != "") && !strings.HasPrefix(fUserData.Avatar, "http") {
 
 		avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar
 	}
@@ -292,7 +292,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 
 //多条件不定参数批量分页获取用户列表
 func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
-	var avatar string 
+	var avatar string
 	if users, total, err := s.Repository.QueryUsers(req); err != nil {
 		return nil, err
 	} else {
@@ -301,11 +301,11 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 		}
 
 		for _, userData := range users {
-			if (userData.Avatar != "") && strings.HasPrefix(userData.Avatar, "/")  {
+			if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
 
 				avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar
 			}
-		
+
 			resp.Users = append(resp.Users, &User.User{
 				Username: userData.Username,
 				Gender:   User.Gender(userData.Gender),
