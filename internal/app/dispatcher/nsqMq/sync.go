@@ -1445,11 +1445,11 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Debug("SyncProductAt is done")
 			}
 
-			// if err := nc.SyncGeneralProductAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("GeneralProductAt is done")
-			// }
+			if err := nc.SyncGeneralProductAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("GeneralProductAt is done")
+			}
 
 			//发送SyncDoneEvent
 			// nc.SendSyncDoneEventToUser(username, deviceID, token)
