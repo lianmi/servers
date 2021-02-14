@@ -1427,11 +1427,11 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			// 	nc.logger.Debug("SyncTeamsAt is done")
 			// }
 
-			// if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("SyncTagsAt is done")
-			// }
+			if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncTagsAt is done")
+			}
 
 			// if err := nc.SyncWatchAt(username, token, deviceID, req); err != nil {
 			// 	nc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
