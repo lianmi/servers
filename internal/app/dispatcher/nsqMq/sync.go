@@ -1500,8 +1500,8 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		// wg.Wait()
 
 		//发送SyncDoneEvent
-		nc.SendSyncDoneEventToUser(username, deviceID, token)
-		nc.logger.Debug("All Sync done")
+		// nc.SendSyncDoneEventToUser(username, deviceID, token)
+		// nc.logger.Debug("All Sync done")
 
 	}
 
