@@ -4,6 +4,7 @@ import (
 	"context"
 	// "fmt"
 	"time"
+	"strings"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	LMCommon "github.com/lianmi/servers/internal/common"
 	pb "github.com/lianmi/servers/api/proto/user"
 )
 
@@ -236,6 +238,7 @@ func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepo
 
 func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, error) {
 	s.logger.Debug("GetUser", zap.String("username", username))
+	var avatar string 
 
 	fUserData, err := s.Repository.GetUser(username)
 	if err != nil {
@@ -253,12 +256,17 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 		zap.Int("UserType", fUserData.UserType),
 		zap.Int("State", fUserData.State),
 	)
+	if (fUserData.Avatar != "") && strings.HasPrefix(fUserData.Avatar, "/")  {
+
+		avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar
+	}
+
 	return &Auth.UserRsp{
 		User: &User.User{
 			Username:           fUserData.Username,
 			Gender:             User.Gender(fUserData.Gender),
 			Nick:               fUserData.Nick,
-			Avatar:             fUserData.Avatar,
+			Avatar:             avatar,
 			Label:              fUserData.Label,
 			Mobile:             fUserData.Mobile,
 			Email:              fUserData.Email,
@@ -284,6 +292,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 
 //多条件不定参数批量分页获取用户列表
 func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
+	var avatar string 
 	if users, total, err := s.Repository.QueryUsers(req); err != nil {
 		return nil, err
 	} else {
@@ -292,11 +301,16 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 		}
 
 		for _, userData := range users {
+			if (userData.Avatar != "") && strings.HasPrefix(userData.Avatar, "/")  {
+
+				avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar
+			}
+		
 			resp.Users = append(resp.Users, &User.User{
 				Username: userData.Username,
 				Gender:   User.Gender(userData.Gender),
 				Nick:     userData.Nick,
-				Avatar:   userData.Avatar,
+				Avatar:   avatar,
 				Label:    userData.Label,
 				// Mobile:       userData.Mobile,
 				// Email:        userData.Email,
