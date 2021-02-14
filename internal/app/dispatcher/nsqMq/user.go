@@ -233,7 +233,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 	} else {
 		userKey := fmt.Sprintf("userData:%s", username)
-		userType, err := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
+		// userType, err := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
 		if err != nil {
 			nc.logger.Error("HGET Error", zap.Error(err))
@@ -250,7 +250,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		//查询出需要修改的用户
 		pUser := new(models.User)
 
-		if nick, ok := req.Fields[1]; ok {
+		if nick, ok := req.Fields[int32(User.UserFeild_UserFeild_Nick)]; ok {
 			//修改呢称
 			pUser.UserBase.Nick = nick
 			nc.logger.Debug("req.Fields[1]", zap.String("Nick", nick))
@@ -258,14 +258,14 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[1] not value")
 		}
 
-		if gender, ok := req.Fields[2]; ok {
+		if gender, ok := req.Fields[int32(User.UserFeild_UserFeild_Gender)]; ok {
 			//修改 性别
 			pUser.UserBase.Gender, _ = strconv.Atoi(gender)
 		} else {
 			nc.logger.Warn("req.Fields[2] not value")
 		}
 
-		if avatar, ok := req.Fields[3]; ok {
+		if avatar, ok := req.Fields[int32(User.UserFeild_UserFeild_Avatar)]; ok {
 			if avatar == "" {
 				pUser.UserBase.Avatar = LMCommon.PubAvatar
 			} else {
@@ -276,7 +276,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[3] not value")
 		}
 
-		if label, ok := req.Fields[4]; ok {
+		if label, ok := req.Fields[int32(User.UserFeild_UserFeild_Label)]; ok {
 			//修改 签名
 			pUser.UserBase.Label = label
 			nc.logger.Debug("req.Fields[4]", zap.String("Label", label))
@@ -284,7 +284,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[4] not value")
 		}
 
-		if trueName, ok := req.Fields[5]; ok {
+		if trueName, ok := req.Fields[int32(User.UserFeild_UserFeild_TrueName)]; ok {
 			//用户实名
 			pUser.UserBase.TrueName = trueName
 			nc.logger.Debug("req.Fields[5]", zap.String("TrueName", trueName))
@@ -292,34 +292,34 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[5] not value")
 		}
 
-		if email, ok := req.Fields[6]; ok {
+		if email, ok := req.Fields[int32(User.UserFeild_UserFeild_Email)]; ok {
 			//修改 Email
 			pUser.UserBase.Email = email
 		} else {
 			nc.logger.Warn("req.Fields[6] not value")
 		}
 
-		if extend, ok := req.Fields[7]; ok {
+		if extend, ok := req.Fields[int32(User.UserFeild_UserFeild_Extend)]; ok {
 			//修改 Extend
 			pUser.UserBase.Extend = extend
 		} else {
 			nc.logger.Warn("req.Fields[6] not value")
 		}
 
-		if allowType, ok := req.Fields[8]; ok {
+		if allowType, ok := req.Fields[int32(User.UserFeild_UserFeild_AllowType)]; ok {
 			//修改 AllowType
 			pUser.UserBase.AllowType, _ = strconv.Atoi(allowType)
 		} else {
 			nc.logger.Warn("req.Fields[8] not value")
 		}
 
-		if province, ok := req.Fields[9]; ok {
+		if province, ok := req.Fields[int32(User.UserFeild_UserFeild_Province)]; ok {
 			//修改 Province
 			pUser.UserBase.Province = province
 			nc.logger.Debug("req.Fields[9]", zap.String("Province", province))
 		}
 
-		if city, ok := req.Fields[10]; ok {
+		if city, ok := req.Fields[int32(User.UserFeild_UserFeild_City)]; ok {
 			//修改 city
 			pUser.UserBase.City = city
 			nc.logger.Debug("req.Fields[10]", zap.String("City", city))
@@ -327,7 +327,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[10] not value")
 		}
 
-		if county, ok := req.Fields[11]; ok {
+		if county, ok := req.Fields[int32(User.UserFeild_UserFeild_County)]; ok {
 			//修改 county
 			pUser.UserBase.County = county
 			nc.logger.Debug("req.Fields[11]", zap.String("County", county))
@@ -335,7 +335,7 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[11] not value")
 		}
 
-		if street, ok := req.Fields[12]; ok {
+		if street, ok := req.Fields[int32(User.UserFeild_UserFeild_Street)]; ok {
 			//修改 street
 			pUser.UserBase.Street = street
 			nc.logger.Debug("req.Fields[12]", zap.String("Street", street))
@@ -343,12 +343,20 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[12] not value")
 		}
 
-		if address, ok := req.Fields[13]; ok {
+		if address, ok := req.Fields[int32(User.UserFeild_UserFeild_Address)]; ok {
 			//修改 address
 			pUser.UserBase.Address = address
 			nc.logger.Debug("req.Fields[13]", zap.String("Address", address))
 		} else {
 			nc.logger.Warn("req.Fields[13] not value")
+		}
+
+		if identityCard, ok := req.Fields[int32(User.UserFeild_UserFeild_IdentityCard)]; ok {
+			//修改 address
+			pUser.UserBase.IdentityCard = identityCard
+			nc.logger.Debug("req.Fields[14]", zap.String("IdentityCard", identityCard))
+		} else {
+			nc.logger.Warn("req.Fields[14] not value")
 		}
 
 		if err := nc.service.UpdateUser(username, pUser); err != nil {
@@ -357,39 +365,42 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			goto COMPLETE
 		}
 
-		//如果user是商户
-		if userType == int(User.UserType_Ut_Business) {
-			//更新store表
-			pStore := new(models.Store)
-			pStore.BusinessUsername = username
+		/*
+			商户的更新已经不再使用这个接口
+			//如果user是商户
+			if userType == int(User.UserType_Ut_Business) {
+				//更新store表
+				pStore := new(models.Store)
+				pStore.BusinessUsername = username
 
-			if branchesname, ok := req.Fields[14]; ok {
-				pStore.Branchesname = branchesname
-				nc.logger.Debug("req.Fields[14]", zap.String("Branchesname", branchesname))
-			} else {
-				nc.logger.Warn("req.Fields[14] not value")
-			}
+				if branchesname, ok := req.Fields[14]; ok {
+					pStore.Branchesname = branchesname
+					nc.logger.Debug("req.Fields[14]", zap.String("Branchesname", branchesname))
+				} else {
+					nc.logger.Warn("req.Fields[14] not value")
+				}
 
-			if legalPerson, ok := req.Fields[15]; ok {
-				pStore.LegalPerson = legalPerson
-				nc.logger.Debug("req.Fields[15]", zap.String("LegalPerson", legalPerson))
-			} else {
-				nc.logger.Warn("req.Fields[15] not value")
-			}
+				if legalPerson, ok := req.Fields[15]; ok {
+					pStore.LegalPerson = legalPerson
+					nc.logger.Debug("req.Fields[15]", zap.String("LegalPerson", legalPerson))
+				} else {
+					nc.logger.Warn("req.Fields[15] not value")
+				}
 
-			if legalIdentityCard, ok := req.Fields[16]; ok {
-				pStore.LegalIdentityCard = legalIdentityCard
-				nc.logger.Debug("req.Fields[16]", zap.String("LegalIdentityCard", legalIdentityCard))
-			} else {
-				nc.logger.Warn("req.Fields[16] not value")
-			}
+				if legalIdentityCard, ok := req.Fields[16]; ok {
+					pStore.LegalIdentityCard = legalIdentityCard
+					nc.logger.Debug("req.Fields[16]", zap.String("LegalIdentityCard", legalIdentityCard))
+				} else {
+					nc.logger.Warn("req.Fields[16] not value")
+				}
 
-			if err := nc.service.UpdateStore(username, pStore); err != nil {
-				nc.logger.Error("更新商户商店信息出错", zap.Error(err))
-				errorCode = LMCError.UserModUpdateStoreError //错误码
-				goto COMPLETE
+				if err := nc.service.UpdateStore(username, pStore); err != nil {
+					nc.logger.Error("更新商户商店信息出错", zap.Error(err))
+					errorCode = LMCError.UserModUpdateStoreError //错误码
+					goto COMPLETE
+				}
 			}
-		}
+		*/
 
 		//修改redis里的userData:{username}哈希表，以便GetUsers的时候可以获取最新的数据
 
@@ -445,9 +456,16 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		syncUpdateProfileEventRsp.Fields[2] = User.Gender_name[int32(userData.GetGender())]
 		syncUpdateProfileEventRsp.Fields[3] = userData.Avatar
 		syncUpdateProfileEventRsp.Fields[4] = userData.Label
-		syncUpdateProfileEventRsp.Fields[5] = userData.Email
-		syncUpdateProfileEventRsp.Fields[6] = userData.Extend
-		syncUpdateProfileEventRsp.Fields[7] = User.AllowType_name[int32(userData.GetAllowType())]
+		syncUpdateProfileEventRsp.Fields[5] = userData.TrueName
+		syncUpdateProfileEventRsp.Fields[6] = userData.Email
+		syncUpdateProfileEventRsp.Fields[7] = userData.Extend
+		syncUpdateProfileEventRsp.Fields[8] = User.AllowType_name[int32(userData.GetAllowType())]
+		syncUpdateProfileEventRsp.Fields[9] = userData.Province
+		syncUpdateProfileEventRsp.Fields[10] = userData.City
+		syncUpdateProfileEventRsp.Fields[11] = userData.County
+		syncUpdateProfileEventRsp.Fields[12] = userData.Street
+		syncUpdateProfileEventRsp.Fields[13] = userData.Address
+		syncUpdateProfileEventRsp.Fields[14] = userData.IdentityCard
 
 		edata, _ := proto.Marshal(syncUpdateProfileEventRsp)
 

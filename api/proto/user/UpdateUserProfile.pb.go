@@ -4,8 +4,6 @@
 // 	protoc        v3.7.0
 // source: api/proto/user/UpdateUserProfile.proto
 
-//import "google/protobuf/timestamp.proto";
-
 package user
 
 import (
@@ -27,27 +25,11 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-//enum UpdateUserProfileFieldType {
-//    UNKONW = 0;
-//    Nick = 1;
-//    Gender = 2;
-//    Avatar = 3;
-//    Label = 4;
-//    Mobile = 5;
-//    Email = 6;
-//    Extend = 7;
-//    AllowType = 8;
-//}
-//message UpdateUserProfileField {
-//    UpdateUserProfileFieldType type = 1;
-//    string value = 2;
-//}
 type UpdateUserProfileReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	//     错误的
 	Fields map[int32]string `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -95,7 +77,6 @@ type UpdateUserProfileRsp struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// google.protobuf.Timestamp updateAt = 1; //最后更新时间,Unix时间戳
 	UpdateAt uint64 `protobuf:"fixed64,1,opt,name=updateAt,proto3" json:"updateAt,omitempty"` //最后更新时间,Unix时间戳
 }
 

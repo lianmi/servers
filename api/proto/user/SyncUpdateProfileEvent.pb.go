@@ -40,12 +40,18 @@ type SyncUpdateProfileEventRsp struct {
 	//Nick(1) - 昵称
 	//Gender(2) - 性别
 	//Avatar(3) - 头像
-	//Birth(4) - 生日
-	//Sign(5) - 签名
-	//Tel(6) - 手机
-	//Email(7) - email
-	//Ex(8) - 扩展信息
-	//map的key为1到8的整数含义见上
+	//Label(4) - 签名
+	//TrueName(5) - 实名
+	//Email(6) - email
+	//Ex(7) - 扩展信息
+	//AllowType(8) - 添加好友验证方式
+	//Province(9) - 省份
+	//City (10) - 城市
+	//County (11) - 区
+	//Street (12) - 街道
+	//Address (13) - 地址
+	//IdentityCard (14) - 身份证
+	//map的key为1到14的整数含义见上
 	//是否必填-是
 	Fields map[int32]string `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }

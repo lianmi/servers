@@ -35,6 +35,55 @@ enum AllowType {
     UAT_NeedConfirm = 3; 
 }
 
+//1-2 修改用户资料 的map的键值类型 
+enum UserFeild {
+  /// 未定义
+  UserFeild_Undefined =0; 
+
+  ///  昵称
+  UserFeild_Nick =1;
+
+  ///  性别
+  UserFeild_Gender =2;
+
+  ///  头像
+  UserFeild_Avatar =3;
+
+  ///  签名
+  UserFeild_Label =4;
+
+  ///  实名
+  UserFeild_TrueName =5;
+
+  ///  email
+  UserFeild_Email =6;
+
+  ///  扩展信息
+  UserFeild_Extend =7;
+
+  /// 添加好友验证方式
+  UserFeild_AllowType =8;
+
+  /// 省份
+  UserFeild_Province =9;
+
+  /// 城市 
+  UserFeild_City =10;
+
+  ///  区 
+  UserFeild_County =11;
+
+  ///  街道 
+  UserFeild_Street =12;
+
+  ///  地址 
+  UserFeild_Address =13;
+
+  /// 身份证
+  UserFeild_IdentityCard =14;
+
+}
+
 //根据用户ID批量获取用户信息,登录后拉取其他用户资料,添加好友查询好友资料
 message GetUsersReq {
     repeated string usernames = 1;

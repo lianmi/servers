@@ -1,33 +1,14 @@
 syntax = "proto3";
-//import "google/protobuf/timestamp.proto";
 package cloud.lianmi.im.user;
+//import "api/proto/user/User.proto";
+
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
-//enum UpdateUserProfileFieldType {
-//    UNKONW = 0;
-//    Nick = 1;
-//    Gender = 2;
-//    Avatar = 3;
-//    Label = 4;
-//    Mobile = 5;
-//    Email = 6;
-//    Extend = 7;
-//    AllowType = 8;
-//}
-//message UpdateUserProfileField {
-//    UpdateUserProfileFieldType type = 1;
-//    string value = 2;
-//}
 message UpdateUserProfileReq {
-    //     错误的
     map<int32, string> fields = 1;
-
-    // 正确的 但是是嵌套
-    //    repeated UpdateUserProfileField fields = 1;
 }
 
 message UpdateUserProfileRsp {
-   // google.protobuf.Timestamp updateAt = 1; //最后更新时间,Unix时间戳
    fixed64 updateAt = 1; //最后更新时间,Unix时间戳
 }
 
