@@ -26,8 +26,8 @@ const (
 	IdentityKey = "userName"                                     //jwt key
 	ExpireTime  = 30 * 24 * time.Hour                            //token expire time, one year
 	PubAvatar   = "avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" //默认头像
-   // update users set avatar = "avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" where avatar="";
-   //  select username,avatar from users ;
+	// update users set avatar = "avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" where avatar="";
+	//  select username,avatar from users ;
 )
 
 const (
@@ -82,7 +82,7 @@ const (
 
 const (
 	//所有同步的时间戳数量
-	TotalSyncCount = 9
+	TotalSyncCount = 8
 
 	//离线系统通知的最大同步数量
 	OffLineMsgCount = 10

@@ -1345,7 +1345,7 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 }
 
 /*
-注意： syncCount 是所有需要同步的数量，最终是6个
+6-1 发起同步请求
 */
 func (nc *NsqClient) HandleSync(msg *models.Message) error {
 	var err error
@@ -1394,7 +1394,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("FriendUsersAt", req.FriendUsersAt),
 			zap.Uint64("TeamsAt", req.TeamsAt),
 			zap.Uint64("TagsAt", req.TagsAt),
-			// zap.Uint64("SystemMsgAt", req.SystemMsgAt), 取消 
+			// zap.Uint64("SystemMsgAt", req.SystemMsgAt), 取消
 			zap.Uint64("WatchAt", req.WatchAt),
 			zap.Uint64("ProductAt", req.ProductAt),
 			zap.Uint64("GeneralProductAt", req.GeneralProductAt),
