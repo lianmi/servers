@@ -1409,23 +1409,23 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Debug("SyncMyInfoAt is done")
 			}
 
-			// if err := nc.SyncFriendsAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("SyncFriendsAt is done")
-			// }
+			if err := nc.SyncFriendsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncFriendsAt is done")
+			}
 
-			// if err := nc.SyncFriendUsersAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("SyncFriendUsersAt is done")
-			// }
+			if err := nc.SyncFriendUsersAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncFriendUsersAt is done")
+			}
 
-			// if err := nc.SyncTeamsAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("SyncTeamsAt is done")
-			// }
+			if err := nc.SyncTeamsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncTeamsAt is done")
+			}
 
 			if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
