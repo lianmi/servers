@@ -22,15 +22,15 @@ const (
 )
 
 const (
-	SecretKey   = "lianimicloud-secret"                           //salt for jwt
-	IdentityKey = "userName"                                      //jwt key
-	ExpireTime  = 30 * 24 * time.Hour                             //token expire time, one year
-	PubAvatar   = "/avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" //默认头像
-
+	SecretKey   = "lianimicloud-secret"                          //salt for jwt
+	IdentityKey = "userName"                                     //jwt key
+	ExpireTime  = 30 * 24 * time.Hour                            //token expire time, one year
+	PubAvatar   = "avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" //默认头像
+   // update users set avatar = "avatars/4d470ea0fe9f7e4812858f83e0d9daa8.jpg" where avatar="";
+   //  select username,avatar from users ;
 )
 
 const (
-
 	//允许任何人添加好友
 	AllowAny int = 1
 
