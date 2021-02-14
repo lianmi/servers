@@ -627,8 +627,9 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 			if req.GetIsAdd() { //增加
 				pTag := &models.Tag{
-					Username: account,
-					TagType:  int(req.GetType()),
+					Username:       username, // 当前用户
+					TargetUsername: account,  // 目标用户
+					TagType:        int(req.GetType()),
 				}
 
 				//增加标签 MySQL tags 表
@@ -714,8 +715,9 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 			if req.GetIsAdd() { //增加
 				pTag := &models.Tag{
-					Username: account,
-					TagType:  int(req.GetType()),
+					Username:       username, // 当前用户
+					TargetUsername: account,  // 目标用户
+					TagType:        int(req.GetType()),
 				}
 
 				//增加标签 MySQL tags 表
@@ -768,8 +770,9 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 		case User.MarkTagType_Mtt_Sticky: //置顶
 			if req.GetIsAdd() { //增加
 				pTag := &models.Tag{
-					Username: account,
-					TagType:  int(req.GetType()),
+					Username:       username, // 当前用户
+					TargetUsername: account,  // 目标用户
+					TagType:        int(req.GetType()),
 				}
 
 				//增加标签 MySQL tags 表
