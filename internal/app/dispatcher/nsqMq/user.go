@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"time"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -144,7 +144,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 
 				avatar = LMCommon.OSSUploadPicPrefix + userBaseData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 			}
-		
+
 			user := &User.User{
 				Username: userBaseData.Username,
 				Nick:     userBaseData.Nick,
@@ -797,7 +797,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 				err = db2.Error
 				if err != nil {
 					nc.logger.Error("删除实体出错", zap.Error(err))
-					errorCode = LMCError.UserModMarkTagAddError //错误码
+					errorCode = LMCError.UserModMarkTagRemoveError //错误码
 					goto COMPLETE
 				}
 				count := db2.RowsAffected
