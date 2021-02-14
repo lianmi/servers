@@ -1398,7 +1398,10 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("ProductAt", req.ProductAt),
 			zap.Uint64("GeneralProductAt", req.GeneralProductAt),
 		)
-		/*
+
+		//延时100ms下发
+		go func() {
+			time.Sleep(100 * time.Millisecond)
 			// //所有同步的时间戳数量
 			// var wg sync.WaitGroup
 			// wg.Add(common.TotalSyncCount)
@@ -1454,7 +1457,6 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			}
 			// }()
 
-
 			// go func() {
 			// 	defer wg.Done()
 
@@ -1491,7 +1493,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			//发送SyncDoneEvent
 			// nc.SendSyncDoneEventToUser(username, deviceID, token)
 			// nc.logger.Debug("All Sync done")
-		*/
+		}()
 
 	}
 
