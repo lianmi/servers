@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"time"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -138,11 +139,17 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				}
 			}
 
+			var avatar string
+			if (userBaseData.Avatar != "") && !strings.HasPrefix(userBaseData.Avatar, "http") {
+
+				avatar = LMCommon.OSSUploadPicPrefix + userBaseData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			}
+		
 			user := &User.User{
 				Username: userBaseData.Username,
 				Nick:     userBaseData.Nick,
 				Gender:   userBaseData.GetGender(),
-				Avatar:   userBaseData.Avatar,
+				Avatar:   avatar,
 				Label:    userBaseData.Label,
 				// UserType: User.UserType(userBaseData.UserType),	// 隐私
 				// State:    User.UserState(userBaseData.State), // 隐私
@@ -452,9 +459,14 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			Fields:  make(map[int32]string),
 		}
 
+		var avatar string
+		if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
+
+			avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+		}
 		syncUpdateProfileEventRsp.Fields[1] = userData.Nick
 		syncUpdateProfileEventRsp.Fields[2] = User.Gender_name[int32(userData.GetGender())]
-		syncUpdateProfileEventRsp.Fields[3] = userData.Avatar
+		syncUpdateProfileEventRsp.Fields[3] = avatar
 		syncUpdateProfileEventRsp.Fields[4] = userData.Label
 		syncUpdateProfileEventRsp.Fields[5] = userData.TrueName
 		syncUpdateProfileEventRsp.Fields[6] = userData.Email

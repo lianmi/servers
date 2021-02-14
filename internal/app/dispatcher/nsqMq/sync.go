@@ -16,7 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// "strings"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,13 +79,19 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				goto COMPLETE
 
 			} else {
+				var avatar string
+				if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
+
+					avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+				}
+
 				rsp := &User.SyncUserProfileEventRsp{
 					TimeTag: uint64(time.Now().UnixNano() / 1e6),
 					UInfo: &User.User{
 						Username:           username,
 						Nick:               userData.Nick,
 						Gender:             User.Gender(userData.Gender),
-						Avatar:             userData.Avatar,
+						Avatar:             avatar,
 						Label:              userData.Label,
 						Mobile:             userData.Mobile,
 						Email:              userData.Email,
@@ -336,11 +342,16 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 					nc.logger.Error("错误：ScanStruct", zap.Error(err))
 
 				} else {
+					var avatar string
+					if (fUserData.Avatar != "") && !strings.HasPrefix(fUserData.Avatar, "http") {
+
+						avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+					}
 					rsp.UInfos = append(rsp.UInfos, &User.User{
 						Username:     username,
 						Gender:       User.Gender(fUserData.Gender),
 						Nick:         fUserData.Nick,
-						Avatar:       fUserData.Avatar,
+						Avatar:       avatar,
 						Label:        fUserData.Label,
 						Mobile:       fUserData.Mobile,
 						Email:        fUserData.Email,
