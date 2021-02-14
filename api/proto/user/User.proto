@@ -71,7 +71,7 @@ message User {
     string belong_business_user   = 23;  //所属商户
     fixed64 vipEndDate            = 24;  //VIP用户到期时间
     fixed64 createdAt             = 25;  //用户注册时间,Unix时间戳
-    fixed64 updatedaAt            = 26;  //用户资料最后更新时间,Unix时间戳
+    fixed64 updatedAt             = 26;  //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表
