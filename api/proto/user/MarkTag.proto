@@ -27,7 +27,7 @@ message MarkTagReq {
     MarkTagType type = 2;
     //是否是添加操作，true表示添加，false表示移除
     //是否必须-是
-    bool isAdd = 3;
+    bool isAdd = 3; 
 }
 
 //可以把任意用户打上指定标签

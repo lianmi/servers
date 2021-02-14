@@ -631,7 +631,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					TagType:  int(req.GetType()),
 				}
 
-				//保存标签MarkTag
+				//增加标签 MySQL tags 表
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = LMCError.UserModMarkTagParamNorFriendError //错误码
@@ -718,7 +718,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					TagType:  int(req.GetType()),
 				}
 
-				//MySQL 保存标签MarkTag
+				//增加标签 MySQL tags 表
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = LMCError.UserModMarkTagAddError //错误码
@@ -772,7 +772,7 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					TagType:  int(req.GetType()),
 				}
 
-				//保存标签MarkTag
+				//增加标签 MySQL tags 表
 				if err := nc.service.AddTag(pTag); err != nil {
 					nc.logger.Error("MarkTag增加失败", zap.Error(err))
 					errorCode = LMCError.UserModMarkTagAddError
