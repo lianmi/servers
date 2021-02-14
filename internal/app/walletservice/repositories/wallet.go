@@ -3,8 +3,13 @@ package repositories
 import (
 	"context"
 	"fmt"
+
 	"github.com/gomodule/redigo/redis"
+
 	// Global "github.com/lianmi/servers/api/proto/global"
+	"net/url"
+	"strconv"
+
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -15,8 +20,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"net/url"
-	"strconv"
+
 	// uuid "github.com/satori/go.uuid"
 	"time"
 
@@ -309,7 +313,7 @@ func (m *MysqlWalletRepository) AddLnmcOrderTransferHistory(lnmcOrderTransferHis
 	if lnmcOrderTransferHistory == nil {
 		return errors.New("lnmcOrderTransferHistory is nil")
 	}
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcOrderTransferHistory).Error; err != nil {
 		m.logger.Error("增加LnmcOrderTransferHistory表失败", zap.Error(err))
 		return err
@@ -329,7 +333,7 @@ func (m *MysqlWalletRepository) AddUserWallet(username, walletAddress, amountETH
 		AmountETHString: amountETHString,
 	}
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(userWallet).Error; err != nil {
 		m.logger.Error("增加UserWallet表失败", zap.Error(err))
 		return err
@@ -343,7 +347,7 @@ func (m *MysqlWalletRepository) AddUserWallet(username, walletAddress, amountETH
 //用户充值
 func (m *MysqlWalletRepository) AddDepositHistory(lnmcDepositHistory *models.LnmcDepositHistory) (err error) {
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcDepositHistory).Error; err != nil {
 		m.logger.Error("增加充值历史记录LnmcDepositHistory表失败", zap.Error(err))
 		return err
@@ -357,7 +361,7 @@ func (m *MysqlWalletRepository) AddDepositHistory(lnmcDepositHistory *models.Lnm
 //用户转账预审核,  新增记录
 func (m *MysqlWalletRepository) AddLnmcTransferHistory(lmnccTransferHistory *models.LnmcTransferHistory) (err error) {
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lmnccTransferHistory).Error; err != nil {
 		m.logger.Error("增加用户转账预审核LnmcTransferHistory表失败", zap.Error(err))
 		return err
@@ -396,7 +400,7 @@ func (m *MysqlWalletRepository) UpdateLnmcTransferHistory(lmncTransferHistory *m
 //用户提现预审核,  新增记录
 func (m *MysqlWalletRepository) AddLnmcWithdrawHistory(lnmcWithdrawHistory *models.LnmcWithdrawHistory) (err error) {
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcWithdrawHistory).Error; err != nil {
 		m.logger.Error("增加LnmcWithdrawHistory表失败", zap.Error(err))
 		return err
@@ -443,7 +447,7 @@ func (m *MysqlWalletRepository) UpdateLnmcWithdrawHistory(lnmcWithdrawHistory *m
 //增加接收者的收款历史表
 func (m *MysqlWalletRepository) AddeCollectionHistory(lnmcCollectionHistory *models.LnmcCollectionHistory) (err error) {
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lnmcCollectionHistory).Error; err != nil {
 		m.logger.Error("增加收款历史表失败", zap.Error(err))
 		return err
@@ -609,7 +613,7 @@ func (s *MysqlWalletRepository) AddCommission(orderTotalAmount float64, username
 					BusinessUsername:   distribution.BusinessUsername, //归属的商户注册账号id
 				}
 
-				//如果没有记录，则增加，如果有记录，则更新全部字段
+				//增加记录
 				if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&bc).Error; err != nil {
 					s.logger.Error("增加BusinessUnderling失败, failed to upsert BusinessUnderling", zap.Error(err))
 					return err

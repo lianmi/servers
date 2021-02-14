@@ -12,6 +12,7 @@ import (
 	"github.com/lianmi/servers/util/dateutil"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
 	// "gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -176,7 +177,7 @@ func (s *MysqlLianmiRepository) SubmitCommssionWithdraw(username, yearMonth stri
 		YearMonth:          yearMonth,
 		WithdrawCommission: withdrawCommission,
 	}
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&commissionWithdraw).Error; err != nil {
 		s.logger.Error("增加commissionWithdraw失败, failed to upsert CommissionWithdraw", zap.Error(err))
 		return nil, err

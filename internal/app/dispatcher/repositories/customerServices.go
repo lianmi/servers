@@ -92,7 +92,7 @@ func (s *MysqlLianmiRepository) AddCustomerService(req *Auth.AddCustomerServiceR
 		NickName:   req.NickName,
 	}
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&c).Error; err != nil {
 		s.logger.Error("增加CustomerServiceInfo失败, failed to upsert CustomerServiceInfo", zap.Error(err))
 		return err
@@ -266,7 +266,7 @@ func (s *MysqlLianmiRepository) AddGrade(req *Auth.AddGradeReq) (string, error) 
 		Desc:                    req.Desc,
 	}
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&c).Error; err != nil {
 		s.logger.Error("增加Grade失败, failed to upsert Grade", zap.Error(err))
 		return "", err

@@ -21,11 +21,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
+
 	// Global "github.com/lianmi/servers/api/proto/global"
 	User "github.com/lianmi/servers/api/proto/user"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
+
 	// uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -211,7 +213,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 			zap.String("向后的三级, 即推荐人的推荐人的推荐人,   UsernameLevelThree", userLevelThree),
 		)
 
-		//如果没有记录，则增加，如果有记录，则更新全部字段
+		//增加记录
 		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(distribution).Error; err != nil {
 			s.logger.Error("增加Distribution表失败", zap.Error(err))
 			return err
@@ -249,7 +251,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 		pTeam.MuteType = 1   //None(1) - 所有人可发言
 		pTeam.InviteMode = 1 //邀请模式,初始为1
 
-		//创建群数据 如果没有记录，则增加，如果有记录，则更新全部字段
+		//创建群数据 增加记录
 		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
 			s.logger.Error("Register, failed to upsert team", zap.Error(err))
 			return err
@@ -988,14 +990,34 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 //修改用户标签 tags表
 func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
-	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag).Error; err != nil {
-		s.logger.Error("AddTag, failed to upsert tag", zap.Error(err))
-		return err
-	} else {
-		s.logger.Debug("AddTag, upsert tag succeed")
-	}
+	userTag := new(models.Tag)
 
+	results := s.db.Model(userTag).Where(&models.Tag{
+		Username:       tag.Username,
+		TargetUsername: tag.TargetUsername,
+	}).First(userTag)
+	if results.Error != nil {
+		if results.Error == gorm.ErrRecordNotFound {
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag).Error; err != nil {
+				s.logger.Error("AddTag, failed to Create tag", zap.Error(err))
+				return err
+			} else {
+				s.logger.Debug("AddTag, Create tag succeed")
+			}
+		}
+	} else {
+		//有记录则修改 同时更新多个字段
+		results := s.db.Model(&models.Tag{}).Where(&models.Tag{
+			Username:       tag.Username,
+			TargetUsername: tag.TargetUsername,
+		}).Updates(tag)
+		if results.Error != nil {
+			s.logger.Error("AddTag, 修改tags数据失败", zap.Error(results.Error))
+			return results.Error
+		} else {
+			s.logger.Error("AddTag, 修改tags数据成功")
+		}
+	}
 	return nil
 }
 

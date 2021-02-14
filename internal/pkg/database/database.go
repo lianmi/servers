@@ -95,7 +95,7 @@ func New(o *Options) (*gorm.DB, error) {
 	}
 	vipPrice.ID = 1
 
-	//如果没有记录，则增加，如果有记录，则更新全部字段
+	//增加记录
 	if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&vipPrice).Error; err != nil {
 		// return nil, err
 	}
