@@ -2,7 +2,8 @@
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
 	同步处理map，分别处理:
-	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt, productAt,  generalProductAt
+	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, productAt,  generalProductAt
+	取消systemMsgAt
 
 6-2 同步请求完成
 
@@ -760,6 +761,7 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 	return nil
 }
 
+/*
 //处理离线系统通知 systemMsgAt  包括订单消息
 func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
@@ -823,51 +825,51 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 
 		}
 
-		/*
-			//同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条(common.go里定义)，而且只能缓存7天
-			//从大到小递减获取, 只获取最大的10条
-			msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", offLineMsgListKey, "+inf", "-inf", "LIMIT", 0, common.OffLineMsgCount))
-			if err != nil {
-				nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
-			} else {
-				if len(msgIDArray) > 0 {
-					//反转，数组变为从小到大排序
-					array.ReverseBytes(msgIDArray)
 
-					var maxSeq int
-					for seq, msgID := range msgIDArray {
-						if seq > maxSeq {
-							maxSeq = seq
-						}
-						nc.logger.Debug("同步离线期间离线消息",
-							zap.Int("seq", seq),
-							zap.Int("maxSeq", maxSeq),
-							zap.String("msgID", string(msgID)),
-						)
-						key := fmt.Sprintf("systemMsg:%s:%s", username, string(msgID))
-						data, err := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-						if err != nil {
-							nc.logger.Error("HGET Data Error", zap.Error(err))
-							continue
-						}
+			// //同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条(common.go里定义)，而且只能缓存7天
+			// //从大到小递减获取, 只获取最大的10条
+			// msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", offLineMsgListKey, "+inf", "-inf", "LIMIT", 0, common.OffLineMsgCount))
+			// if err != nil {
+			// 	nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
+			// } else {
+			// 	if len(msgIDArray) > 0 {
+			// 		//反转，数组变为从小到大排序
+			// 		array.ReverseBytes(msgIDArray)
 
-						if err := nc.SendOffLineMsg(username, token, deviceID, data); err == nil {
-							nc.logger.Debug("成功发送离线消息",
-								zap.Int("seq", seq),
-								zap.String("msgID", string(msgID)),
-								zap.String("username", username),
-								zap.String("token", token),
-								zap.String("deviceID", deviceID),
-							)
-						} else {
-							nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
-						}
+			// 		var maxSeq int
+			// 		for seq, msgID := range msgIDArray {
+			// 			if seq > maxSeq {
+			// 				maxSeq = seq
+			// 			}
+			// 			nc.logger.Debug("同步离线期间离线消息",
+			// 				zap.Int("seq", seq),
+			// 				zap.Int("maxSeq", maxSeq),
+			// 				zap.String("msgID", string(msgID)),
+			// 			)
+			// 			key := fmt.Sprintf("systemMsg:%s:%s", username, string(msgID))
+			// 			data, err := redis.Bytes(redisConn.Do("HGET", key, "Data"))
+			// 			if err != nil {
+			// 				nc.logger.Error("HGET Data Error", zap.Error(err))
+			// 				continue
+			// 			}
 
-					}
+			// 			if err := nc.SendOffLineMsg(username, token, deviceID, data); err == nil {
+			// 				nc.logger.Debug("成功发送离线消息",
+			// 					zap.Int("seq", seq),
+			// 					zap.String("msgID", string(msgID)),
+			// 					zap.String("username", username),
+			// 					zap.String("token", token),
+			// 					zap.String("deviceID", deviceID),
+			// 				)
+			// 			} else {
+			// 				nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
+			// 			}
 
-				}
-			}
-		*/
+			// 		}
+
+			// 	}
+			// }
+
 	}
 
 COMPLETE:
@@ -881,6 +883,7 @@ COMPLETE:
 	}
 	return nil
 }
+*/
 
 //处理watchAt 7-8 同步关注的商户事件
 func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq) error {
@@ -1391,7 +1394,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("FriendUsersAt", req.FriendUsersAt),
 			zap.Uint64("TeamsAt", req.TeamsAt),
 			zap.Uint64("TagsAt", req.TagsAt),
-			zap.Uint64("SystemMsgAt", req.SystemMsgAt),
+			// zap.Uint64("SystemMsgAt", req.SystemMsgAt), 取消 
 			zap.Uint64("WatchAt", req.WatchAt),
 			zap.Uint64("ProductAt", req.ProductAt),
 			zap.Uint64("GeneralProductAt", req.GeneralProductAt),
@@ -1452,16 +1455,18 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			}
 		}()
 
-		go func() {
-			defer wg.Done()
+		/*
+			    由于mqtt broker已经实现了离线消息，因此取消
+				go func() {
+					defer wg.Done()
 
-			if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
-				nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
-			} else {
-				nc.logger.Debug("SyncSystemMsgAt is done")
-			}
-		}()
-
+					if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
+						nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
+					} else {
+						nc.logger.Debug("SyncSystemMsgAt is done")
+					}
+				}()
+		*/
 		go func() {
 			defer wg.Done()
 

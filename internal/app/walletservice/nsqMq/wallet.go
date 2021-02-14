@@ -1740,32 +1740,34 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
-	//一次性删除7天前的缓存系统消息
-	nTime := time.Now()
-	yesTime := nTime.AddDate(0, 0, -7).Unix()
+	/*
+		//一次性删除7天前的缓存系统消息
+		nTime := time.Now()
+		yesTime := nTime.AddDate(0, 0, -7).Unix()
 
-	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUsername)
+		offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUsername)
 
-	_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+		_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 
-	//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
-	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
-		nc.logger.Error("ZADD Error", zap.Error(err))
-	}
+		//Redis里缓存此消息,目的是用户从离线状态恢复到上线状态后同步这些系统消息给用户
+		systemMsgAt := time.Now().UnixNano() / 1e6
+		if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
+			nc.logger.Error("ZADD Error", zap.Error(err))
+		}
 
-	//订单消息具体内容
-	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
+		//订单消息具体内容
+		systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUsername, rsp.GetServerMsgId())
 
-	_, err = redisConn.Do("HMSET",
-		systemMsgKey,
-		"Username", toUsername,
-		"SystemMsgAt", systemMsgAt,
-		"Seq", rsp.Seq,
-		"Data", data, //系统消息的数据体
-	)
+		_, err = redisConn.Do("HMSET",
+			systemMsgKey,
+			"Username", toUsername,
+			"SystemMsgAt", systemMsgAt,
+			"Seq", rsp.Seq,
+			"Data", data, //系统消息的数据体
+		)
 
-	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+		_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+	*/
 
 	//向toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
@@ -1810,7 +1812,6 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 			zap.String("DeviceID:", eDeviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 
-		_ = err
 
 	}
 

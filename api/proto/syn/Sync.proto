@@ -27,7 +27,7 @@ message SyncEventReq{
    fixed64 tagsAt=5;
    //系统消息最后同步时间戳，触发同步系统离线消息事件
    //是否必填-是 
-   fixed64 systemMsgAt=6;
+   //fixed64 systemMsgAt=6;  -- 取消 
    //用户关注商户的同步事件
    //是否必填-是 
    fixed64 watchAt=7;

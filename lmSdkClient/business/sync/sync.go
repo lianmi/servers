@@ -30,7 +30,7 @@ func DoSyncEvent() error {
 		FriendUsersAt:    0,
 		TeamsAt:          0,
 		TagsAt:           0,
-		SystemMsgAt:      0,
+		// SystemMsgAt:      0,
 		WatchAt:          0,
 		ProductAt:        0,
 		GeneralProductAt: 0,

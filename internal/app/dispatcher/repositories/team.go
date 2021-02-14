@@ -133,31 +133,33 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	}
 
 	data, _ := proto.Marshal(eRsp)
-	//删除7天前的缓存系统消息
-	nTime := time.Now()
-	yesTime := nTime.AddDate(0, 0, -7).Unix()
-	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", p.Owner)
+	/*
+		//删除7天前的缓存系统消息
+		nTime := time.Now()
+		yesTime := nTime.AddDate(0, 0, -7).Unix()
+		offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", p.Owner)
 
-	_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+		_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
 
-	//Redis里缓存此系统消息,目的是6-1同步接口里的 systemmsgAt, 然后同步给用户
-	systemMsgAt := time.Now().UnixNano() / 1e6
-	if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, eRsp.GetServerMsgId()); err != nil {
-		s.logger.Error("ZADD Error", zap.Error(err))
-	}
+		//Redis里缓存此系统消息,目的是6-1同步接口里的 systemmsgAt, 然后同步给用户
+		systemMsgAt := time.Now().UnixNano() / 1e6
+		if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, eRsp.GetServerMsgId()); err != nil {
+			s.logger.Error("ZADD Error", zap.Error(err))
+		}
 
-	//系统消息具体内容
-	systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", p.Owner, eRsp.GetServerMsgId())
+		//系统消息具体内容
+		systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", p.Owner, eRsp.GetServerMsgId())
 
-	_, err = redisConn.Do("HMSET",
-		systemMsgKey,
-		"Username", p.Owner,
-		"SystemMsgAt", systemMsgAt,
-		"Seq", eRsp.Seq,
-		"Data", data,
-	)
+		_, err = redisConn.Do("HMSET",
+			systemMsgKey,
+			"Username", p.Owner,
+			"SystemMsgAt", systemMsgAt,
+			"Seq", eRsp.Seq,
+			"Data", data,
+		)
 
-	_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+		_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+	*/
 
 	//向toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", p.Owner)

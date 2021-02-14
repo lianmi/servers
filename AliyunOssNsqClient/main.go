@@ -132,11 +132,6 @@ func NewNsqClient(o *NsqOptions) *NsqClient {
 		handleFuncMap: make(map[uint32]func(payload *models.Message) error),
 	}
 
-	//注册每个业务子类型的处理方法
-	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 1)] = nsqClient.HandleRecvMsg       //5-1 收到消息的处理程序
-	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 4)] = nsqClient.HandleMsgAck        //5-4 确认消息送达
-	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 6)] = nsqClient.HandleSendCancelMsg //5-9 发送撤销消息
-	// nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(5, 12)] = nsqClient.HandleGetOssToken  //5-12 获取阿里云OSS上传Token
 
 	return nsqClient
 }
