@@ -1515,6 +1515,7 @@ COMPLETE:
 		nc.logger.Error("Failed to send Sync message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
+	_ = token
 	return nil
 
 }
