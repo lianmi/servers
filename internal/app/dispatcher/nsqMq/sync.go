@@ -1398,110 +1398,100 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("ProductAt", req.ProductAt),
 			zap.Uint64("GeneralProductAt", req.GeneralProductAt),
 		)
-
-		// //所有同步的时间戳数量
-		// var wg sync.WaitGroup
-		// wg.Add(common.TotalSyncCount)
-
-		//异步
-		// go func() {
-		// defer wg.Done()
-
-		if err := nc.SyncMyInfoAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncMyInfoAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncFriendsAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncFriendsAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncFriendUsersAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncFriendUsersAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncTeamsAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncTeamsAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncTagsAt is done")
-		}
-		// }()
-
 		/*
-			    由于mqtt broker已经实现了离线消息，因此取消
-				go func() {
-					defer wg.Done()
+			// //所有同步的时间戳数量
+			// var wg sync.WaitGroup
+			// wg.Add(common.TotalSyncCount)
 
-					if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
-						nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
-					} else {
-						nc.logger.Debug("SyncSystemMsgAt is done")
-					}
-				}()
+			//异步
+			// go func() {
+			// defer wg.Done()
+
+			if err := nc.SyncMyInfoAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncMyInfoAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncFriendsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncFriendsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncFriendsAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncFriendUsersAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncFriendUsersAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncFriendUsersAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncTeamsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncTeamsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncTeamsAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncTagsAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncTagsAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncTagsAt is done")
+			}
+			// }()
+
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncWatchAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncWatchAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncProductAt is done")
+			}
+			// }()
+
+			// go func() {
+			// 	defer wg.Done()
+
+			if err := nc.SyncGeneralProductAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("GeneralProductAt is done")
+			}
+			// }()
+
+			// 等待执行结束
+			// wg.Wait()
+
+			//发送SyncDoneEvent
+			// nc.SendSyncDoneEventToUser(username, deviceID, token)
+			// nc.logger.Debug("All Sync done")
 		*/
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncWatchAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncWatchAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncWatchAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("SyncProductAt is done")
-		}
-		// }()
-
-		// go func() {
-		// 	defer wg.Done()
-
-		if err := nc.SyncGeneralProductAt(username, token, deviceID, req); err != nil {
-			nc.logger.Error("GeneralProductAt 失败，Error", zap.Error(err))
-		} else {
-			nc.logger.Debug("GeneralProductAt is done")
-		}
-		// }()
-
-		// 等待执行结束
-		// wg.Wait()
-
-		//发送SyncDoneEvent
-		// nc.SendSyncDoneEventToUser(username, deviceID, token)
-		// nc.logger.Debug("All Sync done")
 
 	}
 
