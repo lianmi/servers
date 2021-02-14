@@ -113,12 +113,11 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				userBaseData.Gender = pUser.Gender
 				userBaseData.Avatar = pUser.Avatar
 				userBaseData.Label = pUser.Label
+
 				userBaseData.Mobile = pUser.Mobile
 				userBaseData.Email = pUser.Email
 				userBaseData.AllowType = pUser.AllowType
 				userBaseData.UserType = pUser.UserType
-				userBaseData.BankCard = pUser.BankCard
-				userBaseData.Bank = pUser.Bank
 				userBaseData.TrueName = pUser.TrueName
 				userBaseData.Province = pUser.Province
 				userBaseData.City = pUser.City
@@ -130,9 +129,6 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				userBaseData.IdentityCard = pUser.IdentityCard
 				userBaseData.ReferrerUsername = pUser.ReferrerUsername
 				userBaseData.BelongBusinessUser = pUser.BelongBusinessUser
-				userBaseData.CreatedBy = pUser.CreatedBy
-				userBaseData.ModifiedBy = pUser.ModifiedBy
-				userBaseData.ModifiedBy = pUser.ModifiedBy
 				userBaseData.VipEndDate = pUser.VipEndDate
 				userBaseData.ECouponCardUsed = pUser.ECouponCardUsed
 
@@ -148,14 +144,14 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				Gender:   userBaseData.GetGender(),
 				Avatar:   userBaseData.Avatar,
 				Label:    userBaseData.Label,
-				UserType: User.UserType(userBaseData.UserType),
-				State:    User.UserState(userBaseData.State),
+				// UserType: User.UserType(userBaseData.UserType),	// 隐私
+				// State:    User.UserState(userBaseData.State), // 隐私
 				// TrueName: userBaseData.TrueName,
-				Province: userBaseData.Province,
-				City:     userBaseData.City,
-				County:   userBaseData.County,
-				Street:   userBaseData.Street,
-				Address:  userBaseData.Address,
+				// Province: userBaseData.Province,
+				// City:     userBaseData.City,
+				// County:   userBaseData.County,
+				// Street:   userBaseData.Street,
+				// Address:  userBaseData.Address,
 			}
 
 			rsp.Users = append(rsp.Users, user)

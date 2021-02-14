@@ -45,30 +45,32 @@ message GetUsersResp {
 
 // 用户信息
 message User {
-    uint64 id        = 1;                         //ID
+    uint64 id        = 1;  //自增ID
     string smscode   = 2;
     string username  = 3;
-    string password  = 4;                         //密码 是否必填-是
+    string password  = 4;  //密码 是否必填-是
     Gender gender    = 5;
     string nick      = 6;
     string avatar    = 7;
     string label     = 8;
     string mobile    = 9;
     string email     = 10;
-    string referrer_username   = 11; //推荐人
-    UserType user_type         = 12;
-    UserState state            = 13;
-    string extend              = 14;
-    string trueName            = 15;  //实名
-    string identityCard        = 16;  //身份证号码
-    string province            = 17;  //省份, 如广东省
-    string city                = 18;  //城市，如广州市
-    string county              = 19;  //区，如天河区
-    string street              = 20;  //街道
-    string address             = 21;  //地址
-    fixed64 vipEndDate         = 22;  //VIP用户到期时间
-    fixed64 createdAt          = 23;  //用户注册时间,Unix时间戳
-    fixed64 updatedaAt         = 24;  //用户资料最后更新时间,Unix时间戳
+    string extend                 = 11;
+    AllowType allow_type          = 12;
+    UserType user_type            = 13;
+    UserState state               = 14;
+    string trueName               = 15;  //实名
+    string identityCard           = 16;  //身份证号码
+    string province               = 17;  //省份, 如广东省
+    string city                   = 18;  //城市，如广州市
+    string county                 = 19;  //区，如天河区
+    string street                 = 20;  //街道
+    string address                = 21;  //地址
+    string referrer_username      = 22;  //推荐人
+    string belong_business_user   = 23;  //所属商户
+    fixed64 vipEndDate            = 24;  //VIP用户到期时间
+    fixed64 createdAt             = 25;  //用户注册时间,Unix时间戳
+    fixed64 updatedaAt            = 26;  //用户资料最后更新时间,Unix时间戳
 }
 
 //多条件不定参数批量分页获取用户列表

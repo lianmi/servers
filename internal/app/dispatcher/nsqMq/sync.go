@@ -82,17 +82,27 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				rsp := &User.SyncUserProfileEventRsp{
 					TimeTag: uint64(time.Now().UnixNano() / 1e6),
 					UInfo: &User.User{
-						Username:     username,
-						Gender:       User.Gender(userData.Gender),
-						Nick:         userData.Nick,
-						Avatar:       userData.Avatar,
-						Label:        userData.Label,
-						Mobile:       userData.Mobile,
-						Email:        userData.Email,
-						UserType:     User.UserType(userData.UserType),
-						Extend:       userData.Extend,
-						TrueName:     userData.TrueName,
-						IdentityCard: userData.IdentityCard,
+						Username:           username,
+						Nick:               userData.Nick,
+						Gender:             User.Gender(userData.Gender),
+						Avatar:             userData.Avatar,
+						Label:              userData.Label,
+						Mobile:             userData.Mobile,
+						Email:              userData.Email,
+						Extend:             userData.Extend,
+						AllowType:          User.AllowType(userData.AllowType),
+						UserType:           User.UserType(userData.UserType),
+						State:              User.UserState(userData.State),
+						TrueName:           userData.TrueName,
+						IdentityCard:       userData.IdentityCard,
+						Province:           userData.Province,
+						City:               userData.City,
+						County:             userData.County,
+						Street:             userData.Street,
+						Address:            userData.Address,
+						ReferrerUsername:   userData.ReferrerUsername,
+						BelongBusinessUser: userData.BelongBusinessUser,
+						VipEndDate:         uint64(userData.VipEndDate),
 					},
 				}
 				data, _ := proto.Marshal(rsp)
@@ -103,7 +113,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 
 				targetMsg.UpdateID()
 				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+				targetMsg.BuildRouter("Sync", "", "Sync.Frontend")
 				targetMsg.SetJwtToken(token)
 				targetMsg.SetUserName(username)
 				targetMsg.SetDeviceID(deviceID)
@@ -116,7 +126,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				targetMsg.SetCode(200)   //成功的状态码
 
 				//构建数据完成，向dispatcher发送
-				topic := "Auth.Frontend"
+				topic := "Sync.Frontend"
 				rawData, _ := json.Marshal(targetMsg)
 				if err := nc.Producer.Public(topic, rawData); err == nil {
 					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))

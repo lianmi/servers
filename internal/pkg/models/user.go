@@ -24,35 +24,29 @@ import (
 
 //定义用户的数据结构, id+ Username 构成复合主键 , Mobile 是唯一索引
 type UserBase struct {
-	Username     string `gorm:"primarykey" json:"username" `                                //用户注册号，自动生成，字母 + 数字
-	Password     string `json:"password" validate:"required"`                               //用户密码，md5加密
-	Nick         string `json:"nick" validate:"required"`                                   //用户呢称，必填
-	Gender       int    `form:"gender" json:"gender" binding:"required"`                    //性别
-	Avatar       string `form:"avatar" json:"avatar,omitempty"`                             //头像url
-	Label        string `form:"label" json:"label,omitempty" `                              //签名标签
-	Mobile       string `gorm:"uniqueIndex" form:"mobile" json:"mobile" binding:"required"` //注册手机
-	Email        string `form:"email" json:"email,omitempty" `                              //密保邮件，需要发送校验邮件确认
-	AllowType    int    `form:"allow_type" json:"allow_type"`                               //用户加好友枚举，默认是3
-	UserType     int    `form:"user_type" json:"user_type" binding:"required"`              //用户类型 1-普通，2-商户
-	BankCard     string `form:"bank_card" json:"bank_card,omitempty" `                      //银行卡账号
-	Bank         string `form:"bank" json:"bank,omitempty" `                                //开户银行
-	TrueName     string `form:"true_name" json:"true_name,omitempty" `                      //用户实名
-	IdentityCard string `form:"identity_card" json:"identity_card" binding:"required"`      //身份证
-	Province     string `form:"province" json:"province,omitempty" `                        //省份, 如广东省
-	City         string `form:"city" json:"city,omitempty" `                                //城市，如广州市
-	County       string `form:"county" json:"county,omitempty" `                            //区，如天河区
-	Street       string `form:"street" json:"street,omitempty" `                            //街道
-	Address      string `form:"address" json:"address,omitempty" `                          //地址
-	State        int    `form:"state" json:"state"`                                         //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-	Extend       string `form:"extend" json:"extend,omitempty" `                            //扩展字段
-
+	Username           string `gorm:"primarykey" json:"username" `                                 //用户注册号，自动生成，字母 + 数字
+	Password           string `json:"password" validate:"required"`                                //用户密码，md5加密
+	Nick               string `json:"nick" validate:"required"`                                    //用户呢称，必填
+	Gender             int    `form:"gender" json:"gender" binding:"required"`                     //性别
+	Avatar             string `form:"avatar" json:"avatar,omitempty"`                              //头像url
+	Label              string `form:"label" json:"label,omitempty" `                               //签名标签
+	Mobile             string `gorm:"uniqueIndex" form:"mobile" json:"mobile" binding:"required"`  //注册手机
+	Email              string `form:"email" json:"email,omitempty" `                               //密保邮件，需要发送校验邮件确认
+	Extend             string `form:"extend" json:"extend,omitempty" `                             //扩展字段
+	AllowType          int    `form:"allow_type" json:"allow_type"`                                //用户加好友枚举，默认是3
+	UserType           int    `form:"user_type" json:"user_type" binding:"required"`               //用户类型 1-普通，2-商户
+	State              int    `form:"state" json:"state"`                                          //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+	TrueName           string `form:"true_name" json:"true_name,omitempty" `                       //用户实名
+	IdentityCard       string `form:"identity_card" json:"identity_card" binding:"required"`       //身份证
+	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
+	City               string `form:"city" json:"city,omitempty" `                                 //城市，如广州市
+	County             string `form:"county" json:"county,omitempty" `                             //区，如天河区
+	Street             string `form:"street" json:"street,omitempty" `                             //街道
+	Address            string `form:"address" json:"address,omitempty" `                           //地址
 	ReferrerUsername   string `form:"referrer_username" json:"referrer_username,omitempty" `       //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 	BelongBusinessUser string `form:"belong_business_user" json:"belong_business_user,omitempty" ` //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
-	CreatedBy          string `form:"created_by" json:"created_by,omitempty"`                      //由谁创建， 分为注册或后台添加
-	ModifiedBy         string `form:"modified_by" json:"modified_by,omitempty"`                    //最后由哪个操作员修改
 	VipEndDate         int64  `form:"vip_end_date" json:"vip_end_date,omitempty"`                  //VIP用户到期时间
 	ECouponCardUsed    bool   `form:"ecoupon_card_used" json:"ecoupon_card_used,omitempty"`        //VIP7天体验卡
-
 }
 
 type User struct {
