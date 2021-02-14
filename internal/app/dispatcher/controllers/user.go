@@ -36,7 +36,7 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 		return
 	}
 
-	RespData(c, http.StatusBadRequest, http.StatusOK, user)
+	RespData(c, http.StatusOK, 200, user)
 
 }
 
