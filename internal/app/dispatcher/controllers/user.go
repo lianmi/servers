@@ -124,7 +124,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if userReq.Avatar == "" {
 			avatar = LMCommon.PubAvatar
 		} else {
-			avatar = userReq.Avatar //oss  objid形式的字符串
+			avatar = userReq.Avatar //oss  objid形式的字符串, 首个字母不是/
 		}
 		user := models.User{
 			UserBase: models.UserBase{

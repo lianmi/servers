@@ -258,7 +258,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 	)
 	if (fUserData.Avatar != "") && !strings.HasPrefix(fUserData.Avatar, "http") {
 
-		avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar
+		avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 	}
 
 	return &Auth.UserRsp{
@@ -303,7 +303,7 @@ func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.Qu
 		for _, userData := range users {
 			if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
 
-				avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar
+				avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 			}
 
 			resp.Users = append(resp.Users, &User.User{
