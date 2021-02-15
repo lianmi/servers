@@ -459,7 +459,11 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 	}
 
 	s.logger.Debug("CheckUser end")
-	return true, curOnlineDevieID
+	if deviceID != curOnlineDevieID {
+		return true, ""
+	} else {
+		return true, curOnlineDevieID
+	}
 }
 
 //同时增加用户类型角色
