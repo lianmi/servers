@@ -319,6 +319,7 @@ func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, dev
 	isPass, curOnlineDevieID := pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
 	//TODO send message to nsq
 
+	pc.logger.Debug("LianmiApisController:CheckUser", zap.String("curOnlineDevieID", curOnlineDevieID))
 	if curOnlineDevieID != "" {
 		//向当前主设备发出踢下线消息
 		//构造负载数据
