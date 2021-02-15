@@ -638,6 +638,12 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					errorCode = LMCError.UserModMarkTagParamNorFriendError //错误码
 					goto COMPLETE
 				}
+				//从免打扰名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
+
+				//从置顶名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
+
 				//增加到黑名单
 				err = redisConn.Send("ZADD", fmt.Sprintf("BlackList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 
@@ -726,6 +732,12 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					errorCode = LMCError.UserModMarkTagAddError //错误码
 					goto COMPLETE
 				}
+
+				//从黑名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
+				//从置顶名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
+
 				err = redisConn.Send("ZADD", fmt.Sprintf("MutedList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:2", username), req.GetUsername())
 
@@ -781,6 +793,12 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					errorCode = LMCError.UserModMarkTagAddError
 					goto COMPLETE
 				}
+				//从黑名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
+
+				//从免打扰名单里移除
+				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
+
 				err = redisConn.Send("ZADD", fmt.Sprintf("StickyList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:2", username), req.GetUsername())
 
