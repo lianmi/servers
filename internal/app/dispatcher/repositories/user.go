@@ -1019,11 +1019,17 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 				}
 			}
 	*/
-	// `Username` 冲突时，将字段值更新为默认值
+
+	// 在冲突时，更新除主键以外的所有列到新值。
 	s.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "username"}},
-		DoUpdates: clause.Assignments(map[string]interface{}{"target_username": tag.TargetUsername, "tag_type": tag.TagType}),
+		UpdateAll: true,
 	}).Create(&tag)
+
+	// `username` 冲突时，将map里的字段值更新
+	// s.db.Clauses(clause.OnConflict{
+	// 	Columns:   []clause.Column{{Name: "username"}},
+	// 	DoUpdates: clause.Assignments(map[string]interface{}{"target_username": tag.TargetUsername, "tag_type": tag.TagType}),
+	// }).Create(&tag)
 
 	return nil
 }
