@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common"
+
 	// "github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -170,8 +171,7 @@ func CreateInitControllersFn(
 						pc.logger.Warn("GetUsernameByMobile error")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
-				}
-				if mobile == "" && username != "" {
+				} else if mobile == "" && username != "" {
 					mobile, err = pc.service.GetMobileByUsername(username)
 					if err != nil {
 						pc.logger.Warn("GetMobileByUsername error")
@@ -179,6 +179,7 @@ func CreateInitControllersFn(
 					}
 				}
 
+				//如果最终username为空则未注册
 				if username == "" {
 					pc.logger.Warn("username get error")
 					return "", gin_jwt_v2.ErrMissingLoginValues
@@ -202,6 +203,9 @@ func CreateInitControllersFn(
 					// RespData(c, http.StatusOK, code, "SmsCode is wrong")
 					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
+
+				
+	
 
 				// 检测用户是否可以登录, true-可以允许登录
 				if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
@@ -244,7 +248,7 @@ func CreateInitControllersFn(
 				//只有jwt有效，都放行
 				return true
 			},
-			
+
 			//处理不进行授权的逻辑
 			Unauthorized: func(c *gin.Context, code int, message string) {
 				pc.logger.Debug("Unauthorized",
