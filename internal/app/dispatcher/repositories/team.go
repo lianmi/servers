@@ -163,43 +163,40 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	//向toUser所有端发送
 	deviceListKey := fmt.Sprintf("devices:%s", p.Owner)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
+	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
 
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+	targetMsg := &models.Message{}
+	curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+	curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+	s.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
 
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(p.Owner)
-		targetMsg.SetDeviceID(eDeviceID)
-		targetMsg.SetBusinessTypeName("Msg")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+	targetMsg.SetJwtToken(curJwtToken)
+	targetMsg.SetUserName(p.Owner)
+	targetMsg.SetDeviceID(eDeviceID)
+	targetMsg.SetBusinessTypeName("Msg")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
 
-		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
 
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
-		targetMsg.SetCode(200) //成功的状态码
+	targetMsg.SetCode(200) //成功的状态码
 
-		//构建数据完成，向NsqChan发送
-		s.multiChan.NsqChan <- targetMsg
+	//构建数据完成，向NsqChan发送
+	s.multiChan.NsqChan <- targetMsg
 
-		s.logger.Info("Broadcast Msg To AllDevices Succeed",
-			zap.String("Username:", p.Owner),
-			zap.String("DeviceID:", curDeviceKey),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
+	s.logger.Info("Broadcast Msg To AllDevices Succeed",
+		zap.String("Username:", p.Owner),
+		zap.String("DeviceID:", curDeviceKey),
+		zap.Int64("Now", time.Now().UnixNano()/1e6))
 
-		_ = err
+	_ = err
 
-	}
 	return nil
 
 }

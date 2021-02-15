@@ -1314,54 +1314,47 @@ func (nc *NsqClient) SendOPKNoSufficientToMasterDevice(toUsername string, count 
 
 	//查询出商户主设备
 	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	for index, eDeviceID := range deviceIDSlice {
-		if index == 0 {
-			nc.logger.Debug("查询出商户主设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
-			nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
+	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
 
-			//向商户主设备推送 9-10 OPK存量不足事件
-			opkAlertMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6 //毫秒
-			opkAlertMsg.UpdateID()
+	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+	jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
+	nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
 
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
-			opkAlertMsg.SetJwtToken(jwtToken)
-			opkAlertMsg.SetUserName(toUsername)
-			opkAlertMsg.SetDeviceID(string(eDeviceID))
-			// opkAlertMsg.SetTaskID(uint32(taskId))
-			opkAlertMsg.SetBusinessTypeName("Order")
-			opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
-			opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
+	//向商户主设备推送 9-10 OPK存量不足事件
+	opkAlertMsg := &models.Message{}
+	now := time.Now().UnixNano() / 1e6 //毫秒
+	opkAlertMsg.UpdateID()
 
-			opkAlertMsg.BuildHeader("OrderService", now)
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
+	opkAlertMsg.SetJwtToken(jwtToken)
+	opkAlertMsg.SetUserName(toUsername)
+	opkAlertMsg.SetDeviceID(string(eDeviceID))
+	// opkAlertMsg.SetTaskID(uint32(taskId))
+	opkAlertMsg.SetBusinessTypeName("Order")
+	opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
+	opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
 
-			//构造负载数据
-			resp := &Order.OPKLimitAlertRsp{
-				Count: int32(count),
-			}
-			data, _ := proto.Marshal(resp)
-			opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
+	opkAlertMsg.BuildHeader("OrderService", now)
 
-			opkAlertMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Order.Frontend"
-			rawData, _ := json.Marshal(opkAlertMsg)
-			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
-
-			//跳出，不用管从设备
-			break
-
-		}
+	//构造负载数据
+	resp := &Order.OPKLimitAlertRsp{
+		Count: int32(count),
 	}
+	data, _ := proto.Marshal(resp)
+	opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	opkAlertMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Order.Frontend"
+	rawData, _ := json.Marshal(opkAlertMsg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+	}
+
 	return nil
 }
 
@@ -2547,50 +2540,46 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
-	//向toUser所有端发送
+	//向toUser发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
+	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
 
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+	targetMsg := &models.Message{}
+	curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+	curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+	nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Order", "", "Order.Frontend")
 
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUsername)
-		targetMsg.SetDeviceID(eDeviceID)
-		// targetMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(businessType)       //业务号
-		targetMsg.SetBusinessSubType(businessSubType) //业务子号
+	targetMsg.SetJwtToken(curJwtToken)
+	targetMsg.SetUserName(toUsername)
+	targetMsg.SetDeviceID(eDeviceID)
+	// targetMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("Order")
+	targetMsg.SetBusinessType(businessType)       //业务号
+	targetMsg.SetBusinessSubType(businessSubType) //业务子号
 
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+	targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
-		targetMsg.SetCode(200) //成功的状态码
+	targetMsg.SetCode(200) //成功的状态码
 
-		//构建数据完成，向dispatcher发送
-		topic := "Order.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-		}
-
-		nc.logger.Info("Broadcast Msg To All Devices Succeed",
-			zap.String("Username:", toUsername),
-			zap.String("DeviceID:", eDeviceID),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-
+	//构建数据完成，向dispatcher发送
+	topic := "Order.Frontend"
+	rawData, _ := json.Marshal(targetMsg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
 	}
+
+	nc.logger.Info("Broadcast Msg To All Devices Succeed",
+		zap.String("Username:", toUsername),
+		zap.String("DeviceID:", eDeviceID),
+		zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	return nil
 }
@@ -2634,51 +2623,45 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 
 		_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
 	*/
-
-	//向toUser所有端发送
+	//向toUser发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-	//查询出当前在线所有主从设备
-	for _, eDeviceID := range deviceIDSliceNew {
+	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
 
-		targetMsg := &models.Message{}
-		curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-		curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-		nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-		targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
+	targetMsg := &models.Message{}
+	curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+	curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+	nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+	targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
 
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Order", "", "Order.Frontend")
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Order", "", "Order.Frontend")
 
-		targetMsg.SetJwtToken(curJwtToken)
-		targetMsg.SetUserName(toUsername)
-		targetMsg.SetDeviceID(eDeviceID)
-		// opkAlertMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5
-		targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件 2
+	targetMsg.SetJwtToken(curJwtToken)
+	targetMsg.SetUserName(toUsername)
+	targetMsg.SetDeviceID(eDeviceID)
+	// opkAlertMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("Order")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块 5
+	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件 2
 
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
 
-		targetMsg.SetCode(200) //成功的状态码
+	targetMsg.SetCode(200) //成功的状态码
 
-		//构建数据完成，向dispatcher发送
-		topic := "Order.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("5-2 Message succeed send to dispatcher", zap.String("topic", topic))
-		} else {
-			nc.logger.Error("Failed to send 5-2 message to dispatcher", zap.Error(err))
-		}
-
-		nc.logger.Info("Broadcast Msg To All Devices Succeed",
-			zap.String("Username:", toUsername),
-			zap.String("DeviceID:", eDeviceID),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-
+	//构建数据完成，向dispatcher发送
+	topic := "Order.Frontend"
+	rawData, _ := json.Marshal(targetMsg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("5-2 Message succeed send to dispatcher", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send 5-2 message to dispatcher", zap.Error(err))
 	}
+
+	nc.logger.Info("Broadcast Msg To All Devices Succeed",
+		zap.String("Username:", toUsername),
+		zap.String("DeviceID:", eDeviceID),
+		zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	return nil
 }

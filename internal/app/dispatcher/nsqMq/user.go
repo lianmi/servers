@@ -19,7 +19,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	Global "github.com/lianmi/servers/api/proto/global"
 	User "github.com/lianmi/servers/api/proto/user"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
@@ -453,82 +452,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 		nc.logger.Info("UpdateUserProfile Succeed",
 			zap.String("Username:", username))
 
-		//向自己的其它终端发送 1-4 同步其它端修改的用户资料事件
-		syncUpdateProfileEventRsp := &User.SyncUpdateProfileEventRsp{
-			TimeTag: uint64(time.Now().UnixNano() / 1e6),
-			Fields:  make(map[int32]string),
-		}
-
-		var avatar string
-		if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
-
-			avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
-		}
-		syncUpdateProfileEventRsp.Fields[1] = userData.Nick
-		syncUpdateProfileEventRsp.Fields[2] = User.Gender_name[int32(userData.GetGender())]
-		syncUpdateProfileEventRsp.Fields[3] = avatar
-		syncUpdateProfileEventRsp.Fields[4] = userData.Label
-		syncUpdateProfileEventRsp.Fields[5] = userData.TrueName
-		syncUpdateProfileEventRsp.Fields[6] = userData.Email
-		syncUpdateProfileEventRsp.Fields[7] = userData.Extend
-		syncUpdateProfileEventRsp.Fields[8] = User.AllowType_name[int32(userData.GetAllowType())]
-		syncUpdateProfileEventRsp.Fields[9] = userData.Province
-		syncUpdateProfileEventRsp.Fields[10] = userData.City
-		syncUpdateProfileEventRsp.Fields[11] = userData.County
-		syncUpdateProfileEventRsp.Fields[12] = userData.Street
-		syncUpdateProfileEventRsp.Fields[13] = userData.Address
-		syncUpdateProfileEventRsp.Fields[14] = userData.IdentityCard
-
-		edata, _ := proto.Marshal(syncUpdateProfileEventRsp)
-
-		//向其它端响应SyncUpdateProfileEvent事件
-		deviceListKey := fmt.Sprintf("devices:%s", username)
-		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-		//查询出当前在线所有主从设备
-		for _, eDeviceID := range deviceIDSliceNew {
-
-			//如果设备id是当前操作的，则不发送此事件
-			if deviceID == eDeviceID {
-				continue
-			}
-
-			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-			targetMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(curJwtToken)
-			targetMsg.SetUserName(username)
-			targetMsg.SetDeviceID(eDeviceID)
-			targetMsg.SetBusinessTypeName("User")
-			targetMsg.SetBusinessType(uint32(Global.BusinessType_User))
-			targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncUpdateProfileEvent)) //SyncUpdateProfileEvent = 4
-
-			targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
-
-			targetMsg.FillBody(edata) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			rawData, _ := json.Marshal(msg)
-			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
-
-			nc.logger.Info("Sync myInfoAt Succeed",
-				zap.String("Username:", username),
-				zap.String("DeviceID:", curDeviceKey),
-				zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-		}
 	}
 
 COMPLETE:
@@ -837,58 +760,6 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				nc.logger.Debug("删除置顶成功", zap.Int64("count", count))
 
-			}
-		}
-
-		//将标签的变化广播给当前用户的其他端 1-6 同步其它端标签更改事件
-		{
-			deviceListKey := fmt.Sprintf("devices:%s", username)
-			deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-			//查询出当前在线所有主从设备
-			for _, eDeviceID := range deviceIDSliceNew {
-
-				//自己不发, 其他端才发
-				if deviceID == eDeviceID {
-					continue
-				}
-
-				targetMsg := &models.Message{}
-				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-				nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-				targetMsg.UpdateID()
-				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-				targetMsg.SetJwtToken(curJwtToken)
-				targetMsg.SetUserName(username)
-				targetMsg.SetDeviceID(eDeviceID)
-				targetMsg.SetBusinessTypeName("User")
-				targetMsg.SetBusinessType(uint32(Global.BusinessType_User))               //用户模块
-				targetMsg.SetBusinessSubType(uint32(Global.UserSubType_SyncMarkTagEvent)) //同步其它端标签更改事件
-
-				targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
-
-				//构造负载数据 1-6 同步其它端标签更改事件
-				resp := &User.SyncMarkTagEventRsp{
-					Account: account,
-					Type:    req.GetType(),
-					IsAdd:   req.GetIsAdd(),
-				}
-
-				targetData, _ := proto.Marshal(resp)
-				targetMsg.FillBody(targetData) //网络包的body，承载真正的业务数据
-
-				targetMsg.SetCode(200) //成功的状态码
-				//构建数据完成，向dispatcher发送
-				topic := "Auth.Frontend"
-				rawData, _ := json.Marshal(targetMsg)
-				if err := nc.Producer.Public(topic, rawData); err == nil {
-					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-				} else {
-					nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-				}
 			}
 		}
 

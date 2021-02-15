@@ -1071,69 +1071,6 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 		}
 
 		rsp.TimeTag = uint64(time.Now().UnixNano() / 1e6)
-
-		// 同步到用户的其它端
-		{
-			sameRsp := &Friends.SyncUpdateFriendEventRsp{
-				Username: targetUsername,
-				Fields:   make(map[int32]string),
-				TimeAt:   uint64(time.Now().UnixNano() / 1e6),
-			}
-			sameRsp.Fields[1] = req.Fields[1]
-			sameRsp.Fields[2] = req.Fields[2]
-
-			deviceListKey := fmt.Sprintf("devices:%s", username)
-			deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-			//查询出当前在线所有主从设备
-			for _, eDeviceID := range deviceIDSliceNew {
-
-				//如果设备id是当前操作的，则不发送此事件
-				if deviceID == eDeviceID {
-					continue
-				}
-
-				targetMsg := &models.Message{}
-				curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-				curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-				nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-				targetMsg.UpdateID()
-				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-				targetMsg.SetJwtToken(curJwtToken)
-				targetMsg.SetUserName(username)
-				targetMsg.SetDeviceID(eDeviceID)
-				// kickMsg.SetTaskID(uint32(taskId))
-				targetMsg.SetBusinessTypeName("Friends")
-				targetMsg.SetBusinessType(uint32(3))
-				targetMsg.SetBusinessSubType(uint32(7)) //SyncUpdateFriendEvent = 7
-
-				targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
-
-				sData, _ := proto.Marshal(sameRsp)
-				targetMsg.FillBody(sData) //网络包的body，承载真正的业务数据
-
-				targetMsg.SetCode(200) //成功的状态码
-
-				//构建数据完成，向dispatcher发送
-				topic := "Auth.Frontend"
-				rawData, _ := json.Marshal(targetMsg)
-				if err := nc.Producer.Public(topic, rawData); err == nil {
-					nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-				} else {
-					nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-				}
-
-				nc.logger.Info("Sync SyncUpdateFriendEvent Succeed",
-					zap.String("Username:", username),
-					zap.String("DeviceID:", curDeviceKey),
-					zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-			}
-
-		}
-
 	}
 
 COMPLETE:
