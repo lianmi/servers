@@ -405,43 +405,46 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			s.logger.Error("密码不匹配")
 			return false
 		}
+
 		deviceOnlineKey := fmt.Sprintf("devices:%s", username)
 
 		//查询当前在线的主设备
 		curOnlineDevieID, _ := redis.String(redisConn.Do("GET", deviceOnlineKey))
-		if curOnlineDevieID == deviceID {
+		if curOnlineDevieID != "" {
+			if curOnlineDevieID == deviceID {
+				s.logger.Debug("当前设备id与即将登录的设备相同")
 
-			s.logger.Debug("当前设备id与即将登录的设备相同")
-
-		} else {
-
-			//取出当前设备的os， clientType， logonAt
-			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
-			isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
-			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
-			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
-			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
-			s.logger.Debug("当前设备id与即将登录的设备不同",
-				zap.Bool("isMaster", isMaster),
-				zap.String("username", username),
-				zap.String("deviceID", deviceID),
-				zap.String("curJwtToken", curJwtToken),
-				zap.String("curOs", curOs),
-				zap.Int("curClientType", curClientType),
-				zap.Uint64("curLogonAt", curLogonAt))
-
-			//向当前主设备发出踢下线消息
-			if err := s.SendKickedMsgToDevice(curJwtToken, username, curOnlineDevieID); err != nil {
-				s.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
 			} else {
-				s.logger.Debug("向当前主设备发出踢下线消息")
+
+				//取出当前设备的os， clientType， logonAt
+				curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
+				isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+				curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+				curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+				curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+				curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
+				s.logger.Debug("当前设备id与即将登录的设备不同",
+					zap.Bool("isMaster", isMaster),
+					zap.String("username", username),
+					zap.String("deviceID", deviceID),
+					zap.String("curJwtToken", curJwtToken),
+					zap.String("curOs", curOs),
+					zap.Int("curClientType", curClientType),
+					zap.Uint64("curLogonAt", curLogonAt))
+
+				//向当前主设备发出踢下线消息
+				if err := s.SendKickedMsgToDevice(curJwtToken, username, curOnlineDevieID); err != nil {
+					s.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
+				} else {
+					s.logger.Debug("向当前主设备发出踢下线消息")
+				}
+
+				//删除当前主设备的redis缓存
+				_, err = redisConn.Do("DEL", curDeviceHashKey)
+
 			}
-
-			//删除当前主设备的redis缓存
-			_, err = redisConn.Do("DEL", curDeviceHashKey)
-
 		}
+		_, err = redisConn.Do("SET", deviceOnlineKey, deviceID)
 
 		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID) //创建主设备的哈希表, index为1
 
