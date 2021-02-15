@@ -437,6 +437,8 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			} else {
 				s.logger.Debug("向当前主设备发出踢下线消息")
 			}
+			_, err = redisConn.Do("DEL", curDeviceHashKey)
+
 		}
 
 		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID) //创建主设备的哈希表, index为1
