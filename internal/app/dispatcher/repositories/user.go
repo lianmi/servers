@@ -990,41 +990,41 @@ func (s *MysqlLianmiRepository) UpdateUser(username string, user *models.User) e
 //修改用户标签 tags表
 func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
-	userTag := new(models.Tag)
 	/*
-		results := s.db.Model(userTag).Where(&models.Tag{
-			Username:       tag.Username,
-			TargetUsername: tag.TargetUsername,
-		}).First(userTag)
-		if results.Error != nil {
-			if results.Error == gorm.ErrRecordNotFound {
-				if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag).Error; err != nil {
-					s.logger.Error("AddTag, failed to Create tag", zap.Error(err))
-					return err
-				} else {
-					s.logger.Debug("AddTag, Create tag succeed")
-				}
-			}
-		} else {
-			//有记录则修改 同时更新多个字段
-			results := s.db.Model(&models.Tag{}).Where(&models.Tag{
+		userTag := new(models.Tag)
+			results := s.db.Model(userTag).Where(&models.Tag{
 				Username:       tag.Username,
 				TargetUsername: tag.TargetUsername,
-			}).Updates(tag)
+			}).First(userTag)
 			if results.Error != nil {
-				s.logger.Error("AddTag, 修改tags数据失败", zap.Error(results.Error))
-				return results.Error
+				if results.Error == gorm.ErrRecordNotFound {
+					if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag).Error; err != nil {
+						s.logger.Error("AddTag, failed to Create tag", zap.Error(err))
+						return err
+					} else {
+						s.logger.Debug("AddTag, Create tag succeed")
+					}
+				}
 			} else {
-				s.logger.Error("AddTag, 修改tags数据成功")
+				//有记录则修改 同时更新多个字段
+				results := s.db.Model(&models.Tag{}).Where(&models.Tag{
+					Username:       tag.Username,
+					TargetUsername: tag.TargetUsername,
+				}).Updates(tag)
+				if results.Error != nil {
+					s.logger.Error("AddTag, 修改tags数据失败", zap.Error(results.Error))
+					return results.Error
+				} else {
+					s.logger.Error("AddTag, 修改tags数据成功")
+				}
 			}
-		}
 	*/
 	// `Username` 冲突时，将字段值更新为默认值
 	s.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "username"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{"target_username": tag.TargetUsername, "tag_type": tag.TagType}),
 	}).Create(&tag)
-	
+
 	return nil
 }
 
