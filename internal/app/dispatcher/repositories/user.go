@@ -437,6 +437,8 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			} else {
 				s.logger.Debug("向当前主设备发出踢下线消息")
 			}
+
+			//删除当前主设备的redis缓存
 			_, err = redisConn.Do("DEL", curDeviceHashKey)
 
 		}

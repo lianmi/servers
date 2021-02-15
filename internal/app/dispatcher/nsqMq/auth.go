@@ -15,6 +15,7 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
+
 	// "strings"
 	"time"
 
@@ -66,150 +67,9 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
-	deviceListKey := fmt.Sprintf("devices:%s", username)
-
-	if isMaster { //如果是主设备
-		//查询出所有主从设备
-		deviceIDSlice, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-		for index, eDeviceID := range deviceIDSlice {
-			nc.logger.Debug("HandleSignOut, 查询出所有主从设备", zap.Int("index", index), zap.String("eDeviceID", eDeviceID))
-			deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
-			nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
-
-			businessType := 2
-			businessSubType := 5 //KickedEvent
-
-			businessTypeName := "Auth"
-			nsqTopic := businessTypeName + ".Frontend"
-			backendService := businessTypeName + "Service"
-
-			//向当前主设备及从设备发出踢下线
-			kickMsg := &models.Message{}
-			now := time.Now().UnixNano() / 1e6 //毫秒
-			kickMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			kickMsg.BuildRouter(businessTypeName, "", nsqTopic)
-
-			kickMsg.SetJwtToken(jwtToken)
-			kickMsg.SetUserName(username)
-			kickMsg.SetDeviceID(string(eDeviceID))
-			// kickMsg.SetTaskID(uint32(taskId))
-			kickMsg.SetBusinessTypeName(businessTypeName)
-			kickMsg.SetBusinessType(uint32(businessType))
-			kickMsg.SetBusinessSubType(uint32(businessSubType))
-
-			kickMsg.BuildHeader(backendService, now)
-
-			//构造负载数据
-			resp := &Auth.KickedEventRsp{
-				ClientType: 0,
-				Reason:     Auth.KickReason_SamePlatformKick,
-				TimeTag:    uint64(time.Now().UnixNano() / 1e6), //毫秒
-			}
-			data, _ := proto.Marshal(resp)
-			kickMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			kickMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			rawData, _ := json.Marshal(kickMsg)
-			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-			} else {
-				nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-			}
-
-			_, err = redisConn.Do("DEL", deviceKey) //删除deviceKey
-
-			deviceHashKey := fmt.Sprintf("devices:%s:%s", username, eDeviceID)
-			_, err = redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
-
-		}
-
-		//删除所有与之相关的key
-		_, err = redisConn.Do("DEL", deviceListKey) //删除deviceListKey
-
-	} else { //如果是从设备
-
-		//删除token
-		deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
-		_, err = redisConn.Do("DEL", deviceKey)
-
-		//删除有序集合里的元素
-		//移除单个元素 ZREM deviceListKey {设备id}
-		_, err = redisConn.Do("ZREM", deviceListKey, deviceID)
-
-		//删除哈希
-		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
-		_, err = redisConn.Do("DEL", deviceHashKey)
-
-		//多端登录状态变化事件
-		//向其它端发送此从设备离线的事件
-		deviceIDSliceNew, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", deviceListKey, "-inf", "+inf"))
-		//查询出当前在线所有主从设备
-		for _, eDeviceID := range deviceIDSliceNew {
-			if deviceID == eDeviceID {
-				continue
-			}
-
-			targetMsg := &models.Message{}
-			curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-			curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-			nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-			now := time.Now().UnixNano() / 1e6 //毫秒
-			targetMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(curJwtToken)
-			targetMsg.SetUserName(username)
-			targetMsg.SetDeviceID(eDeviceID)
-			// kickMsg.SetTaskID(uint32(taskId))
-			targetMsg.SetBusinessTypeName("Auth")
-			targetMsg.SetBusinessType(uint32(2))
-			targetMsg.SetBusinessSubType(uint32(3)) //MultiLoginEvent = 3
-
-			targetMsg.BuildHeader("Dispatcher", now)
-
-			//构造负载数据
-			clients := make([]*Auth.DeviceInfo, 0)
-			deviceInfo := &Auth.DeviceInfo{
-				Username:     username,
-				ConnectionId: "",
-				DeviceId:     deviceID,
-				DeviceIndex:  0,
-				IsMaster:     false,
-				Os:           curOs,
-				ClientType:   Auth.ClientType(curClientType),
-				LogonAt:      curLogonAt,
-			}
-
-			clients = append(clients, deviceInfo)
-
-			resp := &Auth.MultiLoginEventRsp{
-				State:   false,
-				Clients: clients,
-			}
-
-			data, _ := proto.Marshal(resp)
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			rawData, _ := json.Marshal(targetMsg)
-			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("Succeed to send message to ProduceChannel", zap.String("topic", topic))
-			} else {
-				nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-			}
-
-		}
-
-	}
+	deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+	redisConn.Do("DEL", fmt.Sprintf("DeviceJwtToken:%s", deviceID))
 
 	//向dispatcher发送
 	topic := msg.GetSource() + ".Frontend"
@@ -223,7 +83,8 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 
 	_ = err
 
-	nc.logger.Debug("登出成功", zap.Bool("isMaster", isMaster),
+	nc.logger.Debug("登出成功",
+		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
