@@ -4,12 +4,14 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/util/conv"
+	"google.golang.org/protobuf/proto"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -314,7 +316,25 @@ func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 }
 
 func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
-	return pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
+	isPass, curOnlineDevieID := pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
+	//TODO send message to nsq
+
+	if isPass {
+		//向当前主设备发出踢下线消息
+		//构造负载数据
+		kickedEventRsp := &Auth.KickedEventRsp{
+			Reason: Auth.KickReason_SamePlatformKick, //不允许同一个帐号在多个主设备同时登录
+		}
+		data, _ := proto.Marshal(kickedEventRsp)
+
+		if err := pc.SendMessagetoNsq(username, curOnlineDevieID, data, 2, 5); err != nil {
+			pc.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
+		} else {
+			pc.logger.Debug("向当前主设备发出踢下线消息")
+		}
+	}
+	return isPass
+
 }
 
 func (pc *LianmiApisController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
@@ -409,4 +429,41 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	}
 
 	return
+}
+
+//通过nsq通道相关UI SDK发送消息
+func (pc *LianmiApisController) SendMessagetoNsq(username, deviceID string, data []byte, businessType, businessSubType int) error {
+	var err error
+	//向客户端响应 SyncFriendUsersEvent 事件
+	targetMsg := &models.Message{}
+
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+	targetMsg.SetJwtToken("")
+	targetMsg.SetUserName(username)
+	targetMsg.SetDeviceID(deviceID)
+	// kickMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("Auth")
+	targetMsg.SetBusinessType(uint32(businessType))
+	targetMsg.SetBusinessSubType(uint32(businessSubType))
+
+	targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
+
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	targetMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Auth.Frontend"
+	rawData, _ := json.Marshal(targetMsg)
+	if err = pc.nsqClient.Producer.Public(topic, rawData); err == nil {
+		pc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		pc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
+	}
+
+	return err
+
 }

@@ -9,8 +9,10 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
+
 	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
+	
 	"github.com/lianmi/servers/internal/pkg/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -43,7 +45,7 @@ type LianmiRepository interface {
 	GetUserRoles(where interface{}) []*models.Role
 
 	// 检测用户是否可以登陆
-	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool
+	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string)
 
 	//更新用户
 	UpdateUser(username string, user *models.User) error
@@ -248,6 +250,8 @@ type MysqlLianmiRepository struct {
 	redisPool *redis.Pool
 	multiChan *multichannel.NsqChannel
 	base      *BaseRepository
+
+	
 }
 
 func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.Pool, multiChan *multichannel.NsqChannel) LianmiRepository {
@@ -257,6 +261,7 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		redisPool: redisPool,
 		multiChan: multiChan,
 		base:      NewBaseRepository(logger, db),
+		
 	}
 }
 

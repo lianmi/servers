@@ -204,10 +204,11 @@ func CreateInitControllersFn(
 					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
 
-
 				// 检测用户是否可以登录, true-可以允许登录
 				if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
 					pc.logger.Debug("Authenticator , CheckUser .... true")
+					
+
 					return &models.UserRole{
 						UserName: username,
 						DeviceID: deviceID,

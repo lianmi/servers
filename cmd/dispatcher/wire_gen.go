@@ -25,7 +25,6 @@ import (
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
-	"go.uber.org/zap"
 )
 
 // Injectors from wire.go:
@@ -82,9 +81,6 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tracer == nil {
-		logger.Error("tracer is nil error")
-	}
 	clientOptions, err := grpc.NewClientOptions(viper, tracer)
 	if err != nil {
 		return nil, err
@@ -105,50 +101,27 @@ func CreateApp(cf string) (*app.Application, error) {
 	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService, nsqChannel)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {
-		//TODO
-		logger.Error("mqtt.NewMQTTOptions", zap.Error(err))
 		return nil, err
-	} else {
-		logger.Debug("mqtt.NewMQTTOptions succeed")
 	}
 	mqttClient := mqtt.NewMQTTClient(mqttOptions, pool, nsqMqttChannel, logger)
 	httpOptions, err := http.NewOptions(viper)
 	if err != nil {
-		//TODO
-		logger.Error("http.NewOptions", zap.Error(err))
 		return nil, err
-	} else {
-		logger.Debug("http.NewOptions succeed")
 	}
-	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService)
-	logger.Debug("NewLianmiApisController succeed")
+	lianmiApisController := controllers.NewLianmiApisController(logger, lianmiApisService, nsqClient)
 	initControllers := controllers.CreateInitControllersFn(lianmiApisController)
-	logger.Debug("CreateInitControllersFn succeed")
 	engine := http.NewRouter(httpOptions, logger, initControllers, tracer)
-	logger.Debug("http.NewRouter succeed")
 	apiClient, err := consul.New(consulOptions)
 	if err != nil {
-		//TODO
-		logger.Error("consul.New", zap.Error(err))
 		return nil, err
-	} else {
-		logger.Debug("consul.New succeed")
 	}
 	server, err := http.New(httpOptions, logger, engine, apiClient)
 	if err != nil {
-		//TODO
-		logger.Error("http.New", zap.Error(err))
 		return nil, err
-	} else {
-		logger.Debug("http.New succeed")
 	}
 	application, err := dispatcher.NewApp(dispatcherOptions, logger, nsqClient, mqttClient, server, nsqChannel)
 	if err != nil {
-		//TODO
-		logger.Error("dispatcher.NewApp", zap.Error(err))
 		return nil, err
-	} else {
-		logger.Debug("dispatcher.NewApp")
 	}
 	return application, nil
 }

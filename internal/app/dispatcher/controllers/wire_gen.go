@@ -9,8 +9,11 @@ import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/api/proto/wallet"
+	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
+	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/app/dispatcher/services"
+	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/database"
 	"github.com/lianmi/servers/internal/pkg/log"
@@ -19,7 +22,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc order.LianmiOrderClient, wc wallet.LianmiWalletClient) (*LianmiApisController, error) {
+func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc order.LianmiOrderClient, wc wallet.LianmiWalletClient, nsqClient nsqMq.NsqClient) (*LianmiApisController, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -33,10 +36,33 @@ func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc
 		return nil, err
 	}
 	lianmiApisService := services.NewLianmiApisService(logger, sto, oc, wc)
-	lianmiApisController := NewLianmiApisController(logger, lianmiApisService)
+	nsqOptions, err := nsqMq.NewNsqOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	databaseOptions, err := database.NewOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	db, err := database.New(databaseOptions)
+	if err != nil {
+		return nil, err
+	}
+	redisOptions, err := redis.NewRedisOptions(viper, logger)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := redis.New(redisOptions)
+	if err != nil {
+		return nil, err
+	}
+	nsqMqttChannel := channel.NewChannnel()
+	nsqChannel := multichannel.NewChannnel()
+	nsqMqNsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService, nsqChannel)
+	lianmiApisController := NewLianmiApisController(logger, lianmiApisService, nsqMqNsqClient)
 	return lianmiApisController, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, redis.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, redis.ProviderSet, nsqMq.ProviderSet, channel.ProviderSet, multichannel.ProviderSet, ProviderSet)
