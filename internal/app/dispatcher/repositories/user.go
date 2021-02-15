@@ -273,7 +273,7 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	}
 
 	//创建redis的sync:{用户账号} myInfoAt 时间戳
-	//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, systemMsgAt, watchAt, productAt,  generalProductAt
+	//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, productAt
 
 	syncKey := fmt.Sprintf("sync:%s", user.Username)
 	redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
@@ -281,10 +281,8 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "systemMsgAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "productAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "generalProductAt", time.Now().UnixNano()/1e6)
 
 	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 	return nil

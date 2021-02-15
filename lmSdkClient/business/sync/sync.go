@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
 	// "net"
 	"github.com/lianmi/servers/lmSdkClient/business"
 
@@ -25,15 +26,13 @@ func DoSyncEvent() error {
 	defer redisConn.Close()
 
 	req := &Sync.SyncEventReq{
-		MyInfoAt:         0,
-		FriendsAt:        0,
-		FriendUsersAt:    0,
-		TeamsAt:          0,
-		TagsAt:           0,
-		// SystemMsgAt:      0,
-		WatchAt:          0,
-		ProductAt:        0,
-		GeneralProductAt: 0,
+		MyInfoAt:      0,
+		FriendsAt:     0,
+		FriendUsersAt: 0,
+		TeamsAt:       0,
+		TagsAt:        0,
+		WatchAt:       0,
+		ProductAt:     0,
 	}
 	content, _ := proto.Marshal(req)
 	topic := "lianmi/cloud/dispatcher"

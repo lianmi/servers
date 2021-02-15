@@ -81,8 +81,6 @@ const (
 )
 
 const (
-	//所有同步的时间戳数量
-	TotalSyncCount = 8
 
 	//离线系统通知的最大同步数量
 	OffLineMsgCount = 10
