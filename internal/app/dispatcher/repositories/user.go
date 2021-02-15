@@ -434,8 +434,9 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			//向当前主设备发出踢下线消息
 			if err := s.SendKickedMsgToDevice(curJwtToken, username, curOnlineDevieID); err != nil {
 				s.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
+			} else {
+				s.logger.Debug("向当前主设备发出踢下线消息")
 			}
-
 		}
 
 		deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID) //创建主设备的哈希表, index为1
