@@ -1200,20 +1200,23 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 		zap.String("username", username),
 	)
 
-	/*
-		var thumbnail string
+	// var thumbnail string
 
-		rsp := &Order.SyncGeneralProductsEventRsp{
-			TimeTag:           uint64(time.Now().UnixNano() / 1e6),
-			AddProducts:       make([]*Order.GeneralProduct, 0), //通用商品列表
-			RemovedProductIDs: make([]string, 0),                //删除的通用 商品ID列表
+	rsp := &Order.SyncGeneralProductsEventRsp{
+		TimeTag:           uint64(time.Now().UnixNano() / 1e6),
+		AddProducts:       make([]*Order.GeneralProduct, 0), //通用商品列表
+		RemovedProductIDs: make([]string, 0),                //删除的通用 商品ID列表
 
-		}
-		//服务端的时间戳大于客户端上报的时间戳
-		if curGeneralProductAt > generalProductAt {
-			//获取redis通用商品列表
-			productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "GeneralProducts", generalProductAt, "+inf"))
-			for _, productID := range productIDs {
+	}
+	//服务端的时间戳大于客户端上报的时间戳
+	if curGeneralProductAt > generalProductAt {
+		//获取redis通用商品列表
+		productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "GeneralProducts", generalProductAt, "+inf"))
+		for _, productID := range productIDs {
+			nc.logger.Debug("range productIDs",
+				zap.String("productID", productID),
+			)
+			/*
 				productInfo := new(models.GeneralProductInfo)
 				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("GeneralProduct:%s", productID))); err == nil {
 					if err := redis.ScanStruct(result, productInfo); err != nil {
@@ -1286,54 +1289,56 @@ func (nc *NsqClient) SyncGeneralProductAt(username, token, deviceID string, req 
 
 				}
 				rsp.AddProducts = append(rsp.AddProducts, og)
-			}
-
-			//删除的通用商品ID列表
-
-			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "RemoveGeneralProducts", generalProductAt, "+inf"))
-			for _, removeProductID := range removeProductIDs {
-				rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
-			}
-
-			data, _ := proto.Marshal(rsp)
-
-			//向客户端响应 SyncFriendUsersEvent 事件
-			targetMsg := &models.Message{}
-
-			targetMsg.UpdateID()
-			//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-			targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-			targetMsg.SetJwtToken(token)
-			targetMsg.SetUserName(username)
-			targetMsg.SetDeviceID(deviceID)
-			// kickMsg.SetTaskID(uint32(taskId))
-			targetMsg.SetBusinessTypeName("Order")
-			targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))                       // 7
-			targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncGeneralProductsEvent)) // 9
-
-			targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
-
-			targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-			targetMsg.SetCode(200) //成功的状态码
-
-			//构建数据完成，向dispatcher发送
-			topic := "Auth.Frontend"
-			rawData, _ := json.Marshal(targetMsg)
-			if err := nc.Producer.Public(topic, rawData); err == nil {
-				nc.logger.Info("Message succeed send to ProduceChannel",
-					zap.String("topic", topic),
-					zap.String("Username:", username),
-					zap.String("DeviceID:", deviceID),
-					zap.Int64("Now", time.Now().UnixNano()/1e6))
-
-			} else {
-				nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
-			}
+			*/
 
 		}
-	*/
+
+		//删除的通用商品ID列表
+
+		removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", "RemoveGeneralProducts", generalProductAt, "+inf"))
+		for _, removeProductID := range removeProductIDs {
+			rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
+		}
+
+		data, _ := proto.Marshal(rsp)
+
+		//向客户端响应 SyncFriendUsersEvent 事件
+		targetMsg := &models.Message{}
+
+		targetMsg.UpdateID()
+		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+		targetMsg.SetJwtToken(token)
+		targetMsg.SetUserName(username)
+		targetMsg.SetDeviceID(deviceID)
+		// kickMsg.SetTaskID(uint32(taskId))
+		targetMsg.SetBusinessTypeName("Order")
+		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))                       // 7
+		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncGeneralProductsEvent)) // 9
+
+		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
+
+		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+		targetMsg.SetCode(200) //成功的状态码
+
+		//构建数据完成，向dispatcher发送
+		topic := "Auth.Frontend"
+		rawData, _ := json.Marshal(targetMsg)
+		if err := nc.Producer.Public(topic, rawData); err == nil {
+			nc.logger.Info("Message succeed send to ProduceChannel",
+				zap.String("topic", topic),
+				zap.String("Username:", username),
+				zap.String("DeviceID:", deviceID),
+				zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+		} else {
+			nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		}
+
+	}
+
 	//完成
 	if errorCode == 200 {
 		//只需返回200
