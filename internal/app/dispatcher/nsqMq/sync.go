@@ -573,6 +573,8 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 		zap.Uint64("tagsAt", tagsAt),
 		zap.String("username", username),
 	)
+	//1613367673452
+	//{"level":"debug","ts":1613370824.9488163,"caller":"nsqMq/sync.go:571","msg":"SyncTagsAt","type":"dispatcher.nsq","cur_tagsAt":1613367673452,"tagsAt":1613370516932,"username":"id1"}
 
 	//服务端的时间戳大于客户端上报的时间戳
 	if cur_tagsAt > tagsAt {
@@ -706,10 +708,12 @@ func (nc *NsqClient) SyncTagsAt(username, token, deviceID string, req Sync.SyncE
 			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
 		}
 
-		nc.logger.Info("Sync MyTeamsEvent  Succeed",
+		nc.logger.Info("Sync SyncTagsAt Succeed",
 			zap.String("Username:", username),
 			zap.String("DeviceID:", deviceID),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
+	} else {
+		nc.logger.Info("Sync SyncTagsAt 不需要同步")
 	}
 
 COMPLETE:
