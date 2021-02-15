@@ -67,8 +67,8 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
-	deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
-	redisConn.Do("DEL", deviceHashKey) //删除deviceHashKey
+	redisConn.Do("DEL", fmt.Sprintf("devices:%s", username))
+	redisConn.Do("DEL", fmt.Sprintf("devices:%s:%s", username, deviceID)) //删除deviceHashKey
 	redisConn.Do("DEL", fmt.Sprintf("DeviceJwtToken:%s", deviceID))
 
 	//向dispatcher发送
