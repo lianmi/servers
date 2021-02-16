@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	// "github.com/golang/protobuf/proto"
+	"math"
+
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Global "github.com/lianmi/servers/api/proto/global"
@@ -20,7 +22,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"math"
 )
 
 //修改或增加店铺资料
@@ -211,27 +212,28 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		licenseURL = LMCommon.OSSUploadPicPrefix + p.LicenseURL
 	}
 	return &User.Store{
-		StoreUUID:          p.StoreUUID,                   //店铺的uuid
-		StoreType:          Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-		BusinessUsername:   p.BusinessUsername,            //商户注册号
-		Avatar:             avatar,                        //头像
-		ImageUrl:           imageURL,                      //店铺形象图片
-		Introductory:       p.Introductory,                //商店简介 Text文本类型
-		Province:           p.Province,                    //省份, 如广东省
-		City:               p.City,                        //城市，如广州市
-		County:             p.County,                      //区，如天河区
-		Street:             p.Street,                      //街道
-		Address:            p.Address,                     //地址
-		Branchesname:       p.Branchesname,                //网点名称
-		LegalPerson:        p.LegalPerson,                 //法人姓名
-		LegalIdentityCard:  p.LegalIdentityCard,           //法人身份证
-		Longitude:          p.Longitude,                   //商户地址的经度
-		Latitude:           p.Latitude,                    //商户地址的纬度
-		Wechat:             p.WeChat,                      //商户联系人微信号
-		Keys:               p.Keys,                        //商户经营范围搜索关键字
-		BusinessLicenseUrl: licenseURL,                    //商户营业执照阿里云url
-		AuditState:         int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
-		OpeningHours:       p.OpeningHours,                //营业时间
+		StoreUUID:             p.StoreUUID,                   //店铺的uuid
+		StoreType:             Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
+		BusinessUsername:      p.BusinessUsername,            //商户注册号
+		Avatar:                avatar,                        //头像
+		ImageUrl:              imageURL,                      //店铺形象图片
+		Introductory:          p.Introductory,                //商店简介 Text文本类型
+		Province:              p.Province,                    //省份, 如广东省
+		City:                  p.City,                        //城市，如广州市
+		County:                p.County,                      //区，如天河区
+		Street:                p.Street,                      //街道
+		Address:               p.Address,                     //地址
+		Branchesname:          p.Branchesname,                //网点名称
+		LegalPerson:           p.LegalPerson,                 //法人姓名
+		LegalIdentityCard:     p.LegalIdentityCard,           //法人身份证
+		Longitude:             p.Longitude,                   //商户地址的经度
+		Latitude:              p.Latitude,                    //商户地址的纬度
+		Wechat:                p.WeChat,                      //商户联系人微信号
+		Keys:                  p.Keys,                        //商户经营范围搜索关键字
+		BusinessLicenseUrl:    licenseURL,                    //商户营业执照阿里云url
+		AuditState:            int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
+		OpeningHours:          p.OpeningHours,                //营业时间
+		NotaryServiceUsername: p.NotaryServiceUsername,       //第三方公证
 	}, nil
 
 }
@@ -634,6 +636,7 @@ func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
 	}
 
 	redisConn.Do("DEL", fmt.Sprintf("prekeys:%s", username))
+	redisConn.Do("DEL", fmt.Sprintf("DefaultOPK:%s", username)) //删除默认OPK
 
 	//采用事务同时删除
 	var (
@@ -727,7 +730,7 @@ func (s *MysqlLianmiRepository) SetDefaultOPK(username, opk string) error {
 	}).Update("default_opk", opk)
 
 	//updated records count
-	s.logger.Debug("修改 stores表= result: ",
+	s.logger.Debug("修改 stores表 result: ",
 		zap.Int64("RowsAffected", result.RowsAffected),
 		zap.Error(result.Error))
 

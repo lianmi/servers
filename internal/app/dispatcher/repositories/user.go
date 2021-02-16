@@ -47,6 +47,26 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 	return
 }
 
+//根据注册用户id获取redis里此用户的缓存
+func (s *MysqlLianmiRepository) GetUserDataFromRedis(username string) (p *models.UserBase, err error) {
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	userKey := fmt.Sprintf("userData:%s", username)
+
+	userBaseData := new(models.UserBase)
+
+	if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+		if err := redis.ScanStruct(result, userBaseData); err != nil {
+			return nil, err
+		} else {
+			return userBaseData, nil
+		}
+	}
+	return nil, err
+}
+
 //多条件不定参数批量分页获取用户列表
 func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
 	var err error
@@ -560,6 +580,15 @@ func (s *MysqlLianmiRepository) SaveUserToken(username, deviceID string, token s
 	// }
 	_ = err
 	return true
+}
+
+//根据注册用户id获取redis里此用户的设备id
+func (s *MysqlLianmiRepository) GetDeviceFromRedis(username string) (string, error) {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	deviceListKey := fmt.Sprintf("devices:%s", username)
+	return redis.String(redisConn.Do("GET", deviceListKey))
 }
 
 /*

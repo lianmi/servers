@@ -538,7 +538,7 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	attachHash, _ := redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 
 	orderImagesOnBlockChain := &models.OrderImagesOnBlockChainHistory{
-		OrderID:          req.OrderID,      //订单IDs
+		OrderID:          req.OrderID,      //订单ID
 		ProductID:        productID,        //商品ID
 		AttachHash:       attachHash,       //订单内容hash
 		BuyUsername:      buyUser,          //买家注册号
@@ -557,6 +557,12 @@ func (s *DefaultApisService) OrderImagesOnBlockchain(ctx context.Context, req *W
 	if err != nil {
 		return nil, err
 	}
+
+	//保存到redis
+	redisConn.Do("HSET", orderIDKey, "OrderImageFile", req.OrderImage)
+	redisConn.Do("HSET", orderIDKey, "BlockNumber", blockNumber)
+	redisConn.Do("HSET", orderIDKey, "TxHash", hash)
+
 	return &Wallet.OrderImagesOnBlockchainResp{
 		OrderID:     req.OrderID,
 		BlockNumber: blockNumber,

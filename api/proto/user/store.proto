@@ -23,15 +23,17 @@ message Store {
     string legalPerson         = 14; //法人姓名
     string legalIdentityCard   = 15; //法人身份证
     string businessLicenseUrl  = 16; //营业执照阿里云url
-    string wechat              = 17; //商户地址的纬度
-    double longitude           = 18; //商户地址的经度
-    double latitude            = 19; //商户地址的纬度
-    int32  auditState          = 20; //商户审核状态， 0-预审核，1-已审核，2-占位
-    fixed64 createdAt          = 21; //用户注册时间,Unix时间戳
-    fixed64 updatedAt          = 22; //用户资料最后更新时间,Unix时间戳
-    fixed64 commentcount       = 23; //用户评论数
-    fixed64 likes              = 24; //用户点赞数
-    string openingHours        = 25; //营业时间
+    string businessCode        = 17; //店铺网点编码
+    string wechat              = 18; //商户地址的纬度
+    double longitude           = 19; //商户地址的经度
+    double latitude            = 20; //商户地址的纬度
+    int32  auditState          = 21; //商户审核状态， 0-预审核，1-已审核，2-占位
+    fixed64 createdAt          = 22; //用户注册时间,Unix时间戳
+    fixed64 updatedAt          = 23; //用户资料最后更新时间,Unix时间戳
+    fixed64 commentcount       = 24; //用户评论数
+    fixed64 likes              = 25; //用户点赞数
+    string openingHours        = 26; //营业时间
+    string notaryServiceUsername =27; //商户对应的公证处注册id，如果是彩票则强行指定为彩票中心
 }
 
 message BusinessUserUploadLicenseReq {

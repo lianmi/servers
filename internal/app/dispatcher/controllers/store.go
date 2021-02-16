@@ -139,6 +139,10 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 			RespData(c, http.StatusOK, code, "商户店铺名称必填")
 			return
 		}
+		// if req.BusinessCode == "" {
+		// 	RespData(c, http.StatusOK, code, "商户编码必填")
+		// 	return
+		// }
 		if req.ImageUrl == "" {
 			RespData(c, http.StatusOK, code, "商户店铺外景图片必填")
 			return

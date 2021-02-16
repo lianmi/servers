@@ -53,6 +53,25 @@ message UploadOrderImagesResp  {
 
 }
 
+//用户端: 将买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
+message UploadOrderBodyReq {
+
+    //订单ID
+    string orderID =1;
+
+    //彩票类型
+    int32 body_type =2;
+
+    //订单附件里的body加密数据文件，已经上传到了aliyunoss
+    string bodyObjFile =3;
+
+}
+
+message UploadOrderBodyResp  {
+    //时间
+    fixed64 time=4;
+}
+
 //用户端: 根据 OrderID 获取订单拍照图片
 message DownloadOrderImagesResp {
     //订单ID

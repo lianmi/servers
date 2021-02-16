@@ -18,8 +18,14 @@ import (
 
 type LianmiRepository interface {
 
-	//根据注册用户idd获取用户的资料
+	//根据注册用户id获取用户的资料
 	GetUser(username string) (p *models.User, err error)
+
+	//根据注册用户id获取redis里此用户的缓存
+	GetUserDataFromRedis(username string) (p *models.UserBase, err error)
+
+	//根据注册用户id获取redis里此用户的设备id
+	GetDeviceFromRedis(username string) (string, error)
 
 	//查询出用户表所有用户账号
 	QueryAllUsernames() ([]string, error)
@@ -216,6 +222,9 @@ type LianmiRepository interface {
 
 	//增加订单拍照图片上链历史表
 	SaveOrderImagesBlockchain(req *Order.UploadOrderImagesReq, orderTotalAmount float64, blcokNumber uint64, buyUser, businessUser, hash string) error
+
+	//修改订单的body类型及body加密阿里云文件上链历史表
+	SaveOrderBody(req *Order.UploadOrderBodyReq) error
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)

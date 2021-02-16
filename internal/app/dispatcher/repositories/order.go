@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 	LMCommon "github.com/lianmi/servers/internal/common"
@@ -10,21 +11,27 @@ import (
 
 	"github.com/lianmi/servers/internal/pkg/models"
 
+	"time"
+
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
 	// var err error
 	var curState int
+	var bodyType int
 	var productID string
 	var buyUser, businessUser string
 	var attachHash string
+	var bodyObjFile string
+	var orderImageFile string
 	var orderTotalAmount float64 //订单金额
 	var isPayed bool
+	var blockNumber uint64
+	var txHash string
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -39,19 +46,26 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	businessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
 	attachHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
-	// if err != nil {
-	// 	s.logger.Error("UploadOrderImages, HGET Error", zap.Error(err))
-	// 	return nil, err
-	// }
+	bodyType, _ = redis.Int(redisConn.Do("HGET", orderIDKey, "BodyType"))
+	bodyObjFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BodyObjFile"))
+	orderImageFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OrderImageFile"))
+	blockNumber, _ = redis.Uint64(redisConn.Do("HGET", orderIDKey, "BlockNumber"))
+	txHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "TxHash"))
+
 	return &models.OrderInfo{
 		OrderID:          orderID,
-		AttachHash:       attachHash,
 		ProductID:        productID,
+		AttachHash:       attachHash,
+		BodyType:         bodyType,
+		BodyObjFile:      bodyObjFile,
+		OrderImageFile:   orderImageFile,
 		BuyerUsername:    buyUser,
 		BusinessUsername: businessUser,
 		Cost:             orderTotalAmount,
 		State:            curState,
 		IsPayed:          isPayed,
+		BlockNumber:      blockNumber,
+		TxHash:           txHash,
 	}, nil
 
 }
@@ -92,6 +106,42 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 		return errors.Wrapf(err, "Record is exists[OrderID=%s]", req.OrderID)
 	}
 
+}
+
+//修改订单的body类型及body加密阿里云文件上链历史表
+func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) error {
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//保存到redis里
+	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
+	_, err = redisConn.Do("HSET", orderIDKey, "BodyType", int(req.BodyType))
+	_, err = redisConn.Do("HSET", orderIDKey, "BodyObjFile", req.BodyObjFile)
+
+	where := models.OrderImagesHistory{
+		OrderID: req.OrderID,
+	}
+
+	// 同时更新多个字段
+	result := s.db.Model(&models.OrderImagesHistory{}).Where(&where).Updates(&models.OrderImagesHistory{
+		BodyType:    int(req.BodyType),
+		BodyObjFile: req.BodyObjFile,
+	})
+
+	//updated records count
+	s.logger.Debug("SaveOrderBody result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("修改订单的body类型及body加密阿里云文件上链历史表失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Debug("修改订单的body类型及body加密阿里云文件上链历史表成功")
+	}
+	_ = err
+	return nil
 }
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
@@ -165,5 +215,5 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		}, nil
 
 	}
-	return nil, nil
+	
 }

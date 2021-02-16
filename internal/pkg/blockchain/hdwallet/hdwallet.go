@@ -3,6 +3,7 @@ package hdwallet
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -359,6 +360,22 @@ func (w *Wallet) PublicKeyHex(account accounts.Account) (string, error) {
 	return hexutil.Encode(publicKeyBytes)[4:], nil
 }
 
+// PublicKeyToBase64 return  public key in base64 string format of the account.
+func (w *Wallet) PublicKeyToBase64(account accounts.Account) (string, error) {
+	publicKeyBytes, err := w.PublicKeyBytes(account)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(publicKeyBytes)[4:], nil
+}
+
+// PublicKeyFromBase64 return  public key in base64 string format of the account.
+func (w *Wallet) PublicKeyFromBase64(s string) ([]byte, error) {
+
+	return base64.StdEncoding.DecodeString(s)
+}
+
 // Address returns the address of the account.
 func (w *Wallet) Address(account accounts.Account) (common.Address, error) {
 	publicKey, err := w.PublicKey(account)
@@ -458,6 +475,7 @@ func NewMnemonic(bits int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// fmt.Println("entropy length: ", len(entropy)) 16
 	return bip39.NewMnemonic(entropy)
 }
 

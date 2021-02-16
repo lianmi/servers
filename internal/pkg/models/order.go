@@ -1,23 +1,28 @@
 package models
 
 import (
+	"time"
+
 	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
-	"time"
 )
 
 //redis里订单数据
 type OrderInfo struct {
 	OrderID          string  `json:"order_id"`                              //订单ID
-	ProductID        string  ` json:"product_id"`                           //商品ID
-	AttachHash       string  ` json:"attach_hash"`                          //订单内容哈希
+	ProductID        string  `json:"product_id"`                            //商品ID
+	AttachHash       string  `json:"attach_hash"`                           //订单内容哈希
 	BuyerUsername    string  `json:"buyer_username" validate:"required"`    //买家注册号
 	BusinessUsername string  `json:"business_username" validate:"required"` //商户注册号
 	Cost             float64 `json:"cost" validate:"required"`              //本订单的总金额
 	State            int     `json:"state"`                                 //订单类型
 	IsPayed          bool    `json:"is_payed"`                              //此订单支付状态， true- 支付完成，false-未支付
 	IsUrge           bool    `json:"is_urge"`                               //催单
-
+	BodyType         int     `json:"body_type"`                             //彩票类型
+	BodyObjFile      string  `json:"body_objfile"`                          //订单body的rsa加密阿里云obj
+	OrderImageFile   string  `json:"order_imagefile"`                       //订单拍照图片的阿里云obj
+	BlockNumber      uint64  `json:"block_number"`                          //图片上链成功执行合约的所在区块高度
+	TxHash           string  `json:"tx_hash" `                              //图片上链交易哈希
 }
 
 /*
@@ -34,6 +39,12 @@ type OrderImagesHistory struct {
 
 	//订单图片在商户的oss objectID
 	BusinessOssImage string `json:"business_image" validate:"required"`
+
+	//订单body类型 ，也就是彩票类型
+	BodyType int ` json:"body_type"`
+
+	//订单body加密阿里云obj
+	BodyObjFile string ` json:"body_objfile"`
 
 	BlockNumber uint64 `json:"block_number"` //成功执行合约的所在区块高度
 	TxHash      string `json:"tx_hash" `     //交易哈希

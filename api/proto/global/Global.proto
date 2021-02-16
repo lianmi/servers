@@ -143,7 +143,7 @@ enum OrderSubType {
     GetPreKeysCount   =  6;     /**< 9-6. 商户获取OPK存量*/
     OPKLimitAlert     =  10;    /**< 9-10. 商户OPK存量不足事件*/
     PayOrder          =  11;    /**< 9-11. 确认支付订单*/
-    OrderPayDoneEvent =  12;    /**< 9-12. 支付订单完成的事件*/
+    UploadOrderBodyEvent =  13;    /**< 9-13. 买家将订单body加密发送给第三方公证*/
    
 }
 

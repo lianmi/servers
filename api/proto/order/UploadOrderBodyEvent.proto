@@ -1,0 +1,49 @@
+syntax = "proto3";
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+
+message UploadOrderBodyEventRsp{
+     //订单ID
+    string orderID =1;
+
+    //商品ID
+    string productID=2;
+  
+    //买家注册号
+    string buyUsername=3;
+  
+    //买家真实姓名
+    string buyerTrueName=4;
+  
+    //买家联系手机 
+    string buyerMobile=5;
+  
+    //商户注册号
+    string businessUsername=6;
+  
+    //商户店铺名称
+    string Branchesname=7;
+  
+    //商户网点编码， 例如彩票店有自己的编码
+    string businessCode=8;
+  
+    //商户法人
+    string legalPerson=9;
+  
+    //拍照图片的上链区块高度 
+    fixed64 blockNumber=10;
+
+    //上链哈希hex
+    string hash=11;
+
+    //公证处注册号
+    string notaryServiceUsername =12;
+
+    //公证处设备ID
+    string notaryServiceDeviceID =13;
+
+    //时间
+    fixed64 time=14;
+}
+

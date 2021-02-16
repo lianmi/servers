@@ -157,6 +157,12 @@ const (
 
 	//订单由买家发起撤单申请，商户同意撤单并退款
 	OrderTransferForCancel = int32(2)
+
+	//服务端的订单附件加密上链协商私钥
+	ServerPrivateKey = "b3e7a1b8fa4d7e958eecbc72f8d95e667889b787a83e8be576523aefb82ba507"
+
+	// 服务端的订单附件加密上链协商公钥 在UI写死
+	ServerPublicKey = "36c02735d5500646e48a10da640713dcc3382347ab7ee2fc15244bbe38270178"
 )
 
 //支付宝
