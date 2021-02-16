@@ -15,8 +15,11 @@ import (
 //通过nsq通道相关UI SDK发送消息 username, deviceID 必须是接收方的订阅
 func (pc *LianmiApisController) SendMessagetoNsq(username, deviceID string, data []byte, businessType, businessSubType int) error {
 	var err error
-	if (username == "") || (deviceID == "") {
-		return errors.Wrap(err, "username or deviceID is empty")
+	if username == "" {
+		return errors.Wrap(err, "username  is empty")
+	}
+	if deviceID == "" {
+		return errors.Wrap(err, "deviceID is empty")
 	}
 	//向客户端响应 SyncFriendUsersEvent 事件
 	targetMsg := &models.Message{}

@@ -70,24 +70,25 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 			RespData(c, http.StatusOK, code, "买家将订单body经过RSA加密后提交到彩票中心或第三方公证时发生错误")
 			return
 		}
+		if rsp != nil {
+			//TODO 经过mqtt转发到彩票中心或第三方公证, 需要增加一个事件协议
+			//延时1000ms执行
 
-		//TODO 经过mqtt转发到彩票中心或第三方公证, 需要增加一个事件协议
-		//延时1000ms执行
+			go func() {
+				time.Sleep(1000 * time.Millisecond)
+				data, _ := proto.Marshal(rsp)
+				if err := pc.SendMessagetoNsq(rsp.NotaryServiceUsername, rsp.NotaryServiceDeviceID, data, 9, 13); err != nil {
 
-		go func() {
-			time.Sleep(1000 * time.Millisecond)
-			data, _ := proto.Marshal(rsp)
-			if err := pc.SendMessagetoNsq(rsp.NotaryServiceUsername, rsp.NotaryServiceDeviceID, data, 9, 13); err != nil {
+					pc.logger.Error("Failed to Send NotaryService(9-13) Msg to ProduceChannel", zap.Error(err))
+				} else {
+					pc.logger.Debug("向NotaryService发出订单body加密消息(9-13)",
+						zap.String("NotaryServiceUsername", rsp.NotaryServiceUsername),
+						zap.String("NotaryServiceDeviceID", rsp.NotaryServiceDeviceID),
+					)
+				}
 
-				pc.logger.Error("Failed to Send NotaryService(9-13) Msg to ProduceChannel", zap.Error(err))
-			} else {
-				pc.logger.Debug("向NotaryService发出订单body加密消息(9-13)",
-					zap.String("NotaryServiceUsername", rsp.NotaryServiceUsername),
-					zap.String("NotaryServiceDeviceID", rsp.NotaryServiceDeviceID),
-				)
-			}
-
-		}()
+			}()
+		}
 
 		RespData(c, http.StatusOK, 200, resp)
 
