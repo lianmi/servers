@@ -834,7 +834,6 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 		notaryServiceDeviceID, err = s.Repository.GetDeviceFromRedis(notaryServiceUsername)
 		if err != nil {
 			return nil, nil, err
-		}
 		
 	}
 

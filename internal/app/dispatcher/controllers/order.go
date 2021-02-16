@@ -81,7 +81,10 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 
 				pc.logger.Error("Failed to Send NotaryService(9-13) Msg to ProduceChannel", zap.Error(err))
 			} else {
-				pc.logger.Debug("向NotaryService发出订单body加密消息(9-13)")
+				pc.logger.Debug("向NotaryService发出订单body加密消息(9-13)",
+					zap.String("NotaryServiceUsername", rsp.NotaryServiceUsername),
+					zap.String("NotaryServiceDeviceID", rsp.NotaryServiceDeviceID),
+				)
 			}
 
 		}()
