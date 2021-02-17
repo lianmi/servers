@@ -9,6 +9,7 @@ import (
 
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
+	"go.uber.org/zap"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -409,6 +410,8 @@ func (pc *LianmiApisController) DefaultOPK(c *gin.Context) {
 		if req.Opk == "" {
 			pc.logger.Error("binding JSON error ")
 			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Opk")
+		} else {
+			pc.logger.Debug("DefaultOPK", zap.String("req.Opk", req.Opk))
 		}
 		err := pc.service.SetDefaultOPK(username, req.Opk)
 		if err != nil {
