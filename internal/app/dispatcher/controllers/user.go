@@ -330,7 +330,7 @@ func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, dev
 		if err := pc.SendMessagetoNsq(username, curOnlineDevieID, data, 2, 5); err != nil {
 			pc.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
 		} else {
-			pc.logger.Debug("向当前主设备发出踢下线消息", zap.String("curOnlineDevieID", curOnlineDevieID))
+			pc.logger.Debug("向当前主设备发出踢下线消息", zap.String("当前主设备curOnlineDevieID", curOnlineDevieID))
 		}
 	}
 	return isPass
