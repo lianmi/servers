@@ -122,6 +122,7 @@ const (
 	MEMBERSHIPINDEX = 3 //第3号负责接收会员费的LNMC代币
 
 	//1个eth
+	ETH   = 1
 	ETHER = 100000000000000000
 
 	// 每签到2次奖励的gas

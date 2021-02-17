@@ -1154,7 +1154,7 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 
 		//中转账号的ETH余额
 		balancETHBip32, err := nc.ethService.GetEthBalance(bip32WalletAddress)
-		if balancETHBip32 == 0 {
+		if balancETHBip32 < LMCommon.ETH {
 			//给叶子发送 1 个ether 以便作为中转账号的时候，可以对商户转账或对买家退款 有足够的gas
 			nc.ethService.TransferWeiToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER, nil)
 		}
