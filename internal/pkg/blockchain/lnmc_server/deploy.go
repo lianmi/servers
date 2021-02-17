@@ -65,7 +65,8 @@ func main() {
 	*/
 
 	//查询第0号叶子的余额， 记得一定要很大，用来订单图片 上链
-	queryETH("0xe14D151e0511b61357DDe1B35a74E9c043c34C47")
+	// queryETH("0xe14D151e0511b61357DDe1B35a74E9c043c34C47")
+	queryETH("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 
 	//查询第1号叶子的LNMC余额
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")

@@ -64,7 +64,8 @@ func NewApisService(logger *zap.Logger, Repository repositories.WalletRepository
 	}
 }
 
-//PS 这里是本地调用，不是Grpc Client的调用，订单完成或退款
+//这里是本地调用，不是Grpc Client的调用，订单完成或退款
+//PS   中间账号如果没有eth，将导致gas不足
 func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error) {
 	s.logger.Debug("DefaultApisService, TransferByOrder", zap.String("OrderID", req.OrderID), zap.Int32("PayType", req.PayType))
 
@@ -151,6 +152,20 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 			ErrMsg:  "Get LNMC Token Balance error",
 		}, errors.Wrap(err, "Get LNMC Token Balance error")
 	}
+	balanceEthBip32, err := s.ethService.GetEthBalance(bip32WalletAddress)
+	if err != nil {
+		return &Wallet.TransferResp{
+			ErrCode: 500,
+			ErrMsg:  "Get ETH Balance error",
+		}, errors.Wrap(err, "Get ETH Balance error")
+	}
+
+	s.logger.Debug("中转账号向商户转账详细",
+		zap.String("中转账号地址", bip32WalletAddress),
+		zap.Float64("中转账号ETH余额", balanceEthBip32), //PS 必须足够
+		zap.Uint64("中转账号转账之前的代币余额", balanceLNMCBip32),
+		zap.Uint64("中转账号转账代币数量", amountLNMC),
+	)
 
 	if req.PayType == LMCommon.OrderTransferForDone { //向商户支付
 
