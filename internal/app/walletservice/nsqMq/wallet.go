@@ -965,7 +965,7 @@ func (nc *NsqClient) HandleConfirmTransfer(msg *models.Message) error {
 					TxHash:        hash,
 				})
 
-			} 
+			}
 
 			//将redis里的订单信息哈希表状态字段设置为 OS_IsPayed
 			orderIDKey := fmt.Sprintf("Order:%s", orderID)
@@ -1147,6 +1147,18 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 			errorCode = LMCError.WalletAddressIsInvalid
 			goto COMPLETE
 		}
+		//中转叶子
+		bip32Index, err := redis.Uint64(redisConn.Do("HGET", fmt.Sprintf("userWallet:%s", username), "Bip32Index"))
+		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(bip32Index)
+		bip32WalletAddress := newKeyPair.AddressHex //中转账号
+
+		//中转账号的代币余额
+		balanceLNMCBip32, err := nc.ethService.GetLNMCTokenBalance(bip32WalletAddress)
+		if balanceLNMCBip32 == 0 {
+			//给叶子发送 1 个ether 以便作为中转账号的时候，可以对商户转账或对买家退款 有足够的gas
+			nc.ethService.TransferWeiToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER, nil)
+		}
+
 		//当前用户的Eth余额
 		balanceETH, err = nc.ethService.GetWeiBalance(walletAddress)
 		if err != nil {
@@ -1168,11 +1180,16 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 			fmt.Sprintf("userWallet:%s", username),
 			"LNMCAmount",
 			balanceLNMC)
+		redisConn.Do("HSET",
+			fmt.Sprintf("userWallet:%s", username),
+			"bip32WalletAddress",
+			bip32WalletAddress)
 
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
 			zap.String("walletAddress", walletAddress),
 			zap.Uint64("当前Eth余额 balanceETH", balanceETH),
+			zap.Uint64("中转叶子Eth余额 balanceLNMCBip32", balanceLNMCBip32),
 			zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
 		)
 
