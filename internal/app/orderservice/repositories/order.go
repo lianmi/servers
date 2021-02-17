@@ -80,7 +80,7 @@ func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 	where := models.Product{
 		ProductInfo: models.ProductInfo{
 			ProductID: productID,
-			Username:  username,
+			BusinessUsername:  username,
 		},
 	}
 	db2 := m.db.Where(&where).Delete(models.Product{})

@@ -283,39 +283,15 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 		nc.logger.Debug("AddProduct payload",
 			zap.String("ProductId", req.Product.ProductId),
-			zap.Int("OrderType", int(req.OrderType)),
 			zap.String("ProductPic1Large", productPic1Large),
 			zap.String("ProductPic2Large", productPic2Large),
 			zap.String("ProductPic3Large", productPic3Large),
-			zap.String("OpkBusinessUser", req.OpkBusinessUser),
-			zap.Uint64("Expire", req.Expire),
 		)
 
 		if req.Product.ProductId != "" {
 			nc.logger.Warn("新的上架商品id必须是空的")
 			errorCode = LMCError.OrderModProductIDNotEmpty //错误码
 			goto COMPLETE
-		}
-
-		if req.OrderType == Global.OrderType_ORT_Normal ||
-			req.OrderType == Global.OrderType_ORT_Grabbing ||
-			req.OrderType == Global.OrderType_ORT_Walking {
-			//符合要求 pass
-		} else {
-			nc.logger.Warn("新的上架商品所属类型不正确")
-			errorCode = LMCError.OrderModProductTypeError //错误码
-			goto COMPLETE
-		}
-
-		//校验过期时间
-		if req.Expire > 0 {
-			//是否小于当前时间戳
-			if int64(req.Expire) < time.Now().UnixNano()/1e6 {
-				nc.logger.Warn("过期时间小于当前时间戳")
-				errorCode = LMCError.OrderModProductTypeError //错误码
-				goto COMPLETE
-			}
-
 		}
 
 		//生成随机的商品id
@@ -346,7 +322,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		product = &models.Product{
 			ProductInfo: models.ProductInfo{
 				ProductID:         productId,
-				Username:          username,
+				BusinessUsername:  username,
 				Expire:            int64(req.Product.Expire),
 				ProductName:       req.Product.ProductName,
 				ProductType:       int(req.Product.ProductType),
@@ -365,7 +341,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			},
 		}
 
-		if len(req.Product.DescPics) >= 1 {
+		if len(req.Product.DescPics) >= 1 {	
 			product.ProductInfo.DescPic1 = req.Product.DescPics[0]
 		}
 		if len(req.Product.DescPics) >= 2 {
@@ -385,7 +361,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		nc.logger.Debug("Product字段",
-			zap.String("Username", product.ProductInfo.Username),
+			zap.String("BusinessUsername", product.ProductInfo.BusinessUsername),
 			zap.String("ProductId", product.ProductInfo.ProductID),
 			zap.Int64("Expire", product.ProductInfo.Expire),
 			zap.String("ProductName", product.ProductInfo.ProductName),
@@ -497,9 +473,6 @@ COMPLETE:
 			addProductEventRsp := &Order.AddProductEventRsp{
 				Username:    username,            //商户用户账号id
 				Product:     oProduct,            //商品数据
-				OrderType:   req.OrderType,       //订单类型，必填
-				OpkBusiness: req.OpkBusinessUser, //商户的协商公钥，适用于任务类
-				Expire:      req.Expire,          //商品过期时间
 				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
@@ -615,12 +588,12 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		product := &models.Product{
 			ProductInfo: models.ProductInfo{
-				Username:    username,
-				ProductID:   req.Product.ProductId,
-				Expire:      int64(req.Product.Expire),
-				ProductName: req.Product.ProductName,
-				ProductType: int(req.Product.ProductType),
-				ProductDesc: req.Product.ProductDesc,
+				BusinessUsername: username,
+				ProductID:        req.Product.ProductId,
+				Expire:           int64(req.Product.Expire),
+				ProductName:      req.Product.ProductName,
+				ProductType:      int(req.Product.ProductType),
+				ProductDesc:      req.Product.ProductDesc,
 
 				ProductPic1Large: productPic1Large,
 

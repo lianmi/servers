@@ -229,8 +229,6 @@ func AddProduct() error {
 	req := &Order.AddProductReq{
 		Product:         oProduct,
 		OrderType:       Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
-		OpkBusinessUser: "",
-		Expire:          0,
 	}
 
 	content, _ := proto.Marshal(req)
