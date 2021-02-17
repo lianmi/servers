@@ -541,7 +541,7 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 //从第0号叶子账号地址转账Eth到其它普通账号地址, 以wei为单位, 1 eth = 1x18次方wei
 //data是上链的数据
 func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, data []byte) (blockNumber uint64, hash string, err error) {
-
+	s.logger.Debug("TransferWeiToOtherAccount start...")
 	//第0号叶子私钥
 	// privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
 	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.LNMCINDEX).PrivateKeyHex //使用1号叶子
