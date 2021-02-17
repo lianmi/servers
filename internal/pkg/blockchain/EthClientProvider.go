@@ -557,6 +557,7 @@ func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, 
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+
 	nonce, err := s.WsClient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		s.logger.Error("PendingNonceAt failed ", zap.Error(err))
@@ -594,7 +595,19 @@ func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, 
 	}
 
 	s.logger.Info("tx sent", zap.String("Hash", signedTx.Hash().Hex()))
-
+	//当前用户的链上Eth余额
+	balanceEth, err := s.GetWeiBalance(fromAddress.Hex())
+	if err != nil {
+		return 0, "", err
+	}
+	s.logger.Info("转账eth的交易发送",
+		zap.String("fromAddress: ", fromAddress.Hex()),
+		zap.Uint64("第0号叶子的余额 balanceEth: ", balanceEth),
+		zap.String("targetAccount: ", targetAccount),
+		zap.String("toAddress: ", toAddress.Hex()),
+		zap.Uint64("nonce: ", nonce),
+		zap.Int64("amount: ", amount),
+	)
 	/*
 		等待检测交易是否完成，挖矿工需要工作才能出块
 		> miner.start()
