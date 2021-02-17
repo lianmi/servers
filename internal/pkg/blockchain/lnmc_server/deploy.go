@@ -66,7 +66,6 @@ func main() {
 
 	//查询第0号叶子的余额， 记得一定要很大，用来订单图片 上链
 	// queryETH("0xe14D151e0511b61357DDe1B35a74E9c043c34C47")
-	queryETH("0x4acea697f366C47757df8470e610a2d9B559DbBE")
 
 	//查询第1号叶子的LNMC余额
 	getTokenBalance("0x4acea697f366C47757df8470e610a2d9B559DbBE")
@@ -75,20 +74,25 @@ func main() {
 	ether := float64(1) //1个以太币
 	fmt.Println("ehter: ", ether)
 
-	//从第1号叶子转账 10 代币给id1的地址
-	amountLNMCAmount := int64(10) //500000
+	//从第1号叶子转账代币给id1的地址
+	amountLNMCAmount := int64(500000) //500000
 	fmt.Println("amountLNMCAmount: ", amountLNMCAmount)
-	/*
-		{
-			// 从第1号叶子转账 1 ether 到id1作为gas
-			// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-			transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
-			// 查询id1代币余额
-			queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+	{
+		//从第1号叶子转账 1 ether 到iid1的中转账号  作为上链gas
 
-		}
-	*/
+		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258", ether)
+
+		queryETH("0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258")
+
+		// 从第1号叶子转账 1 ether 到id1作为gas
+		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
+
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
+		// 查询id1代币余额
+		queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+
+	}
 
 	/*
 		{
