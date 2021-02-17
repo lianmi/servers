@@ -316,14 +316,14 @@ func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 
 func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
 	isPass, curOnlineDevieID := pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
-	//TODO send message to nsq
 
 	pc.logger.Debug("LianmiApisController:CheckUser", zap.String("curOnlineDevieID", curOnlineDevieID))
 	if curOnlineDevieID != "" {
 		//向当前主设备发出踢下线消息
 		//构造负载数据
 		kickedEventRsp := &Auth.KickedEventRsp{
-			Reason: Auth.KickReason_SamePlatformKick, //不允许同一个帐号在多个主设备同时登录
+			Reason:  Auth.KickReason_SamePlatformKick,    //不允许同一个帐号在多个主设备同时登录
+			TimeTag: uint64(time.Now().UnixNano() / 1e6), //必填，用来对比离线后上次被踢的时间戳
 		}
 		data, _ := proto.Marshal(kickedEventRsp)
 

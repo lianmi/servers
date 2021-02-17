@@ -139,7 +139,7 @@ dart:
 								api/proto/order/GetPreKeyOrderID.proto \
 								api/proto/order/GetPreKeysCount.proto \
 								api/proto/order/OPKLimitAlert.proto \
-								api/proto/order/OrderPayDoneEvent.proto \
+								api/proto/order/UploadOrderBodyEvent.proto \
 								api/proto/order/PayOrder.proto \
 								api/proto/order/Product.proto \
 								api/proto/order/QueryProducts.proto \

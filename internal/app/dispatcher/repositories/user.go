@@ -618,7 +618,11 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)
 	//删除所有与之相关的key
-	_, err = redisConn.Do("DEL", deviceListKey) //删除deviceListKey
+	_, err = redisConn.Do("DEL", deviceListKey)    //删除deviceListKey
+	_, err = redisConn.Do("DEL", curDeviceHashKey) //删除当前旧的设备
+
+	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
+	_, err = redisConn.Do("DEL", deviceKey) //删除DeviceJwtToken
 
 	s.logger.Debug("SignOut end")
 	_ = err
