@@ -636,7 +636,7 @@ func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
 	}
 
 	redisConn.Do("DEL", fmt.Sprintf("prekeys:%s", username))
-	redisConn.Do("DEL", fmt.Sprintf("DefaultOPK:%s", username)) //删除默认OPK
+	// redisConn.Do("DEL", fmt.Sprintf("DefaultOPK:%s", username)) //删除默认OPK 不需要删除
 
 	//采用事务同时删除
 	var (
