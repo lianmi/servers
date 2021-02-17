@@ -1152,9 +1152,9 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 		newKeyPair := nc.ethService.GetKeyPairsFromLeafIndex(bip32Index)
 		bip32WalletAddress := newKeyPair.AddressHex //中转账号
 
-		//中转账号的代币余额
-		balanceLNMCBip32, err := nc.ethService.GetLNMCTokenBalance(bip32WalletAddress)
-		if balanceLNMCBip32 == 0 {
+		//中转账号的ETH余额
+		balancETHBip32, err := nc.ethService.GetEthBalance(bip32WalletAddress)
+		if balancETHBip32 == 0 {
 			//给叶子发送 1 个ether 以便作为中转账号的时候，可以对商户转账或对买家退款 有足够的gas
 			nc.ethService.TransferWeiToOtherAccount(newKeyPair.AddressHex, LMCommon.ETHER, nil)
 		}
@@ -1187,9 +1187,10 @@ func (nc *NsqClient) HandleBalance(msg *models.Message) error {
 
 		nc.logger.Info("当前用户的钱包信息",
 			zap.String("username", username),
+			zap.Uint64("bip32Index", bip32Index),
 			zap.String("walletAddress", walletAddress),
 			zap.Uint64("当前Eth余额 balanceETH", balanceETH),
-			zap.Uint64("中转叶子Eth余额 balanceLNMCBip32", balanceLNMCBip32),
+			zap.Float64("中转叶子Eth余额 balancETHBip32", balancETHBip32),
 			zap.Uint64("当前代币余额 balanceLNMC", balanceLNMC),
 		)
 
