@@ -543,7 +543,8 @@ func (s *Service) QueryTxInfoByHash(txHashHex string) (*models.HashInfo, error) 
 func (s *Service) TransferWeiToOtherAccount(targetAccount string, amount int64, data []byte) (blockNumber uint64, hash string, err error) {
 
 	//第0号叶子私钥
-	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
+	// privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.ETHINDEX).PrivateKeyHex //使用0号叶子
+	privKeyHex := s.GetKeyPairsFromLeafIndex(LMCommon.LNMCINDEX).PrivateKeyHex //使用1号叶子
 	privateKey, err := crypto.HexToECDSA(privKeyHex)
 	if err != nil {
 		s.logger.Error("BlockByNumber failed ", zap.Error(err))
