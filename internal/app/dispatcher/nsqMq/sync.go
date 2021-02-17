@@ -92,7 +92,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				//假如用户是商户
 				storeInfo := &User.Store{}
 				if userData.UserType == int(User.UserType_Ut_Business) {
-					if storeInfo, err = nc.service.GetStore(userData.Username); err == nil {
+					if storeInfo, err = nc.service.GetStore(userData.Username); err != nil {
 						nc.logger.Error("获取店铺资料错误", zap.Error(err))
 					}
 				}
