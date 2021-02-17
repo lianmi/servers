@@ -160,7 +160,8 @@ func (s *DefaultApisService) TransferByOrder(ctx context.Context, req *Wallet.Tr
 		}, errors.Wrap(err, "Get ETH Balance error")
 	}
 
-	s.logger.Debug("中转账号向商户转账详细",
+	s.logger.Debug("中转账号",
+		zap.Uint64("Bip32Index", bip32Index),
 		zap.String("中转账号地址", bip32WalletAddress),
 		zap.Float64("中转账号ETH余额", balanceEthBip32), //PS 必须足够
 		zap.Uint64("中转账号转账之前的代币余额", balanceLNMCBip32),
