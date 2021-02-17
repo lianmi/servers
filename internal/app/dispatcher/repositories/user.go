@@ -420,9 +420,10 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
-			s.logger.Debug("当前设备id与即将登录的设备不同",
+			s.logger.Debug("当前在线设备id与即将登录的设备不同",
 				zap.Bool("isMaster", isMaster),
 				zap.String("username", username),
+				zap.String("curOnlineDevieID", curOnlineDevieID),
 				zap.String("deviceID", deviceID),
 				zap.String("curJwtToken", curJwtToken),
 				zap.String("curOs", curOs),
