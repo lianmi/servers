@@ -406,7 +406,10 @@ func (pc *LianmiApisController) DefaultOPK(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
-
+		if req.Opk == "" {
+			pc.logger.Error("binding JSON error ")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Opk")
+		}
 		err := pc.service.SetDefaultOPK(username, req.Opk)
 		if err != nil {
 			RespData(c, http.StatusOK, code, "设置当前商户的默认OPK错误")
