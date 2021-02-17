@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "api/proto/user/User.proto";
+import "api/proto/user/Store.proto";
 package cloud.lianmi.im.user;
 option go_package = "github.com/lianmi/servers/api/proto/user";
 
@@ -11,8 +12,12 @@ option go_package = "github.com/lianmi/servers/api/proto/user";
 message SyncUserProfileEventRsp {
     //当前登录用户信息
     user.User uInfo = 1;
+
+    //如果当前用户是商户，则需要同步店铺信息
+    user.Store storeInfo = 2;
+
     //最后请求的时间戳
-    fixed64 timeTag = 2;
+    fixed64 timeTag = 3;
 }
 
 

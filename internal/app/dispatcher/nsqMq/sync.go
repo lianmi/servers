@@ -73,6 +73,7 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 		//先从Redis里读取
 		userData := new(models.UserBase)
 		userKey := fmt.Sprintf("userData:%s", username)
+
 		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
 			if err := redis.ScanStruct(result, userData); err != nil {
 				nc.logger.Error("错误：ScanStruct", zap.Error(err))
@@ -80,37 +81,26 @@ func (nc *NsqClient) SyncMyInfoAt(username, token, deviceID string, req Sync.Syn
 				goto COMPLETE
 
 			} else {
-				var avatar string
-				if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
 
-					avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+				userInfo := &User.User{}
+				if userRsp, err := nc.service.GetUser(username); err != nil {
+					nc.logger.Error("获取用户个人资料错误", zap.Error(err))
+				} else {
+					userInfo = userRsp.User
+				}
+
+				//假如用户是商户
+				storeInfo := &User.Store{}
+				if userData.UserType == int(User.UserType_Ut_Business) {
+					if storeInfo, err = nc.service.GetStore(userData.Username); err == nil {
+						nc.logger.Error("获取店铺资料错误", zap.Error(err))
+					}
 				}
 
 				rsp := &User.SyncUserProfileEventRsp{
-					TimeTag: uint64(time.Now().UnixNano() / 1e6),
-					UInfo: &User.User{
-						Username:           username,
-						Nick:               userData.Nick,
-						Gender:             User.Gender(userData.Gender),
-						Avatar:             avatar,
-						Label:              userData.Label,
-						Mobile:             userData.Mobile,
-						Email:              userData.Email,
-						Extend:             userData.Extend,
-						AllowType:          User.AllowType(userData.AllowType),
-						UserType:           User.UserType(userData.UserType),
-						State:              User.UserState(userData.State),
-						TrueName:           userData.TrueName,
-						IdentityCard:       userData.IdentityCard,
-						Province:           userData.Province,
-						City:               userData.City,
-						County:             userData.County,
-						Street:             userData.Street,
-						Address:            userData.Address,
-						ReferrerUsername:   userData.ReferrerUsername,
-						BelongBusinessUser: userData.BelongBusinessUser,
-						VipEndDate:         uint64(userData.VipEndDate),
-					},
+					TimeTag:   uint64(time.Now().UnixNano() / 1e6),
+					UInfo:     userInfo,
+					StoreInfo: storeInfo,
 				}
 				data, _ := proto.Marshal(rsp)
 
@@ -764,130 +754,6 @@ func (nc *NsqClient) SendOffLineMsg(toUser, token, deviceID string, data []byte)
 
 	return nil
 }
-
-/*
-//处理离线系统通知 systemMsgAt  包括订单消息
-func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
-	var err error
-	errorCode := 200
-
-	var cur_systemMsgAt uint64
-
-	offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", username)
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	//req里的成员
-	systemMsgAt := req.GetSystemMsgAt()
-	syncKey := fmt.Sprintf("sync:%s", username)
-
-	cur_systemMsgAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "systemMsgAt"))
-	if err != nil {
-		cur_systemMsgAt = uint64(time.Now().UnixNano() / 1e6)
-		redisConn.Do("HSET", syncKey, "systemMsgAt", cur_systemMsgAt)
-
-	}
-
-	//服务端的时间戳大于客户端上报的时间戳
-	if cur_systemMsgAt > systemMsgAt {
-		nTime := time.Now()
-		// 过去的7天
-		yesTime := nTime.AddDate(0, 0, -7).UnixNano() / 1e6
-
-		//移除时间少于yesTime离线通知
-		_, err = redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
-		if err != nil {
-			nc.logger.Error("ZRANGEBYSCORE执行错误", zap.Error(err))
-			errorCode = LMCError.RedisError
-			goto COMPLETE
-		} else {
-			nc.logger.Debug("移除时间少于yesTime(7天)离线通知", zap.Int64("yesTime", yesTime))
-		}
-
-		//将有效时间内的离线消息推送给SDK
-		msgIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", offLineMsgListKey, yesTime, "+inf"))
-		for _, msgID := range msgIDs {
-			systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", username, msgID)
-			//取出缓存的离线消息体
-			if data, err := redis.Bytes(redisConn.Do("HGET", systemMsgKey, "Data")); err != nil {
-				nc.logger.Error("HGET读取 错误",
-					zap.String("systemMsgKey", systemMsgKey),
-					zap.Error(err))
-				continue
-
-			} else {
-				if err := nc.SendOffLineMsg(username, token, deviceID, data); err != nil {
-					nc.logger.Error("发送离线通知错误",
-						zap.String("systemMsgKey", systemMsgKey),
-						zap.Error(err))
-
-				} else {
-					nc.logger.Debug("成功发送离线通知", zap.String("msgID", msgID))
-				}
-			}
-
-		}
-
-
-			// //同步离线期间的个人，群聊，订单，商品推送的消息 消息只保留最后10条(common.go里定义)，而且只能缓存7天
-			// //从大到小递减获取, 只获取最大的10条
-			// msgIDArray, err := redis.ByteSlices(redisConn.Do("ZREVRANGEBYSCORE", offLineMsgListKey, "+inf", "-inf", "LIMIT", 0, common.OffLineMsgCount))
-			// if err != nil {
-			// 	nc.logger.Error("ZREVRANGEBYSCORE Error", zap.Error(err))
-			// } else {
-			// 	if len(msgIDArray) > 0 {
-			// 		//反转，数组变为从小到大排序
-			// 		array.ReverseBytes(msgIDArray)
-
-			// 		var maxSeq int
-			// 		for seq, msgID := range msgIDArray {
-			// 			if seq > maxSeq {
-			// 				maxSeq = seq
-			// 			}
-			// 			nc.logger.Debug("同步离线期间离线消息",
-			// 				zap.Int("seq", seq),
-			// 				zap.Int("maxSeq", maxSeq),
-			// 				zap.String("msgID", string(msgID)),
-			// 			)
-			// 			key := fmt.Sprintf("systemMsg:%s:%s", username, string(msgID))
-			// 			data, err := redis.Bytes(redisConn.Do("HGET", key, "Data"))
-			// 			if err != nil {
-			// 				nc.logger.Error("HGET Data Error", zap.Error(err))
-			// 				continue
-			// 			}
-
-			// 			if err := nc.SendOffLineMsg(username, token, deviceID, data); err == nil {
-			// 				nc.logger.Debug("成功发送离线消息",
-			// 					zap.Int("seq", seq),
-			// 					zap.String("msgID", string(msgID)),
-			// 					zap.String("username", username),
-			// 					zap.String("token", token),
-			// 					zap.String("deviceID", deviceID),
-			// 				)
-			// 			} else {
-			// 				nc.logger.Error("发送离线消息失败，Error", zap.Error(err))
-			// 			}
-
-			// 		}
-
-			// 	}
-			// }
-
-	}
-
-COMPLETE:
-	//完成
-	if errorCode == 200 {
-		//只需返回200
-		return nil
-	} else {
-		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
-		return errors.Wrap(err, errorMsg)
-	}
-	return nil
-}
-*/
 
 //处理watchAt 7-8 同步关注的商户事件
 func (nc *NsqClient) SyncWatchAt(username, token, deviceID string, req Sync.SyncEventReq) error {

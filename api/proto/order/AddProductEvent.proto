@@ -1,5 +1,5 @@
 syntax = "proto3"; 
-import "api/proto/global/Global.proto";
+//import "api/proto/global/Global.proto";
 import "api/proto/order/Product.proto"; 
 
 package cloud.lianmi.im.order;
