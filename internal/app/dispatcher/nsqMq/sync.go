@@ -920,7 +920,7 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 					Expire:            uint64(productInfo.Expire),                  //商品过期时间
 					ProductName:       productInfo.ProductName,                     //商品名称
 					ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-					SubType:           Global.LotteryType_LT_Shuangseqiu,           //TODO  暂时全部都是双色球
+					SubType:           Global.LotteryType(productInfo.SubType),     //商品子类型
 					ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
 					ShortVideo:        productInfo.ShortVideo,                      //商品短视频
 					Thumbnail:         thumbnail,                                   //商品短视频缩略图

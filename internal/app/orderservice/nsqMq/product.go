@@ -114,7 +114,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 				Expire:            uint64(productInfo.Expire),                  //商品过期时间
 				ProductName:       productInfo.ProductName,                     //商品名称
 				ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-				SubType:           Global.LotteryType_LT_Shuangseqiu,           //TODO  暂时全部都是双色球
+				SubType:           Global.LotteryType(productInfo.SubType),     //商品子类型
 				ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
 				ShortVideo:        productInfo.ShortVideo,                      //商品短视频
 				Thumbnail:         thumbnail,                                   //商品短视频缩略图
@@ -408,23 +408,23 @@ COMPLETE:
 		nc.logger.Error("7-2 回包 Failed to send message to ProduceChannel", zap.Error(err))
 	}
 
+	//7-5 新商品上架事件 推送通知给关注的用户
 	go func() {
-		//推送通知给关注的用户
+
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
 			if shortVideo != "" {
 
 				thumbnail = LMCommon.OSSUploadPicPrefix + shortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
 			}
-			//7-5 新商品上架事件 将商品信息序化
+			//将商品信息序化
 			oProduct := &Order.Product{
 				ProductId:   productId,                                   //商品ID
 				Expire:      uint64(req.Product.Expire),                  //商品过期时间
 				ProductName: req.Product.ProductName,                     //商品名称
 				ProductType: Global.ProductType(req.Product.ProductType), //商品种类类型  枚举
-				//TODO  暂时全部都是双色球
-				SubType:     Global.LotteryType_LT_Shuangseqiu,
-				ProductDesc: req.Product.ProductDesc, //商品详细介绍
+				SubType:     req.Product.SubType,                         //商品子类型
+				ProductDesc: req.Product.ProductDesc,                     //商品详细介绍
 				ShortVideo:  shortVideo,
 				Thumbnail:   thumbnail,
 
@@ -471,9 +471,9 @@ COMPLETE:
 			}
 
 			addProductEventRsp := &Order.AddProductEventRsp{
-				Username: username, //商户用户账号id
-				Product:  oProduct, //商品数据
-				TimeAt:   uint64(time.Now().UnixNano() / 1e6),
+				BusinessUsername: username, //商户用户账号id
+				Product:          oProduct, //商品数据
+				TimeAt:           uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
 
