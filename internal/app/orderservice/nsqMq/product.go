@@ -86,7 +86,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("QueryProducts  payload",
+		nc.logger.Debug("QueryProducts payload",
 			zap.String("UserName", req.UserName),
 			zap.Uint64("TimeAt", req.TimeAt),
 		)
@@ -341,7 +341,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			},
 		}
 
-		if len(req.Product.DescPics) >= 1 {	
+		if len(req.Product.DescPics) >= 1 {
 			product.ProductInfo.DescPic1 = req.Product.DescPics[0]
 		}
 		if len(req.Product.DescPics) >= 2 {
@@ -471,9 +471,9 @@ COMPLETE:
 			}
 
 			addProductEventRsp := &Order.AddProductEventRsp{
-				Username:    username,            //商户用户账号id
-				Product:     oProduct,            //商品数据
-				TimeAt:      uint64(time.Now().UnixNano() / 1e6),
+				Username: username, //商户用户账号id
+				Product:  oProduct, //商品数据
+				TimeAt:   uint64(time.Now().UnixNano() / 1e6),
 			}
 			productData, _ := proto.Marshal(addProductEventRsp)
 
@@ -533,8 +533,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	} else {
 		nc.logger.Debug("UpdateProduct  payload",
 			zap.String("ProductId", req.Product.ProductId),
-			zap.Int("OrderType", int(req.OrderType)),
-			// zap.Uint64("Expire", req.Expire),
 		)
 
 		if req.Product.ProductId == "" {
@@ -651,11 +649,9 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 				//7-6 已有商品的编辑更新事件
 				updateProductEventRsp := &Order.UpdateProductEventRsp{
-					Username:  username,
-					Product:   req.Product,
-					OrderType: req.OrderType,
-					Expire:    req.Expire,
-					TimeAt:    uint64(time.Now().UnixNano() / 1e6),
+					Username: username,
+					Product:  req.Product,
+					TimeAt:   uint64(time.Now().UnixNano() / 1e6),
 				}
 				productData, _ := proto.Marshal(updateProductEventRsp)
 

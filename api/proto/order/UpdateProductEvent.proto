@@ -1,5 +1,5 @@
 syntax = "proto3"; 
-import "api/proto/global/Global.proto";
+//import "api/proto/global/Global.proto";
 import "api/proto/order/Product.proto"; 
 
 package cloud.lianmi.im.order;
@@ -12,10 +12,6 @@ message UpdateProductEventRsp {
     string username=1;
     //商品详情
     Product product=2;
-    //订单类型，必填
-    global.OrderType orderType=3;
-    //商品过期时间
-    fixed64 expire=4;
     //更新时间
-    fixed64 timeAt=5;
+    fixed64 timeAt=3;
 }
