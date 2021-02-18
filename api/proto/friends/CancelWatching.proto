@@ -10,11 +10,8 @@ message CancelWatchingReq {
     //商户账号
     //是否必填-是
     string businessUsername = 1;
-    //附言
-    //是否必填-否
-    string ps = 2;
 }
 
 message CancelWatchingRsp {
-  bool isOK = 1;
+  string businessUsername = 1;
 }

@@ -14,5 +14,5 @@ message WatchingReq {
 
 //
 message WatchingRsp {
-    bool isOK = 1;
+    string businessUsername = 1;
 }

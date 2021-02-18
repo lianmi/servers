@@ -1306,8 +1306,11 @@ func (nc *NsqClient) HandleWatching(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
-		msg.FillBody(nil)
+		rsp := &Friends.WatchingRsp{
+			BusinessUsername: req.BusinessUsername,
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
@@ -1400,8 +1403,11 @@ func (nc *NsqClient) HandleCancelWatching(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
-		msg.FillBody(nil)
+		rsp := &Friends.CancelWatchingRsp{
+			BusinessUsername: req.BusinessUsername,
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
