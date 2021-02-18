@@ -193,12 +193,12 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(6, 1)] = nsqClient.HandleSync //6-1 发起同步请求
 
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 1)] = nsqClient.HandleFriendRequest       //3-1 好友请求发起与处理
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 5)] = nsqClient.HandleDeleteFriend        //3-5 好友请求发起与处理
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 6)] = nsqClient.HandleUpdateFriend        //3-6 刷新好友资料
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 8)] = nsqClient.HandleGetFriends          //3-8 增量同步好友列表
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 9)] = nsqClient.HandleWatchRequest        //3-9 关注商户
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 10)] = nsqClient.HandleCancelWatchRequest //3-11 取消关注商户
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 1)] = nsqClient.HandleFriendRequest   //3-1 好友请求发起与处理
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 5)] = nsqClient.HandleDeleteFriend    //3-5 好友请求发起与处理
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 6)] = nsqClient.HandleUpdateFriend    //3-6 刷新好友资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 8)] = nsqClient.HandleGetFriends      //3-8 增量同步好友列表
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 9)] = nsqClient.HandleWatching        //3-9 关注商户
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(3, 10)] = nsqClient.HandleCancelWatching //3-11 取消关注商户
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 1)] = nsqClient.HandleCreateTeam          //4-1 创建群组
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(4, 2)] = nsqClient.HandleGetTeamMembers      //4-2 获取群组成员

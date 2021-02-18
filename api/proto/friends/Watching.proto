@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package cloud.lianmi.im.friends;
+option go_package = "github.com/lianmi/servers/api/proto/friends";
+
+//关注商户
+//对某商户发起关注与处理指令
+//API类型-API
+message WatchingReq {
+    //商户账号
+    //是否必填-是
+    string businessUsername = 1;
+}
+
+//
+message WatchingRsp {
+    bool isOK = 1;
+}

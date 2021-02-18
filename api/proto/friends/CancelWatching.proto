@@ -6,16 +6,15 @@ option go_package = "github.com/lianmi/servers/api/proto/friends";
 //取消关注商户
 //对某商户发起取消关注指令
 //API类型-API
-message CancelWatchRequestReq {
+message CancelWatchingReq {
     //商户账号
     //是否必填-是
-    string username = 1;
+    string businessUsername = 1;
     //附言
     //是否必填-否
     string ps = 2;
 }
 
-//只包含状态码，无内容载体
-message CancelWatchRequestRsp {
-
+message CancelWatchingRsp {
+  bool isOK = 1;
 }

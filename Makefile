@@ -101,7 +101,7 @@ dart:
 								api/proto/auth/ValidCode.proto
 
 	rm -f dart_out/api/proto/friends/*.dart
-	protoc --dart_out=dart_out api/proto/friends/CancelWatchRequest.proto \
+	protoc --dart_out=dart_out api/proto/friends/CancelWatching.proto \
 								api/proto/friends/DeleteFriend.proto \
 								api/proto/friends/FriendChange.proto \
 								api/proto/friends/FriendRequest.proto \
@@ -111,7 +111,7 @@ dart:
 								api/proto/friends/SyncFriends.proto \
 								api/proto/friends/SyncUpdateFriendEvent.proto \
 								api/proto/friends/UpdateFriend.proto \
-								api/proto/friends/WatchRequest.proto
+								api/proto/friends/Watching.proto
 
 	rm -f dart_out/api/proto/global/*.dart
 	protoc --dart_out=dart_out api/proto/global/Global.proto

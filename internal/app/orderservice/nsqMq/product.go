@@ -642,6 +642,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//7-6 已有商品的编辑更新事件
 		go func() {
 			//推送通知给关注的用户
 			watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
@@ -649,9 +650,9 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 				//7-6 已有商品的编辑更新事件
 				updateProductEventRsp := &Order.UpdateProductEventRsp{
-					Username: username,
-					Product:  req.Product,
-					TimeAt:   uint64(time.Now().UnixNano() / 1e6),
+					BusinessUsername: username,
+					Product:          req.Product,
+					TimeAt:           uint64(time.Now().UnixNano() / 1e6),
 				}
 				productData, _ := proto.Marshal(updateProductEventRsp)
 
@@ -778,7 +779,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			nc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
 		}
 
-		//推送通知给关注的用户
+		//7-7 商品下架事件 推送通知给关注的用户
 		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
 		for _, watchingUser := range watchingUsers {
 			//7-7 商品下架事件

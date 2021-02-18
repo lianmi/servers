@@ -30,6 +30,7 @@ const (
 	AddFriendError         = 2020103 //加好友出错
 	AddFriendExpireError   = 2020104 //好友请求已超过有效期
 	FollowIsBlackUserError = 2020105 //用户已被对方拉黑,不能关注
+	IsNotBusinessUserError = 2020106 //不是商户类型,不能关注
 
 	TeamStatusError                        = 2040101 //群组状态错误
 	TeamMembersLimitError                  = 2040102 //用户拥有的群的总数量是否已经达到上限
@@ -163,6 +164,7 @@ var LmcErrors = map[int]string{
 	AddFriendError:         "加好友出错",
 	AddFriendExpireError:   "好友请求已超过有效期",
 	FollowIsBlackUserError: "用户已被对方拉黑,不能关注",
+	IsNotBusinessUserError: "不是商户类型,不能关注",
 
 	TeamStatusError:                        "群组状态错误",
 	TeamMembersLimitError:                  "用户拥有的群的总数量是否已经达到上限",

@@ -9,7 +9,7 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 //响应参数
 message UpdateProductEventRsp {
     //商户用户账号id
-    string username=1;
+    string businessUsername=1;
     //商品详情
     Product product=2;
     //更新时间

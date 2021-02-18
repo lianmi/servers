@@ -1204,7 +1204,7 @@ COMPLETE:
 /*
 3-9 关注商户
 */
-func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
+func (nc *NsqClient) HandleWatching(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
@@ -1215,7 +1215,7 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	nc.logger.Info("HandleWatchRequest start...",
+	nc.logger.Info("HandleWatching start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1226,7 +1226,7 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	nc.logger.Debug("WatchRequest",
+	nc.logger.Debug("Watching",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1238,44 +1238,57 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 	body := msg.GetContent()
 
 	//解包body
-	req := &Friends.WatchRequestReq{}
+	req := &Friends.WatchingReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("WatchRequest body",
-			zap.String("username", req.GetUsername()),
-			zap.String("ps", req.GetPs()),
-			zap.String("source", req.GetSource()),
+		nc.logger.Debug("Watching body",
+			zap.String("BusinessUsername", req.BusinessUsername),
 		)
 
+		//判断是否是商户账号
+		if userType, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.BusinessUsername), "UserType")); err != nil {
+			nc.logger.Error("redisConn HGET Error", zap.Error(err))
+			errorCode = LMCError.RedisError
+
+			goto COMPLETE
+		} else {
+			if userType == int(User.UserType_Ut_Business) {
+				nc.logger.Debug("User is not business type", zap.String("BusinessUsername", req.BusinessUsername))
+				errorCode = LMCError.IsNotBusinessUserError
+				goto COMPLETE
+			}
+
+		}
 		//判断是否封号，是否存在
-		if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetUsername()), "State")); err != nil {
+		if state, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.BusinessUsername), "State")); err != nil {
 			nc.logger.Error("redisConn HGET Error", zap.Error(err))
 			errorCode = LMCError.RedisError
 
 			goto COMPLETE
 		} else {
 			if state == LMCommon.UserBlocked {
-				nc.logger.Debug("User is blocked", zap.String("Username", req.GetUsername()))
+				nc.logger.Debug("User is blocked", zap.String("BusinessUsername", req.BusinessUsername))
 				errorCode = LMCError.UserIsBlockedError
 				goto COMPLETE
 			}
+
 		}
 
 		//判断是否被对方拉黑
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.GetUsername()), username); err == nil {
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("BlackList:%s:1", req.BusinessUsername), username); err == nil {
 			if reply != nil {
-				nc.logger.Warn("用户已被对方拉黑,不能关注", zap.String("Username", req.GetUsername()))
+				nc.logger.Warn("用户已被对方拉黑,不能关注", zap.String("Username", req.BusinessUsername))
 				errorCode = LMCError.FollowIsBlackUserError
 				goto COMPLETE
 			}
 		}
 
 		//在用户的关注有序列表里增加此商户
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Watching:%s", username), time.Now().UnixNano()/1e6, req.BusinessUsername); err != nil {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
@@ -1285,7 +1298,7 @@ func (nc *NsqClient) HandleWatchRequest(msg *models.Message) error {
 			time.Now().UnixNano()/1e6)
 
 		//在商户的被关注有序列表里增加此用户
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.GetUsername()), time.Now().UnixNano()/1e6, username); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("BeWatching:%s", req.BusinessUsername), time.Now().UnixNano()/1e6, username); err != nil {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 	}
@@ -1317,7 +1330,7 @@ COMPLETE:
 /*
 3-10 取消关注商户
 */
-func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
+func (nc *NsqClient) HandleCancelWatching(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
@@ -1328,7 +1341,7 @@ func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	// token := msg.GetJwtToken()
 	deviceID := msg.GetDeviceID()
 
-	nc.logger.Info("HandleCancelWatchRequest start...",
+	nc.logger.Info("HandleCancelWatching start...",
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
@@ -1339,7 +1352,7 @@ func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
-	nc.logger.Debug("CancelWatchRequest",
+	nc.logger.Debug("CancelWatching",
 		zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
@@ -1351,25 +1364,24 @@ func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 	body := msg.GetContent()
 
 	//解包body
-	req := &Friends.WatchRequestReq{}
+	req := &Friends.CancelWatchingReq{}
 	if err := proto.Unmarshal(body, req); err != nil {
 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
 		errorCode = LMCError.ProtobufUnmarshalError
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("CancelWatchRequest body",
-			zap.String("username", req.GetUsername()),
-			zap.String("ps", req.GetPs()),
-			zap.String("source", req.GetSource()),
+		nc.logger.Debug("CancelWatching body",
+			zap.String("BusinessUsername", req.BusinessUsername),
 		)
 
 		//在用户的关注有序列表里移除此商户
-		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), req.GetUsername()); err != nil {
+		if _, err = redisConn.Do("ZREM", fmt.Sprintf("Watching:%s", username), req.BusinessUsername); err != nil {
 			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
+
 		//增加用户的取消关注有序列表
-		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername()); err != nil {
+		if _, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.BusinessUsername); err != nil {
 			nc.logger.Error("ZADD Error", zap.Error(err))
 		}
 		//更新redis的sync:{用户账号} watchAt 时间戳
@@ -1377,8 +1389,9 @@ func (nc *NsqClient) HandleCancelWatchRequest(msg *models.Message) error {
 			fmt.Sprintf("sync:%s", username),
 			"watchAt",
 			time.Now().UnixNano()/1e6)
+
 		//在商户的关注有序列表里移除此用户
-		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.GetUsername()), username); err != nil {
+		if _, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", req.BusinessUsername), username); err != nil {
 			nc.logger.Error("ZREM Error", zap.Error(err))
 		}
 
