@@ -796,12 +796,20 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
-		msg.FillBody(nil)
+		rsp := &Order.SoldoutProductRsp{
+			IsOk: true,
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
-		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
-		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
-		msg.FillBody(nil)
+		// errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		// msg.SetErrorMsg([]byte(errorMsg))        //错误提示
+		// msg.FillBody(nil)
+		rsp := &Order.SoldoutProductRsp{
+			IsOk: false,
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	}
 
 	//处理完成，向dispatcher发送

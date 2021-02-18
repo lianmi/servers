@@ -11,5 +11,5 @@ message SoldoutProductReq {
 
 //响应参数
 message SoldoutProductRsp {
-    
+    bool isOk =1;
 }
