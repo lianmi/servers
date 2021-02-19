@@ -6,7 +6,7 @@ package common
 import "time"
 
 const (
-	IsUseCa = false //mqtt服务器使用ca, 开发阶段不加密
+	IsUseCa = true //mqtt服务器使用ca, 开发阶段不加密
 )
 
 //短信校验码一天总量100条

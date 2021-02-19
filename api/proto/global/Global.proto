@@ -234,7 +234,13 @@ enum LotteryType {
     
 }
 
+//商品上下架状态
+enum OnSellState {
+    OnSellinit =0; //未上架
+    OnSelling =1; //上架中
+    OnSellOut =2; //已下架
 
+}
 
 //交易类型枚举(钱包资产的收支)： 
 enum TransactionType {
