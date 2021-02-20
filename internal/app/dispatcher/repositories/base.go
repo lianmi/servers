@@ -51,6 +51,9 @@ type LianmiRepository interface {
 	// 检测用户是否可以登陆
 	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string)
 
+	//  使用手机及短信验证码登录
+	LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string)
+
 	//更新用户
 	UpdateUser(username string, user *models.User) error
 

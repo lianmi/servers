@@ -47,8 +47,8 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 	errorCode := 200
 
 	rsp := &Order.QueryProductsRsp{
-		Products:        make([]*Order.Product, 0),
-		SoldoutProducts: make([]string, 0),
+		Products:        make([]*Order.Product, 0), //当前上架中的商品
+		SoldoutProducts: make([]string, 0),         //当前下架的商品
 		TimeAt:          uint64(time.Now().UnixNano() / 1e6),
 	}
 
@@ -111,6 +111,7 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 
 			oProduct := &Order.Product{
 				ProductId:         productInfo.ProductID,                       //商品ID
+				BusinessUsername:  productInfo.BusinessUsername,                //属于哪个商户的
 				Expire:            uint64(productInfo.Expire),                  //商品过期时间
 				ProductName:       productInfo.ProductName,                     //商品名称
 				ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举

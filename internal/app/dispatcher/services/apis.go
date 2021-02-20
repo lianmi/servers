@@ -37,6 +37,9 @@ type LianmiApisService interface {
 	//检测用户登录
 	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string)
 
+	//  使用手机及短信验证码登录
+	LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string)
+
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
 	// 判断手机号码是否已存在
@@ -412,6 +415,12 @@ func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role 
 func (s *DefaultLianmiApisService) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string) {
 
 	return s.Repository.CheckUser(isMaster, username, password, deviceID, os, clientType)
+}
+
+//  使用手机及短信验证码登录
+func (s *DefaultLianmiApisService) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string) {
+
+	return s.Repository.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType)
 }
 
 func (s *DefaultLianmiApisService) ExistUserByName(username string) bool {

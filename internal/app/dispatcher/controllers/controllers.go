@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	gin_jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -27,10 +28,10 @@ const (
 
 // Login form structure.
 type Login struct {
-	Mobile          string `form:"mobile" json:"mobile"`                        // 11位手机号 选填
-	Username        string `form:"username" json:"username"`                    //注册号，当mobile非空的时候，选填
-	Password        string `form:"password" json:"password" binding:"required"` //密码 ，必填
-	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`   //短信校验码，必填
+	Mobile          string `form:"mobile" json:"mobile"`      // 11位手机号 选填
+	Username        string `form:"username" json:"username"`  //注册号，当mobile非空的时候，选填
+	Password        string `form:"password" json:"password" ` //密码 Username非空时必填
+	SmsCode         string `form:"smscode" json:"smscode" `   //短信校验码，Mobile非空时必填
 	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
 	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
 	Os              string `form:"os" json:"os" binding:"required"`
@@ -46,8 +47,6 @@ type LoginResp struct {
 	AuditResult string `form:"audit_result" json:"audit_result"` // 商户：  当state=3，此字段是审核的文字报告，如审核中，地址不符，照片模糊等
 	JwtToken    string `form:"jwt_token" json:"jwt_token"`       // 令牌
 }
-
-
 
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token
@@ -129,32 +128,31 @@ func CreateInitControllersFn(
 				}
 				var err error
 				isMaster := loginVals.IsMaster
-				smscode := loginVals.SmsCode
-				mobile := loginVals.Mobile
-				username := loginVals.Username
-				password := loginVals.Password
-				deviceID := loginVals.DeviceID
+				smscode := strings.TrimSpace(loginVals.SmsCode)
+				mobile := strings.TrimSpace(loginVals.Mobile)
+				username := strings.TrimSpace(loginVals.Username)
+				password := strings.TrimSpace(loginVals.Password)
+				deviceID := strings.TrimSpace(loginVals.DeviceID)
 				clientType := loginVals.ClientType
-				os := loginVals.Os
+				os := strings.TrimSpace(loginVals.Os)
 
 				pc.logger.Debug("Authenticator ...",
 					zap.String("mobile", mobile),
 					zap.String("username", username),
 					zap.String("password", password),
 					zap.String("smscode", smscode),
+					zap.String("deviceID", deviceID),
+					zap.Int("clientType", clientType),
+					zap.String("os", os),
 				)
-
-				if smscode == "" {
-					pc.logger.Error("SmsCode is empty")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
 
 				if mobile == "" && username == "" {
 					pc.logger.Error("Mobile and Username are both empty")
 					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
-
-				if mobile != "" && username == "" {
+				} else if mobile != "" && smscode == "" {
+					pc.logger.Error("SmsCode is empty")
+					return "", gin_jwt_v2.ErrMissingLoginValues
+				} else if mobile != "" && username == "" {
 					//不是手机
 					if len(mobile) != 11 {
 						pc.logger.Warn("Mobile error", zap.Int("len", len(mobile)))
@@ -167,56 +165,58 @@ func CreateInitControllersFn(
 						pc.logger.Warn("Mobile Is not Digit")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
-
 					username, err = pc.service.GetUsernameByMobile(mobile)
 					if err != nil {
 						pc.logger.Warn("GetUsernameByMobile error")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
+
+					//如果最终username为空则未注册
+					if username == "" {
+						pc.logger.Warn("username get error")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
+					//检测校验码是否正确
+					if !pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
+						pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
+
+						return &models.UserRole{
+							UserName: username,
+							DeviceID: deviceID,
+						}, nil
+
+					} else {
+						pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
+					}
+
 				} else if mobile == "" && username != "" {
+					if password == "" {
+						pc.logger.Error("password is empty")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
 					mobile, err = pc.service.GetMobileByUsername(username)
 					if err != nil {
 						pc.logger.Warn("GetMobileByUsername error")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
-				}
 
-				//如果最终username为空则未注册
-				if username == "" {
-					pc.logger.Warn("username get error")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
+					if mobile == "" {
+						pc.logger.Warn("mobile get error")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
+					// 检测用户是否可以登录, true-可以允许登录
+					if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
+						pc.logger.Debug("Authenticator , CheckUser .... true")
 
-				if mobile == "" {
-					pc.logger.Warn("mobile get error")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
+						return &models.UserRole{
+							UserName: username,
+							DeviceID: deviceID,
+						}, nil
 
-				if password == "" {
-					pc.logger.Warn("password get error")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
+					} else {
+						pc.logger.Warn("Authenticator , CheckUser .... false")
+					}
 
-				//检测校验码是否正确
-				if !pc.service.CheckSmsCode(mobile, smscode) {
-					pc.logger.Error("CheckSmsCode, SmsCode is wrong")
-					// code = codes.ErrWrongSmsCode
-					//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
-					// RespData(c, http.StatusOK, code, "SmsCode is wrong")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				}
-
-				// 检测用户是否可以登录, true-可以允许登录
-				if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
-					pc.logger.Debug("Authenticator , CheckUser .... true")
-
-					return &models.UserRole{
-						UserName: username,
-						DeviceID: deviceID,
-					}, nil
-
-				} else {
-					pc.logger.Warn("Authenticator , CheckUser .... false")
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication

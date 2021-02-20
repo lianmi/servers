@@ -332,6 +332,101 @@ func (s *MysqlLianmiRepository) GetUserRoles(where interface{}) []*models.Role {
 	return roles
 }
 
+//  使用手机及短信验证码登录
+func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string) {
+	s.logger.Debug("LoginBySmsode start...")
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	where := models.User{
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
+	}
+	var user models.User
+
+	err = s.db.Model(&models.User{}).Where(&where).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Error("错误：用户手机不存在")
+			return false, ""
+		} else {
+
+			s.logger.Error("db err", zap.Error(err))
+			return false, ""
+
+		}
+	}
+
+	if user.State == 2 {
+		s.logger.Error("用户被封号")
+		return false, ""
+	}
+
+	//查询当前在线的主设备
+	deviceOnlineKey := fmt.Sprintf("devices:%s", username)
+	curOnlineDevieID, _ := redis.String(redisConn.Do("GET", deviceOnlineKey))
+
+	if curOnlineDevieID != "" {
+		if curOnlineDevieID == deviceID {
+			s.logger.Debug("当前设备id与即将登录的设备相同")
+
+		} else {
+
+			//取出当前设备的os， clientType， logonAt
+			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
+			isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
+			s.logger.Debug("当前在线设备id与即将登录的设备不同",
+				zap.Bool("isMaster", isMaster),
+				zap.String("username", username),
+				zap.String("当前在线curOnlineDevieID", curOnlineDevieID),
+				zap.String("即将登录deviceID", deviceID),
+				zap.String("curJwtToken", curJwtToken),
+				zap.String("curOs", curOs),
+				zap.Int("curClientType", curClientType),
+				zap.Uint64("curLogonAt", curLogonAt))
+
+			//删除当前主设备的redis缓存
+			_, err = redisConn.Do("DEL", curDeviceHashKey)
+
+		}
+	}
+	_, err = redisConn.Do("SET", deviceOnlineKey, deviceID)
+
+	deviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID) //创建主设备的哈希表, index为1
+
+	_, err = redisConn.Do("HMSET",
+		deviceHashKey,
+		"username", username,
+		"deviceid", deviceID,
+		"ismaster", 1,
+		"usertype", user.UserType,
+		"clientType", clientType,
+		"os", os,
+		"logonAt", uint64(time.Now().UnixNano()/1e6),
+	)
+
+	if err != nil {
+		s.logger.Error("HMSET deviceListKey err", zap.Error(err))
+		return false, ""
+
+	} else {
+		s.logger.Debug("HMSET deviceListKey success")
+	}
+
+	s.logger.Debug("LoginBySmscode end")
+	if deviceID == curOnlineDevieID {
+		return true, ""
+	} else {
+		return true, curOnlineDevieID
+	}
+}
+
 /*
 登录处理
 1. 当主设备登录成功后：
@@ -776,7 +871,6 @@ func (s *MysqlLianmiRepository) CheckSmsCode(mobile, smscode string) bool {
 			}
 		}
 	}
-	return false
 
 }
 

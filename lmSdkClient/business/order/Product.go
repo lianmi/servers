@@ -381,8 +381,6 @@ func UpdateProduct() error {
 
 	req := &Order.UpdateProductReq{
 		Product:   oProduct,
-		OrderType: Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
-		Expire:    0,
 	}
 
 	content, _ := proto.Marshal(req)

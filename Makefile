@@ -130,7 +130,7 @@ dart:
 							   api/proto/msg/SyncOfflineSysMsgsEvent.proto \
 							   api/proto/msg/SyncSendCancelMsgEvent.proto \
 							   api/proto/msg/SyncSendMsgEvent.proto \
-							   api/proto/msg/grpc.proto
+							   api/proto/msg/Grpc.proto
 
 	rm -f dart_out/api/proto/order/*.dart
 	protoc --dart_out=dart_out api/proto/order/AddProduct.proto \
@@ -152,7 +152,7 @@ dart:
 								api/proto/order/SyncWatchEvent.proto \
 								api/proto/order/UpdateProduct.proto \
 								api/proto/order/UpdateProductEvent.proto \
-								api/proto/order/grpcOrder.proto
+								api/proto/order/GrpcOrder.proto
 
 	rm -f dart_out/api/proto/syn/*.dart
 	protoc --dart_out=dart_out api/proto/syn/Sync.proto \
@@ -220,7 +220,7 @@ dart:
 								api/proto/wallet/Wallet.proto \
 								api/proto/wallet/WithDraw.proto \
 								api/proto/wallet/WithDrawBankCompleteEvent.proto \
-								api/proto/wallet/grpc.proto
+								api/proto/wallet/Grpc.proto
 
 
 .PHONY: clear

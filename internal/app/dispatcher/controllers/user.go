@@ -337,6 +337,31 @@ func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, dev
 
 }
 
+//  使用手机及短信验证码登录
+func (pc *LianmiApisController) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) bool {
+
+	isPass, curOnlineDevieID := pc.service.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType)
+
+	pc.logger.Debug("LianmiApisController:LoginBySmscode", zap.String("curOnlineDevieID", curOnlineDevieID))
+	if curOnlineDevieID != "" {
+		//向当前主设备发出踢下线消息
+		//构造负载数据
+		kickedEventRsp := &Auth.KickedEventRsp{
+			Reason:  Auth.KickReason_SamePlatformKick,    //不允许同一个帐号在多个主设备同时登录
+			TimeTag: uint64(time.Now().UnixNano() / 1e6), //必填，用来对比离线后上次被踢的时间戳
+		}
+		data, _ := proto.Marshal(kickedEventRsp)
+
+		if err := pc.SendMessagetoNsq(username, curOnlineDevieID, data, 2, 5); err != nil {
+			pc.logger.Error("Failed to Send Kicked Msg To current onlinee Device to ProduceChannel", zap.Error(err))
+		} else {
+			pc.logger.Debug("向当前主设备发出踢下线消息", zap.String("当前主设备curOnlineDevieID", curOnlineDevieID))
+		}
+	}
+	return isPass
+
+}
+
 func (pc *LianmiApisController) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 	return pc.service.SaveUserToken(username, deviceID, token, expire)
 }
