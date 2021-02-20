@@ -342,7 +342,7 @@ func (pc *LianmiApisController) LoginBySmscode(username, mobile, smscode, device
 
 	isPass, curOnlineDevieID := pc.service.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType)
 
-	pc.logger.Debug("LianmiApisController:LoginBySmscode", zap.String("curOnlineDevieID", curOnlineDevieID))
+	pc.logger.Debug("LianmiApisController:LoginBySmscode", zap.Bool("isPass", isPass), zap.String("curOnlineDevieID", curOnlineDevieID))
 	if curOnlineDevieID != "" {
 		//向当前主设备发出踢下线消息
 		//构造负载数据

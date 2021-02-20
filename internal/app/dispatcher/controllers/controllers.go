@@ -177,14 +177,13 @@ func CreateInitControllersFn(
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
 					//检测校验码是否正确
-					if !pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
+					if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
 						pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
 
 						return &models.UserRole{
 							UserName: username,
 							DeviceID: deviceID,
 						}, nil
-
 					} else {
 						pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
 					}
