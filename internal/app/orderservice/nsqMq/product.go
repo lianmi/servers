@@ -300,10 +300,11 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		req.Product.ProductId = productId
 		rsp := &Order.AddProductRsp{
 			ProductID: productId,
+			TimeAt:    uint64(time.Now().UnixNano() / 1e6),
 		}
 		data, _ = proto.Marshal(rsp)
 
-		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", rsp.ProductID))
+		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", req.Product.ProductId))
 
 		//从redis里获取当前用户信息
 		userKey := fmt.Sprintf("userData:%s", username)
@@ -668,7 +669,11 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		msg.FillBody(nil)
+		rsp := &Order.UpdateProductRsp{
+			TimeAt: uint64(time.Now().UnixNano() / 1e6),
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
 		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
@@ -727,7 +732,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		nc.logger.Debug("SoldoutProduct  payload",
+		nc.logger.Debug("SoldoutProduct payload",
 			zap.String("ProductId", req.ProductID),
 		)
 
@@ -799,19 +804,14 @@ COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
 		rsp := &Order.SoldoutProductRsp{
-			IsOk: true,
+			TimeAt: uint64(time.Now().UnixNano() / 1e6),
 		}
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
 	} else {
-		// errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
-		// msg.SetErrorMsg([]byte(errorMsg))        //错误提示
-		// msg.FillBody(nil)
-		rsp := &Order.SoldoutProductRsp{
-			IsOk: false,
-		}
-		data, _ := proto.Marshal(rsp)
-		msg.FillBody(data)
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
+		msg.FillBody(nil)
 	}
 
 	//处理完成，向dispatcher发送

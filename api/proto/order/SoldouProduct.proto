@@ -11,5 +11,6 @@ message SoldoutProductReq {
 
 //响应参数
 message SoldoutProductRsp {
-    bool isOk =1;
+    //更新时间
+   fixed64 timeAt = 1;
 }

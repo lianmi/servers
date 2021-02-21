@@ -7,6 +7,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
+	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/bingjian-zhu/gin-vue-admin v0.0.0-20200506131022-dcbf95f91663
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -27,11 +28,13 @@ require (
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-contrib/zap v0.0.0-20190528085758-3cc18cd8fce3
 	github.com/gin-gonic/gin v1.4.0
+	github.com/go-flutter-desktop/hover v0.46.2 // indirect
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/go-redis/redis v6.14.2+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/google/wire v0.3.0
 	github.com/gookit/color v1.3.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
@@ -60,10 +63,10 @@ require (
 	github.com/shopspring/decimal v1.2.0
 	github.com/smartwalle/alipay/v3 v3.1.5
 	github.com/smartwalle/xid v1.0.6
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.4.0
-	github.com/stretchr/testify v1.6.1
+	github.com/spf13/viper v1.7.0
+	github.com/stretchr/testify v1.7.0
 	github.com/swaggo/gin-swagger v1.3.0
 	github.com/swaggo/swag v1.5.1
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
@@ -72,15 +75,18 @@ require (
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	github.com/unrolled/secure v1.0.8
 	github.com/urfave/cli v1.22.1
+	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect
+	golang.org/x/sys v0.0.0-20210220050731-9a76102bfb43 // indirect
 	golang.org/x/tools v0.0.0-20200903185744-af4cc2cd812e // indirect
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.0.3
 	gorm.io/gorm v1.20.7
 )

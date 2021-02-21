@@ -15,4 +15,7 @@ message AddProductReq {
 message AddProductRsp {
     //商品ID
     string productID=1;
+
+    //上架时间
+    fixed64 timeAt = 2;
 }
