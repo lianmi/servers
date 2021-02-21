@@ -102,6 +102,11 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 					continue
 				}
 			}
+			nc.logger.Debug("ProductInfo",
+				zap.String("ProductId", productInfo.ProductID),
+				zap.String("BusinessUsername", productInfo.BusinessUsername),
+				zap.String("ProductName", productInfo.ProductName),
+			)
 
 			var thumbnail string
 			if productInfo.ShortVideo != "" {
