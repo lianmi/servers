@@ -988,8 +988,8 @@ func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.Sy
 				rsp.AddProducts = append(rsp.AddProducts, oProduct)
 			}
 
-			//下架的商品ID
-			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("RemoveProducts:%s", watchingUser), productAt, "+inf"))
+			//获取商户的下架商品ID soldoutProducts
+			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("SoldoutProducts:%s", watchingUser), productAt, "+inf"))
 			for _, removeProductID := range removeProductIDs {
 				rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
 			}

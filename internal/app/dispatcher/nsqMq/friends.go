@@ -1256,7 +1256,7 @@ func (nc *NsqClient) HandleWatching(msg *models.Message) error {
 
 			goto COMPLETE
 		} else {
-			if userType == int(User.UserType_Ut_Business) {
+			if userType != int(User.UserType_Ut_Business) {
 				nc.logger.Debug("User is not business type", zap.String("BusinessUsername", req.BusinessUsername))
 				errorCode = LMCError.IsNotBusinessUserError
 				goto COMPLETE
