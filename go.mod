@@ -33,7 +33,7 @@ require (
 	github.com/go-redis/redis v6.14.2+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
-	github.com/gomodule/redigo v1.8.4
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/google/wire v0.3.0
 	github.com/gookit/color v1.3.6

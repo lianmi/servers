@@ -440,6 +440,30 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			goto COMPLETE
 		}
 
+		//7-5 新商品上架事件 推送通知给关注此商户的用户
+
+		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+		if err != nil {
+			nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
+			return err
+		} else {
+			nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
+		}
+		for _, watchingUser := range watchingUsers {
+			nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
+
+			addProductEventRsp := &Order.AddProductEventRsp{
+				BusinessUsername: username,  //商户用户账号id
+				ProductID:        productId, //商品id
+				TimeAt:           uint64(time.Now().UnixNano() / 1e6),
+			}
+			productData, _ := proto.Marshal(addProductEventRsp)
+
+			//向所有关注了此商户的用户推送 7-5 新商品上架事件
+			// time.Sleep(30 * time.Millisecond)
+			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+		}
+
 	}
 
 COMPLETE:
@@ -546,32 +570,6 @@ COMPLETE:
 	} else {
 		nc.logger.Error("7-2 回包 Failed to send message to ProduceChannel", zap.Error(err))
 	}
-
-	//7-5 新商品上架事件 推送通知给关注此商户的用户
-	go func() {
-
-		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-		if err != nil {
-			nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
-			return
-		} else {
-			nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
-		}
-		for _, watchingUser := range watchingUsers {
-			nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
-
-			addProductEventRsp := &Order.AddProductEventRsp{
-				BusinessUsername: username,  //商户用户账号id
-				ProductID:        productId, //商品id
-				TimeAt:           uint64(time.Now().UnixNano() / 1e6),
-			}
-			productData, _ := proto.Marshal(addProductEventRsp)
-
-			//向所有关注了此商户的用户推送 7-5 新商品上架事件
-			time.Sleep(30 * time.Millisecond)
-			nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
-		}
-	}()
 
 	return nil
 }
@@ -784,31 +782,28 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		//7-6 已有商品的编辑更新事件
-		go func() {
-			//推送通知给关注此商户的用户
-			watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-			if err != nil {
-				nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
-				return
-			} else {
-				nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
+		//推送通知给关注此商户的用户
+		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+		if err != nil {
+			nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
+			return err
+		} else {
+			nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
+		}
+		for _, watchingUser := range watchingUsers {
+			nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
+
+			//7-6 已有商品的编辑更新事件
+			updateProductEventRsp := &Order.UpdateProductEventRsp{
+				BusinessUsername: username,
+				ProductID:        req.Product.ProductId,
+				TimeAt:           uint64(time.Now().UnixNano() / 1e6),
 			}
-			for _, watchingUser := range watchingUsers {
-				nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
+			productData, _ := proto.Marshal(updateProductEventRsp)
 
-				//7-6 已有商品的编辑更新事件
-				updateProductEventRsp := &Order.UpdateProductEventRsp{
-					BusinessUsername: username,
-					ProductID:        req.Product.ProductId,
-					TimeAt:           uint64(time.Now().UnixNano() / 1e6),
-				}
-				productData, _ := proto.Marshal(updateProductEventRsp)
-
-				//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
-				nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
-			}
-
-		}()
+			//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
+			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
+		}
 
 	}
 
