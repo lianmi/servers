@@ -253,14 +253,6 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	// 判断businessUsername是否是商户
-
-	//用户类型 1-普通，2-商户
-	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
-		return nil, errors.Wrap(err, "此用户非商户类型")
-	}
-
 	total := new(int64) //总页数
 	pageIndex := int(req.Page)
 	pageSize := int(req.Limit)
