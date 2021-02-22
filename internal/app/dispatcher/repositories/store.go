@@ -179,6 +179,16 @@ func (s *MysqlLianmiRepository) UpdateStore(username string, store *models.Store
 
 func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, error) {
 	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return nil, errors.Wrap(err, "此用户非商户类型")
+	}
 	p := new(models.Store)
 	if err = s.db.Model(p).Where(&models.Store{
 		BusinessUsername: businessUsername,
@@ -186,9 +196,6 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
 		return nil, errors.Wrapf(err, "Query error[BusinessUsername=%s]", businessUsername)
 	}
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
 
 	//获取店铺头像
 	avatar, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "Avatar"))
@@ -242,6 +249,18 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error) {
 
 	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return nil, errors.Wrap(err, "此用户非商户类型")
+	}
+
 	total := new(int64) //总页数
 	pageIndex := int(req.Page)
 	pageSize := int(req.Limit)
@@ -251,9 +270,6 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 
 	columns := []string{"*"}
 	orderBy := "id desc"
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
 
 	var list []*User.Store
 	var mod User.Store
@@ -366,6 +382,14 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
+
 	//判断商户的注册id的合法性以及是否封禁等
 	userData := new(models.UserBase)
 
@@ -434,13 +458,22 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 //获取某个用户对所有店铺点赞情况, UI会保存在本地表里,  UI主动发起同步
 func (s *MysqlLianmiRepository) UserLikes(username string) (*User.UserLikesResp, error) {
 	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return nil, errors.Wrap(err, "此用户非商户类型")
+	}
+
 	var businessUsers []string
 	rsp := &User.UserLikesResp{
 		Username: username,
 	}
-
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
 
 	userlikeKey := fmt.Sprintf("UserLike:%s", username)
 
@@ -460,14 +493,22 @@ func (s *MysqlLianmiRepository) UserLikes(username string) (*User.UserLikesResp,
 func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.StoreLikesResp, error) {
 	s.logger.Debug("StoreLikes start ...")
 	var err error
-	var users []string
-	rsp := &User.StoreLikesResp{
-		BusinessUsername: businessUsername,
-	}
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return nil, errors.Wrap(err, "此用户非商户类型")
+	}
+
+	var users []string
+	rsp := &User.StoreLikesResp{
+		BusinessUsername: businessUsername,
+	}
 	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
 	s.logger.Debug("StoreLikes", zap.String("storelikeKey", storelikeKey))
 
@@ -496,6 +537,14 @@ func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (in
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return 0, errors.Wrap(err, "此用户非商户类型")
+	}
 
 	//增加到此用户的店铺点赞列表
 	userlikeKey := fmt.Sprintf("UserLike:%s", username)
@@ -528,6 +577,14 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return 0, errors.Wrap(err, "此用户非商户类型")
+	}
+
 	userlikeKey := fmt.Sprintf("UserLike:%s", username)
 	if _, err = redisConn.Do("SREM", userlikeKey, businessUsername); err != nil {
 		s.logger.Error("SREM UserLike Error", zap.Error(err))
@@ -552,6 +609,18 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 
 //将点赞记录插入到UserLike表
 func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error {
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
+
 	userLike := &models.UserLike{
 		Username:         username,
 		BusinessUsername: businessUser,
@@ -568,6 +637,18 @@ func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error
 
 //将用户对店铺的点赞记录插入到StoreLike表
 func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) error {
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	if userType != 2 {
+		return errors.Wrap(err, "此用户非商户类型")
+	}
+
 	storeLike := &models.StoreLike{
 		BusinessUsername: businessUsername,
 		Username:         user,
@@ -585,6 +666,8 @@ func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) erro
 //获取各种彩票的开售及停售时刻
 func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
 	var err error
+
+	
 	lotterySaleTimesRsp := &Order.QueryLotterySaleTimesRsp{}
 
 	var lotterySaleTimes []*models.LotterySaleTime

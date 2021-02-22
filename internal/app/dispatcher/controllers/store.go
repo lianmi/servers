@@ -32,7 +32,7 @@ func (pc *LianmiApisController) GetStore(c *gin.Context) {
 
 	store, err := pc.service.GetStore(businessUsername)
 	if err != nil {
-		RespData(c, http.StatusOK, 500, err.Error())
+		RespData(c, http.StatusOK, 400, err.Error())
 		return
 	}
 
