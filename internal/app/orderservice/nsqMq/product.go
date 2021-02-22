@@ -561,6 +561,7 @@ COMPLETE:
 			productData, _ := proto.Marshal(addProductEventRsp)
 
 			//向所有关注了此商户的用户推送 7-5 新商品上架事件
+			time.Sleep(30 * time.Millisecond)
 			nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
 		}
 	}()
@@ -2749,11 +2750,19 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 
 	//向toUser发送
 	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
+	eDeviceID, err := redis.String(redisConn.Do("GET", deviceListKey))
+	if err != nil {
+		nc.logger.Error("Redis GET deviceListKey error", zap.Error(err), zap.String("deviceListKey", deviceListKey))
+		return err
+	}
 
 	targetMsg := &models.Message{}
 	curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-	curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+	curJwtToken, err := redis.String(redisConn.Do("GET", curDeviceKey))
+	if err != nil {
+		nc.logger.Error("Redis GET curDeviceKey error", zap.Error(err), zap.String("curDeviceKey", curDeviceKey))
+		return err
+	}
 	nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 	targetMsg.UpdateID()
@@ -2778,9 +2787,10 @@ func (nc *NsqClient) BroadcastSpecialMsgToAllDevices(data []byte, businessType, 
 	topic := "Order.Frontend"
 	rawData, _ := json.Marshal(targetMsg)
 	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic), zap.String("eDeviceID", eDeviceID))
 	} else {
 		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		return err
 	}
 
 	nc.logger.Info("Broadcast Msg To All Devices Succeed",
