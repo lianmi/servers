@@ -276,7 +276,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		if len(req.Product.ProductPics) >= 1 {
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[0].Large", req.Product.ProductPics[0].Large),
 			)
 
@@ -291,7 +291,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 		if len(req.Product.ProductPics) >= 2 {
 
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[1].Large", req.Product.ProductPics[1].Large),
 			)
 
@@ -303,7 +303,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		}
 
 		if len(req.Product.ProductPics) >= 3 {
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[2].Large", req.Product.ProductPics[2].Large),
 			)
 
@@ -316,7 +316,7 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 
 		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ShortVideo", req.Product.ShortVideo),
 			)
 			shortVideo = req.Product.ShortVideo
@@ -646,7 +646,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		//将3张图片的url还原为obj
 		if len(req.Product.ProductPics) >= 1 {
 
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[0].Large", req.Product.ProductPics[0].Large),
 			)
 
@@ -662,7 +662,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		if len(req.Product.ProductPics) >= 2 {
 
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[1].Large", req.Product.ProductPics[1].Large),
 			)
 
@@ -674,7 +674,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		}
 
 		if len(req.Product.ProductPics) >= 3 {
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ProductPics[2].Large", req.Product.ProductPics[2].Large),
 			)
 
@@ -687,7 +687,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 
 		//如果有短视频，则组装缩略图
 		if req.Product.ShortVideo != "" {
-			nc.logger.Debug("AddProduct payload",
+			nc.logger.Debug("将3张图片的url还原为obj",
 				zap.String("req.Product.ShortVideo", req.Product.ShortVideo),
 			)
 			shortVideo = req.Product.ShortVideo
