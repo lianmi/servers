@@ -1,6 +1,5 @@
 syntax = "proto3"; 
-//import "api/proto/global/Global.proto";
-import "api/proto/order/Product.proto"; 
+
 
 package cloud.lianmi.im.order;
 option go_package = "github.com/lianmi/servers/api/proto/order";
@@ -10,8 +9,8 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 message AddProductEventRsp {
     //商户用户账号id
     string businessUsername=1;
-    //商品详情
-    Product product=2;
+    //商品ID
+    string productID=2;
     //上架时间
     fixed64 timeAt=3;
 }

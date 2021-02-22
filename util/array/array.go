@@ -3,6 +3,7 @@ package array
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 
 	// "crypto/rand"
 	"encoding/binary"
@@ -22,6 +23,49 @@ import (
 )
 
 const base_format = "2006-01-02 15:04:05"
+
+func GetBetweenStr(str, start, end string) string {
+	n := strings.Index(str, start)
+	if n == -1 {
+		n = 0
+	}
+	str = string([]byte(str)[n:])
+	m := strings.Index(str, end)
+	if m == -1 {
+		m = len(str)
+	}
+	str = string([]byte(str)[:m])
+	return str
+}
+func Substr(str string, start, length int) string {
+	rs := []rune(str)
+	rl := len(rs)
+	end := 0
+
+	if start < 0 {
+		start = rl - 1 + start
+	}
+	end = start + length
+
+	if start > end {
+		start, end = end, start
+	}
+
+	if start < 0 {
+		start = 0
+	}
+	if start > rl {
+		start = rl
+	}
+	if end < 0 {
+		end = 0
+	}
+	if end > rl {
+		end = rl
+	}
+
+	return string(rs[start:end])
+}
 
 //截取字符串 start 起点下标 end 终点下标(不包括)
 func Substr2(str string, start int, end int) string {
