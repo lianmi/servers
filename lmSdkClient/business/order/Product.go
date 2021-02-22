@@ -11,10 +11,11 @@ import (
 	"github.com/lianmi/servers/lmSdkClient/business"
 	"github.com/lianmi/servers/util/array"
 
+	"log"
+
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
-	"log"
 )
 
 // 7-1  查询某个商户的所有商品信息
@@ -227,7 +228,7 @@ func AddProduct() error {
 	oProduct.DescPics = append(oProduct.DescPics, "products/0ffb4f3bc3d419affa6d8fe3efa7eb31.jpeg")
 
 	req := &Order.AddProductReq{
-		Product:         oProduct,
+		Product: oProduct,
 		// OrderType:       Global.OrderType(1), //1- 正常 2-任务抢单类型 3-竞猜类
 	}
 
@@ -298,9 +299,9 @@ func AddProduct() error {
 	} else {
 
 		log.Println("回包内容 AddProductRsp ---------------------")
-		log.Println("商品ID productID: ", rsq.ProductID)
+		log.Println("商品ID productID: ", rsq.Product.ProductId)
 		pkey := fmt.Sprintf("ProductID:%s", localUserName)
-		redisConn.Do("SET", pkey, rsq.ProductID)
+		redisConn.Do("SET", pkey, rsq.Product.ProductId)
 	}
 
 	log.Println("AddProduct is Done.")
@@ -380,7 +381,7 @@ func UpdateProduct() error {
 	oProduct.DescPics = append(oProduct.DescPics, "products/0ffb4f3bc3d419affa6d8fe3efa7eb31.jpeg")
 
 	req := &Order.UpdateProductReq{
-		Product:   oProduct,
+		Product: oProduct,
 	}
 
 	content, _ := proto.Marshal(req)
@@ -493,9 +494,8 @@ func SoldoutProduct() error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 	pkey := fmt.Sprintf("ProductID:%s", localUserName)
 	productId, _ := redis.String(redisConn.Do("GET", pkey))
-	req := &Order.SoldoutProductReq{
-		ProductID: productId,
-	}
+	req := &Order.SoldoutProductReq{}
+	req.ProductIDs = append(req.ProductIDs, productId)
 
 	content, _ := proto.Marshal(req)
 

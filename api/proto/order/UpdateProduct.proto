@@ -13,6 +13,9 @@ message UpdateProductReq {
 
 //响应参数
 message UpdateProductRsp {
+     //商品详情
+    Product product=1;
+    
     //更新时间
-    fixed64 timeAt=1;
+    fixed64 timeAt=2;
 }

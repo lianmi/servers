@@ -13,8 +13,8 @@ message AddProductReq {
 
 //响应参数
 message AddProductRsp {
-    //商品ID
-    string productID=1;
+   //商品详情
+    Product product=1;
 
     //上架时间
     fixed64 timeAt = 2;

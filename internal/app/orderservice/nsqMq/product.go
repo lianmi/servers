@@ -303,11 +303,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		//生成随机的商品id
 		productId = uuid.NewV4().String()
 		req.Product.ProductId = productId
-		rsp := &Order.AddProductRsp{
-			ProductID: productId,
-			TimeAt:    uint64(time.Now().UnixNano() / 1e6),
-		}
-		data, _ = proto.Marshal(rsp)
 
 		nc.logger.Debug("新的上架商品ID", zap.String("ProductID", req.Product.ProductId))
 
@@ -397,6 +392,88 @@ COMPLETE:
 	if errorCode == 200 {
 
 		nc.logger.Debug("7-2 回包")
+		var thumbnail string
+		if product.ShortVideo != "" {
+
+			thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		}
+
+		rsp := &Order.AddProductRsp{
+			Product: &Order.Product{
+				ProductId:         product.ProductID,                       //商品ID
+				BusinessUsername:  product.BusinessUsername,                //属于哪个商户的
+				Expire:            uint64(product.Expire),                  //商品过期时间
+				ProductName:       product.ProductName,                     //商品名称
+				ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
+				SubType:           Global.LotteryType(product.SubType),     //商品子类型
+				ProductDesc:       product.ProductDesc,                     //商品详细介绍
+				ShortVideo:        product.ShortVideo,                      //商品短视频
+				Thumbnail:         thumbnail,                               //商品短视频缩略图
+				Price:             product.Price,                           //价格
+				LeftCount:         product.LeftCount,                       //库存数量
+				Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      product.DiscountDesc,                    //折扣说明
+				DiscountStartTime: uint64(product.DiscountStartTime),       //折扣开始时间
+				DiscountEndTime:   uint64(product.DiscountEndTime),         //折扣结束时间
+				AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+
+			},
+			TimeAt: uint64(time.Now().UnixNano() / 1e6),
+		}
+		if product.ProductPic1Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large,
+			})
+
+		}
+
+		if product.ProductPic2Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large,
+			})
+		}
+
+		if product.ProductPic3Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large,
+			})
+		}
+
+		if product.DescPic1 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+		}
+
+		if product.DescPic2 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+		}
+
+		if product.DescPic3 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+		}
+
+		if product.DescPic4 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+		}
+
+		if product.DescPic5 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+		}
+
+		if product.DescPic6 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+
+		}
+
+		data, _ = proto.Marshal(rsp)
 
 		msg.FillBody(data)
 
@@ -501,6 +578,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 	var productPic2Large string
 	var productPic3Large string
 	var shortVideo string
+	var product = &models.Product{}
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -591,7 +669,7 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			shortVideo = ""
 		}
 
-		product := &models.Product{
+		product = &models.Product{
 			ProductInfo: models.ProductInfo{
 				BusinessUsername: username,
 				ProductID:        req.Product.ProductId,
@@ -674,10 +752,90 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
+
+		var thumbnail string
+		if product.ShortVideo != "" {
+
+			thumbnail = LMCommon.OSSUploadPicPrefix + product.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
+		}
+
 		rsp := &Order.UpdateProductRsp{
+			Product: &Order.Product{
+				ProductId:         product.ProductID,                       //商品ID
+				BusinessUsername:  product.BusinessUsername,                //属于哪个商户的
+				Expire:            uint64(product.Expire),                  //商品过期时间
+				ProductName:       product.ProductName,                     //商品名称
+				ProductType:       Global.ProductType(product.ProductType), //商品种类类型  枚举
+				SubType:           Global.LotteryType(product.SubType),     //商品子类型
+				ProductDesc:       product.ProductDesc,                     //商品详细介绍
+				ShortVideo:        product.ShortVideo,                      //商品短视频
+				Thumbnail:         thumbnail,                               //商品短视频缩略图
+				Price:             product.Price,                           //价格
+				LeftCount:         product.LeftCount,                       //库存数量
+				Discount:          product.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
+				DiscountDesc:      product.DiscountDesc,                    //折扣说明
+				DiscountStartTime: uint64(product.DiscountStartTime),       //折扣开始时间
+				DiscountEndTime:   uint64(product.DiscountEndTime),         //折扣结束时间
+				AllowCancel:       product.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
+
+			},
 			TimeAt: uint64(time.Now().UnixNano() / 1e6),
 		}
+		if product.ProductPic1Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic1Large,
+			})
+
+		}
+
+		if product.ProductPic2Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic2Large,
+			})
+		}
+
+		if product.ProductPic3Large != "" {
+			// 动态拼接
+			rsp.Product.ProductPics = append(rsp.Product.ProductPics, &Order.ProductPic{
+				Small:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
+				Middle: LMCommon.OSSUploadPicPrefix + product.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
+				Large:  LMCommon.OSSUploadPicPrefix + product.ProductPic3Large,
+			})
+		}
+
+		if product.DescPic1 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic1)
+		}
+
+		if product.DescPic2 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic2)
+		}
+
+		if product.DescPic3 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic3)
+		}
+
+		if product.DescPic4 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic4)
+		}
+
+		if product.DescPic5 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic5)
+		}
+
+		if product.DescPic6 != "" {
+			rsp.Product.DescPics = append(rsp.Product.DescPics, LMCommon.OSSUploadPicPrefix+product.DescPic6)
+
+		}
+
 		data, _ := proto.Marshal(rsp)
+		
 		msg.FillBody(data)
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
