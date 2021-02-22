@@ -6,11 +6,14 @@ option go_package = "github.com/lianmi/servers/api/proto/order";
 //请求参数
 message SoldoutProductReq {
     //商品ID
-    string productID=1;
+    repeated string productIDs=1;
 }
 
 //响应参数
 message SoldoutProductRsp {
-    //更新时间
-   fixed64 timeAt = 1;
+   //未能成功下架的商品ID数组
+   repeated string failProductIDs=1;
+
+    //成功下架的时间
+    fixed64 timeAt = 2;
 }

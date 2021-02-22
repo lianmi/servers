@@ -702,6 +702,8 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
+	failProductIDs := make([]string, 0)
+
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
@@ -738,10 +740,10 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("SoldoutProduct payload",
-			zap.String("ProductId", req.ProductID),
+			zap.Strings("ProductId", req.ProductIDs),
 		)
 
-		if req.ProductID == "" {
+		if len(req.ProductIDs) == 0 {
 			nc.logger.Warn("下架商品id必须非空")
 			errorCode = LMCError.ProductIDIsEmptError
 			goto COMPLETE
@@ -756,53 +758,55 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			errorCode = LMCError.OrderModAddProductUserTypeError
 			goto COMPLETE
 		}
+		for _, productID := range req.ProductIDs {
+			//判断是否是上架
+			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Products:%s", username), productID); err == nil {
+				if reply == nil {
+					//此商品没有上架过
+					nc.logger.Warn("此商品没有上架过")
+					errorCode = LMCError.OrderModAddProductNotOnSellError
+					goto COMPLETE
+				}
 
-		//判断是否是上架
-		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Products:%s", username), req.ProductID); err == nil {
-			if reply == nil {
-				//此商品没有上架过
-				nc.logger.Warn("此商品没有上架过")
-				errorCode = LMCError.OrderModAddProductNotOnSellError
-				goto COMPLETE
+			}
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("Products:%s", username), productID)
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("SoldoutProducts:%s", username), time.Now().UnixNano()/1e6, productID)
+
+			//TODO 判断是否存在着此商品id的订单
+
+			//得到此商品的详细信息，如图片等，从阿里云OSS里删除这些文件
+			productInfo := new(models.ProductInfo)
+			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
+				if err := redis.ScanStruct(result, productInfo); err != nil {
+					nc.logger.Error("错误: ScanStruct", zap.Error(err))
+					errorCode = LMCError.RedisError
+					goto COMPLETE
+				}
+			}
+			if err = nc.DeleteAliyunOssFile(productInfo); err != nil {
+				nc.logger.Error("DeleteAliyunOssFile", zap.Error(err))
 			}
 
-		}
-		_, err = redisConn.Do("ZREM", fmt.Sprintf("Products:%s", username), req.ProductID)
-		_, err = redisConn.Do("ZADD", fmt.Sprintf("SoldoutProducts:%s", username), time.Now().UnixNano()/1e6, req.ProductID)
+			//从MySQL删除此商品
+			if err = nc.service.DeleteProduct(productID, username); err != nil {
+				nc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
+			}
 
-		//TODO 判断是否存在着此商品id的订单
+			//7-7 商品下架事件 推送通知给关注的用户
+			watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+			for _, watchingUser := range watchingUsers {
+				//7-7 商品下架事件
+				soldoutProductEventRsp := &Order.SoldoutProductEventRsp{
+					BusinessUsername: username,
+					ProductID:        productID,
+				}
+				productData, _ := proto.Marshal(soldoutProductEventRsp)
 
-		//得到此商品的详细信息，如图片等，从阿里云OSS里删除这些文件
-		productInfo := new(models.ProductInfo)
-		if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", req.ProductID))); err == nil {
-			if err := redis.ScanStruct(result, productInfo); err != nil {
-				nc.logger.Error("错误: ScanStruct", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
+				//向所有关注了此商户的用户推送 7-7 商品下架事件
+				nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
 			}
 		}
-		if err = nc.DeleteAliyunOssFile(productInfo); err != nil {
-			nc.logger.Error("DeleteAliyunOssFile", zap.Error(err))
-		}
 
-		//从MySQL删除此商品
-		if err = nc.service.DeleteProduct(req.ProductID, username); err != nil {
-			nc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
-		}
-
-		//7-7 商品下架事件 推送通知给关注的用户
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
-		for _, watchingUser := range watchingUsers {
-			//7-7 商品下架事件
-			soldoutProductEventRsp := &Order.SoldoutProductEventRsp{
-				BusinessUsername: username,
-				ProductID:        req.ProductID,
-			}
-			productData, _ := proto.Marshal(soldoutProductEventRsp)
-
-			//向所有关注了此商户的用户推送 7-7 商品下架事件
-			nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
-		}
 	}
 
 COMPLETE:
@@ -810,6 +814,9 @@ COMPLETE:
 	if errorCode == 200 {
 		rsp := &Order.SoldoutProductRsp{
 			TimeAt: uint64(time.Now().UnixNano() / 1e6),
+		}
+		for _, failProductID := range failProductIDs {
+			rsp.FailProductIDs = append(rsp.FailProductIDs, failProductID)
 		}
 		data, _ := proto.Marshal(rsp)
 		msg.FillBody(data)
