@@ -37,7 +37,7 @@ func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Or
 		wheres = append(wheres, []interface{}{"product_type", "=", int(req.ProductType)})
 	}
 	if req.BusinessUsername != "" {
-		wheres = append(wheres, []interface{}{"username", "=", req.BusinessUsername})
+		wheres = append(wheres, []interface{}{"business_username", "=", req.BusinessUsername})
 	}
 
 	db2 := s.db
