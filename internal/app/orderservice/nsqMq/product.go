@@ -702,6 +702,7 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
+	succeedProductIDs := make([]string, 0)
 	failProductIDs := make([]string, 0)
 
 	redisConn := nc.redisPool.Get()
@@ -758,14 +759,15 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			errorCode = LMCError.OrderModAddProductUserTypeError
 			goto COMPLETE
 		}
+
 		for _, productID := range req.ProductIDs {
 			//判断是否是上架
 			if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("Products:%s", username), productID); err == nil {
 				if reply == nil {
 					//此商品没有上架过
 					nc.logger.Warn("此商品没有上架过")
-					errorCode = LMCError.OrderModAddProductNotOnSellError
-					goto COMPLETE
+					failProductIDs = append(failProductIDs, productID)
+					continue
 				}
 
 			}
@@ -779,10 +781,11 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
 				if err := redis.ScanStruct(result, productInfo); err != nil {
 					nc.logger.Error("错误: ScanStruct", zap.Error(err))
-					errorCode = LMCError.RedisError
-					goto COMPLETE
+					failProductIDs = append(failProductIDs, productID)
+					continue
 				}
 			}
+
 			if err = nc.DeleteAliyunOssFile(productInfo); err != nil {
 				nc.logger.Error("DeleteAliyunOssFile", zap.Error(err))
 			}
@@ -790,6 +793,8 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 			//从MySQL删除此商品
 			if err = nc.service.DeleteProduct(productID, username); err != nil {
 				nc.logger.Error("错误: 从MySQL删除对应的req.ProductID失败", zap.Error(err))
+				failProductIDs = append(failProductIDs, productID)
+				continue
 			}
 
 			//7-7 商品下架事件 推送通知给关注的用户
@@ -805,6 +810,8 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 				//向所有关注了此商户的用户推送 7-7 商品下架事件
 				nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
 			}
+
+			succeedProductIDs = append(succeedProductIDs, productID)
 		}
 
 	}
@@ -814,6 +821,9 @@ COMPLETE:
 	if errorCode == 200 {
 		rsp := &Order.SoldoutProductRsp{
 			TimeAt: uint64(time.Now().UnixNano() / 1e6),
+		}
+		for _, succeedProductID := range succeedProductIDs {
+			rsp.SucceedProductIDs = append(rsp.SucceedProductIDs, succeedProductID)
 		}
 		for _, failProductID := range failProductIDs {
 			rsp.FailProductIDs = append(rsp.FailProductIDs, failProductID)
