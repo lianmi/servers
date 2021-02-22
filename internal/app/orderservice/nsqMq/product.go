@@ -346,6 +346,8 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		//上架
 		if _, err = redisConn.Do("ZADD", fmt.Sprintf("Products:%s", username), time.Now().UnixNano()/1e6, req.Product.ProductId); err != nil {
 			nc.logger.Error("ZADD Error", zap.Error(err))
+		} else {
+			nc.logger.Debug("ZADD ok", zap.String("req.Product.ProductId", req.Product.ProductId))
 		}
 
 		product = &models.Product{
