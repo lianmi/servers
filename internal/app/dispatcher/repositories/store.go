@@ -185,7 +185,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 	// 判断businessUsername是否是商户
 
 	//用户类型 1-普通，2-商户
-	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
 	if userType != 2 {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
@@ -385,7 +385,7 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	// 判断businessUsername是否是商户
 
 	//用户类型 1-普通，2-商户
-	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.BusinessUsername), "UserType"))
 	if userType != 2 {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
@@ -500,7 +500,7 @@ func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.Store
 	// 判断businessUsername是否是商户
 
 	//用户类型 1-普通，2-商户
-	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
 	if userType != 2 {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
@@ -609,7 +609,7 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 
 //将点赞记录插入到UserLike表
 func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error {
-
+	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
@@ -637,14 +637,14 @@ func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error
 
 //将用户对店铺的点赞记录插入到StoreLike表
 func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) error {
-
+	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
 	// 判断businessUsername是否是商户
 
 	//用户类型 1-普通，2-商户
-	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
 	if userType != 2 {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
@@ -667,7 +667,6 @@ func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) erro
 func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
 	var err error
 
-	
 	lotterySaleTimesRsp := &Order.QueryLotterySaleTimesRsp{}
 
 	var lotterySaleTimes []*models.LotterySaleTime
