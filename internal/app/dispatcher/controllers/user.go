@@ -90,7 +90,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if !conv.IsDigit(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is not digital")
 			code = codes.ErrNotDigital
-			RespData(c, http.StatusOK, code, "Mobile is not digital")
+			RespData(c, http.StatusOK, code, nil)
 			return
 		}
 
@@ -98,7 +98,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if pc.service.ExistUserByMobile(userReq.Mobile) {
 			pc.logger.Error("Register user error, Mobile is already registered")
 			code = codes.ErrExistMobile
-			RespData(c, http.StatusOK, code, "Mobile is already registered")
+			RespData(c, http.StatusOK, code, nil)
 			return
 		}
 
@@ -106,7 +106,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		if !pc.service.CheckSmsCode(userReq.Mobile, userReq.Smscode) {
 			pc.logger.Error("Register user error, SmsCode is wrong")
 			code = codes.ErrWrongSmsCode
-			RespData(c, http.StatusOK, code, "SmsCode is wrong")
+			RespData(c, http.StatusOK, code, nil)
 			return
 		}
 
@@ -115,7 +115,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 			if !pc.service.ExistUserByName(userReq.ReferrerUsername) {
 				pc.logger.Error("Register user error, ReferrerUsername is not registered")
 				code = codes.ErrNotFoundInviter
-				RespData(c, http.StatusOK, code, "ReferrerUsername is not registered")
+				RespData(c, http.StatusOK, code, nil)
 				return
 			}
 
@@ -151,7 +151,7 @@ func (pc *LianmiApisController) Register(c *gin.Context) {
 		} else {
 			pc.logger.Error("Register user error", zap.Error(err))
 			code = codes.ERROR
-			RespData(c, http.StatusOK, code, "Register user error")
+			RespData(c, http.StatusOK, code, nil)
 			return
 		}
 		RespData(c, http.StatusOK, code, Auth.RegisterResp{
