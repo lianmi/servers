@@ -550,8 +550,15 @@ COMPLETE:
 	//7-5 新商品上架事件 推送通知给关注此商户的用户
 	go func() {
 
-		watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+		if err != nil {
+			nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
+			return
+		} else {
+			nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
+		}
 		for _, watchingUser := range watchingUsers {
+			nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
 
 			addProductEventRsp := &Order.AddProductEventRsp{
 				BusinessUsername: username,  //商户用户账号id
@@ -779,8 +786,15 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		//7-6 已有商品的编辑更新事件
 		go func() {
 			//推送通知给关注此商户的用户
-			watchingUsers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+			watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("BeWatching:%s", username), "-inf", "+inf"))
+			if err != nil {
+				nc.logger.Error("ZRANGEBYSCORE error", zap.Error(err))
+				return
+			} else {
+				nc.logger.Debug(" range watchingUsers", zap.Strings("watchingUsers", watchingUsers))
+			}
 			for _, watchingUser := range watchingUsers {
+				nc.logger.Debug(" range watchingUsers", zap.String("watchingUser", watchingUser))
 
 				//7-6 已有商品的编辑更新事件
 				updateProductEventRsp := &Order.UpdateProductEventRsp{
