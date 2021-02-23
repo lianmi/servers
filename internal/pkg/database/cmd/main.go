@@ -41,8 +41,8 @@ func main() {
 	// var count int64
 	var users []models.User
 	userModel := new(models.User)
-	
-	db.Model(&userModel).Association("users").Find(&users, "user_type=?", 0)
+
+	db.Model(&userModel).Find(&users, "user_type=?", 0)
 
 	log.Println(" *********  查询 users *******  ", len(users))
 	PrintPretty(users)
