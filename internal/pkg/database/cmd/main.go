@@ -12,9 +12,9 @@ import (
 
 var (
 	//使用 lianmicloud 数据库
-	// dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/newlianmidb?charset=utf8&parseTime=True&loc=Local"
-	dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
-	db  *gorm.DB
+	dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
+	// dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
+	db *gorm.DB
 )
 
 func init() {
