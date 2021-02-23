@@ -24,18 +24,21 @@ import (
 
 //定义用户的数据结构, id+ Username 构成复合主键 , Mobile 是唯一索引
 type UserBase struct {
-	Username           string `gorm:"primarykey" json:"username" `                                 //用户注册号，自动生成，字母 + 数字
-	Password           string `json:"password" validate:"required"`                                //用户密码，md5加密
-	Nick               string `json:"nick" validate:"required"`                                    //用户呢称，必填
-	Gender             int    `form:"gender" json:"gender" binding:"required"`                     //性别
-	Avatar             string `form:"avatar" json:"avatar,omitempty"`                              //头像url
-	Label              string `form:"label" json:"label,omitempty" `                               //签名标签
-	Mobile             string `gorm:"uniqueIndex" form:"mobile" json:"mobile" binding:"required"`  //注册手机
-	Email              string `form:"email" json:"email,omitempty" `                               //密保邮件，需要发送校验邮件确认
-	Extend             string `form:"extend" json:"extend,omitempty" `                             //扩展字段
-	AllowType          int    `form:"allow_type" json:"allow_type"`                                //用户加好友枚举，默认是3
-	UserType           int    `form:"user_type" json:"user_type" binding:"required"`               //用户类型 1-普通，2-商户
-	State              int    `form:"state" json:"state"`                                          //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+	Username  string `gorm:"primarykey" json:"username" `                                //用户注册号，自动生成，字母 + 数字
+	Password  string `json:"password" validate:"required"`                               //用户密码，md5加密
+	Nick      string `json:"nick" validate:"required"`                                   //用户呢称，必填
+	Gender    int    `form:"gender" json:"gender" binding:"required"`                    //性别
+	Avatar    string `form:"avatar" json:"avatar,omitempty"`                             //头像url
+	Label     string `form:"label" json:"label,omitempty" `                              //签名标签
+	Mobile    string `gorm:"uniqueIndex" form:"mobile" json:"mobile" binding:"required"` //注册手机
+	Email     string `form:"email" json:"email,omitempty" `                              //密保邮件，需要发送校验邮件确认
+	Extend    string `form:"extend" json:"extend,omitempty" `                            //扩展字段
+	AllowType int    `form:"allow_type" json:"allow_type"`                               //用户加好友枚举，默认是3
+	UserType  int    `form:"user_type" json:"user_type" binding:"required"`              //用户类型 1-普通，2-商户
+
+	//状态 当用户类型为普通用户时: 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+	//    当用户类型为商户时： 0-预注册 1-已审核 2-被封号
+	State              int    `form:"state" json:"state"`
 	TrueName           string `form:"true_name" json:"true_name,omitempty" `                       //用户实名
 	IdentityCard       string `form:"identity_card" json:"identity_card" binding:"required"`       //身份证
 	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
