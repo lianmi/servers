@@ -460,8 +460,9 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 			productData, _ := proto.Marshal(addProductEventRsp)
 
 			//向所有关注了此商户的用户推送 7-5 新商品上架事件
-			// time.Sleep(30 * time.Millisecond)
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+			if watchingUser != username {
+				go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_AddProductEvent), watchingUser)
+			}
 		}
 
 	}
@@ -802,7 +803,9 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 			productData, _ := proto.Marshal(updateProductEventRsp)
 
 			//向所有关注了此商户的用户推送  7-6 已有商品的编辑更新事件
-			go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
+			if watchingUser != username {
+				go nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_UpdateProductEvent), watchingUser)
+			}
 		}
 
 	}
@@ -1024,7 +1027,9 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 				productData, _ := proto.Marshal(soldoutProductEventRsp)
 
 				//向所有关注了此商户的用户推送 7-7 商品下架事件
-				nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
+				if watchingUser != username {
+					nc.BroadcastSpecialMsgToAllDevices(productData, uint32(Global.BusinessType_Product), uint32(Global.ProductSubType_SoldoutProductEvent), watchingUser)
+				}
 			}
 
 			succeedProductIDs = append(succeedProductIDs, productID)
