@@ -2810,6 +2810,8 @@ func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error 
 			nc.logger.Error("查询第三方公证公钥错误", zap.Error(err))
 			errorCode = LMCError.NotaryServicePublickeyError
 			goto COMPLETE
+		} else {
+			nc.logger.Debug("查询第三方公证公钥成功", zap.String("notaryServicePublickey", notaryServicePublickey))
 		}
 
 	}
