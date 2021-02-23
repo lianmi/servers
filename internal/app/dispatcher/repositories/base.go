@@ -31,7 +31,7 @@ type LianmiRepository interface {
 	QueryAllUsernames() ([]string, error)
 
 	//多条件不定参数批量分页获取用户列表
-	QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error)
+	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
 	//注册(用户及商户)
 	Register(user *models.User) (err error)

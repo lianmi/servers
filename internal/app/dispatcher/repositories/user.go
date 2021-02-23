@@ -16,6 +16,7 @@ package repositories
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -68,16 +69,26 @@ func (s *MysqlLianmiRepository) GetUserDataFromRedis(username string) (p *models
 }
 
 //多条件不定参数批量分页获取用户列表
-func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
+func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
 	var err error
 	var total int64
-	// var limit  = req.PageSize //Limit 指定要查询的最大记录数。
+	page := int(req.Page)
+	pageSize := int(req.PageSize)
 
-	// var offset = req.PageSize //   Offset指定开始返回记录前要跳过的记录数。
+	var list []*models.User
+	var where []interface{}
 
-	var list []*User.User
-	where := []interface{}{
-		[]interface{}{"user_type", "=", int(req.UserType)},
+	where = append(where, []interface{}{"user_type", "=", int(req.UserType)})
+	where = append(where, []interface{}{"user_type", "=", int(req.State)})
+
+	if req.Mobile != "" {
+		where = append(where, []interface{}{"mobile", "=", req.Mobile})
+	}
+	if req.ReferrerUsername != "" {
+		where = append(where, []interface{}{"referrer_username", "=", req.ReferrerUsername})
+	}
+	if req.TrueName != "" {
+		where = append(where, []interface{}{"true_name", "=", req.TrueName})
 	}
 
 	db2 := s.db
@@ -90,11 +101,68 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.Use
 
 	total = int64(len(list))
 
-	//测试分页
-	s.logger.Error("测试分页")
-	s.usersPage(1, 20)
+	var users []models.User
+	userModel := new(models.User)
 
-	return list, total, nil
+	s.db.Model(&userModel).Find(&users, "user_type=?", 0)
+
+	// db2.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users)
+	// db2.Model(&userModel).Scopes(IsBusinessUser, Paginate(page, pageSize)).Find(&users)
+	// db2.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
+	db2.Model(&userModel).Scopes(Paginate(page, pageSize)).Find(&users)
+
+	// count =
+	s.logger.Debug("分页显示users列表, len: ", zap.Int("len", len(users)))
+
+	for _, user := range users {
+		// log.Printf("idx=%d, username=%s, mobile=%d\n", idx, user.Username, user.Mobile)
+		s.logger.Debug("分页显示users列表 ",
+			zap.String("username", user.Username),
+			zap.String("Mobile", user.Mobile),
+		)
+	}
+
+	//测试分页
+	// s.logger.Error("测试分页")
+	// s.usersPage(1, 20)
+
+	// return list, total, nil
+
+	var avatar string
+
+	resp := &User.QueryUsersResp{
+		Total: uint64(total),
+	}
+
+	for _, userData := range users {
+		if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
+
+			avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+		}
+
+		resp.Users = append(resp.Users, &User.User{
+			Username: userData.Username,
+			Gender:   User.Gender(userData.Gender),
+			Nick:     userData.Nick,
+			Avatar:   avatar,
+			Label:    userData.Label,
+			// Mobile:       userData.Mobile, 隐私
+			// Email:        userData.Email,
+			// UserType:     User.UserType(userData.UserType),
+			// Extend:       userData.Extend,
+			// TrueName:     userData.TrueName,
+			// IdentityCard: userData.IdentityCard,
+			// Province:     userData.Province,
+			// City:         userData.City,
+			// County:       userData.County,
+			// Street:       userData.Street,
+			// Address:      userData.Address,
+		})
+
+	}
+
+	return resp, nil
+
 }
 
 /*

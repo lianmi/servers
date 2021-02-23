@@ -12,9 +12,9 @@ import (
 
 var (
 	//使用 lianmicloud 数据库
-	dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
-	// dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
-	db *gorm.DB
+	// dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
+	dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
+	db  *gorm.DB
 )
 
 func init() {
@@ -36,7 +36,7 @@ func PrintPretty(i interface{}) {
 }
 
 func main() {
-	page := 1
+	page := 3
 	pageSize := 20
 	// var count int64
 	var users []models.User
@@ -47,9 +47,9 @@ func main() {
 	log.Println(" *********  查询 users *******  ", len(users))
 	// PrintPretty(users)
 
-	// db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users)
+	db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users)
 	// db.Model(&userModel).Scopes(IsBusinessUser, Paginate(page, pageSize)).Find(&users)
-	db.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
+	// db.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
 
 	log.Println("分页显示users列表, count: ", len(users))
 

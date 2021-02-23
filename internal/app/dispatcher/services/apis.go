@@ -299,43 +299,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 
 //多条件不定参数批量分页获取用户列表
 func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
-	var avatar string
-	if users, total, err := s.Repository.QueryUsers(req); err != nil {
-		return nil, err
-	} else {
-		resp := &User.QueryUsersResp{
-			Total: uint64(total),
-		}
-
-		for _, userData := range users {
-			if (userData.Avatar != "") && !strings.HasPrefix(userData.Avatar, "http") {
-
-				avatar = LMCommon.OSSUploadPicPrefix + userData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
-			}
-
-			resp.Users = append(resp.Users, &User.User{
-				Username: userData.Username,
-				Gender:   User.Gender(userData.Gender),
-				Nick:     userData.Nick,
-				Avatar:   avatar,
-				Label:    userData.Label,
-				// Mobile:       userData.Mobile,
-				// Email:        userData.Email,
-				// UserType:     User.UserType(userData.UserType),
-				// Extend:       userData.Extend,
-				// TrueName:     userData.TrueName,
-				// IdentityCard: userData.IdentityCard,
-				// Province:     userData.Province,
-				// City:         userData.City,
-				// County:       userData.County,
-				// Street:       userData.Street,
-				// Address:      userData.Address,
-			})
-
-		}
-
-		return resp, nil
-	}
+	return s.Repository.QueryUsers(req);
 }
 
 func (s *DefaultLianmiApisService) QueryAllUsernames() ([]string, error) {
