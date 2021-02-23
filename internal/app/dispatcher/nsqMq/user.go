@@ -841,11 +841,16 @@ func (nc *NsqClient) HandleNotaryServiceUploadPublickey(msg *models.Message) err
 
 		if userType != 3 {
 			nc.logger.Warn("此用户不是授权的第三方公证", zap.String("Username", username))
-			errorCode = LMCError.UserIsBlockedError
+			errorCode = LMCError.IsNotNotaryServiceUserError
 			goto COMPLETE
 		}
 
-		redisConn.Do("SET", fmt.Sprintf("NotaryServicePublickey:%s", username))
+		_, err = redisConn.Do("SET", fmt.Sprintf("NotaryServicePublickey:%s", username), req.PublickeyContent)
+		if err != nil {
+			nc.logger.Warn(fmt.Sprintf("NotaryServicePublickey:%s", username), zap.Error(err))
+			errorCode = LMCError.RedisError
+			goto COMPLETE
+		}
 
 	}
 

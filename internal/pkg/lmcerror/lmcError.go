@@ -25,12 +25,13 @@ const (
 	UserModUpdateProfileError = 2010201 //修改用户资料出错
 	UserModUpdateStoreError   = 2010202 //修改商户店铺资料出错
 
-	IsNotFriendError       = 2020101 //对方用户不是当前用户的好友
-	IsBlackUserError       = 2020102 //已被对方拉黑， 不能加好友
-	AddFriendError         = 2020103 //加好友出错
-	AddFriendExpireError   = 2020104 //好友请求已超过有效期
-	FollowIsBlackUserError = 2020105 //用户已被对方拉黑,不能关注
-	IsNotBusinessUserError = 2020106 //不是商户类型,不能关注
+	IsNotFriendError            = 2020101 //对方用户不是当前用户的好友
+	IsBlackUserError            = 2020102 //已被对方拉黑， 不能加好友
+	AddFriendError              = 2020103 //加好友出错
+	AddFriendExpireError        = 2020104 //好友请求已超过有效期
+	FollowIsBlackUserError      = 2020105 //用户已被对方拉黑,不能关注
+	IsNotBusinessUserError      = 2020106 //不是商户类型,不能关注
+	IsNotNotaryServiceUserError = 2020107 //不是公证用户类型
 
 	TeamStatusError                        = 2040101 //群组状态错误
 	TeamMembersLimitError                  = 2040102 //用户拥有的群的总数量是否已经达到上限
@@ -160,12 +161,13 @@ var LmcErrors = map[int]string{
 
 	AuthModNotRight: "从设备无权踢主设备",
 
-	IsNotFriendError:       "对方用户不是当前用户的好友",
-	IsBlackUserError:       "已被对方拉黑， 不能加好友",
-	AddFriendError:         "加好友出错",
-	AddFriendExpireError:   "好友请求已超过有效期",
-	FollowIsBlackUserError: "用户已被对方拉黑,不能关注",
-	IsNotBusinessUserError: "不是商户类型,不能关注",
+	IsNotFriendError:            "对方用户不是当前用户的好友",
+	IsBlackUserError:            "已被对方拉黑， 不能加好友",
+	AddFriendError:              "加好友出错",
+	AddFriendExpireError:        "好友请求已超过有效期",
+	FollowIsBlackUserError:      "用户已被对方拉黑,不能关注",
+	IsNotBusinessUserError:      "不是商户类型,不能关注",
+	IsNotNotaryServiceUserError: "不是公证用户类型",
 
 	TeamStatusError:                        "群组状态错误",
 	TeamMembersLimitError:                  "用户拥有的群的总数量是否已经达到上限",
