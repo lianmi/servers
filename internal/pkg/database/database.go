@@ -83,6 +83,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.SystemCharge{})             // 系统服务费商品ID表
 	db.AutoMigrate(&models.ChargeHistory{})            // 系统服务费历史表
 	db.AutoMigrate(&models.LotterySaleTime{})          // 各个彩种的销售开始时间及结束时间
+	// db.
 
 	vipPrice := &models.VipPrice{
 		BusinessUsername: LMCommon.VipBusinessUsername,

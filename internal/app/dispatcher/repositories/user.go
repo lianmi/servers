@@ -71,6 +71,9 @@ func (s *MysqlLianmiRepository) GetUserDataFromRedis(username string) (p *models
 func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.User, int64, error) {
 	var err error
 	var total int64
+	// var limit  = req.PageSize //Limit 指定要查询的最大记录数。
+	
+	// var offset = req.PageSize //   Offset指定开始返回记录前要跳过的记录数。      
 
 	var list []*User.User
 	where := []interface{}{

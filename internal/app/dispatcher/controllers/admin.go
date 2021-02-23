@@ -476,3 +476,19 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 		}
 	}
 }
+/*
+
+func (s *ApiAdapter) SearchPreference(keyword string, page int, pageSize int) (p *[]models.PreferenceItem, err error) {
+	// panic("implement me")
+	p = new([]models.PreferenceItem)
+	keywordStr := fmt.Sprintf("%%%s%%", keyword)
+	offset := page*pageSize - pageSize
+	currenDB := s.db.Model(&models.PreferenceItem{}).Not(&models.PreferenceItem{Type: 1})
+	if keyword != "" {
+		currenDB = currenDB.Where("preference_id LIKE ? ", keywordStr)
+	}
+	err = currenDB.Limit(pageSize).Offset(offset).Find(p).Error
+	return
+}
+
+*/
