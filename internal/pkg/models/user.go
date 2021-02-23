@@ -49,7 +49,7 @@ type UserBase struct {
 	ReferrerUsername   string `form:"referrer_username" json:"referrer_username,omitempty" `       //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 	BelongBusinessUser string `form:"belong_business_user" json:"belong_business_user,omitempty" ` //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户
 	VipEndDate         int64  `form:"vip_end_date" json:"vip_end_date,omitempty"`                  //VIP用户到期时间
-	ECouponCardUsed    bool   `form:"ecoupon_card_used" json:"ecoupon_card_used,omitempty"`        //VIP7天体验卡
+	ECouponCardUsed    bool   `form:"e_coupon_card_used" json:"e_coupon_card_used,omitempty"`      //VIP7天体验卡
 }
 
 type User struct {

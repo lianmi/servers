@@ -72,8 +72,8 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.Use
 	var err error
 	var total int64
 	// var limit  = req.PageSize //Limit 指定要查询的最大记录数。
-	
-	// var offset = req.PageSize //   Offset指定开始返回记录前要跳过的记录数。      
+
+	// var offset = req.PageSize //   Offset指定开始返回记录前要跳过的记录数。
 
 	var list []*User.User
 	where := []interface{}{
@@ -89,6 +89,10 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) ([]*User.Use
 	db2.Find(&list)
 
 	total = int64(len(list))
+
+	//测试分页
+	s.logger.Error("测试分页")
+	s.usersPage(1, 20)
 
 	return list, total, nil
 }
@@ -923,7 +927,7 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 	return nil
 }
 
-//获取sers表的所有用户账号
+//获取users表的所有用户账号
 func (s *MysqlLianmiRepository) QueryAllUsernames() ([]string, error) {
 	usernames := make([]string, 0)
 	var users []models.User

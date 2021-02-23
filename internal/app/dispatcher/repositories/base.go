@@ -271,10 +271,3 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		base:      NewBaseRepository(logger, db),
 	}
 }
-
-//向其它端发送此从设备MultiLoginEvent事件
-func (s *MysqlLianmiRepository) SendMultiLoginEventToOtherDevices(isOnline bool, username, deviceID, curOs string, curClientType int, curLogonAt uint64) (err error) {
-	//TODO 暂时不支持多端
-
-	return nil
-}

@@ -135,6 +135,8 @@ func New(o *Options) (*gorm.DB, error) {
 	sc.ChargeProductID = uuid.NewV4().String()
 	db.Save(sc)
 
+	
+
 	return db, nil
 }
 

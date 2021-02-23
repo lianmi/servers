@@ -99,12 +99,10 @@ func Branchesname(branchesnames []string) func(db *gorm.DB) *gorm.DB {
 
 func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		// page, _ := strconv.Atoi(r.Query("page"))
 		if page == 0 {
 			page = 1
 		}
 
-		// pageSize, _ := strconv.Atoi(r.Query("page_size"))
 		switch {
 		case pageSize > 100:
 			pageSize = 100
