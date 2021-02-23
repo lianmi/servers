@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -16,6 +18,7 @@ type OrderRepository interface {
 	AddPreKeys(prekeys []*models.Prekey) error
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
+	GetNotaryServicePublickey(businessUsername string) (string, error)
 }
 
 type MysqlOrderRepository struct {
@@ -79,8 +82,8 @@ func (m *MysqlOrderRepository) UpdateProduct(product *models.Product) error {
 func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 	where := models.Product{
 		ProductInfo: models.ProductInfo{
-			ProductID: productID,
-			BusinessUsername:  username,
+			ProductID:        productID,
+			BusinessUsername: username,
 		},
 	}
 	db2 := m.db.Where(&where).Delete(models.Product{})
@@ -125,4 +128,24 @@ func (m *MysqlOrderRepository) GetVipUserPrice(payType int) (*models.VipPrice, e
 func (m *MysqlOrderRepository) SaveChargeHistory(chargeHistory *models.ChargeHistory) error {
 	return m.db.Save(chargeHistory).Error
 
+}
+
+func (m *MysqlOrderRepository) GetNotaryServicePublickey(businessUsername string) (string, error) {
+	redisConn := m.redisPool.Get()
+	defer redisConn.Close()
+
+	p := new(models.Store)
+	where := models.Store{
+		BusinessUsername: businessUsername,
+	}
+	if err := m.db.Model(p).Where(&where).First(p).Error; err != nil {
+		return "", errors.Wrapf(err, "businessUsername not found[businessUsername=%s]", businessUsername)
+	}
+
+	publickey, err := redis.String(redisConn.Do("GET", fmt.Sprintf("NotaryServicePublickey:%s", p.NotaryServiceUsername)))
+	if err != nil {
+		return "", errors.Wrapf(err, "NotaryServicePublickey not found[NotaryServiceUsername=%s]", p.NotaryServiceUsername)
+	}
+
+	return publickey, nil
 }

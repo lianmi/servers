@@ -98,7 +98,8 @@ const (
 	OrderStatusVipExpeditedError         = 2090513 //VIP用户才允许加急
 	OrderStatusNotDoneError              = 2090514 //买家确认收货, 但是此订单未完成
 
-	PreKeyGetCountError = 2090601 // 只有商户才能查询OPK存量
+	PreKeyGetCountError         = 2090601 // 只有商户才能查询OPK存量
+	NotaryServicePublickeyError = 2090602 // 查询第三方公证公钥错误
 
 	WalletTranferError                      = 2100101 //钱包转账错误
 	WalletAddressIsEmptyError               = 2100102 //"钱包地址为空"
@@ -225,7 +226,8 @@ var LmcErrors = map[int]string{
 	OrderStatusVipExpeditedError:         "VIP用户才允许加急",
 	OrderStatusNotDoneError:              "买家确认收货, 但是此订单未完成",
 
-	PreKeyGetCountError: "只有商户才能查询OPK存量",
+	PreKeyGetCountError:         "只有商户才能查询OPK存量",
+	NotaryServicePublickeyError: "查询第三方公证公钥错误",
 
 	WalletTranferError:                      "钱包转账错误",
 	WalletAddressIsEmptyError:               "钱包地址为空",

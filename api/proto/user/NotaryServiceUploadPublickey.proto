@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+
+package cloud.lianmi.im.user;
+option go_package = "github.com/lianmi/servers/api/proto/user";
+
+//1-8 第三方公证上传Rsa公钥
+message NotaryServiceUploadPublickeyReq {
+    //公钥内容
+    string publickeyContent = 1;
+}
+
+message NotaryServiceUploadPublickeyRsp {
+    //当前服务器时间
+    fixed64 timeTag = 1;
+}

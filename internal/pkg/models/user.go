@@ -34,7 +34,9 @@ type UserBase struct {
 	Email     string `form:"email" json:"email,omitempty" `                              //密保邮件，需要发送校验邮件确认
 	Extend    string `form:"extend" json:"extend,omitempty" `                            //扩展字段
 	AllowType int    `form:"allow_type" json:"allow_type"`                               //用户加好友枚举，默认是3
-	UserType  int    `form:"user_type" json:"user_type" binding:"required"`              //用户类型 1-普通，2-商户
+
+	//用户类型 1-普通，2-商户 3-第三方公证
+	UserType int `form:"user_type" json:"user_type" binding:"required"`
 
 	//状态 当用户类型为普通用户时: 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 	//    当用户类型为商户时： 0-预注册 1-已审核 2-被封号

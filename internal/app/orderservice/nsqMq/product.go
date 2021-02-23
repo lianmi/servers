@@ -2751,6 +2751,97 @@ COMPLETE:
 }
 
 /*
+9-14 买家获取商户对应的第三方公证的公钥
+*/
+func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error {
+	var err error
+	errorCode := 200
+
+	var notaryServicePublickey string
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName()
+	deviceID := msg.GetDeviceID()
+
+	nc.logger.Info("HandleGetNotaryServicePublickeyReq start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("GetNotaryServicePublickeyReq",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+	//解包body
+	var req Order.GetNotaryServicePublickeyReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		errorCode = LMCError.ProtobufUnmarshalError
+		goto COMPLETE
+
+	} else {
+		nc.logger.Debug("GetNotaryServicePublickeyReq payload",
+			zap.String("businessUsername", req.BusinessUsername),
+		)
+		//从redis里获取businessUsername用户信息
+		userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
+		if userType != 2 {
+			nc.logger.Error("只有商户才能查询第三方公证公钥")
+			errorCode = LMCError.PreKeyGetCountError
+			goto COMPLETE
+		}
+
+		notaryServicePublickey, err = nc.service.GetNotaryServicePublickey(req.BusinessUsername)
+		if err != nil {
+			nc.logger.Error("查询第三方公证公钥错误", zap.Error(err))
+			errorCode = LMCError.NotaryServicePublickeyError
+			goto COMPLETE
+		}
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		rsp := &Order.GetNotaryServicePublickeyRsp{
+			PublickeyContent: notaryServicePublickey,
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+
+	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("HandleGetNotaryServicePublickey: Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("HandleGetNotaryServicePublickey: Failed to send  message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+}
+
+/*
 向目标用户账号的所有端推送传入的业务号及子号的消息， 接收端会触发对应事件
 传参：
 1. data 字节流

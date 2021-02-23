@@ -184,6 +184,7 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 1)] = nsqClient.HandleGetUsers          //1-1 获取用户资料
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 2)] = nsqClient.HandleUpdateUserProfile //1-2 修改用户资料
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 5)] = nsqClient.HandleMarkTag           //1-5 打标签
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 8)] = nsqClient.HandleNotaryServiceUploadPublickey           //1-8 第三方公证上传Rsa公钥
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 2)] = nsqClient.HandleSignOut        //登出处理程序
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 4)] = nsqClient.HandleKick           //Kick处理程序

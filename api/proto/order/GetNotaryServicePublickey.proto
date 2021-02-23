@@ -1,0 +1,20 @@
+syntax = "proto3";
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+//买家获取第三方公证的公钥 
+message GetNotaryServicePublickeyReq{
+
+    //商户注册号
+    string businessUsername=1;
+
+}
+
+message GetNotaryServicePublickeyRsp{
+
+    //公钥内容 
+    string publickeyContent=1;
+
+  
+}
+

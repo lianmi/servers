@@ -152,7 +152,8 @@ dart:
 								api/proto/order/SyncWatchEvent.proto \
 								api/proto/order/UpdateProduct.proto \
 								api/proto/order/UpdateProductEvent.proto \
-								api/proto/order/GrpcOrder.proto
+								api/proto/order/GrpcOrder.proto \
+								api/proto/order/GetNotaryServicePublickey.proto 
 
 	rm -f dart_out/api/proto/syn/*.dart
 	protoc --dart_out=dart_out api/proto/syn/Sync.proto \
@@ -197,7 +198,8 @@ dart:
 								api/proto/user/UpdateProfile.proto \
 								api/proto/user/UpdateUserProfile.proto \
 								api/proto/user/User.proto \
-								api/proto/user/Store.proto 
+								api/proto/user/Store.proto \
+								api/proto/user/NotaryServiceUploadPublickey.proto 
 
 	rm -f dart_out/api/proto/wallet/*.*.dart
 	protoc --dart_out=dart_out api/proto/wallet/Alipay.proto \

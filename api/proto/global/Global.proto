@@ -45,6 +45,7 @@ enum UserSubType {
     MarkTag                = 5;    /**< 用户打标*/
     SyncMarkTagEvent       = 6;    /**< 同步其它终端的好友添加、删除标签事件*/
     SyncTagsEvent          = 7;    /**< 同步用户标签列表*/
+    NotaryServiceUploadPublickey =  8;    /**<第三方公证上传Rsa公钥*/
 }
 
 //好友模块子模块定义
@@ -144,6 +145,7 @@ enum OrderSubType {
     OPKLimitAlert     =  10;    /**< 9-10. 商户OPK存量不足事件*/
     PayOrder          =  11;    /**< 9-11. 确认支付订单*/
     UploadOrderBodyEvent =  13;    /**< 9-13. 买家将订单body加密发送给第三方公证*/
+    GetNotaryServicePublickey =  14;    /**< 9-14. 买家获取商户对应的第三方公证的公钥*/
    
 }
 

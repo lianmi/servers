@@ -22,6 +22,8 @@ type OrderService interface {
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 
 	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
+
+	GetNotaryServicePublickey(businessUsername string) (string, error)
 }
 
 type DefaultApisService struct {
@@ -67,4 +69,8 @@ func (s *DefaultApisService) GetVipUserPrice(payType int) (*models.VipPrice, err
 
 func (s *DefaultApisService) SaveChargeHistory(chargeHistory *models.ChargeHistory) error {
 	return s.Repository.SaveChargeHistory(chargeHistory)
+}
+
+func (s *DefaultApisService) GetNotaryServicePublickey(businessUsername string) (string, error) {
+	return s.Repository.GetNotaryServicePublickey(businessUsername)
 }

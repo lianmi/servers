@@ -239,7 +239,6 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 
 	} else {
 		userKey := fmt.Sprintf("userData:%s", username)
-		// userType, err := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
 
 		if err != nil {
 			nc.logger.Error("HGET Error", zap.Error(err))
@@ -783,6 +782,94 @@ COMPLETE:
 		nc.logger.Info("MarkTag message succeed send to ProduceChannel", zap.String("topic", topic))
 	} else {
 		nc.logger.Error("Failed to send MarkTag message to ProduceChannel", zap.Error(err))
+	}
+	_ = err
+	return nil
+
+}
+
+/*
+1-8 第三方公证上传Rsa公钥
+*/
+func (nc *NsqClient) HandleNotaryServiceUploadPublickey(msg *models.Message) error {
+	var err error
+	errorCode := 200
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	username := msg.GetUserName() //当前用户账号
+
+	deviceID := msg.GetDeviceID() //当前设备id
+
+	nc.logger.Info("HandleNotaryServiceUploadPublickey start...",
+		zap.String("username", username),
+		zap.String("DeviceId", deviceID))
+
+	//取出当前设备的os， clientType， logonAt
+	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
+	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
+	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
+	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
+
+	nc.logger.Debug("NotaryServiceUploadPublickey",
+		zap.Bool("isMaster", isMaster),
+		zap.String("username", username),
+		zap.String("deviceID", deviceID),
+		zap.String("curOs", curOs),
+		zap.Int("curClientType", curClientType),
+		zap.Uint64("curLogonAt", curLogonAt))
+
+	//打开msg里的负载， 获取请求参数
+	body := msg.GetContent()
+
+	//解包body
+	var req User.NotaryServiceUploadPublickeyReq
+	if err := proto.Unmarshal(body, &req); err != nil {
+		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		errorCode = LMCError.ProtobufUnmarshalError //错误码
+		goto COMPLETE
+	} else {
+
+		nc.logger.Debug("NotaryServiceUploadPublickeyReq  payload",
+			zap.String("publickeyContent", req.PublickeyContent), //要打标签的用户
+		)
+
+		userKey := fmt.Sprintf("userData:%s", username)
+		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
+
+		if userType != 3 {
+			nc.logger.Warn("此用户不是授权的第三方公证", zap.String("Username", username))
+			errorCode = LMCError.UserIsBlockedError
+			goto COMPLETE
+		}
+
+		redisConn.Do("SET", fmt.Sprintf("NotaryServicePublickey:%s", username))
+
+	}
+
+COMPLETE:
+	msg.SetCode(int32(errorCode)) //状态码
+	if errorCode == 200 {
+		rsp := &User.NotaryServiceUploadPublickeyRsp{
+			TimeTag: uint64(time.Now().UnixNano() / 1e6),
+		}
+		data, _ := proto.Marshal(rsp)
+		msg.FillBody(data)
+	} else {
+		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
+		msg.SetErrorMsg([]byte(errorMsg))        //错误提示
+		msg.FillBody(nil)
+	}
+
+	//处理完成，向dispatcher发送
+	topic := msg.GetSource() + ".Frontend"
+	rawData, _ := json.Marshal(msg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("NotaryServiceUploadPublickeyRsp message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send NotaryServiceUploadPublickeyRsp message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
 	return nil
