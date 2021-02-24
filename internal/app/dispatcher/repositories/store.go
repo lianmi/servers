@@ -120,8 +120,8 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		}
 		// 同时更新多个字段
 		result := s.db.Model(&models.Store{}).Where(&where2).Updates(models.Store{
-			StoreType:             int(req.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-			ImageURL:              req.ImageUrl,
+			StoreType:             int(req.StoreType),        //店铺类型,对应Global.proto里的StoreType枚举
+			ImageURL:              req.ImageUrl,              //店铺外景照片或形象图片
 			BusinessUsername:      req.BusinessUsername,      //商户注册号
 			Introductory:          req.Introductory,          //商店简介 Text文本类型
 			Province:              req.Province,              //省份, 如广东省
