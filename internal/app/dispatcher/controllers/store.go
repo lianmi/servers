@@ -174,7 +174,8 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		//保存或增加
 		if err := pc.service.AddStore(&req); err != nil {
 			pc.logger.Error("pc.service.AddStore error ", zap.Error(err))
-			RespData(c, http.StatusNotAcceptable, code, err.Error())
+			code = codes.ERROR
+			RespData(c, http.StatusOK, code, err.Error())
 		} else {
 			pc.logger.Debug("pc.service.AddStore ok")
 			code = codes.SUCCESS
