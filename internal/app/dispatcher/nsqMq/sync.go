@@ -205,9 +205,14 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			}
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
 			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
+			avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", friendUsername), "Avatar"))
+			if err != nil {
+				nc.logger.Error("HGET Avatar error", zap.Error(err))
+			}
 			rsp.Friends = append(rsp.Friends, &Friends.Friend{
 				Username: friendUsername,
 				Nick:     nick,
+				Avatar:   avatar,
 				Source:   source,
 				Ex:       ex,
 			})
