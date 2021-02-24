@@ -128,10 +128,10 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
-		if req.Province == "" || req.County == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
-			RespData(c, http.StatusOK, code, "商户地址信息必填")
-			return
-		}
+		// if req.Province == "" || req.County == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
+		// 	RespData(c, http.StatusOK, code, "商户地址信息必填")
+		// 	return
+		// }
 		if req.BusinessUsername == "" {
 			RespData(c, http.StatusOK, code, "商户注册账号id必填")
 			return
@@ -140,23 +140,23 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 			RespData(c, http.StatusOK, code, "商户店铺名称必填")
 			return
 		}
-		// if req.BusinessCode == "" {
-		// 	RespData(c, http.StatusOK, code, "商户编码必填")
-		// 	return
-		// }
+		if req.ContactMobile == "" {
+			RespData(c, http.StatusOK, code, "联系手机必填")
+			return
+		}
 		if req.ImageUrl == "" {
 			RespData(c, http.StatusOK, code, "商户店铺外景图片必填")
 			return
 		}
 
-		if req.BusinessLicenseUrl == "" {
-			RespData(c, http.StatusOK, code, "营业执照url必填")
-			return
-		}
-		if req.Wechat == "" {
-			RespData(c, http.StatusOK, code, "微信必填")
-			return
-		}
+		// if req.BusinessLicenseUrl == "" {
+		// 	RespData(c, http.StatusOK, code, "营业执照url必填")
+		// 	return
+		// }
+		// if req.Wechat == "" {
+		// 	RespData(c, http.StatusOK, code, "微信必填")
+		// 	return
+		// }
 
 		//保存或增加
 		if err := pc.service.AddStore(&req); err != nil {
