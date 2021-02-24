@@ -157,14 +157,6 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 			RespData(c, http.StatusOK, code, "微信必填")
 			return
 		}
-		if req.Longitude == 0.00 {
-			RespData(c, http.StatusOK, code, "商户地址的经度必填")
-			return
-		}
-		if req.Latitude == 0.00 {
-			RespData(c, http.StatusOK, code, "商户地址的纬度必填")
-			return
-		}
 
 		//保存或增加
 		if err := pc.service.AddStore(&req); err != nil {

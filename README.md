@@ -172,9 +172,6 @@ Download and install [httpie](https://github.com/jkbrzt/httpie) CLI HTTP client.
 ### 注册
 
 
-```sh
-http -v --json POST localhost:28080/register username=lsj001 password=C33367701511B4F6020EC61DED352059 gender=1 mobile=13702290109 user_type=1 contact_person=李示佳
-```
 
 ### 登录
 

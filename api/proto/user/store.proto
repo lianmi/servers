@@ -26,15 +26,15 @@ message Store {
     string businessCode          = 17; //店铺网点编码
     string contactMobile         = 18; //联系手机
     string wechat                = 19; //商户地址的纬度
-    double longitude             = 20; //商户地址的经度
-    double latitude              = 21; //商户地址的纬度
+    string longitude             = 20; //商户地址的经度
+    string latitude              = 21; //商户地址的纬度
     int32  auditState            = 22; //商户审核状态， 0-预审核，1-已审核，2-占位
     fixed64 createdAt            = 23; //用户注册时间,Unix时间戳
     fixed64 updatedAt            = 24; //用户资料最后更新时间,Unix时间戳
     fixed64 commentcount         = 25; //用户评论数
     fixed64 likes                = 26; //用户点赞数
     string openingHours          = 27; //营业时间
-    string notaryServiceUsername =28; //商户对应的公证处注册id，如果是彩票则强行指定为彩票中心
+    string notaryServiceUsername = 28; //商户对应的公证处注册id，如果是彩票则强行指定为彩票中心
 }
 
 message BusinessUserUploadLicenseReq {
