@@ -4,11 +4,12 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/common/codes"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
@@ -25,7 +26,7 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	RespData(c, http.StatusOK, 200, resp)
 }
 
 func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
@@ -42,7 +43,7 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	RespData(c, http.StatusOK, 200, resp)
 }
 
 //获取某个商户的所有商品列表
