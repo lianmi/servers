@@ -37,6 +37,7 @@ type Store struct {
 	LicenseURL            string `form:"license_url" json:"license_url" `                                       //商户营业执照阿里云url
 	AuditState            int    `form:"audit_state" json:"audit_state"`                                        //审核状态，0-预审核，1-审核通过, 2-占位
 	DefaultOPK            string `form:"default_opk" json:"default_opk,omitempty"`                              //商户的默认OPK
+	BusinessCode          string `form:"business_code" json:"business_code,omitempty"`                          //商户的网点编码，适合彩票店或连锁网点
 	NotaryServiceUsername string `form:"notary_service_username" json:"notary_service_username,omitempty"`      //商户对应的公证处注册id
 }
 
