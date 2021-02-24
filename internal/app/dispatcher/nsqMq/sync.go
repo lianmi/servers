@@ -185,7 +185,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		rsp := &Friends.SyncFriendsEventRsp{
 			TimeTag:         uint64(time.Now().UnixNano() / 1e6), //毫秒
 			Friends:         make([]*Friends.Friend, 0),
-			RemovedAccounts: make([]*Friends.Friend, 0),
+			RemovedAccounts: make([]string, 0),
 		}
 
 		//从redis里读取username的好友列表
@@ -209,6 +209,11 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			if err != nil {
 				nc.logger.Error("HGET Avatar error", zap.Error(err))
 			}
+			if (avatar != "") && !strings.HasPrefix(avatar, "http") {
+
+				avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			}
+
 			rsp.Friends = append(rsp.Friends, &Friends.Friend{
 				Username: friendUsername,
 				Nick:     nick,
@@ -226,20 +231,9 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 		}
 
 		for _, friendUsername := range RemoveFriends {
-			nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
-			if err != nil {
-				nc.logger.Error("HGET error", zap.Error(err))
-				continue
-			}
-			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
-			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
 
-			rsp.RemovedAccounts = append(rsp.RemovedAccounts, &Friends.Friend{
-				Username: friendUsername,
-				Nick:     nick,
-				Source:   source,
-				Ex:       ex,
-			})
+			rsp.RemovedAccounts = append(rsp.RemovedAccounts, friendUsername)
+
 		}
 
 		data, _ := proto.Marshal(rsp)
@@ -344,17 +338,17 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 						avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 					}
 					rsp.UInfos = append(rsp.UInfos, &User.User{
-						Username:     username,
-						Gender:       User.Gender(fUserData.Gender),
-						Nick:         fUserData.Nick,
-						Avatar:       avatar,
-						Label:        fUserData.Label,
-						Mobile:       fUserData.Mobile,
-						Email:        fUserData.Email,
-						UserType:     User.UserType(fUserData.UserType),
-						Extend:       fUserData.Extend,
-						TrueName:     fUserData.TrueName,
-						IdentityCard: fUserData.IdentityCard,
+						Username: username,
+						Gender:   User.Gender(fUserData.Gender),
+						Nick:     fUserData.Nick,
+						Avatar:   avatar,
+						Label:    fUserData.Label,
+						// Mobile:       fUserData.Mobile, 隐私
+						// Email:        fUserData.Email,
+						UserType: User.UserType(fUserData.UserType),
+						Extend:   fUserData.Extend,
+						// TrueName:     fUserData.TrueName,
+						// IdentityCard: fUserData.IdentityCard,
 					})
 				}
 			}
