@@ -123,6 +123,14 @@ func (pc *LianmiApisController) GetStoreTypes(c *gin.Context) {
 func (pc *LianmiApisController) AddStore(c *gin.Context) {
 
 	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespData(c, http.StatusOK, 500, "username is empty")
+		return
+	}
+
 	var req User.Store
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
@@ -135,6 +143,11 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		if req.BusinessUsername == "" {
 			RespData(c, http.StatusOK, code, "商户注册账号id必填")
 			return
+		} else {
+			if req.BusinessUsername != username {
+				RespData(c, http.StatusOK, code, "商户注册账号非当前登录账号")
+				return
+			}
 		}
 		if req.Branchesname == "" {
 			RespData(c, http.StatusOK, code, "商户店铺名称必填")
