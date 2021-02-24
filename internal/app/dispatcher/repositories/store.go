@@ -109,7 +109,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		}
 	} else {
 
-		s.logger.Debug("记录存在")
+		s.logger.Debug("记录存在", zap.Int("AuditState", store.AuditState))
 
 		if store.AuditState == 1 {
 			return errors.Wrapf(err, "已经审核通过的不能修改资料[Businessusername=%s]", req.BusinessUsername)
