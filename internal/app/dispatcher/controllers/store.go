@@ -173,7 +173,8 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 
 		//保存或增加
 		if err := pc.service.AddStore(&req); err != nil {
-			RespData(c, http.StatusOK, code, "保存店铺资料失败")
+			pc.logger.Error("pc.service.AddStore error ", zap.Error(err))
+			RespData(c, http.StatusNotAcceptable, code, err.Error())
 		} else {
 			code = codes.SUCCESS
 			RespOk(c, http.StatusOK, code)
