@@ -120,24 +120,27 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		}
 		// 同时更新多个字段
 		result := s.db.Model(&models.Store{}).Where(&where2).Updates(models.Store{
-			StoreType:         int(req.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-			ImageURL:          req.ImageUrl,
-			BusinessUsername:  req.BusinessUsername,   //商户注册号
-			Introductory:      req.Introductory,       //商店简介 Text文本类型
-			Province:          req.Province,           //省份, 如广东省
-			City:              req.City,               //城市，如广州市
-			County:            req.County,             //区，如天河区
-			Street:            req.Street,             //街道
-			Address:           req.Address,            //地址
-			Branchesname:      req.Branchesname,       //网点名称
-			LegalPerson:       req.LegalPerson,        //法人姓名
-			LegalIdentityCard: req.LegalIdentityCard,  //法人身份证
-			Longitude:         req.Longitude,          //商户地址的经度
-			Latitude:          req.Latitude,           //商户地址的纬度
-			WeChat:            req.Wechat,             //商户联系人微信号
-			Keys:              req.Keys,               //商户经营范围搜索关键字
-			LicenseURL:        req.BusinessLicenseUrl, //商户营业执照阿里云url
-			OpeningHours:      req.OpeningHours,       //营业时间
+			StoreType:             int(req.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
+			ImageURL:              req.ImageUrl,
+			BusinessUsername:      req.BusinessUsername,      //商户注册号
+			Introductory:          req.Introductory,          //商店简介 Text文本类型
+			Province:              req.Province,              //省份, 如广东省
+			City:                  req.City,                  //城市，如广州市
+			County:                req.County,                //区，如天河区
+			Street:                req.Street,                //街道
+			Address:               req.Address,               //地址
+			Branchesname:          req.Branchesname,          //网点名称
+			LegalPerson:           req.LegalPerson,           //法人姓名
+			LegalIdentityCard:     req.LegalIdentityCard,     //法人身份证
+			Longitude:             req.Longitude,             //商户地址的经度
+			Latitude:              req.Latitude,              //商户地址的纬度
+			WeChat:                req.Wechat,                //商户联系人微信号
+			Keys:                  req.Keys,                  //商户经营范围搜索关键字
+			LicenseURL:            req.BusinessLicenseUrl,    //商户营业执照阿里云url
+			OpeningHours:          req.OpeningHours,          //营业时间
+			ContactMobile:         req.ContactMobile,         //联系电话
+			BusinessCode:          req.BusinessCode,          //商户的网点编码，适合彩票店或连锁网点
+			NotaryServiceUsername: req.NotaryServiceUsername, //商户对应的公证处注册id
 		})
 
 		//updated records count
