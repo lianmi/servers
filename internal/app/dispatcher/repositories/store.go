@@ -247,7 +247,8 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		BusinessLicenseUrl:    licenseURL,                    //商户营业执照阿里云url
 		AuditState:            int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
 		OpeningHours:          p.OpeningHours,                //营业时间
-		NotaryServiceUsername: p.NotaryServiceUsername,       //第三方公证
+		BusinessCode:          p.BusinessCode,
+		NotaryServiceUsername: p.NotaryServiceUsername, //第三方公证
 	}, nil
 
 }
@@ -362,7 +363,8 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			Wechat:             store.Wechat,                      //商户联系人微信号
 			Keys:               store.Keys,                        //商户经营范围搜索关键字
 			BusinessLicenseUrl: businessLicenseUrl,                //商户营业执照阿里云url
-			AuditState:         store.AuditState,                  //审核状态，0-预审核，1-审核通过, 2-占位
+			BusinessCode:       store.BusinessCode,
+			AuditState:         store.AuditState, //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
 			UpdatedAt:          uint64(store.UpdatedAt),
 			Commentcount:       uint64(commentcount), //TODO 暂时是虚拟的
