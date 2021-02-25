@@ -39,7 +39,7 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 	resp, err := pc.service.GetProductInfo(productId)
 	if err != nil {
 		pc.logger.Error("get Product by productId error", zap.Error(err))
-		RespData(c, http.StatusOK, 500, "Get Product by productId error")
+		RespData(c, http.StatusOK, 500, "查询商品错误，可能此商品已下架删除")
 		return
 	}
 
