@@ -4,6 +4,8 @@ import (
 	// "context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
+	"fmt"
 
 	// "errors"
 	// "fmt"
@@ -46,7 +48,13 @@ func NewTlsConfig() *tls.Config {
 		Certificates:       []tls.Certificate{clientKeyPair},
 	}
 }
-
+func PrintPretty(i interface{}) {
+	data, err := json.MarshalIndent(i, "", "    ")
+	if err != nil {
+		log.Fatalf("JSON marshaling failed: %s", err)
+	}
+	fmt.Printf("%s\n", data)
+}
 func CreateClient(payloadCh chan []byte) *paho.Client {
 	//使用ca
 	var client *paho.Client
@@ -62,6 +70,9 @@ func CreateClient(payloadCh chan []byte) *paho.Client {
 		client = paho.NewClient(paho.ClientConfig{
 			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 				log.Println("Incoming mqtt broker message")
+				log.Println("m.Properties.User 长度", len(m.Properties.User))
+
+				PrintPretty(m.Properties)
 
 				topic := m.Topic
 				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt

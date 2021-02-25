@@ -79,18 +79,18 @@ func main() {
 	fmt.Println("amountLNMCAmount: ", amountLNMCAmount)
 
 	{
-		//从第1号叶子转账 1 ether 到iid1的中转账号  作为上链gas
+		//从第1号叶子转账 1 ether 到id104的中转账号  作为上链gas
 
-		transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258", ether)
+		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258", ether)
 
-		queryETH("0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258")
+		// queryETH("0xD8939E7334ad11CB9A1338C8ddC4A49b333aB258")
 
 		// 从第1号叶子转账 1 ether 到id1作为gas
 		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", amountLNMCAmount)
-		// 查询id1代币余额
-		queryLNMCBalance("0x4a61e418173362c68db37cb3aee0ab53d40f6cb9")
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x8a4254db278ad193761d14d52391aeead8903baf", amountLNMCAmount)
+		// 查询id104代币余额
+		queryLNMCBalance("0x8a4254db278ad193761d14d52391aeead8903baf")
 
 	}
 
