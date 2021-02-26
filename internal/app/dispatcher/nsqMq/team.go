@@ -85,11 +85,11 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("CreateTeam body",
-			zap.String("群主账号", req.GetOwner()),
-			zap.Int("群类型", int(req.GetType())), // Normal(1) - 普通群 Advanced(2) - vip群
-			zap.String("群组名称", req.GetName()),
-			zap.Int("verifyType", int(req.GetVerifyType())), //如果普通群，只能选4，如果vip群，可以选其它
-			zap.Int("inviteMode", int(req.GetInviteMode())), //邀请模式
+			zap.String("群主账号", req.Owner),
+			zap.Int("群类型", int(req.Type)), // Normal(1) - 普通群 Advanced(2) - vip群
+			zap.String("群组名称", req.TeamName),
+			zap.Int("verifyType", int(req.VerifyType)), //如果普通群，只能选4，如果vip群，可以选其它
+			zap.Int("inviteMode", int(req.InviteMode)), //邀请模式
 		)
 
 		teamOwner := req.GetOwner()
@@ -134,8 +134,8 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 
 			pTeam := new(models.Team)
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
-			pTeam.Teamname = req.GetName()
-			pTeam.Nick = req.GetName()
+			pTeam.Teamname = req.TeamName
+			pTeam.Nick = req.TeamName //与群名一致
 			pTeam.Owner = req.GetOwner()
 			pTeam.Type = int(req.GetType())
 			pTeam.VerifyType = int(req.GetVerifyType())

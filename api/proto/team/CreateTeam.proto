@@ -13,7 +13,8 @@ message CreateTeamReq {
     //是否必须：是
     TeamType type = 3;
 
-    string name = 4;
+    //群名称
+    string teamName = 4;
 
     //入群校验方式
     //是否必须：是
