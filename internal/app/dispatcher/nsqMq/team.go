@@ -159,7 +159,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			//群信息
 			rsp.TeamInfo = &Team.TeamInfo{
 				TeamId:       pTeam.TeamID,
-				Name:         pTeam.Teamname,
+				TeamName:     pTeam.Teamname,
 				Icon:         "", //TODO 需要改为默认
 				Announcement: "", //群公告
 				Introduce:    "", //群简介
@@ -429,7 +429,7 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 
 				rsp.TeamInfo = &Team.TeamInfo{
 					TeamId:       pTeam.TeamID,
-					Name:         pTeam.Teamname,
+					TeamName:     pTeam.Teamname,
 					Icon:         pTeam.Icon,
 					Announcement: pTeam.Announcement,
 					Introduce:    pTeam.Introductory,
@@ -1374,7 +1374,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			}
 			rsp.TeamInfo = &Team.TeamInfo{
 				TeamId:       pTeam.TeamID,
-				Name:         pTeam.Teamname,
+				TeamName:     pTeam.Teamname,
 				Icon:         pTeam.Icon,
 				Announcement: pTeam.Announcement,
 				Introduce:    pTeam.Introductory,
@@ -4466,7 +4466,7 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 
 			rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
 				TeamId:       pTeam.TeamID,
-				Name:         pTeam.Teamname,
+				TeamName:     pTeam.Teamname,
 				Icon:         pTeam.Icon,
 				Announcement: pTeam.Announcement,
 				Introduce:    pTeam.Introductory,

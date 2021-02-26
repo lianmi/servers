@@ -463,7 +463,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 
 					rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
 						TeamId:       teamInfo.TeamID,
-						Name:         teamInfo.Teamname,
+						TeamName:     teamInfo.Teamname,
 						Icon:         teamInfo.Icon,
 						Announcement: teamInfo.Announcement,
 						Introduce:    teamInfo.Introductory,

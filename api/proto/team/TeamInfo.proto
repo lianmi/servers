@@ -166,7 +166,7 @@ message TeamInfo {
     string teamId = 1;
     //群名称
     //是否必须:是
-    string name = 2;
+    string teamName = 2;
     //群头像
     //是否必须:否
     string icon = 3;
