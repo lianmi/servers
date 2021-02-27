@@ -109,7 +109,7 @@ message User {
     AllowType allow_type          = 12;
     UserType user_type            = 13;
     UserState state               = 14;
-    string trueName               = 15;  //实名
+    string true_name              = 15;  //实名
     string identityCard           = 16;  //身份证号码
     string province               = 17;  //省份, 如广东省
     string city                   = 18;  //城市，如广州市
