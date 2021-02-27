@@ -566,7 +566,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
 			teamInviteMode, _ := redis.Int(redisConn.Do("HGET", key, "InviteMode"))
 			teamID, _ := redis.String(redisConn.Do("HGET", key, "TeamID"))
-			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "Teamname"))
 
 			//此群是否是正常的
 			if teamStatus != int(Team.TeamStatus_Status_Normal) {
@@ -919,7 +919,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 				errorCode = LMCError.TeamIsNotExistsError
 				goto COMPLETE
 			}
-			teamName, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("TeamInfo:%s", teamID), "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("TeamInfo:%s", teamID), "Teamname"))
 
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
@@ -1215,7 +1215,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					goto COMPLETE
 				}
 			}
-			teamName, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("TeamInfo:%s", teamID), "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("TeamInfo:%s", teamID), "Teamname"))
 
 			//此群是否是正常的
 			if pTeamInfo.Status != int(Team.TeamStatus_Status_Normal) {
@@ -1976,7 +1976,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
-			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "Teamname"))
 
 			//此群是否是正常的
 			if teamStatus != int(Team.TeamStatus_Status_Normal) {
@@ -2462,7 +2462,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
-			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "Teamname"))
 
 			//判断操作者是不是群主或管理员
 			teamMemberType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "TeamMemberType"))
@@ -3939,7 +3939,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
-			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "Teamname"))
 
 			//此群是否是正常的
 			if teamStatus != int(Team.TeamStatus_Status_Normal) {
