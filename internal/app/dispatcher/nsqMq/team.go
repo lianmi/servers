@@ -1339,7 +1339,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,                             //字节流
-					From:         teamName,
+					From:         teamName,                             //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -1541,7 +1541,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 				Type:         Msg.MessageType_MsgType_Notification, //通知类型
 				Body:         bodyData,
-				From:         username,
+				From:         pTeamInfo.Teamname, //群名称
 				FromDeviceId: deviceID,
 				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -1800,7 +1800,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,                             //字节流
-						From:         username,                             //发起人
+						From:         teamInfo.Teamname,                    //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -1843,7 +1843,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						From:         username, //发起人
+						From:         teamInfo.Teamname, //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -2080,7 +2080,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         username, //当前用户
+					From:         teamName, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -2297,7 +2297,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 				Type:         Msg.MessageType_MsgType_Notification, //通知类型
 				Body:         bodyData,
-				From:         username, //当前用户
+				From:         pTeamInfo.Teamname, //群名称
 				FromDeviceId: deviceID,
 				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -2339,7 +2339,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         username, //当前用户
+					From:         pTeamInfo.Teamname, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -2462,6 +2462,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
 
 			//判断操作者是不是群主或管理员
 			teamMemberType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "TeamMemberType"))
@@ -2567,7 +2568,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         username,
+					From:         teamName, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -2769,7 +2770,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 								Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 								Type:         Msg.MessageType_MsgType_Notification, //通知类型
 								Body:         bodyData,
-								From:         username,
+								From:         pTeamInfo.Teamname, //群名称
 								FromDeviceId: deviceID,
 								Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -3022,7 +3023,7 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 									Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 									Type:         Msg.MessageType_MsgType_Notification, //通知类型
 									Body:         bodyData,
-									From:         username,
+									From:         pTeamInfo.Teamname, //群名称
 									FromDeviceId: deviceID,
 									Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -3259,7 +3260,7 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 									Type:         Msg.MessageType_MsgType_Notification, //通知类型
 									Body:         bodyData,
-									From:         username,
+									From:         pTeamInfo.Teamname, //群名称
 									FromDeviceId: deviceID,
 									Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 									ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -3471,7 +3472,7 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         username,
+					From:         pTeamInfo.Teamname, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -3702,7 +3703,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						From:         username,
+						From:         pTeamInfo.Teamname, //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -3938,6 +3939,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//获取到群信息
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
+			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
 
 			//此群是否是正常的
 			if teamStatus != int(Team.TeamStatus_Status_Normal) {
@@ -3995,7 +3997,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 				Type:         Msg.MessageType_MsgType_Notification, //通知类型
 				Body:         bodyData,
-				From:         username,
+				From:         teamName, //群名称
 				FromDeviceId: deviceID,
 				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -4184,7 +4186,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						From:         username,
+						From:         pTeamInfo.Teamname, //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -4631,7 +4633,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				handledMsg := fmt.Sprintf("用户 %s 邀请你入群", inviterNick)
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_TeamInvite, //邀请加群
-					HandledAccount: username,
+					HandledAccount: req.GetInviter(),                           //谁发出的邀请
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Processing,
 					Data:           []byte(""),
@@ -4642,7 +4644,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         req.GetInviter(), //谁发出的邀请
+					From:         pTeamInfo.Teamname, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -4671,7 +4673,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					handledMsg := fmt.Sprintf("管理员同意用户 %s 拉人入群申请", inviterNick)
 					body := Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_CheckTeamInvitePass, //管理员同意了邀请入群前的询问
-						HandledAccount: username,                                            //当前用户
+						HandledAccount: req.GetInviter(),                                    //谁发出的邀请
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
@@ -4682,7 +4684,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						From:         req.GetInviter(), //谁发出的邀请
+						From:         pTeamInfo.Teamname, //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -4714,7 +4716,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				handledMsg := fmt.Sprintf("管理员拒绝用户 %s 拉人入群申请", inviterNick)
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_CheckTeamInviteReject, //管理员拒绝了邀请入群前的询问
-					HandledAccount: username,                                              //当前用户
+					HandledAccount: req.GetInviter(),                                      //谁发出邀请
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Declined,
 					Data:           []byte(""),
@@ -4725,7 +4727,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         req.GetInviter(), //谁发出邀请
+					From:         pTeamInfo.Teamname, //群名称
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
@@ -4753,7 +4755,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					}
 					body := Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //管理员拒绝加群申请
-						HandledAccount: username,                                         //当前用户
+						HandledAccount: req.GetInviter(),                                 //谁发出邀请
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
@@ -4764,7 +4766,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 						Type:         Msg.MessageType_MsgType_Notification, //通知类型
 						Body:         bodyData,
-						From:         req.GetInviter(), //谁发出邀请
+						From:         pTeamInfo.Teamname, //群名称
 						FromDeviceId: deviceID,
 						Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 						ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
