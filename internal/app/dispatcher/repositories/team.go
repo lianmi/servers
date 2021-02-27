@@ -44,7 +44,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	}
 
-	p.Status = 2 //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+	p.Status = int(Team.TeamStatus_Status_Normal) //状态 Init(0) - 初始状态,未审核 Normal(1) - 正常状态 Blocked(2) - 封禁状态
 
 	//存储群成员信息 TeamUser
 	memberNick, _ := redis.String(redisConn.Do("HGET", "userData:%s", p.Owner, "Nick"))
@@ -65,12 +65,12 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	teamUser.TeamUserInfo.IsMute = false                                      //是否被禁言
 	teamUser.TeamUserInfo.NotifyType = 1                                      //群消息通知方式 All(1) - 群全部消息提醒
 
-	//将Status变为 Normal(2) - 正常状态
+	//将Status变为 Normal(1) - 正常状态
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
 		TeamInfo: models.TeamInfo{
 			TeamID: teamID,
 		},
-	}).Update("status", 2)
+	}).Update("status", int(Team.TeamStatus_Status_Normal))
 
 	//updated records count
 	s.logger.Debug("ApproveTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
@@ -201,14 +201,14 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 }
 
-//封禁群组 状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+//封禁群组 状态 Init(0) - 初始状态,未审核 Normal(1) - 正常状态 Blocked(2) - 封禁状态
 func (s *MysqlLianmiRepository) BlockTeam(teamID string) error {
 
 	result := s.db.Model(&models.Team{}).Where(&models.Team{
 		TeamInfo: models.TeamInfo{
 			TeamID: teamID,
 		},
-	}).Update("status", 3) //将Status变为 3
+	}).Update("status", int(Team.TeamStatus_Status_Blocked)) //更改Status
 
 	//updated records count
 	s.logger.Debug("BlockTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
@@ -228,7 +228,7 @@ func (s *MysqlLianmiRepository) DisBlockTeam(teamID string) error {
 		TeamInfo: models.TeamInfo{
 			TeamID: teamID,
 		},
-	}).Update("status", 2) //将Status变为 2
+	}).Update("status", int(Team.TeamStatus_Status_Normal)) //更改Status
 
 	//updated records count
 	s.logger.Debug("DisBlockTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))

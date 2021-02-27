@@ -32,15 +32,15 @@ enum QueryType {
 }
 
 //群状态
-enum Status {
-    //无效
+enum TeamStatus {
+   //初始状态,未审核
     Status_Undefined = 0;
-    //初始状态,未审核
-    Status_Init = 1;
+    
     //正常状态
-    Status_Normal = 2;
+    Status_Normal = 1;
+    
     //封禁状态
-    Status_Blocked = 3;
+    Status_Blocked = 2;
 
 }
 
@@ -196,7 +196,7 @@ message TeamInfo {
     int32 memberNum = 11;
     //群状态
     //是否必须：是
-    Status status = 12;
+    TeamStatus status = 12;
 
     //发言方式
     //是否必须：是

@@ -107,7 +107,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			//判断群主是否已经注册为网点用户类型
 			userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", teamOwner), "UserType"))
 			if User.UserType(userType) != User.UserType_Ut_Business {
-				errorCode = LMCError.RedisError
+				errorCode = LMCError.IsNotBusinessUserError
 				goto COMPLETE
 			}
 
@@ -142,7 +142,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			pTeam.InviteMode = int(req.GetInviteMode())
 
 			//默认的设置
-			pTeam.Status = 1 //Init(1) - 初始状态,审核中 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+			pTeam.Status = int(Team.TeamStatus_Status_Undefined) //Init(0) - 初始状态,审核中 Normal(1) - 正常状态 Blocked(2) - 封禁状态
 			pTeam.MemberLimit = LMCommon.PerTeamMembersLimit
 			pTeam.MemberNum = 1  //刚刚建群是只有群主1人
 			pTeam.MuteType = 1   //None(1) - 所有人可发言
@@ -168,7 +168,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 				VerifyType:   Team.VerifyType(pTeam.VerifyType),
 				MemberLimit:  int32(pTeam.MemberLimit),
 				MemberNum:    int32(pTeam.MemberNum),
-				Status:       Team.Status(pTeam.Status),
+				Status:       Team.TeamStatus(pTeam.Status),
 				MuteType:     Team.MuteMode(pTeam.MuteType),
 				InviteMode:   Team.InviteMode(pTeam.InviteMode),
 				Ex:           pTeam.Extend,
@@ -438,7 +438,7 @@ func (nc *NsqClient) HandleGetTeam(msg *models.Message) error {
 					VerifyType:   Team.VerifyType(pTeam.VerifyType),
 					MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 					MemberNum:    int32(count),
-					Status:       Team.Status(pTeam.Status),
+					Status:       Team.TeamStatus(pTeam.Status),
 					MuteType:     Team.MuteMode(pTeam.MuteType),
 					InviteMode:   Team.InviteMode(pTeam.InviteMode),
 					Ex:           pTeam.Extend,
@@ -941,7 +941,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -1225,7 +1225,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -1383,7 +1383,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				VerifyType:   Team.VerifyType(pTeam.VerifyType),
 				MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 				MemberNum:    int32(count),
-				Status:       Team.Status(pTeam.Status),
+				Status:       Team.TeamStatus(pTeam.Status),
 				MuteType:     Team.MuteMode(pTeam.MuteType),
 				InviteMode:   Team.InviteMode(pTeam.InviteMode),
 				Ex:           pTeam.Extend,
@@ -1509,7 +1509,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -1705,7 +1705,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if teamInfo.Status != 2 {
+			if teamInfo.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfo.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -2245,7 +2245,7 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -2715,7 +2715,7 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 			}
 
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -2934,7 +2934,7 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -3175,7 +3175,7 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -3409,7 +3409,7 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -3616,7 +3616,7 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 			}
 
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -4125,7 +4125,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -4325,7 +4325,7 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 				}
 			}
 			//此群是否是正常的
-			if pTeam.Status != 2 {
+			if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -4475,7 +4475,7 @@ func (nc *NsqClient) HandleGetMyTeams(msg *models.Message) error {
 				VerifyType:   Team.VerifyType(pTeam.VerifyType),
 				MemberLimit:  int32(LMCommon.PerTeamMembersLimit),
 				MemberNum:    int32(count),
-				Status:       Team.Status(pTeam.Status),
+				Status:       Team.TeamStatus(pTeam.Status),
 				MuteType:     Team.MuteMode(pTeam.MuteType),
 				InviteMode:   Team.InviteMode(pTeam.InviteMode),
 				Ex:           pTeam.Extend,
@@ -4594,7 +4594,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		}
 
 		//此群是否是正常的
-		if pTeam.Status != 2 {
+		if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 			nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 			errorCode = LMCError.TeamStatusError
 			goto COMPLETE
@@ -4898,7 +4898,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		}
 
 		//此群是否是正常的
-		if pTeam.Status != 2 {
+		if pTeam.Status != int(Team.TeamStatus_Status_Normal) {
 			nc.logger.Warn("Team status is not normal", zap.Int("Status", pTeam.Status))
 			errorCode = LMCError.TeamStatusError
 			goto COMPLETE

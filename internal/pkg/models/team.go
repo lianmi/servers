@@ -17,7 +17,7 @@ type TeamInfo struct {
 	Icon         string `form:"icon" json:"icon,omitempty"`                                        //群头像url
 	Announcement string `form:"announcement" json:"announcement,omitempty" `                       //群公告
 	Introductory string `gorm:"type:text;null" form:"introductory" json:"introductory,omitempty" ` // Text文本类型
-	Status       int    `form:"status" json:"status"`                                              //状态 Init(1) - 初始状态,未审核 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+	Status       int    `form:"status" json:"status"`                                              //状态 Init(0) - 初始状态,未审核 Normal(1) - 正常状态 Blocked(2) - 封禁状态
 	Extend       string `form:"extend" json:"extend,omitempty" `                                   //扩展字段
 	Owner        string `form:"owner" json:"owner,omitempty" `                                     //群主账号id
 	Type         int    `form:"type" json:"type ,omitempty" `                                      //Normal(1) - 普通群 Advanced(2) - vip群

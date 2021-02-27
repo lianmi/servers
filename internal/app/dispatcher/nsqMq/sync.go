@@ -472,7 +472,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 						VerifyType:   Team.VerifyType(teamInfo.VerifyType),
 						MemberLimit:  int32(common.PerTeamMembersLimit),
 						MemberNum:    int32(count),
-						Status:       Team.Status(teamInfo.Status),
+						Status:       Team.TeamStatus(teamInfo.Status),
 						MuteType:     Team.MuteMode(teamInfo.MuteType),
 						InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 						Ex:           teamInfo.Extend,
