@@ -75,7 +75,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	//updated records count
 	s.logger.Debug("ApproveTeam result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
 
-	//增加记录
+	//增加teamuser表记录
 	if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&teamUser).Error; err != nil {
 		s.logger.Error("ApproveTeam, failed to upsert teamUser", zap.Error(err))
 	} else {
@@ -97,6 +97,10 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	err = redisConn.Send("ZADD", fmt.Sprintf("TeamUsers:%s", p.TeamID), time.Now().UnixNano()/1e6, p.Owner)
 
 	err = redisConn.Send("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", p.TeamID, p.Owner)).AddFlat(teamUser.TeamUserInfo)...)
+
+	//存储群信息
+	teamInfoKey := fmt.Sprintf("TeamInfo:%s", p.TeamID)
+	err = redisConn.Send("HMSET", redis.Args{}.Add(teamInfoKey).AddFlat(p)...)
 
 	//更新redis的sync:{用户账号} teamsAt 时间戳
 	err = redisConn.Send("HSET",
