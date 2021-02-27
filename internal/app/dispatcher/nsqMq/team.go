@@ -576,7 +576,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			teamID, _ := redis.String(redisConn.Do("HGET", key, "TeamID"))
 
 			//此群是否是正常的
-			if teamStatus != 2 {
+			if teamStatus != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -1986,7 +1986,7 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			teamName, _ := redis.String(redisConn.Do("HGET", key, "TeamName"))
 
 			//此群是否是正常的
-			if teamStatus != 2 {
+			if teamStatus != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -2464,7 +2464,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			key := fmt.Sprintf("TeamInfo:%s", teamID)
 			status, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
 			//此群是否是正常的
-			if status != 2 {
+			if status != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", status))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -3831,7 +3831,7 @@ func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
 
 			//此群是否是正常的
-			if teamStatus != 2 {
+			if teamStatus != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
@@ -3946,7 +3946,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			teamStatus, _ := redis.Int(redisConn.Do("HGET", key, "Status"))
 
 			//此群是否是正常的
-			if teamStatus != 2 {
+			if teamStatus != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamStatus))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE

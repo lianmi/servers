@@ -2710,7 +2710,7 @@ func (nc *NsqClient) HandleGetPreKeysCount(msg *models.Message) error {
 	//从redis里获取当前用户信息
 	userKey := fmt.Sprintf("userData:%s", username)
 	userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		nc.logger.Error("只有商户才能查询OPK存量")
 		errorCode = LMCError.PreKeyGetCountError
 		goto COMPLETE
@@ -2799,7 +2799,7 @@ func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error 
 		//从redis里获取businessUsername用户信息
 		userKey := fmt.Sprintf("userData:%s", req.BusinessUsername)
 		userType, _ := redis.Int(redisConn.Do("HGET", userKey, "UserType"))
-		if userType != 2 {
+		if userType != int(User.UserType_Ut_Business) {
 			nc.logger.Error("只有商户才能查询第三方公证公钥")
 			errorCode = LMCError.PreKeyGetCountError
 			goto COMPLETE

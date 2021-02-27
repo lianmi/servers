@@ -228,7 +228,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 			teamInfoType, _ := redis.Int(redisConn.Do("HGET", key, "Type"))
 
 			//此群是否是正常的
-			if teamInfoStatus != 2 {
+			if teamInfoStatus != int(Team.TeamStatus_Status_Normal) {
 				nc.logger.Warn("Team status is not normal", zap.Int("Status", teamInfoStatus))
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE

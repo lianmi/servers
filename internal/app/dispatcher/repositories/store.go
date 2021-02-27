@@ -46,7 +46,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		}
 	}
 	// 判断是否是商户类型
-	if userData.UserType != 2 {
+	if userData.UserType != int(User.UserType_Ut_Business) {
 		s.logger.Error("错误：此注册账号id不是商户类型")
 		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
 	}
@@ -193,7 +193,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
 	p := new(models.Store)
@@ -387,7 +387,7 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.BusinessUsername), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -404,7 +404,7 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 		}
 	}
 	// 判断是否是商户类型
-	if userData.UserType != 2 {
+	if userData.UserType != int(User.UserType_Ut_Business) {
 		s.logger.Error("错误：此注册账号id不是商户类型")
 		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
 	}
@@ -467,7 +467,7 @@ func (s *MysqlLianmiRepository) UserLikes(username string) (*User.UserLikesResp,
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -502,7 +502,7 @@ func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.Store
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -543,7 +543,7 @@ func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (in
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return 0, errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -582,7 +582,7 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return 0, errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -618,7 +618,7 @@ func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -646,7 +646,7 @@ func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) erro
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -714,7 +714,7 @@ func (s *MysqlLianmiRepository) ClearAllOPK(username string) error {
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -749,7 +749,7 @@ func (s *MysqlLianmiRepository) GetAllOPKS(username string) (*Order.GetAllOPKSRs
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
 
@@ -774,7 +774,7 @@ func (s *MysqlLianmiRepository) EraseOPK(username string, req *Order.EraseOPKSRe
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 	for _, opk := range req.Opks {
@@ -799,7 +799,7 @@ func (s *MysqlLianmiRepository) SetDefaultOPK(username, opk string) error {
 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
-	if userType != 2 {
+	if userType != int(User.UserType_Ut_Business) {
 		return errors.Wrap(err, "此用户非商户类型")
 	}
 	_, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", username), opk)
