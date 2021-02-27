@@ -1174,12 +1174,12 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 		teamID := req.GetTeamId()
 
 		//获取邀请方的呢称
-		fromNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetFrom()), "Nick"))
-		if err != nil {
-			nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
-			errorCode = LMCError.RedisError
-			goto COMPLETE
-		}
+		// fromNick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.GetFrom()), "Nick"))
+		// if err != nil {
+		// 	nc.logger.Error("获取邀请方的呢称错误", zap.Error(err))
+		// 	errorCode = LMCError.RedisError
+		// 	goto COMPLETE
+		// }
 		//校验用户是否曾经被人拉入群
 		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("InviteTeamMembers:%s", teamID), username); err == nil {
 			if reply != nil {
@@ -1311,7 +1311,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			err = redisConn.Flush()
 			nc.PrintRedisErr(err)
 
-			//向群推送此用户的入群通知
+			//向群所有成员推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 			psSource := &Friends.PsSource{
 				Ps:     "",
@@ -1319,7 +1319,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			}
 			psSourceData, _ := proto.Marshal(psSource)
 
-			handledMsg := fmt.Sprintf("\"%s\"邀请\"%s\"入群", fromNick, userData.Nick)
+			handledMsg := fmt.Sprintf("欢迎[\"%s\"]入群[\"%s\"]", userData.Nick, teamName)
 
 			for _, teamMember := range teamMembers {
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
@@ -1328,7 +1328,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				}
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_PassTeamInvite, //用户同意群邀请
-					HandledAccount: username,
+					HandledAccount: username,                                       //invitee
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Passed,
 					Data:           psSourceData,
