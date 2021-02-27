@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-//授权新创建的群组: 将Status变为 Normal(2) - 正常状态
+//授权新创建的群组: 将Status变为 Normal(1) - 正常状态
 func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	var err error
 
