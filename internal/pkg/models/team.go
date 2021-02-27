@@ -1,9 +1,10 @@
 package models
 
 import (
+	"time"
+
 	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
-	"time"
 
 	"github.com/lianmi/servers/api/proto/team"
 )
@@ -27,6 +28,7 @@ type TeamInfo struct {
 	MuteType     int    `form:"mute_type" json:"mute_type,omitempty" `                             //禁言类型
 	Ex           string `form:"ex" json:"ex,omitempty" `                                           //JSON扩展字段,由业务方解析
 	ModifiedBy   string `form:"modified_by" json:"modified_by,omitempty"`                          //最后由哪个操作员修改
+	IsMute       bool   `form:"is_mute" json:"is_mute,omitempty"`                                  //群是否被系统禁言
 }
 type Team struct {
 	global.LMC_Model

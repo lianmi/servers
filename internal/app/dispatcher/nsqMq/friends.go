@@ -404,7 +404,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 					body := &Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_ApplyFriend, //好友请求
 						HandledAccount: userA,
-						HandledMsg:     "好友请求",
+						HandledMsg:     "添加好友请求",
 						Status:         Msg.MessageStatus_MOS_Init, //未处理状态
 						Data:           psSourceData,               // 用来存储附言及来源
 						To:             userB,

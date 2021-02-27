@@ -69,7 +69,7 @@ message MessageNotificationBody {
     // 消息状态
     MessageStatus status = 4;
 
-    // 附带的文本 该系统消息的二进制字节
+    // 附带的文本 该系统消息的二进制字节, hex
     bytes data = 5;
 
     // 最终接受者,目标用户账号id

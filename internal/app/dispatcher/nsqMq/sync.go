@@ -476,6 +476,7 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 						MuteType:     Team.MuteMode(teamInfo.MuteType),
 						InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 						Ex:           teamInfo.Extend,
+						IsMute:       teamInfo.IsMute,
 					})
 				}
 			}

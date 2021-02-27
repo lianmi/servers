@@ -220,4 +220,8 @@ message TeamInfo {
     //true - 需管理员同意才能邀请用户入群
     //false - 邀请用户入群，无需管理员同意
     //    bool inviteCheck=19;
+
+    NotifyType notifyType=20;
+
+    bool isMute  =21;  //群是否被禁言 
 }

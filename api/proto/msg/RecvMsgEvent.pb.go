@@ -193,7 +193,7 @@ type MessageNotificationBody struct {
 	HandledMsg string `protobuf:"bytes,3,opt,name=handledMsg,proto3" json:"handledMsg,omitempty"`
 	// 消息状态
 	Status MessageStatus `protobuf:"varint,4,opt,name=status,proto3,enum=cloud.lianmi.im.msg.MessageStatus" json:"status,omitempty"`
-	// 附带的文本 该系统消息的二进制字节
+	// 附带的文本 该系统消息的二进制字节, hex
 	Data []byte `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
 	// 最终接受者,目标用户账号id
 	// 管理员可以看到 系统通知 所以管理员有权限修改
