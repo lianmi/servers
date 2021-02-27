@@ -74,7 +74,7 @@ func main() {
 	ether := float64(1) //1个以太币
 	fmt.Println("ehter: ", ether)
 
-	//从第1号叶子转账代币给id1的地址
+	//从第1号叶子转账代币给用户钱包的地址
 	amountLNMCAmount := int64(500000) //500000
 	fmt.Println("amountLNMCAmount: ", amountLNMCAmount)
 
@@ -88,9 +88,9 @@ func main() {
 		// 从第1号叶子转账 1 ether 到id1作为gas
 		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x8a4254db278ad193761d14d52391aeead8903baf", amountLNMCAmount)
-		// 查询id104代币余额
-		queryLNMCBalance("0x8a4254db278ad193761d14d52391aeead8903baf")
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0xbc778df997b378c4944b2dc886facabdae400707", amountLNMCAmount)
+		// 查询id105代币余额
+		queryLNMCBalance("0xbc778df997b378c4944b2dc886facabdae400707")
 
 	}
 
