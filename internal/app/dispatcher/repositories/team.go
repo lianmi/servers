@@ -100,7 +100,28 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	//存储群信息
 	teamInfoKey := fmt.Sprintf("TeamInfo:%s", p.TeamID)
-	err = redisConn.Send("HMSET", redis.Args{}.Add(teamInfoKey).AddFlat(p)...)
+	teamInfo := &models.TeamInfo{
+		TeamID:       p.TeamID,
+		Teamname:     p.Teamname,
+		Nick:         p.Nick,
+		Icon:         p.Icon,
+		Announcement: p.Announcement,
+		Introductory: p.Introductory,
+		Status:       p.Status,
+		Extend:       p.Extend,
+		Owner:        p.Owner,
+		Type:         p.Type,
+		VerifyType:   p.VerifyType,
+		InviteMode:   p.InviteMode,
+		MemberLimit:  p.MemberLimit,
+		MemberNum:    1, //刚刚建群是只有群主1人
+		MuteType:     p.MuteType,
+		Ex:           p.Ex,
+		ModifiedBy:   p.ModifiedBy,
+		IsMute:       p.IsMute,
+	}
+
+	err = redisConn.Send("HMSET", redis.Args{}.Add(teamInfoKey).AddFlat(teamInfo)...)
 
 	//更新redis的sync:{用户账号} teamsAt 时间戳
 	err = redisConn.Send("HSET",
