@@ -34,13 +34,16 @@ enum QueryType {
 //群状态
 enum TeamStatus {
    //初始状态,未审核
-    Status_Undefined = 0;
+    Status_Init = 0;
     
     //正常状态
     Status_Normal = 1;
     
     //封禁状态
     Status_Blocked = 2;
+    
+    // 解散状态
+    Status_DisMissed = 3;
 
 }
 

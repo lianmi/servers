@@ -104,7 +104,7 @@ enum MessageNotificationType {
     MNT_RejectTeamInvite = 10; ///< 用户被拒绝群邀请
     MNT_DismissTeam = 11; ///< 群被解散
     MNT_KickOffTeam = 12; ///< 被管理员踢出群
-    MNT_QuitTeam = 13; ///< 主动退群
+    MNT_QuitTeam = 13; ///< 主动退群 对应 ON_MEMBER_EXITED
     MNT_GrantManager = 14; ///< 设置管理员
     MNT_CancelManager = 15; ///< 取消管理员
     MNT_RevokeTeam = 16; ///< 群已被回收
@@ -116,9 +116,10 @@ enum MessageNotificationType {
     MNT_CheckTeamInvite = 22; ///< 邀请入群前询问管理员是否同意
     MNT_Approveteam = 23; ///< 群审核通过，成为正常状态，可以加群及拉人
     MNT_MemberUpdateMyInfo = 24; ///<  多端同步用户设置其在群里的资料
-    MNT_MultiDeleteFriend= 25; ///< 多端同步删除好友
-    MNT_CheckTeamInvitePass= 26; ///< 管理员同意了邀请入群前的询问
-    MNT_CheckTeamInviteReject= 27; ///< 管理员拒绝了邀请入群前的询问
+    MNT_MultiDeleteFriend = 25; ///< 多端同步删除好友
+    MNT_CheckTeamInvitePass = 26; ///< 管理员同意了邀请入群前的询问
+    MNT_CheckTeamInviteReject = 27; ///< 管理员拒绝了邀请入群前的询问
+    MNT_MemberJoined = 28; ///< 有新用户加入群
      
     //MNT_AddProduct = 30; ///< 商户上架商品
     //MNT_UpdateProduct = 31; ///< 商户更新商品
