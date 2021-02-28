@@ -133,13 +133,32 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	//向群主推送通知，此群已经审核通过
 
+	//群资料主要字段
+	updateTeamInfo := &Team.TeamInfo{
+		TeamName:     p.Teamname,
+		Icon:         p.Icon,
+		Announcement: p.Announcement,
+		Introduce:    p.Introductory,
+		VerifyType:   Team.VerifyType(p.VerifyType),
+		InviteMode:   Team.InviteMode(p.InviteMode),
+		Owner:        teamInfo.Owner,
+		Type:         Team.TeamType(p.Type),
+		MemberLimit:  int32(common.PerTeamMembersLimit),
+		MemberNum:    int32(1),
+		Status:       Team.TeamStatus(teamInfo.Status),
+		MuteType:     Team.MuteMode(teamInfo.MuteType),
+		Ex:           teamInfo.Extend,
+		IsMute:       teamInfo.IsMute,
+	}
+	updateTeamInfoData, _ := proto.Marshal(updateTeamInfo)
+
 	body := Msg.MessageNotificationBody{
 		Type:           Msg.MessageNotificationType_MNT_Approveteam, //群审核通过，成为正常状态，可以加群及拉人
-		HandledAccount: "operator",
+		HandledAccount: p.Owner,                                     //群主
 		HandledMsg:     "approveteam passed",
 		Status:         Msg.MessageStatus_MOS_Passed, //已通过验证
-		Data:           []byte(""),
-		To:             p.Owner, //群主
+		Data:           updateTeamInfoData,           //群信息
+		To:             p.Owner,                      //群主
 	}
 	bodyData, _ := proto.Marshal(&body)
 
@@ -147,7 +166,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 		Type:         Msg.MessageType_MsgType_Notification, //通知类型
 		Body:         bodyData,                             //字节流
-		From:         "",
+		From:         p.Teamname,
 		FromDeviceId: "",
 		ServerMsgId:  uuid.NewV4().String(), //服务器分配的消息ID
 		Recv:         teamID,                //接收方, 根据场景判断to是个人还是群

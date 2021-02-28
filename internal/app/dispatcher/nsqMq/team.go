@@ -2466,7 +2466,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
-	var nick, icon, announcement, introduce, verifyTypeStr, inviteModeStr string
+	var teamName, icon, announcement, introduce, verifyTypeStr, inviteModeStr string
 
 	var ok bool
 
@@ -2537,7 +2537,6 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				errorCode = LMCError.TeamStatusError
 				goto COMPLETE
 			}
-			teamName, _ := redis.String(redisConn.Do("HGET", key, "Teamname"))
 
 			//判断操作者是不是群主或管理员
 			teamMemberType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "TeamMemberType"))
@@ -2553,11 +2552,11 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 
 			pTeam := new(models.Team)
 			pTeam.TeamID = teamID
-			if nick, ok = req.Fields[1]; ok {
+			if teamName, ok = req.Fields[1]; ok {
 				//修改群组呢称
-				pTeam.Nick = nick
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Nick", nick); err != nil {
-					nc.logger.Error("HSET Nick error", zap.Error(err))
+				pTeam.Teamname = teamName
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Teamname", pTeam.Teamname); err != nil {
+					nc.logger.Error("HSET Teamname error", zap.Error(err))
 				}
 
 			}
@@ -2617,6 +2616,16 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 			//保存到MySQL 更新群数据
 			nc.service.UpdateTeam(teamID, pTeam)
 
+			//群资料主要字段
+			updateTeamInfo := &Team.TeamInfo{
+				TeamName:     pTeam.Teamname,
+				Icon:         pTeam.Icon,
+				Announcement: pTeam.Announcement,
+				Introduce:    pTeam.Introductory,
+				VerifyType:   Team.VerifyType(pTeam.VerifyType),
+				InviteMode:   Team.InviteMode(pTeam.InviteMode),
+			}
+			updateTeamInfoData, _ := proto.Marshal(updateTeamInfo)
 			//对所有群成员
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 			curAt := time.Now().UnixNano() / 1e6
@@ -2637,9 +2646,8 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_UpdateTeam, //更新群资料事件
 					HandledAccount: username,
-					HandledMsg:     "更新群资料事件",
 					Status:         Msg.MessageStatus_MOS_Done,
-					Data:           []byte(announcement), //存储新的公告, 如果是空，SDK则不需要更新
+					Data:           updateTeamInfoData, //存储群公告等, 如果是空，SDK则不需要更新
 					To:             teamMember,
 				}
 				bodyData, _ := proto.Marshal(&body)

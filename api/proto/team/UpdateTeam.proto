@@ -3,6 +3,7 @@ syntax = "proto3";
 package cloud.lianmi.im.team;
 option go_package = "github.com/lianmi/servers/api/proto/team";
 
+
 //
 //更新群组信息请求
 //群信息更新
