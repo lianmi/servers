@@ -4003,7 +4003,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	errorCode := 200
 
 	var newSeq uint64
-	var nick, ex string
+	var aliasName, ex string
 	var ok bool
 
 	redisConn := nc.redisPool.Get()
@@ -4076,11 +4076,11 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			// key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
 			teamUserInfo := new(models.TeamUser)
 
-			if nick, ok = req.Fields[1]; ok {
+			if aliasName, ok = req.Fields[1]; ok {
 				//修改群组呢称
-				teamUserInfo.Nick = nick
+				teamUserInfo.AliasName = aliasName
 				//刷新redis
-				_, err = redisConn.Do("HSET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "Nick", nick)
+				_, err = redisConn.Do("HSET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "AliasName", aliasName)
 
 			}
 			if ex, ok = req.Fields[2]; ok {
@@ -4092,7 +4092,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			}
 
 			//写入MySQL
-			if err = nc.service.UpdateTeamUserMyInfo(teamID, username, nick, ex); err != nil {
+			if err = nc.service.UpdateTeamUserMyInfo(teamID, username, aliasName, ex); err != nil {
 				nc.logger.Error("UpdateTeamUserMyInfo Error", zap.Error(err))
 				errorCode = LMCError.DataBaseError
 				goto COMPLETE
@@ -4101,43 +4101,63 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 			//更新时间戳
 			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, username)
 
-			//向其它端推送修改
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
-				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
+			//群成员修改的资料
+			member := &Team.Tmember{
+				TeamId:    teamID,
+				Username:  username,
+				AliasName: teamUserInfo.AliasName,
+				Ex:        teamUserInfo.Extend,
 			}
+			memberData, _ := proto.Marshal(member)
 
-			myProfileData, _ := proto.Marshal(req)
-			body := Msg.MessageNotificationBody{
-				Type:           Msg.MessageNotificationType_MNT_MemberUpdateMyInfo, //用户设置其在群里的资料
-				HandledAccount: username,                                           //当前用户
-				HandledMsg:     "",
-				Status:         Msg.MessageStatus_MOS_Done,
-				Data:           myProfileData,
-				To:             username, //用户自己
-			}
-			bodyData, _ := proto.Marshal(&body)
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         bodyData,
-				From:         teamName, //群名称
-				FromDeviceId: deviceID,
-				Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
+			// 向所有群成员推送
+			var newSeq uint64
+			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+			for _, teamMember := range teamMembers {
 
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms消息, 5-2",
-					zap.String("to", username),
-				)
-				nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
-			}()
+				//更新redis的sync:{用户账号} teamsAt 时间戳
+				redisConn.Send("HSET",
+					fmt.Sprintf("sync:%s", teamMember),
+					"teamsAt",
+					time.Now().UnixNano()/1e6)
+
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+					errorCode = LMCError.RedisError
+					goto COMPLETE
+				}
+
+				body := Msg.MessageNotificationBody{
+					Type:           Msg.MessageNotificationType_MNT_MemberUpdateMyInfo, //用户设置其在群里的资料
+					HandledAccount: username,                                           //当前用户
+					HandledMsg:     "用户设置其在群里的资料",
+					Status:         Msg.MessageStatus_MOS_Done,
+					Data:           memberData,
+					To:             teamMember,
+				}
+				bodyData, _ := proto.Marshal(&body)
+				eRsp := &Msg.RecvMsgEventRsp{
+					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+					Type:         Msg.MessageType_MsgType_Notification, //通知类型
+					Body:         bodyData,
+					From:         teamName, //群名称
+					FromDeviceId: deviceID,
+					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
+					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+					Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+					Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+					Time:         uint64(time.Now().UnixNano() / 1e6),
+				}
+
+				go func() {
+					nc.logger.Debug("5-2,  向所有群成员推送群成员修改的资料",
+						zap.String("群成员", username),
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
+				}()
+
+			}
 
 		}
 	}
