@@ -101,7 +101,7 @@ enum MessageNotificationType {
     MNT_RejectTeamApply = 7; ///< 管理员拒绝加群申请
     MNT_TeamInvite = 8; ///< 邀请加群
     MNT_PassTeamInvite = 9; ///< 用户同意群邀请
-    MNT_RejectTeamInvite = 10; ///< 用户拒绝群邀请
+    MNT_RejectTeamInvite = 10; ///< 用户被拒绝群邀请
     MNT_DismissTeam = 11; ///< 群被解散
     MNT_KickOffTeam = 12; ///< 被管理员踢出群
     MNT_QuitTeam = 13; ///< 主动退群
