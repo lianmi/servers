@@ -908,6 +908,17 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 
 		teamID := req.GetTeamId()
 
+		//判断username是不是群成员，如果否，则返回
+		//首先判断一下是否是群成员
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
+			if reply == nil { //不是群成员
+				err = nil
+				nc.logger.Debug("User is not member", zap.String("Username", username))
+				errorCode = LMCError.TeamUserIsNotExists
+				goto COMPLETE
+			}
+		}
+
 		//判断 teamID 是否存在
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("TeamInfo:%s", teamID))); err != nil {
 			nc.logger.Error("EXISTS Error", zap.Error(err))
@@ -2811,6 +2822,17 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 
 					}
 
+				} else {
+					//判断username是不是群成员，如果否，则返回
+					//首先判断一下是否是群成员
+					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
+						if reply == nil { //不是群成员
+							err = nil
+							nc.logger.Debug("User is not member", zap.String("Username", username))
+							errorCode = LMCError.TeamUserIsNotExists
+							goto COMPLETE
+						}
+					}
 				}
 			}
 
@@ -4875,10 +4897,10 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("GetTeamMembersPage  payload",
-			zap.String("TeamId", req.GetTeamId()),
-			zap.Int("QueryType", int(req.GetQueryType())),
-			zap.Int32("Page", req.GetPage()),
-			zap.Int32("PageSize", req.GetPageSize()),
+			zap.String("TeamId", req.TeamId),
+			zap.Int("QueryType", int(req.QueryType)),
+			zap.Int32("Page", req.Page),
+			zap.Int32("PageSize", req.PageSize),
 		)
 		teamID := req.GetTeamId()
 
@@ -4922,7 +4944,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 		}
 
 		var total int64
-		teamUsers := nc.service.GetTeamUsers(teamID, int(req.GetPage()), int(req.GetPageSize()), &total, maps)
+		teamUsers := nc.service.GetTeamUsers(teamID, int(req.Page), int(req.PageSize), &total, maps)
 		nc.logger.Debug("GetTeamUsers", zap.Int64("total", total))
 		rsp.Total = int32(total) //总页数
 		for _, teamUserInfo := range teamUsers {

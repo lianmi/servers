@@ -176,7 +176,7 @@ var LmcErrors = map[int]string{
 	TeamOperatorNotOwnerError:              "当前操作者不是群主或管理员",
 	TeamOperatorNotRightDeleteMemberrError: "当前操作者无权删除群成员",
 	TeamAlreadyMemberError:                 "用户已是群成员",
-	InviteTeamMembersError:                 "校验用户是否曾经被人拉入群",
+	InviteTeamMembersError:                 "用户未被其它群成员拉入群或已经是群成员",
 	AddTeamUserError:                       "增加群成员错误",
 	UserIsAlreadyTeammemberError:           "用户已经是群成员",
 	TeamVerifyTypePrivateErroe:             "此群仅限邀请加入",
