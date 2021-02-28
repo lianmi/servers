@@ -159,7 +159,7 @@ type LianmiRepository interface {
 	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error
 
 	// 修改群成员呢称、扩展
-	UpdateTeamUserMyInfo(teamID, username, nick, ex string) error
+	UpdateTeamUserMyInfo(teamID, username, aliasName, ex string) error
 
 	//修改群通知方式
 	UpdateTeamUserNotifyType(teamID string, notifyType int) error

@@ -135,8 +135,9 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 
 	//群资料主要字段
 	updateTeamInfo := &Team.TeamInfo{
-		TeamName:     p.Teamname,
-		Icon:         p.Icon,
+		TeamName: p.Teamname,
+		Icon:     p.Icon,
+
 		Announcement: p.Announcement,
 		Introduce:    p.Introductory,
 		VerifyType:   Team.VerifyType(p.VerifyType),
@@ -145,7 +146,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		Type:         Team.TeamType(p.Type),
 		MemberLimit:  int32(common.PerTeamMembersLimit),
 		MemberNum:    int32(1),
-		Status:       Team.TeamStatus(teamInfo.Status),
+		Status:       Team.TeamStatus_Status_Normal,
 		MuteType:     Team.MuteMode(teamInfo.MuteType),
 		Ex:           teamInfo.Extend,
 		IsMute:       teamInfo.IsMute,
@@ -342,7 +343,7 @@ func (s *MysqlLianmiRepository) UpdateTeamUserManager(teamID, managerUsername st
 	// 同时更新多个字段
 	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(&models.TeamUser{
 		TeamUserInfo: models.TeamUserInfo{
-			TeamMemberType: teamMemberType, //群管理员 or 普通群成员s
+			TeamMemberType: teamMemberType, //群管理员 or 普通群成员
 		},
 	})
 
@@ -362,7 +363,7 @@ func (s *MysqlLianmiRepository) UpdateTeamUserManager(teamID, managerUsername st
 }
 
 // 修改群成员呢称、扩展
-func (s *MysqlLianmiRepository) UpdateTeamUserMyInfo(teamID, username, nick, ex string) error {
+func (s *MysqlLianmiRepository) UpdateTeamUserMyInfo(teamID, username, aliasName, ex string) error {
 	where := models.TeamUser{
 		TeamUserInfo: models.TeamUserInfo{
 			TeamID:   teamID,
@@ -372,7 +373,7 @@ func (s *MysqlLianmiRepository) UpdateTeamUserMyInfo(teamID, username, nick, ex 
 	// 同时更新多个字段
 	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(models.TeamUser{
 		TeamUserInfo: models.TeamUserInfo{
-			Nick:   nick,
+			AliasName:   aliasName,
 			Extend: ex,
 		},
 	})

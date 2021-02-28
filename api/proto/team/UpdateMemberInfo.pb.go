@@ -39,7 +39,7 @@ type UpdateMemberInfoReq struct {
 	//是否必填-是
 	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	//采用字典表方式提交群成员资料更新内容， key定义成枚举(TeamMemberFieldEnum)取值范围：
-	//1-Nick群昵称   2-Ex扩展字段
+	//1-AliasName群昵称   2-Ex扩展字段
 	Fields map[int32]string `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 

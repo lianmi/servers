@@ -282,6 +282,7 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 			//redis查出此群的成员, 从TimeAt开始到最大。
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), req.GetTimeAt(), "+inf"))
 			for _, teamMember := range teamMembers {
+
 				key := fmt.Sprintf("TeamUser:%s:%s", teamID, teamMember)
 				teamUserInfo := new(models.TeamUser)
 				if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -4176,7 +4177,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 	errorCode := 200
 
 	var ok bool
-	var nick, ex string
+	var aliasName, ex string
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -4252,7 +4253,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			}
 
 			//获取到当前用户的角色权限
-			key = fmt.Sprintf("TeamUser:%s:%s", teamID, username)
+			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.Username)
 			opTeamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
 				if err := redis.ScanStruct(result, opTeamUser); err != nil {
@@ -4266,18 +4267,20 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			teamMemberType := Team.TeamMemberType(opTeamUser.TeamMemberType)
 			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
 
-				if nick, ok = req.Fields[1]; ok {
+				if aliasName, ok = req.Fields[1]; ok {
 					//刷新redis
-					_, err = redisConn.Do("HSET", fmt.Sprintf("TeamUser:%s:%s", pTeamInfo.TeamID, req.Username), "Nick", nick)
+					opTeamUser.AliasName = aliasName
+					_, err = redisConn.Do("HSET", fmt.Sprintf("TeamUser:%s:%s", pTeamInfo.TeamID, req.Username), "AliasName", aliasName)
 				}
 				if ex, ok = req.Fields[2]; ok {
 					//刷新redis
+					opTeamUser.Extend = ex
 					_, err = redisConn.Do("HSET", fmt.Sprintf("TeamUser:%s:%s", pTeamInfo.TeamID, req.Username), "Extend", ex)
 
 				}
 
 				//写入MySQL
-				if err = nc.service.UpdateTeamUserMyInfo(teamID, username, nick, ex); err != nil {
+				if err = nc.service.UpdateTeamUserMyInfo(teamID, req.Username, aliasName, ex); err != nil {
 					nc.logger.Error("UpdateTeamUserMyInfo Error", zap.Error(err))
 					errorCode = LMCError.DataBaseError
 					goto COMPLETE
@@ -4285,6 +4288,15 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 
 				//更新时间戳
 				_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", pTeamInfo.TeamID), time.Now().UnixNano()/1e6, req.Username)
+
+				//群成员修改的资料
+				member := &Team.Tmember{
+					TeamId:    teamID,
+					Username:  req.Username,
+					AliasName: opTeamUser.AliasName,
+					Ex:        opTeamUser.Extend,
+				}
+				memberData, _ := proto.Marshal(member)
 
 				// 向所有群成员推送
 				var newSeq uint64
@@ -4308,7 +4320,7 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						HandledAccount: req.Username,                                     //被修改的用户id
 						HandledMsg:     "管理员/群主修改群成员信息",
 						Status:         Msg.MessageStatus_MOS_Done,
-						Data:           []byte(""),
+						Data:           memberData, //群成员修改的资料
 						To:             teamMember,
 					}
 					bodyData, _ := proto.Marshal(&body)
@@ -4326,9 +4338,9 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 					}
 
 					go func() {
-						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("延时100ms消息, 5-2",
-							zap.String("to", username),
+						nc.logger.Debug("5-2,  向所有群成员推送修改后群成员信息",
+							zap.String("被修改资料的群成员", req.Username),
+							zap.String("to", teamMember),
 						)
 						nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
 					}()

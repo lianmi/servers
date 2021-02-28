@@ -142,7 +142,7 @@ type LianmiApisService interface {
 	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error
 
 	// 修改群成员呢称、扩展
-	UpdateTeamUserMyInfo(teamID, username, nick, ex string) error
+	UpdateTeamUserMyInfo(teamID, username, aliasName, ex string) error
 
 	//修改群通知方式
 	UpdateTeamUserNotifyType(teamID string, notifyType int) error
@@ -526,8 +526,8 @@ func (s *DefaultLianmiApisService) UpdateTeamUserManager(teamID, managerUsername
 }
 
 // 修改群成员呢称、扩展
-func (s *DefaultLianmiApisService) UpdateTeamUserMyInfo(teamID, username, nick, ex string) error {
-	return s.Repository.UpdateTeamUserMyInfo(teamID, username, nick, ex)
+func (s *DefaultLianmiApisService) UpdateTeamUserMyInfo(teamID, username, aliasName, ex string) error {
+	return s.Repository.UpdateTeamUserMyInfo(teamID, username, aliasName, ex)
 }
 
 //修改群通知方式

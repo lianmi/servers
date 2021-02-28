@@ -40,45 +40,48 @@ message CreateTeamRsp {
 //群组：timetag固定取值0，只能拉取部分成员列表，包括群主、管理员和部分成员。
 message Tmember {
     //群组ID
-    //是否必须-是
     string teamId = 1;
+
     //用户账号id
-    //是否必须-是
     string username = 2;
+
     //邀请者用户账号id, 如果是空则是用户主动加群
-    //是否必须-否
     string invitedusername = 3;
-    //群昵称
-    //是否必须-是
+
+    // 用户本来的昵称
     string nick = 4;
+
+    //群昵称
+    string aliasName = 5;
+
     //群成员头像
-    //是否必须-否
-    string avatar = 5;
+    string avatar = 6;
+
     //群成员标签
-    //是否必须-否
-    string label = 6;
-    //群成员来源,需要添加“AddSource_Type_”前缀，后面自由拼接，如：PC、SHARE、SEARCH、IOS等,
+    string label = 7;
+
+    //群成员来源,如：PC、SHARE、SEARCH、IOS等,
     //UI可以根据该字段动态显示该成员来源,例: "abc邀请cde加入群组"
-    //是否必须-是
-    string source = 7;
+    string source = 8;
+
     //成员类型
     //是否必须-是
-    TeamMemberType type = 8;
+    TeamMemberType type = 9;
+
     //群消息通知方式
-    //是否必须-是
-    NotifyType notifyType = 9;
+    NotifyType notifyType = 10;
+
     //是否被禁言
-    //是否必须-是
-    bool mute = 10;
+    bool mute = 11;
+
     //扩展字段
-    //是否必须-否
-    string ex = 11;
+    string ex = 12;
+
     //入群时间，unix时间戳
-    //是否必须-是
-    fixed64 joinTime = 12;
+    fixed64 joinTime = 13;
+
     //最近更新时间，unix时间戳
-    //是否必须-是
-    fixed64 updateTime = 13;
+    fixed64 updateTime = 14;
 }
 
 enum MemberStatus {
