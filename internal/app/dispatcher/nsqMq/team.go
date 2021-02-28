@@ -4002,7 +4002,7 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
-	var newSeq uint64
+	// var newSeq uint64
 	var aliasName, ex string
 	var ok bool
 
