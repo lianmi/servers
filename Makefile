@@ -84,6 +84,9 @@ proto:
 	rm -f api/proto/wallet/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/wallet/*.proto
 
+	rm -f api/proto/log/*.go
+	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/log/*.proto
+
 .PHONY: dart
 dart:
 
@@ -223,6 +226,8 @@ dart:
 								api/proto/wallet/WithDraw.proto \
 								api/proto/wallet/WithDrawBankCompleteEvent.proto \
 								api/proto/wallet/Grpc.proto
+	rm -f dart_out/api/proto/log/*.*.dart
+	protoc --dart_out=dart_out api/proto/log/SendLog.proto
 
 
 .PHONY: clear

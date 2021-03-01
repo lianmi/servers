@@ -16,7 +16,7 @@ enum BusinessType {
     Broadcast        = 8;    //广播模块
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
-    Log              = 98;   //日志
+    Log              = 11;   //日志模块
     Custom           = 99;   //自定义模块， 用于测试
 }
 
@@ -171,6 +171,11 @@ enum WalletSubType {
     LNMCReceivedEvent           =  16;    /**< 10-16 连米币到账通知事件*/
 }
 
+//日志模块子模块定义
+enum LogSubType {
+    LST_undefined               =  0;    //proto3必须从0开始
+    SendLog                     =  1;     /**< 11-1 日志上报*/
+}
 
 //订单状态枚举：
 enum OrderState {

@@ -19,10 +19,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 
 	Global "github.com/lianmi/servers/api/proto/global"
+	Log "github.com/lianmi/servers/api/proto/log"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -224,7 +226,7 @@ func (mc *MQTTClient) Start() error {
 				if businessType == 2 && businessSubType == 7 {
 					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
-				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 0) {
+				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 1) {
 					mc.logger.Debug("=====日志======",
 						zap.ByteString("log", m.Payload),
 					)
@@ -348,13 +350,6 @@ func (mc *MQTTClient) Start() error {
 				//从设备申请授权码，此时还没有令牌
 				if businessType == 2 && businessSubType == 7 {
 					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
-
-				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 0) {
-					mc.logger.Debug("=====日志======",
-						zap.ByteString("log", m.Payload),
-					)
-
-					mc.SendLogMsg(m.Payload)
 
 				} else {
 					//是否需要有效授权才能传递到后端
@@ -561,29 +556,43 @@ func (mc *MQTTClient) Stop() error {
 	return nil
 }
 
-func (mc *MQTTClient) SendLogMsg(logdata []byte) error {
+func (mc *MQTTClient) SendLogMsg(body []byte) error {
+	var err error
+
+	//解包body
+	req := &Log.SendLogReq{}
+	if err = proto.Unmarshal(body, req); err != nil {
+		mc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+		return err
+
+	} else {
+		mc.logger.Debug("SendLogReq  payload",
+			zap.String("Username", req.Username),
+			zap.String("Content", req.Content),
+		)
+	}
 
 	//向MQTT Broker发送，加入SDK订阅了Log topic，则会收到
 	jwtToken := ""
 	topic := "lianmi/cloud/sdklogs"
-	businessTypeStr := fmt.Sprintf("%d", 98)
-	businessSubTypeStr := fmt.Sprintf("%d", 0)
+	businessTypeStr := fmt.Sprintf("%d", int(Global.BusinessType_Log))
+	businessSubTypeStr := fmt.Sprintf("%d", 1)
 	taskIdStr := fmt.Sprintf("%d", 0)
 	codeStr := fmt.Sprintf("%d", 200)
 
-	mc.logger.Info("SendLogMsg to mqtt broker",
+	mc.logger.Info("Send LogMsg to mqtt broker",
 		zap.String("topic", topic),
 		zap.String("businessType", businessTypeStr),
 		zap.String("code", codeStr))
 
 	pb := &paho.Publish{
 		Topic:   topic,
-		QoS:     byte(1),
-		Payload: logdata,
+		QoS:     byte(2),
+		Payload: []byte(req.Content),
 		Properties: &paho.PublishProperties{
-			ResponseTopic: mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
 			User: map[string]string{
 				"jwtToken":        jwtToken,
+				"deviceId":        "",
 				"businessType":    businessTypeStr,
 				"businessSubType": businessSubTypeStr,
 				"taskId":          taskIdStr,
