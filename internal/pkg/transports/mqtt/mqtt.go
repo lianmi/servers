@@ -293,6 +293,8 @@ func (mc *MQTTClient) Start() error {
 						zap.String("msgID", backendMsg.GetID()),
 					)
 
+				case Global.BusinessType_Log: //日志, 转发到日志订阅服务器
+
 				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 
 				default: //default case
@@ -404,7 +406,15 @@ func (mc *MQTTClient) Start() error {
 						zap.Int("businessSubType", businessSubType),
 						zap.String("msgID", backendMsg.GetID()),
 					)
+					break //与C语言等规则相反，Go语言不需要用break来明确退出一个case；
+				case Global.BusinessType_Log: //日志
+					mc.logger.Debug("=====日志======",
+						zap.ByteString("log", backendMsg.Content),
+					)
 
+					mc.SendLogMsg(backendMsg.Content)
+
+					break //与C语言等规则相反，Go语言不需要用break来明确退出一个case；
 				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
 
 				default: //default case
@@ -502,7 +512,6 @@ func (mc *MQTTClient) Run() {
 					zap.String("taskId", taskIdStr),
 					zap.String("code", codeStr))
 
-				//TODO 这里统一对单独一个设备id 做延迟发送， 一个设备id每隔50毫秒发送一次
 				pb := &paho.Publish{
 					Topic:   topic,
 					QoS:     byte(1),
@@ -537,6 +546,48 @@ func (mc *MQTTClient) Run() {
 func (mc *MQTTClient) Stop() error {
 
 	// scope.Close()
+
+	return nil
+}
+
+func (mc *MQTTClient) SendLogMsg(logdata []byte) error {
+
+	//向MQTT Broker发送，加入SDK订阅了Log topic，则会收到
+	jwtToken := ""
+	topic := "lianmi/cloud/sdklogs"
+	businessTypeStr := fmt.Sprintf("%d", 98)
+	businessSubTypeStr := fmt.Sprintf("%d", 0)
+	taskIdStr := fmt.Sprintf("%d", 0)
+	codeStr := fmt.Sprintf("%d", 200)
+
+	mc.logger.Info("SendLogMsg to mqtt broker",
+		zap.String("topic", topic),
+		zap.String("businessType", businessTypeStr),
+		zap.String("code", codeStr))
+
+	pb := &paho.Publish{
+		Topic:   topic,
+		QoS:     byte(1),
+		Payload: logdata,
+		Properties: &paho.PublishProperties{
+			ResponseTopic: mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
+			User: map[string]string{
+				"jwtToken":        jwtToken,
+				"businessType":    businessTypeStr,
+				"businessSubType": businessSubTypeStr,
+				"taskId":          taskIdStr,
+				"code":            codeStr,
+				"errormsg":        "",
+			},
+		},
+	}
+
+	if _, err := mc.client.Publish(context.Background(), pb); err != nil {
+		// log.Println(err)
+		mc.logger.Error("Failed to Publish to broker ", zap.Error(err))
+	} else {
+		mc.logger.Info("Succeed Publish to broker", zap.String("topic", topic))
+	}
 
 	return nil
 }

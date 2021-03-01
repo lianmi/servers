@@ -92,7 +92,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			zap.Int("inviteMode", int(req.InviteMode)), //邀请模式
 		)
 
-		teamOwner :=req.Owner
+		teamOwner := req.Owner
 
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", fmt.Sprintf("userData:%s", teamOwner))); err != nil {
 			errorCode = LMCError.RedisError
@@ -136,7 +136,7 @@ func (nc *NsqClient) HandleCreateTeam(msg *models.Message) error {
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
 			pTeam.Teamname = req.TeamName
 			pTeam.Nick = req.TeamName //与群名一致
-			pTeam.Owner =req.Owner
+			pTeam.Owner = req.Owner
 			pTeam.Type = int(req.Type)
 			pTeam.VerifyType = int(req.VerifyType)
 			pTeam.InviteMode = int(req.InviteMode)
@@ -1522,7 +1522,7 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 			zap.String("teamId", req.TeamId),
 			zap.String("from", req.From),             //邀请方
 			zap.String("workflowID", req.WorkflowID), //工作流ID
-			zap.String("ps", req.Ps),            //拒绝的附言
+			zap.String("ps", req.Ps),                 //拒绝的附言
 		)
 
 		teamID := req.TeamId
@@ -3681,9 +3681,9 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 
 	} else {
 		nc.logger.Debug("MuteTeamMember payload",
-			zap.String("teamId", req.TeamId),            //所在群组
-			zap.String("username", req.Username),        //被禁言的群成员
-			zap.Bool("Mute", req.Mute),                  //是否禁言,false/true
+			zap.String("teamId", req.TeamId),       //所在群组
+			zap.String("username", req.Username),   //被禁言的群成员
+			zap.Bool("Mute", req.Mute),             //是否禁言,false/true
 			zap.Int("Mutedays", int(req.Mutedays)), //禁言天数，如：禁言3天
 		)
 
@@ -4729,9 +4729,9 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		nc.logger.Debug("CheckTeamInvite payload",
 			zap.String("TeamId", req.TeamId),
 			zap.String("WorkflowID", req.WorkflowID), //工作流ID
-			zap.String("Inviter",req.Inviter),  //邀请人
-			zap.String("Invitee",req.Invitee),  //被邀请人
-			zap.Bool("IsAgree", req.IsAgree),    //是否同意邀请用户入群操作，true-同意，false-不同意
+			zap.String("Inviter", req.Inviter),       //邀请人
+			zap.String("Invitee", req.Invitee),       //被邀请人
+			zap.Bool("IsAgree", req.IsAgree),         //是否同意邀请用户入群操作，true-同意，false-不同意
 			zap.String("Ps", req.Ps),
 		)
 
@@ -4782,10 +4782,10 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						errorCode = LMCError.RedisError
 						goto COMPLETE
 					}
-					handledMsg := fmt.Sprintf("管理员同意用户 %s 入群",req.Invitee)
+					handledMsg := fmt.Sprintf("管理员同意用户 %s 入群", req.Invitee)
 					body := Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_CheckTeamInvitePass, //管理员同意了邀请入群前的询问
-						HandledAccount:req.Invitee,                                    //目标用户
+						HandledAccount: req.Invitee,                                         //目标用户
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
@@ -4809,7 +4809,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					go func() {
 						time.Sleep(100 * time.Millisecond)
 						nc.logger.Debug("5-2,  向其它管理员推送同意了邀请入群前的询问",
-							zap.String("新成员",req.Invitee),
+							zap.String("新成员", req.Invitee),
 							zap.String("to", manager),
 						)
 						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
@@ -4824,14 +4824,14 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 							"teamsAt",
 							time.Now().UnixNano()/1e6)
 
-						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s",req.Invitee))); err != nil {
+						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.Invitee))); err != nil {
 							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 							errorCode = LMCError.RedisError
 							goto COMPLETE
 						}
 						body = Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_MemberJoined, //新成员入群
-							HandledAccount:req.Invitee,                             //新成员
+							HandledAccount: req.Invitee,                                  //新成员
 							HandledMsg:     "新成员入群",
 							Status:         Msg.MessageStatus_MOS_Processing,
 							Data:           []byte(""),
@@ -4855,7 +4855,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						go func() {
 							time.Sleep(100 * time.Millisecond)
 							nc.logger.Debug("5-2, 向所有群成员发送新成员入群通知",
-								zap.String("新成员",req.Invitee),
+								zap.String("新成员", req.Invitee),
 								zap.String("to", teamMember),
 							)
 							nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember)
@@ -4867,20 +4867,20 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 			} else { //拒绝了
 
 				//向邀请人 及 其它管理员发送通知
-				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s",req.Inviter))); err != nil {
+				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.Inviter))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
 					errorCode = LMCError.RedisError
 					goto COMPLETE
 				}
-				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s",req.Inviter), "Nick"))
+				inviterNick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", req.Inviter), "Nick"))
 				handledMsg := fmt.Sprintf("管理员拒绝用户 %s 拉人入群申请", inviterNick)
 				body := Msg.MessageNotificationBody{
 					Type:           Msg.MessageNotificationType_MNT_CheckTeamInviteReject, //管理员拒绝了邀请入群前的询问
-					HandledAccount:req.Invitee,                                      //目标用户
+					HandledAccount: req.Invitee,                                           //目标用户
 					HandledMsg:     handledMsg,
 					Status:         Msg.MessageStatus_MOS_Declined,
 					Data:           []byte(""),
-					To:            username, //当前是管理员 
+					To:             username, //当前是管理员
 				}
 				bodyData, _ := proto.Marshal(&body)
 				inviteEventRsp := &Msg.RecvMsgEventRsp{
@@ -4899,9 +4899,9 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 
 				go func() {
 					nc.logger.Debug("5-2, 管理员拒绝了邀请入群前的询问",
-						zap.String("to",req.Inviter),
+						zap.String("to", req.Inviter),
 					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp,req.Inviter) //向邀请人推送
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.Inviter) //向邀请人推送
 				}()
 
 				//向其它管理员推送
@@ -4914,7 +4914,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					}
 					body := Msg.MessageNotificationBody{
 						Type:           Msg.MessageNotificationType_MNT_RejectTeamInvite, //管理员拒绝加群申请
-						HandledAccount:req.Invitee,                                 //目标用户
+						HandledAccount: req.Invitee,                                      //目标用户
 						HandledMsg:     handledMsg,
 						Status:         Msg.MessageStatus_MOS_Declined,
 						Data:           []byte(""),
@@ -4938,7 +4938,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					go func() {
 						time.Sleep(100 * time.Millisecond)
 						nc.logger.Debug("5-2, 管理员拒绝邀请加群申请",
-							zap.String("Invitee",req.Invitee),
+							zap.String("Invitee", req.Invitee),
 							zap.String("to", manager),
 						)
 						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
@@ -5072,7 +5072,7 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 
 		// GetPages 分页返回数据
 		var maps string
-		switchreq.QueryType {
+		switch req.QueryType {
 		case Team.QueryType_Tmqt_Undefined, Team.QueryType_Tmqt_All: //全部,默认
 			maps = "team_member_type != 0 "
 		case Team.QueryType_Tmqt_Manager: //管理员

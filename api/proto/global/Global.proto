@@ -16,6 +16,7 @@ enum BusinessType {
     Broadcast        = 8;    //广播模块
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
+    Log              = 98;   //日志
     Custom           = 99;   //自定义模块， 用于测试
 }
 
