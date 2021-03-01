@@ -4,11 +4,13 @@
 package cmd
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 
 	"context"
 
 	"github.com/lianmi/servers/lmSdkClient/business"
+	Log "github.com/lianmi/servers/api/proto/log"
 
 	"fmt"
 	"log"
@@ -59,7 +61,22 @@ var sdklogsubCmd = &cobra.Command{
 		for {
 			select {
 			case payload := <-payloadCh:
-				log.Println(payload)
+				// log.Println(payload)
+
+				//解包负载 payload
+				var rsq Log.SendLogReq
+				if err := proto.Unmarshal(payload, &rsq); err != nil {
+					log.Println("Protobuf Unmarshal Error", err)
+
+				} else {
+
+					log.Println("回包内容---------------------")
+					// log.Println("blockNumber: ", rsq.BlockNumber)
+					// log.Println("hash: ", rsq.Hash)
+					// log.Println("AmountLNMC: ", rsq.AmountLNMC)
+					// log.Println("Time: ", rsq.Time)
+
+				}
 
 			}
 		}

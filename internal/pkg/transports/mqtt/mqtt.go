@@ -588,7 +588,7 @@ func (mc *MQTTClient) SendLogMsg(body []byte) error {
 	pb := &paho.Publish{
 		Topic:   topic,
 		QoS:     byte(2),
-		Payload: []byte(req.Content),
+		Payload: body, //完整转发
 		Properties: &paho.PublishProperties{
 			User: map[string]string{
 				"jwtToken":        jwtToken,
