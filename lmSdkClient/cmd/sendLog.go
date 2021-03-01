@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/eclipse/paho.golang/paho"
@@ -19,7 +18,6 @@ var sendLogCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("sendLog called")
 		content, _ := cmd.PersistentFlags().GetString("content")
 
 		topic := "lianmi/cloud/dispatcher"
