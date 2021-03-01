@@ -4,11 +4,17 @@ package cloud.lianmi.im.log;
 option go_package = "github.com/lianmi/servers/api/proto/log";
 
 message SendLogReq{   
+   // 日志时刻 
+   fixed64 timeAt = 1;
+
    //用户注册id
-   string username = 1;
+   string username = 2;
+
+   // 设备id
+   string deviceID = 3;
 
    //日志字符串
-   string content = 2;
+   string content = 4;
 
 }
 

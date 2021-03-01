@@ -4,19 +4,35 @@
 package cmd
 
 import (
+	"io"
+	"os"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 
 	"context"
 
-	"github.com/lianmi/servers/lmSdkClient/business"
 	Log "github.com/lianmi/servers/api/proto/log"
+	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"fmt"
 	"log"
 
 	"github.com/eclipse/paho.golang/paho"
 )
+
+const (
+	//LOGPATH  LOGPATH/time.Now().Format(FORMAT)/*.log
+	LOGPATH = "logs/"
+	//FORMAT .
+	FORMAT = "20060102"
+	//LineFeed 换行
+	LineFeed = "\r\n"
+)
+
+//以天为基准,存日志
+var logPath = LOGPATH + time.Now().Format(FORMAT) + "/"
 
 // sdklogsubCmd represents the sdklogsub command
 var sdklogsubCmd = &cobra.Command{
@@ -70,18 +86,54 @@ var sdklogsubCmd = &cobra.Command{
 
 				} else {
 
-					log.Println("回包内容---------------------")
-					// log.Println("blockNumber: ", rsq.BlockNumber)
-					// log.Println("hash: ", rsq.Hash)
-					// log.Println("AmountLNMC: ", rsq.AmountLNMC)
-					// log.Println("Time: ", rsq.Time)
+					log.Println("日志内容---------------------")
+					log.Println("Username: ", rsq.Username)
+					log.Println("Content: ", rsq.Content)
+					WriteLog(rsq.Username, rsq.Content)
 
+					// t, err := tail.TailFile("/var/log/nginx.log", tail.Config{Follow: true})
+					// for line := range t.Lines {
+					// 	fmt.Println(line.Text)
+					// }
 				}
 
 			}
 		}
 
 	},
+}
+
+//WriteLog return error
+func WriteLog(username, msg string) error {
+	if !IsExist(logPath) {
+		return CreateDir(logPath)
+	}
+	var (
+		err error
+		f   *os.File
+	)
+
+	f, err = os.OpenFile(logPath+username+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	_, err = io.WriteString(f, LineFeed+"["+username+"] "+msg)
+
+	defer f.Close()
+	return err
+}
+
+//CreateDir  文件夹创建
+func CreateDir(logPath string) error {
+	err := os.MkdirAll(logPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	os.Chmod(logPath, os.ModePerm)
+	return nil
+}
+
+//IsExist  判断文件夹/文件是否存在  存在返回 true
+func IsExist(f string) bool {
+	_, err := os.Stat(f)
+	return err == nil || os.IsExist(err)
 }
 
 func init() {

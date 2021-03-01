@@ -22,8 +22,9 @@
 /third-party/
 /api/proto/out
 /deployments
-/lmSdkClient/lmSdkClient
 go.mod
+/lmSdkClient/lmSdkClient
+/lmSdkClient/logs
 go.sum
 cmd/web/node_modules
 internal/app/gin-vue-admin/log
