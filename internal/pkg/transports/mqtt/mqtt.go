@@ -333,6 +333,10 @@ func (mc *MQTTClient) Start() error {
 				//是否是必须经过授权的请求包
 				isAuthed := false
 				userName := ""
+				mc.logger.Debug("=====是否是必须经过授权的请求包======",
+					zap.Int("BusinessType", businessType),       // 业务类型
+					zap.Int("BusinessSubType", businessSubType), // 业务子类型
+				)
 
 				//从设备申请授权码，此时还没有令牌
 				if businessType == 2 && businessSubType == 7 {
