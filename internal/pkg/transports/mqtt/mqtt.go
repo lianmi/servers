@@ -224,6 +224,13 @@ func (mc *MQTTClient) Start() error {
 				if businessType == 2 && businessSubType == 7 {
 					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
+				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 0) {
+					mc.logger.Debug("=====日志======",
+						zap.ByteString("log", m.Payload),
+					)
+
+					mc.SendLogMsg(m.Payload)
+
 				} else {
 					//是否需要有效授权才能传递到后端
 					if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
