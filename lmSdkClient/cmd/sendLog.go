@@ -32,8 +32,8 @@ var sendLogCmd = &cobra.Command{
 				User: map[string]string{
 					"jwtToken":        "",   // jwt令牌
 					"deviceId":        "",   // 设备号
-					"businessType":    "10", // 业务号
-					"businessSubType": "1",  // 业务子号
+					"businessType":    "98", // 日志专用业务号
+					"businessSubType": "0",  // 业务子号
 					"taskId":          "0",
 					"code":            "0",
 					"errormsg":        "",
