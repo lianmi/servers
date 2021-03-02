@@ -561,36 +561,51 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					goto COMPLETE
 				}
 				//从免打扰名单里移除
-				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
-
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZREM 错误", zap.Error(err))
+				}
 				//从置顶名单里移除
-				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
-
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZREM 错误", zap.Error(err))
+				}
 				//增加到黑名单
-				err = redisConn.Send("ZADD", fmt.Sprintf("BlackList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
-
+				_, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZADD 错误", zap.Error(err))
+				}
 				//如果有的话，从移除黑名单列表里删除
-				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:2", username), req.GetUsername())
-
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("BlackList:%s:2", username), req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZREM 错误", zap.Error(err))
+				}
 				//在自己的关注有序列表里移除此用户
-				err = redisConn.Send("ZREM", fmt.Sprintf("BeWatching:%s", username), req.GetUsername())
-
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("BeWatching:%s", username), req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZREM 错误", zap.Error(err))
+				}
 				//增加用户的取消关注有序列表
-				err = redisConn.Send("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername())
-
+				_, err = redisConn.Do("ZADD", fmt.Sprintf("CancelWatching:%s", username), time.Now().UnixNano()/1e6, req.GetUsername())
+				if err != nil {
+					nc.logger.Error("ZADD 错误", zap.Error(err))
+				}
 				//更新redis的sync:{用户账号} tagsAt 时间戳
-				err = redisConn.Send("HSET",
+				_, err = redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", username),
 					"tagsAt",
 					time.Now().UnixNano()/1e6)
-
+				if err != nil {
+					nc.logger.Error("HSET 错误", zap.Error(err))
+				}
 				//更新redis的sync:{用户账号} watchAt 时间戳
-				err = redisConn.Send("HSET",
+				_, err = redisConn.Do("HSET",
 					fmt.Sprintf("sync:%s", username),
 					"watchAt",
 					time.Now().UnixNano()/1e6)
-
-				redisConn.Flush()
+				if err != nil {
+					nc.logger.Error("HSET 错误", zap.Error(err))
+				}
 
 				nc.logger.Debug("增加黑名单成功")
 

@@ -122,15 +122,19 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 		IsMute:       p.IsMute,
 	}
 
-	err = redisConn.Send("HMSET", redis.Args{}.Add(teamInfoKey).AddFlat(teamInfo)...)
+	_, err = redisConn.Do("HMSET", redis.Args{}.Add(teamInfoKey).AddFlat(teamInfo)...)
+	if err != nil {
+		s.logger.Error("HSET 错误", zap.Error(err))
+	}
 
 	//更新redis的sync:{用户账号} teamsAt 时间戳
-	err = redisConn.Send("HSET",
+	_, err = redisConn.Do("HSET",
 		fmt.Sprintf("sync:%s", p.Owner),
 		"teamsAt",
 		time.Now().UnixNano()/1e6)
-
-	redisConn.Flush()
+	if err != nil {
+		s.logger.Error("HSET 错误", zap.Error(err))
+	}
 
 	//向群主推送通知，此群已经审核通过
 
