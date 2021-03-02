@@ -1957,13 +1957,13 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
-					go func() {
-						nc.logger.Debug("5-2, 向群推送新成员的入群通知",
-							zap.String("新成员", username),
-							zap.String("to", teamMember),
-						)
-						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
-					}()
+					// go func() {
+					nc.logger.Debug("5-2, 向群推送新成员的入群通知",
+						zap.String("新成员", username),
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+					// }()
 
 				}
 
