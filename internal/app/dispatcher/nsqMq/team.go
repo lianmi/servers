@@ -742,12 +742,12 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 
-						go func() {
-							nc.logger.Debug(" 5-2 群主或管理员",
-								zap.String("to", manager),
-							)
-							nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
-						}()
+						// go func() {
+						nc.logger.Debug(" 5-2 群主或管理员",
+							zap.String("to", manager),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+						// }()
 
 					}
 
@@ -867,12 +867,12 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, teamName
 				}
 
 				//向被邀请加群的用户推送系统通知
-				go func() {
-					nc.logger.Debug("5-2 向被邀请加群的用户推送系统通知",
-						zap.String("to", inviteUsername),
-					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, inviteUsername)
-				}()
+				// go func() {
+				nc.logger.Debug("5-2 向被邀请加群的用户推送系统通知",
+					zap.String("to", inviteUsername),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, inviteUsername)
+				// }()
 
 			}
 		}
@@ -1082,13 +1082,13 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 									Time:         uint64(time.Now().UnixNano() / 1e6),
 								}
 
-								go func() {
-									time.Sleep(100 * time.Millisecond)
-									nc.logger.Debug("延时100ms消息, 5-2",
-										zap.String("to", teamMember),
-									)
-									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-								}()
+								// go func() {
+								// time.Sleep(100 * time.Millisecond)
+								nc.logger.Debug("5-2, 向所有群成员推送MNT_KickOffTeam",
+									zap.String("to", teamMember),
+								)
+								nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								// }()
 
 							}
 
@@ -1356,6 +1356,11 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 				4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 			*/
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), pTeamInfo.TeamID)
+			if err != nil {
+				nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+			}
+
 			_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, pTeamInfo.TeamID)
 			if err != nil {
 				nc.logger.Error("ZADD 错误", zap.Error(err))
@@ -1472,13 +1477,12 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go func() {
-					time.Sleep(100 * time.Millisecond)
-					nc.logger.Debug("5-2 向群成员广播invitee入群事件",
-						zap.String("to", teamMember),
-					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //
-				}()
+				// go func() {
+				nc.logger.Debug("5-2 向群成员广播invitee入群事件",
+					zap.String("to", teamMember),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //
+				// }()
 
 			}
 
@@ -1674,22 +1678,12 @@ func (nc *NsqClient) HandleRejectTeamInvitee(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms消息, 5-2",
-					zap.String("to", req.From),
-				)
-				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.From) //向邀请者发送此用户拒绝入群的通知
-			}()
-
-			//向自己的其它端推送
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms消息, 5-2",
-					zap.String("to", username),
-				)
-				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, username) //此用户所有端推送拒绝入群的通知
-			}()
+			// go func() {
+			nc.logger.Debug("5-2, 向邀请者发送此用户拒绝入群的通知",
+				zap.String("to", req.From),
+			)
+			nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.From) //
+			// }()
 
 		}
 	}
@@ -1885,6 +1879,12 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 					4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 					5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 				*/
+				//从用户自己的退群列表删除此teamID
+				_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), teamInfo.TeamID)
+				if err != nil {
+					nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+				}
+
 				_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", username), time.Now().UnixNano()/1e6, teamInfo.TeamID)
 				if err != nil {
 					nc.logger.Error("ZADD 错误", zap.Error(err))
@@ -2000,14 +2000,13 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("5-2, 向群主推送此用户的加群申请 通知",
-							zap.String("申请者", username),
-							zap.String("to", manager),
-						)
-						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
-					}()
+					// go func() {
+					nc.logger.Debug("5-2, 向群主推送此用户的加群申请 通知",
+						zap.String("申请者", username),
+						zap.String("to", manager),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //群主或管理员
+					// }()
 
 				}
 
@@ -2245,13 +2244,13 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go func() {
-					nc.logger.Debug("5-2, 向所有群成员推送此用户的入群通知",
-						zap.String("新成员", targetUsername),
-						zap.String("to", teamMember),
-					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
-				}()
+				// go func() {
+				nc.logger.Debug("5-2, 向所有群成员推送此用户的入群通知",
+					zap.String("新成员", targetUsername),
+					zap.String("to", teamMember),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
+				// }()
 
 			}
 			/*
@@ -2260,6 +2259,11 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				3. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				4. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 			*/
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), teamID)
+			if err != nil {
+				nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+			}
+
 			_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamID)
 			if err != nil {
 				nc.logger.Error("ZADD 错误", zap.Error(err))
@@ -2474,13 +2478,13 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 				Time:         uint64(time.Now().UnixNano() / 1e6),
 			}
 
-			go func() {
+			// go func() {
 
-				nc.logger.Debug("5-2 向被拒绝的用户发消息",
-					zap.String("to", targetUsername),
-				)
-				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, targetUsername)
-			}()
+			nc.logger.Debug("5-2 向被拒绝的用户发消息",
+				zap.String("to", targetUsername),
+			)
+			nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, targetUsername)
+			// }()
 
 			//向群的群主及管理员发送拒绝入群消息
 			managers, _ := nc.GetOwnerAndManagers(teamID)
@@ -2515,13 +2519,12 @@ func (nc *NsqClient) HandleRejectTeamApply(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go func() {
-					time.Sleep(100 * time.Millisecond)
-					nc.logger.Debug("延时100ms消息, 5-2",
-						zap.String("to", manager),
-					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向群的群主及管理员广播
-				}()
+				// go func() {
+				nc.logger.Debug("5-2 向群的群主及管理员广播",
+					zap.String("to", manager),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //
+				// }()
 
 			}
 
@@ -2760,13 +2763,13 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					Time:         uint64(curAt),
 				}
 
-				go func() {
-					nc.logger.Debug("5-2, 向群成员发出更新群资料通知",
-						zap.String("群主或管理员", username),
-						zap.String("to", teamMember),
-					)
-					nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-				}()
+				// go func() {
+				nc.logger.Debug("5-2, 向群成员发出更新群资料通知",
+					zap.String("群主或管理员", username),
+					zap.String("to", teamMember),
+				)
+				nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+				// }()
 
 				//更新redis的sync:{用户账号} teamsAt 时间戳
 				_, err = redisConn.Do("HSET",
@@ -2969,13 +2972,12 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 								Time:         uint64(curAt),
 							}
 
-							go func() {
-								time.Sleep(100 * time.Millisecond)
-								nc.logger.Debug("5-2, 向群成员发送用户退群消息",
-									zap.String("to", teamMember),
-								)
-								nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-							}()
+							// go func() {
+							nc.logger.Debug("5-2, 向群成员发送用户退群消息",
+								zap.String("to", teamMember),
+							)
+							nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+							// }()
 
 						}
 
@@ -3250,13 +3252,13 @@ func (nc *NsqClient) HandleAddTeamManagers(msg *models.Message) error {
 									Time:         uint64(curAt),
 								}
 
-								go func() {
-									time.Sleep(100 * time.Millisecond)
-									nc.logger.Debug("延时100ms消息, 5-2",
-										zap.String("to", teamMember),
-									)
-									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-								}()
+								// go func() {
+								// time.Sleep(100 * time.Millisecond)
+								nc.logger.Debug(" 5-2",
+									zap.String("to", teamMember),
+								)
+								nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								// }()
 
 							}
 
@@ -3488,14 +3490,13 @@ func (nc *NsqClient) HandleRemoveTeamManagers(msg *models.Message) error {
 									Time:         uint64(curAt),
 								}
 
-								go func() {
-									time.Sleep(100 * time.Millisecond)
-									nc.logger.Debug("5-2, 向群成员发出移除管理员通知",
-										zap.String("被移除管理员", manager),
-										zap.String("to", teamMember),
-									)
-									nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-								}()
+								// go func() {
+								nc.logger.Debug("5-2, 向群成员发出移除管理员通知",
+									zap.String("被移除管理员", manager),
+									zap.String("to", teamMember),
+								)
+								nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+								// }()
 
 							}
 
@@ -3706,12 +3707,12 @@ func (nc *NsqClient) HandleMuteTeam(msg *models.Message) error {
 					Time:         uint64(curAt),
 				}
 
-				go func() {
-					nc.logger.Debug("5-2, 向所有群成员推送最新的群组禁言模式",
-						zap.String("to", teamMember),
-					)
-					nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
-				}()
+				// go func() {
+				nc.logger.Debug("5-2, 向所有群成员推送最新的群组禁言模式",
+					zap.String("to", teamMember),
+				)
+				nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
+				// }()
 
 			}
 		}
@@ -3957,13 +3958,13 @@ func (nc *NsqClient) HandleMuteTeamMember(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
-					go func() {
-						nc.logger.Debug("5-2, 向群成员推送此用户被禁言或解禁状态",
-							zap.String("被禁言或解禁的用户", req.Username),
-							zap.String("to", teamMember),
-						)
-						nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
-					}()
+					// go func() {
+					nc.logger.Debug("5-2, 向群成员推送此用户被禁言或解禁状态",
+						zap.String("被禁言或解禁的用户", req.Username),
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
+					// }()
 
 				}
 
@@ -4270,13 +4271,13 @@ func (nc *NsqClient) HandleUpdateMyInfo(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go func() {
-					nc.logger.Debug("5-2,  向所有群成员推送群成员修改的资料",
-						zap.String("群成员", username),
-						zap.String("to", teamMember),
-					)
-					nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
-				}()
+				// go func() {
+				nc.logger.Debug("5-2,  向所有群成员推送群成员修改的资料",
+					zap.String("群成员", username),
+					zap.String("to", teamMember),
+				)
+				nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember)
+				// }()
 
 			}
 
@@ -4478,13 +4479,13 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
-					go func() {
-						nc.logger.Debug("5-2,  向所有群成员推送修改后群成员信息",
-							zap.String("被修改资料的群成员", req.Username),
-							zap.String("to", teamMember),
-						)
-						nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
-					}()
+					// go func() {
+					nc.logger.Debug("5-2,  向所有群成员推送修改后群成员信息",
+						zap.String("被修改资料的群成员", req.Username),
+						zap.String("to", teamMember),
+					)
+					nc.BroadcastSystemMsgToAllDevices(eRsp, teamMember) //向群成员广播
+					// }()
 
 				}
 
@@ -4947,14 +4948,13 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("5-2,  向其它管理员推送同意了邀请入群前的询问",
-							zap.String("新成员", req.Invitee),
-							zap.String("to", manager),
-						)
-						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
-					}()
+					// go func() {
+					nc.logger.Debug("5-2,  向其它管理员推送同意了邀请入群前的询问",
+						zap.String("新成员", req.Invitee),
+						zap.String("to", manager),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					// }()
 
 					//向所有群成员发送新成员入群通知
 					teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", pTeamInfo.TeamID), "-inf", "+inf"))
@@ -4993,14 +4993,13 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
 
-						go func() {
-							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("5-2, 向所有群成员发送新成员入群通知",
-								zap.String("新成员", req.Invitee),
-								zap.String("to", teamMember),
-							)
-							nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember)
-						}()
+						// go func() {
+						nc.logger.Debug("5-2, 向所有群成员发送新成员入群通知",
+							zap.String("新成员", req.Invitee),
+							zap.String("to", teamMember),
+						)
+						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember)
+						// }()
 					}
 
 				}
@@ -5038,12 +5037,12 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				go func() {
-					nc.logger.Debug("5-2, 管理员拒绝了邀请入群前的询问",
-						zap.String("to", req.Inviter),
-					)
-					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.Inviter) //向邀请人推送
-				}()
+				// go func() {
+				nc.logger.Debug("5-2, 管理员拒绝了邀请入群前的询问",
+					zap.String("to", req.Inviter),
+				)
+				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, req.Inviter) //向邀请人推送
+				// }()
 
 				//向其它管理员推送
 				managers, _ := nc.GetOwnerAndManagers(teamID)
@@ -5076,14 +5075,13 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
 
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("5-2, 管理员拒绝邀请加群申请",
-							zap.String("Invitee", req.Invitee),
-							zap.String("to", manager),
-						)
-						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
-					}()
+					// go func() {
+					nc.logger.Debug("5-2, 管理员拒绝邀请加群申请",
+						zap.String("Invitee", req.Invitee),
+						zap.String("to", manager),
+					)
+					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
+					// }()
 
 				}
 			}
