@@ -319,7 +319,10 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 
 					avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 				}
- 
+				if avatar == "" {
+					avatar = LMCommon.OSSUploadPicPrefix + LMCommon.PubAvatar
+				}
+
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
 					TeamId:          teamID,
 					Username:        teamUserInfo.Username,
@@ -4544,6 +4547,9 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 
 					avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 				}
+				if avatar == "" {
+					avatar = LMCommon.OSSUploadPicPrefix + LMCommon.PubAvatar
+				}
 
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
 					TeamId:          teamID,
@@ -5154,7 +5160,9 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 
 				avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 			}
-
+			if avatar == "" {
+				avatar = LMCommon.OSSUploadPicPrefix + LMCommon.PubAvatar
+			}
 			rsp.Members = append(rsp.Members, &Team.Tmember{
 				TeamId:          teamID,
 				Username:        teamUserInfo.Username,
