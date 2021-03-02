@@ -660,6 +660,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 			case Team.InviteMode_Invite_Check: //邀请用户入群时需要管理员审核，需要向所有群管理员发送系统通知，管理员利用4-26 回复
 				//向群主或管理员推送此用户的主动加群通知
+				inviter := username //当前用户是邀请人
 				managers, _ := nc.GetOwnerAndManagers(teamID)
 				for _, manager := range managers {
 					//遍历整个被邀请加群用户列表, 注意：每个用户都必须有独立的工作流ID
@@ -693,7 +694,7 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 						workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", inviteUsername, workflowID)
 						_, err = redisConn.Do("HMSET",
 							workflowKey,
-							"Inviter", username, //邀请人
+							"Inviter", inviter, //邀请人
 							"Invitee", inviteUsername, //受邀请人
 							"TeamID", teamID, //群ID
 							"Ps", req.Ps, //附言
@@ -720,11 +721,11 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 						body := Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_CheckTeamInvite, //向群主推送审核入群通知
-							HandledAccount: username,
+							HandledAccount: inviteUsername,
 							HandledMsg:     handledMsg,
 							Status:         Msg.MessageStatus_MOS_Processing, //处理中
 							Data:           []byte(""),
-							To:             inviteUsername, //目标用户id
+							To:             inviter,
 						}
 						bodyData, _ := proto.Marshal(&body)
 						inviteEventRsp := &Msg.RecvMsgEventRsp{
