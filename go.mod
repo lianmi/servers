@@ -43,6 +43,7 @@ require (
 	github.com/hashicorp/consul/api v1.3.0
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/memberlist v0.1.4 // indirect
+	github.com/hpcloud/tail v1.0.0
 	github.com/ipfs/go-ipfs-api v0.1.0
 	github.com/jordan-wright/email v4.0.1-0.20201230161404-3656afaabac4+incompatible
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible

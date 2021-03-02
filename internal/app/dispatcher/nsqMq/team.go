@@ -1,7 +1,18 @@
+/*
+redis 里与群组相关的key
+Teams - 表示当前系统的所有群组 zset
+TeamIndex - 表示当前最新群组的序号 INCR 原子数
+Team:{username} - 表示username的用户所加入的所有群组 zset
+TeamInfo:{teamID} - 表示群组ID的群组信息 hash
+TeamUser:{teamID}:{username} - 表示群成员username的信息 hash
+sync:{username} - hash里的teamsAt表示username同步时间戳, 同步username所在的群组及群成员更改后的所有数据
+*/
 package nsqMq
 
 import (
 	"fmt"
+	"strings"
+
 	// "net/http"
 	"strconv"
 	"time"
@@ -293,12 +304,29 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 					}
 				}
 
+				nick := teamUserInfo.Nick
+				if nick == "" {
+					nick = teamUserInfo.Username
+				}
+				aliasName := teamUserInfo.AliasName
+				if aliasName == "" {
+					aliasName = nick
+				}
+
+				var avatar string
+
+				if (teamUserInfo.Avatar != "") && !strings.HasPrefix(teamUserInfo.Avatar, "http") {
+
+					avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+				}
+ 
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
 					TeamId:          teamID,
 					Username:        teamUserInfo.Username,
 					Invitedusername: teamUserInfo.InvitedUsername,
-					Nick:            teamUserInfo.Nick,
-					Avatar:          teamUserInfo.Avatar,
+					Nick:            nick,
+					AliasName:       aliasName,
+					Avatar:          avatar,
 					Label:           teamUserInfo.Label,
 					Source:          teamUserInfo.Source,
 					Type:            Team.TeamMemberType(teamUserInfo.TeamMemberType),
@@ -4501,12 +4529,29 @@ func (nc *NsqClient) HandlePullTeamMembers(msg *models.Message) error {
 						continue
 					}
 				}
+				nick := teamUserInfo.Nick
+				if nick == "" {
+					nick = teamUserInfo.Username
+				}
+				aliasName := teamUserInfo.AliasName
+				if aliasName == "" {
+					aliasName = nick
+				}
+
+				var avatar string
+
+				if (teamUserInfo.Avatar != "") && !strings.HasPrefix(teamUserInfo.Avatar, "http") {
+
+					avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+				}
+
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
-					TeamId:          teamID, //teamUserInfo.TeamID,
+					TeamId:          teamID,
 					Username:        teamUserInfo.Username,
 					Invitedusername: teamUserInfo.InvitedUsername,
-					Nick:            teamUserInfo.Nick,
-					Avatar:          teamUserInfo.Avatar,
+					Nick:            nick,
+					AliasName:       aliasName,
+					Avatar:          avatar,
 					Label:           teamUserInfo.Label,
 					Source:          teamUserInfo.Source,
 					Type:            Team.TeamMemberType(teamUserInfo.TeamMemberType),
@@ -5093,12 +5138,30 @@ func (nc *NsqClient) HandleGetTeamMembersPage(msg *models.Message) error {
 				zap.String("Nick", teamUserInfo.Nick),
 				zap.String("Avatar", teamUserInfo.Avatar),
 			)
+
+			nick := teamUserInfo.Nick
+			if nick == "" {
+				nick = teamUserInfo.Username
+			}
+			aliasName := teamUserInfo.AliasName
+			if aliasName == "" {
+				aliasName = nick
+			}
+
+			var avatar string
+
+			if (teamUserInfo.Avatar != "") && !strings.HasPrefix(teamUserInfo.Avatar, "http") {
+
+				avatar = LMCommon.OSSUploadPicPrefix + teamUserInfo.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			}
+
 			rsp.Members = append(rsp.Members, &Team.Tmember{
 				TeamId:          teamID,
 				Username:        teamUserInfo.Username,
 				Invitedusername: teamUserInfo.InvitedUsername,
-				Nick:            teamUserInfo.Nick,
-				Avatar:          teamUserInfo.Avatar,
+				Nick:            nick,
+				AliasName:       aliasName,
+				Avatar:          avatar,
 				Label:           teamUserInfo.Label,
 				Source:          teamUserInfo.Source,
 				Type:            Team.TeamMemberType(teamUserInfo.TeamMemberType),

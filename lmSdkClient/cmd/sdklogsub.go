@@ -87,14 +87,15 @@ var sdklogsubCmd = &cobra.Command{
 				} else {
 
 					log.Println("日志内容---------------------")
+					log.Println("TimeAt: ", rsq.TimeAt)
 					log.Println("Username: ", rsq.Username)
+					log.Println("DeviceID: ", rsq.DeviceID)
 					log.Println("Content: ", rsq.Content)
-					WriteLog(rsq.Username, rsq.Content)
+					t := int64(rsq.TimeAt) / 1e6
+					tm := time.Unix(t, 0)
+					var logDate string = tm.Format("2006-01-02 15:04:05")
+					WriteLog(logDate, rsq.Username, rsq.DeviceID, rsq.Content)
 
-					// t, err := tail.TailFile("/var/log/nginx.log", tail.Config{Follow: true})
-					// for line := range t.Lines {
-					// 	fmt.Println(line.Text)
-					// }
 				}
 
 			}
@@ -104,7 +105,7 @@ var sdklogsubCmd = &cobra.Command{
 }
 
 //WriteLog return error
-func WriteLog(username, msg string) error {
+func WriteLog(logDate, username, deviceID, msg string) error {
 	if !IsExist(logPath) {
 		return CreateDir(logPath)
 	}
@@ -114,7 +115,7 @@ func WriteLog(username, msg string) error {
 	)
 
 	f, err = os.OpenFile(logPath+username+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	_, err = io.WriteString(f, LineFeed+"["+username+"] "+msg)
+	_, err = io.WriteString(f, ""+logDate+" ["+username+"] "+msg+LineFeed)
 
 	defer f.Close()
 	return err
