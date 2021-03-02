@@ -56,7 +56,8 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	teamUser.TeamUserInfo.JoinAt = time.Now().UnixNano() / 1e6
 	teamUser.TeamUserInfo.Teamname = p.Teamname
 	teamUser.TeamUserInfo.Username = p.Owner
-	teamUser.TeamUserInfo.Nick = memberNick                                   //群成员呢称
+	teamUser.TeamUserInfo.Nick = memberNick                                   //原本的呢称
+	teamUser.TeamUserInfo.AliasName = memberNick                              //群成员别名
 	teamUser.TeamUserInfo.Avatar = memberAvatar                               //群成员头像
 	teamUser.TeamUserInfo.Label = memberLabel                                 //群成员标签
 	teamUser.TeamUserInfo.Source = ""                                         //群成员来源  TODO
@@ -373,8 +374,8 @@ func (s *MysqlLianmiRepository) UpdateTeamUserMyInfo(teamID, username, aliasName
 	// 同时更新多个字段
 	result := s.db.Model(&models.TeamUser{}).Where(where).Updates(models.TeamUser{
 		TeamUserInfo: models.TeamUserInfo{
-			AliasName:   aliasName,
-			Extend: ex,
+			AliasName: aliasName,
+			Extend:    ex,
 		},
 	})
 

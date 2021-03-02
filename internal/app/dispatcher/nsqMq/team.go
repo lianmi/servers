@@ -1311,11 +1311,12 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 			//增加群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.TeamUserInfo.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.TeamUserInfo.TeamID = teamID                                      //群id
-			teamUser.TeamUserInfo.Teamname = pTeamInfo.Teamname                        //群名称
-			teamUser.TeamUserInfo.Username = userData.Username                         //群成员用户账号
-			teamUser.TeamUserInfo.InvitedUsername = req.From                           //邀请者
-			teamUser.TeamUserInfo.Nick = userData.Nick                                 //群成员呢称
+			teamUser.TeamUserInfo.TeamID = teamID               //群id
+			teamUser.TeamUserInfo.Teamname = pTeamInfo.Teamname //群名称
+			teamUser.TeamUserInfo.Username = userData.Username  //群成员用户账号
+			teamUser.TeamUserInfo.InvitedUsername = req.From    //邀请者
+			teamUser.TeamUserInfo.Nick = userData.Nick          //群成员呢称
+			teamUser.TeamUserInfo.AliasName = userData.Nick
 			teamUser.TeamUserInfo.Avatar = userData.Avatar                             //群成员头像
 			teamUser.TeamUserInfo.Label = userData.Label                               //群成员标签
 			teamUser.TeamUserInfo.Source = ""                                          //群成员来源  TODO
@@ -1834,7 +1835,8 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 				teamUser.TeamUserInfo.Teamname = teamInfo.Teamname //群名称
 				teamUser.TeamUserInfo.Username = userData.Username
 				teamUser.TeamUserInfo.InvitedUsername = ""
-				teamUser.TeamUserInfo.Nick = userData.Nick                                 //群成员呢称
+				teamUser.TeamUserInfo.Nick = userData.Nick //群成员呢称
+				teamUser.TeamUserInfo.AliasName = userData.Nick
 				teamUser.TeamUserInfo.Avatar = userData.Avatar                             //群成员头像
 				teamUser.TeamUserInfo.Label = userData.Label                               //群成员标签
 				teamUser.TeamUserInfo.Source = ""                                          //群成员来源  TODO
@@ -2139,10 +2141,11 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 			//存储群成员信息 TeamUser
 			teamUser := new(models.TeamUser)
 			teamUser.TeamUserInfo.JoinAt = time.Now().UnixNano() / 1e6
-			teamUser.TeamUserInfo.TeamID = teamID                                      //群id
-			teamUser.TeamUserInfo.Teamname = teamName                                  //群名称
-			teamUser.TeamUserInfo.Username = userData.Username                         //群成员用户账号
-			teamUser.TeamUserInfo.Nick = userData.Nick                                 //群成员呢称
+			teamUser.TeamUserInfo.TeamID = teamID              //群id
+			teamUser.TeamUserInfo.Teamname = teamName          //群名称
+			teamUser.TeamUserInfo.Username = userData.Username //群成员用户账号
+			teamUser.TeamUserInfo.Nick = userData.Nick         //群成员呢称
+			teamUser.TeamUserInfo.AliasName = userData.Nick
 			teamUser.TeamUserInfo.Avatar = userData.Avatar                             //群成员头像
 			teamUser.TeamUserInfo.Label = userData.Label                               //群成员标签
 			teamUser.TeamUserInfo.Source = ""                                          //群成员来源  TODO
