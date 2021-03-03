@@ -4007,7 +4007,6 @@ COMPLETE:
 4-20 用户设置群消息通知方式
 群成员设置接收群消息的通知方式
 */
-
 func (nc *NsqClient) HandleSetNotifyType(msg *models.Message) error {
 	var err error
 	errorCode := 200
