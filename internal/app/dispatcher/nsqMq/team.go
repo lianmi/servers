@@ -5,6 +5,7 @@ TeamIndex - 表示当前最新群组的序号 INCR 原子数
 Team:{username} - 表示username的用户所加入的所有群组 zset
 RemoveTeam:{username} - 表示username的用户退群的所有群组 zset 注意！！！ 必须与Team:{username} 成员不能重复
 TeamInfo:{teamID} - 表示群组ID的群组信息 hash
+TeamUsers:{teamID}  - 保存此群组ID的所有群成员
 TeamUser:{teamID}:{username} - 表示群成员username的信息 hash
 sync:{username} - hash里的teamsAt表示username同步时间戳, 同步username所在的群组及群成员更改后的所有数据
 */
@@ -1979,7 +1980,7 @@ func (nc *NsqClient) HandleApplyTeam(msg *models.Message) error {
 						goto COMPLETE
 					}
 					body := Msg.MessageNotificationBody{
-						Type:           Msg.MessageNotificationType_MNT_CheckTeamInvite, //向群主推送此用户的主动入群通知
+						Type:           Msg.MessageNotificationType_MNT_CheckTeamInvite, //向群主推送此用户的申请入群通知
 						HandledAccount: username,                                        // 申请者
 						HandledMsg:     fmt.Sprintf("用户: %s 发出申请加群请求", userData.Nick),
 						Status:         Msg.MessageStatus_MOS_Processing,
@@ -2935,10 +2936,10 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 						teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 						curAt := time.Now().UnixNano() / 1e6
 
+						nc.logger.Debug("当前所有群成员数量", zap.Int("count", len(teamMembers)))
+
 						for _, teamMember := range teamMembers {
-							if removeUser.Username == username {
-								continue
-							}
+
 							//更新redis的sync:{用户账号} teamsAt 时间戳
 							redisConn.Send("HSET",
 								fmt.Sprintf("sync:%s", teamMember),
