@@ -712,6 +712,16 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 							"TeamID", teamID, //群ID
 							"Ps", req.Ps, //附言
 						)
+						if err != nil {
+							nc.logger.Error("InviteWorkflow HMSET Error", zap.Error(err))
+						} else {
+							nc.logger.Error("将此工作流ID作为key保存此加群事件的哈希表",
+								zap.String("Inviter", inviter),
+								zap.String("Invitee", inviteUsername),
+								zap.String("TeamID", teamID),
+								zap.String("workflowID", workflowID),
+							)
+						}
 
 						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", manager))); err != nil {
 							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
