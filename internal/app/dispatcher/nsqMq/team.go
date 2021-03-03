@@ -293,7 +293,14 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 			}
 
 			//redis查出此群的成员, 从TimeAt开始到最大。
-			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), req.TimeAt, "+inf"))
+			teamMembers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), req.TimeAt, "+inf"))
+			if err != nil {
+				nc.logger.Error("ZRANGEBYSCORE Error", zap.Error(err))
+				errorCode = LMCError.RedisError
+				goto COMPLETE
+			}
+			nc.logger.Debug("GetTeamMembers, ZRANGEBYSCORE count", zap.Int("len", len(teamMembers)))
+
 			for _, teamMember := range teamMembers {
 
 				key := fmt.Sprintf("TeamUser:%s:%s", teamID, teamMember)
