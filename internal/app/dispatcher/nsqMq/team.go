@@ -863,7 +863,7 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, teamName
 					FromDeviceId: fromDeviceId,
 					Recv:         teamID,      //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  serverMsgId, //服务器分配的消息ID
-					WorkflowID:   "",          //工作流ID ps: 不需要
+					WorkflowID:   workflowID,  //工作流ID
 					Seq:          newSeq,      //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         "",
 					Time:         uint64(time.Now().UnixNano() / 1e6),
