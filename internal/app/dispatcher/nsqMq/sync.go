@@ -349,14 +349,14 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 		}
 
 		//从redis里读取username的好友列表
-		fUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
+		fUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), friendUsersAt, "+inf"))
 		if err != nil {
 			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
 			errorCode = LMCError.RedisError
 			goto COMPLETE
 		}
-		for _, fuser := range fUsers {
-
+		for index, fuser := range fUsers {
+			nc.logger.Info("fuser", zap.Int("index", index), zap.String("fuser", fuser))
 			fUserData := new(models.UserBase)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("userData:%s", fuser))); err == nil {
 				if err := redis.ScanStruct(result, fUserData); err != nil {
