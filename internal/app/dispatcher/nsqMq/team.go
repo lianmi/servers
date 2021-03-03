@@ -4828,7 +4828,7 @@ TODO
 1.  管理员根据工作流ID拉人入群进行甄别处理
 2.  处理结果需要同时向其它管理员同步处理结果
 3.  当同意后，需要将这个拉人入群事件向被邀请的用户发送
-4. 当拒绝后，需要向发起拉人入群的用户发送拒绝
+4.  当拒绝后，需要向发起拉人入群的用户发送拒绝ps
 */
 func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 	var err error
@@ -4971,53 +4971,10 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 					nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, manager) //向其它管理员推送
 					// }()
 
-					//向所有群成员发送新成员入群通知
-					teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", pTeamInfo.TeamID), "-inf", "+inf"))
-					for _, teamMember := range teamMembers {
-						//更新redis的sync:{用户账号} teamsAt 时间戳
-						redisConn.Send("HSET",
-							fmt.Sprintf("sync:%s", teamMember),
-							"teamsAt",
-							time.Now().UnixNano()/1e6)
-
-						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.Invitee))); err != nil {
-							nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-							errorCode = LMCError.RedisError
-							goto COMPLETE
-						}
-						body = Msg.MessageNotificationBody{
-							Type:           Msg.MessageNotificationType_MNT_MemberJoined, //新成员入群
-							HandledAccount: req.Invitee,                                  //新成员
-							HandledMsg:     "新成员入群",
-							Status:         Msg.MessageStatus_MOS_Processing,
-							Data:           []byte(""),
-							To:             teamMember,
-						}
-						bodyData, _ := proto.Marshal(&body)
-						inviteEventRsp := &Msg.RecvMsgEventRsp{
-							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-							Type:         Msg.MessageType_MsgType_Notification, //通知类型
-							Body:         bodyData,
-							From:         pTeamInfo.Teamname, //群名称
-							FromDeviceId: deviceID,
-							Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
-							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-							WorkflowID:   req.WorkflowID,                     //工作流ID
-							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
-							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-							Time:         uint64(time.Now().UnixNano() / 1e6),
-						}
-
-						// go func() {
-						nc.logger.Debug("5-2, 向所有群成员发送新成员入群通知",
-							zap.String("新成员", req.Invitee),
-							zap.String("to", teamMember),
-						)
-						nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember)
-						// }()
-					}
-
 				}
+
+				//向invitee 发送邀请入群通知
+				nc.processInviteMembers(redisConn, teamID, pTeamInfo.Teamname, username, deviceID, req.Ps, []string{req.Invitee})
 
 			} else { //拒绝了
 
