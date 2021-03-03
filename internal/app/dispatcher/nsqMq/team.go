@@ -1488,6 +1488,7 @@ func (nc *NsqClient) HandleAcceptTeamInvite(msg *models.Message) error {
 
 				// go func() {
 				nc.logger.Debug("5-2 向群成员广播invitee入群事件",
+					zap.Int("teamMembers count", len(teamMembers)),
 					zap.String("to", teamMember),
 				)
 				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //
@@ -2215,6 +2216,46 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 
 			handledMsg := fmt.Sprintf("管理员: %s 同意 %s 入群申请", opUser.Nick, userData.Nick)
 
+			/*
+				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
+				2. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
+				3. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+				4. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
+			*/
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), teamID)
+			if err != nil {
+				nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+			}
+
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamID)
+			if err != nil {
+				nc.logger.Error("ZADD 错误", zap.Error(err))
+			}
+			//删除退群名单列表里的此用户
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamID), targetUsername)
+			if err != nil {
+				nc.logger.Error("ZREM 错误", zap.Error(err))
+			}
+
+			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, targetUsername)
+			if err != nil {
+				nc.logger.Error("ZADD 错误", zap.Error(err))
+			}
+
+			_, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamID, targetUsername)).AddFlat(teamUser.TeamUserInfo)...)
+			if err != nil {
+				nc.logger.Error("HMSET 错误", zap.Error(err))
+			}
+			//更新redis的sync:{用户账号} teamsAt 时间戳
+			_, err = redisConn.Do("HSET",
+				fmt.Sprintf("sync:%s", targetUsername),
+				"teamsAt",
+				time.Now().UnixNano()/1e6)
+
+			if err != nil {
+				nc.logger.Error("HMSET 错误", zap.Error(err))
+			}
+
 			//向所有群成员推送此用户的入群通知
 			teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
 			for _, teamMember := range teamMembers {
@@ -2255,51 +2296,13 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 
 				// go func() {
 				nc.logger.Debug("5-2, 向所有群成员推送此用户的入群通知",
+					zap.Int("群组全部成员数量", len(teamMembers)),
 					zap.String("新成员", targetUsername),
 					zap.String("to", teamMember),
 				)
 				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
 				// }()
 
-			}
-			/*
-				1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
-				2. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
-				3. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
-				4. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
-			*/
-			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), teamID)
-			if err != nil {
-				nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
-			}
-
-			_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamID)
-			if err != nil {
-				nc.logger.Error("ZADD 错误", zap.Error(err))
-			}
-			//删除退群名单列表里的此用户
-			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamID), targetUsername)
-			if err != nil {
-				nc.logger.Error("ZREM 错误", zap.Error(err))
-			}
-
-			_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, targetUsername)
-			if err != nil {
-				nc.logger.Error("ZADD 错误", zap.Error(err))
-			}
-
-			_, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamID, targetUsername)).AddFlat(teamUser.TeamUserInfo)...)
-			if err != nil {
-				nc.logger.Error("HMSET 错误", zap.Error(err))
-			}
-			//更新redis的sync:{用户账号} teamsAt 时间戳
-			_, err = redisConn.Do("HSET",
-				fmt.Sprintf("sync:%s", targetUsername),
-				"teamsAt",
-				time.Now().UnixNano()/1e6)
-
-			if err != nil {
-				nc.logger.Error("HMSET 错误", zap.Error(err))
 			}
 
 		}
@@ -2780,14 +2783,6 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				nc.BroadcastSystemMsgToAllDevices(mrsp, teamMember)
 				// }()
 
-				//更新redis的sync:{用户账号} teamsAt 时间戳
-				_, err = redisConn.Do("HSET",
-					fmt.Sprintf("sync:%s", teamMember),
-					"teamsAt",
-					curAt)
-				if err != nil {
-					nc.logger.Error("HMSET 错误", zap.Error(err))
-				}
 			}
 
 			rsp.TeamId = teamID
