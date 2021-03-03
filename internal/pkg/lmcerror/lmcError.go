@@ -52,6 +52,7 @@ const (
 	NorlamNotRightMuteTimeTeamUsersError   = 204027  //其它成员无权设置禁言时长
 	NorlamNotRightSetProfileTeamUsersError = 204028  //其它成员无权设置群成员资料
 	NorlamNotRightAuditError               = 204029  //其它成员无权审核用户入群申请
+	InviteWorkflowError                    = 204030  //其它管理员已处理了邀请入群申请
 
 	UserModMarkTagParamError          = 2010501 //参数错误, 不能给自己打标
 	UserModMarkTagParamNorFriendError = 2010502 //参数错误, 不能给非好友打标
@@ -188,6 +189,7 @@ var LmcErrors = map[int]string{
 	NorlamNotRightMuteTimeTeamUsersError:   "其它成员无权设置禁言时长",
 	NorlamNotRightSetProfileTeamUsersError: "其它成员无权设置群成员资料",
 	NorlamNotRightAuditError:               "其它成员无权审核用户入群申请",
+	InviteWorkflowError:                    "其它管理员已处理了邀请入群申请",
 
 	//订单模块
 	OrderModProductIDNotEmpty:        "新的上架商品id必须是空的",

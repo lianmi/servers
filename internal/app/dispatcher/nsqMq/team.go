@@ -635,6 +635,17 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 			//此群的拉人进群的模式设定
 			switch Team.InviteMode(teamInviteMode) {
 			case Team.InviteMode_Invite_All: //所有人都可以邀请其他人入群
+
+				//判断当前用户的类型是否是群成员
+				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
+					if reply == nil { //不是群成员
+						err = nil
+						nc.logger.Debug("User is not member", zap.String("Username", username))
+						errorCode = LMCError.TeamUserIsNotExists
+						goto COMPLETE
+					}
+				}
+
 				//处理待入群用户列表
 				abortUsers := nc.processInviteMembers(redisConn, teamID, teamName, username, deviceID, req.Ps, req.Usernames)
 				for _, abortUser := range abortUsers {
@@ -642,18 +653,10 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 				}
 
 			case Team.InviteMode_Invite_Manager: //只有管理员可以邀请其他人入群
-				//判断当前用户的类型是否是管理员
 				//判断操作者是不是群主或管理员
-				opUser := new(models.TeamUser)
-				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
-					if err := redis.ScanStruct(result, opUser); err != nil {
-						nc.logger.Error("TeamUser is not exist", zap.Error(err))
-						errorCode = LMCError.UserNotExistsError
-						goto COMPLETE
-					}
-				}
-				teamMemberType := Team.TeamMemberType(opUser.TeamMemberType)
-				if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+				teamMemberType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "TeamMemberType"))
+
+				if Team.TeamMemberType(teamMemberType) == Team.TeamMemberType_Tmt_Owner || Team.TeamMemberType(teamMemberType) == Team.TeamMemberType_Tmt_Manager {
 					//pass
 				} else {
 					nc.logger.Warn("User is not team owner or manager", zap.String("Username", username))
@@ -829,15 +832,6 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, teamName
 					nc.logger.Error("ZADD Error", zap.Error(err))
 				}
 
-				//将此工作流ID作为key保存此加群事件的哈希表, InviteWorkflow:{member}:{workflowID}
-				workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", inviteUsername, workflowID)
-				_, err = redisConn.Do("HMSET",
-					workflowKey,
-					"Inviter", inviter, //邀请人
-					"Invitee", inviteUsername, //受邀请人
-					"TeamID", teamID, //群ID
-					"Ps", ps, //附言
-				)
 				nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", inviter), "Nick"))
 				if err != nil {
 					nc.logger.Error("获取用户呢称错误", zap.Error(err))
@@ -869,7 +863,7 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, teamName
 					FromDeviceId: fromDeviceId,
 					Recv:         teamID,      //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  serverMsgId, //服务器分配的消息ID
-					WorkflowID:   workflowID,  //工作流ID
+					WorkflowID:   "",          //工作流ID ps: 不需要
 					Seq:          newSeq,      //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
 					Uuid:         "",
 					Time:         uint64(time.Now().UnixNano() / 1e6),
@@ -4887,8 +4881,18 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 
 		teamID := req.TeamId
 
-		//TODO 根据工作流ID查出这邀请入群事件的from
-		// workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", inviteUsername, workflowID)
+		//TODO 根据工作流ID查出这邀请入群事件的处理状态，如果已处理，则直接返回
+		workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", req.Inviter, req.WorkflowID)
+		if isExists, err := redis.Bool(redisConn.Do("EXISTS", workflowKey)); err != nil {
+			errorCode = LMCError.RedisError
+			goto COMPLETE
+
+		} else {
+			if !isExists {
+				errorCode = LMCError.InviteWorkflowError
+				goto COMPLETE
+			}
+		}
 
 		//获取到群信息
 		key := fmt.Sprintf("TeamInfo:%s", teamID)
@@ -5094,6 +5098,9 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 				}
 			}
 
+			// 删除workflowKey
+			redisConn.Do("DEL", workflowKey)
+
 		} else {
 			//其它成员无权设置
 			nc.logger.Warn("其它成员无权审核用户入群申请")
@@ -5106,7 +5113,6 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 COMPLETE:
 	msg.SetCode(int32(errorCode)) //状态码
 	if errorCode == 200 {
-		//
 		msg.FillBody(nil)
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
