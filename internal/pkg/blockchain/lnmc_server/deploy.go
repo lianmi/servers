@@ -88,9 +88,9 @@ func main() {
 		// 从第1号叶子转账 1 ether 到id1作为gas
 		// transferEth("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x4a61e418173362c68db37cb3aee0ab53d40f6cb9", ether)
 
-		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x90b458808a630291e658df3613071ccdb088c5cb", amountLNMCAmount)
-		// 查询id105代币余额
-		queryLNMCBalance("0x90b458808a630291e658df3613071ccdb088c5cb")
+		transferLNMC("fb874fd86fc8e2e6ac0e3c2e3253606dfa10524296ee43d65f722965c5d57915", "0x0e5f76d3587cc5d59ef685cc1a6deb23ba91c96b", amountLNMCAmount)
+		// 查询id109代币余额
+		queryLNMCBalance("0x0e5f76d3587cc5d59ef685cc1a6deb23ba91c96b")
 
 	}
 
