@@ -4895,7 +4895,7 @@ func (nc *NsqClient) HandleCheckTeamInvite(msg *models.Message) error {
 		teamID := req.TeamId
 
 		//TODO 根据工作流ID查出这邀请入群事件的处理状态，如果已处理，则直接返回
-		workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", req.Inviter, req.WorkflowID)
+		workflowKey := fmt.Sprintf("InviteWorkflow:%s:%s", req.Invitee, req.WorkflowID)
 		if isExists, err := redis.Bool(redisConn.Do("EXISTS", workflowKey)); err != nil {
 			errorCode = LMCError.RedisError
 			goto COMPLETE
