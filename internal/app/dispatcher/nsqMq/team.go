@@ -4,6 +4,7 @@ Teams - 表示当前系统的所有群组 zset
 TeamIndex - 表示当前最新群组的序号 INCR 原子数
 Team:{username} - 表示username的用户所加入的所有群组 zset
 RemoveTeam:{username} - 表示username的用户退群的所有群组 zset 注意！！！ 必须与Team:{username} 成员不能重复
+RemoveTeamMembers:{teamID}
 TeamInfo:{teamID} - 表示群组ID的群组信息 hash
 TeamUsers:{teamID}  - 保存此群组ID的所有群成员
 TeamUser:{teamID}:{username} - 表示群成员username的信息 hash
@@ -2216,9 +2217,11 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 				3. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
 				4. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
 			*/
-			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", username), teamID)
+			_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", targetUsername), teamID)
 			if err != nil {
 				nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+			} else {
+				nc.logger.Debug("从用户自己的退群列表删除此teamID成功", zap.String("targetUsername", targetUsername))
 			}
 
 			_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", targetUsername), time.Now().UnixNano()/1e6, teamID)
