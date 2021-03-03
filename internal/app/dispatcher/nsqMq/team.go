@@ -3,6 +3,7 @@ redis 里与群组相关的key
 Teams - 表示当前系统的所有群组 zset
 TeamIndex - 表示当前最新群组的序号 INCR 原子数
 Team:{username} - 表示username的用户所加入的所有群组 zset
+RemoveTeam:{username} - 表示username的用户退群的所有群组 zset 注意！！！ 必须与Team:{username} 成员不能重复
 TeamInfo:{teamID} - 表示群组ID的群组信息 hash
 TeamUser:{teamID}:{username} - 表示群成员username的信息 hash
 sync:{username} - hash里的teamsAt表示username同步时间戳, 同步username所在的群组及群成员更改后的所有数据
@@ -4395,6 +4396,8 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 			}
 
 			//获取到当前用户的角色权限
+			teamMemberType, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("TeamUser:%s:%s", teamID, username), "TeamMemberType"))
+
 			key = fmt.Sprintf("TeamUser:%s:%s", teamID, req.Username)
 			opTeamUser := new(models.TeamUser)
 			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
@@ -4405,9 +4408,13 @@ func (nc *NsqClient) HandleUpdateMemberInfo(msg *models.Message) error {
 				}
 			}
 
+			if Team.TeamMemberType(opTeamUser.TeamMemberType) == Team.TeamMemberType_Tmt_Owner && Team.TeamMemberType(teamMemberType) != Team.TeamMemberType_Tmt_Owner {
+				nc.logger.Error("无权对群主资料进行修改")
+				errorCode = LMCError.NorlamNotRightSetProfileTeamUsersError
+				goto COMPLETE
+			}
 			//判断操作者是群主还是管理员
-			teamMemberType := Team.TeamMemberType(opTeamUser.TeamMemberType)
-			if teamMemberType == Team.TeamMemberType_Tmt_Owner || teamMemberType == Team.TeamMemberType_Tmt_Manager {
+			if Team.TeamMemberType(teamMemberType) == Team.TeamMemberType_Tmt_Owner || Team.TeamMemberType(teamMemberType) == Team.TeamMemberType_Tmt_Manager {
 
 				if aliasName, ok = req.Fields[1]; ok {
 					//刷新redis
