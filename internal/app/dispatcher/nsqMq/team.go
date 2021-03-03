@@ -3017,20 +3017,20 @@ func (nc *NsqClient) HandleLeaveTeam(msg *models.Message) error {
 							zap.String("username", username),
 							zap.String("deviceId", deviceID))
 
+						nc.logger.Info("退群成功", zap.String("teamID", teamID))
+
 					}
 
 				} else {
-					//判断username是不是群成员，如果否，则返回
-					//首先判断一下是否是群成员
-					if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
-						if reply == nil { //不是群成员
-							err = nil
-							nc.logger.Debug("User is not member", zap.String("Username", username))
-							errorCode = LMCError.TeamUserIsNotExists
-							goto COMPLETE
-						}
-					}
+					nc.logger.Debug("User is not member", zap.String("Username", username))
+					errorCode = LMCError.TeamUserIsNotExists
+					goto COMPLETE
 				}
+
+			} else {
+				nc.logger.Error("ZRANK error", zap.Error(err))
+				errorCode = LMCError.RedisError
+				goto COMPLETE
 			}
 
 		}
@@ -3041,7 +3041,6 @@ COMPLETE:
 	if errorCode == 200 {
 		//200
 		msg.FillBody(nil)
-		nc.logger.Info("退群成功", zap.String("teamID", teamID))
 
 	} else {
 		errorMsg := LMCError.ErrorMsg(errorCode) //错误描述
