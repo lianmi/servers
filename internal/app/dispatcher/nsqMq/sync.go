@@ -461,6 +461,11 @@ func (nc *NsqClient) SyncTeamsAt(username, token, deviceID string, req Sync.Sync
 					}
 					nc.logger.Debug("ZCARD 群成功总数", zap.Int("count", count))
 
+					_, err = redisConn.Do("ZREM", fmt.Sprintf("Team:%s", username), teamID)
+					if err != nil {
+						nc.logger.Error("删除redis里的TeamUser哈希表, ZREM 出错", zap.Error(err))
+					}
+
 					rsp.Teams = append(rsp.Teams, &Team.TeamInfo{
 						TeamId:       teamInfo.TeamID,
 						TeamName:     teamInfo.Teamname,
