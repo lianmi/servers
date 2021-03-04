@@ -536,8 +536,8 @@ func (mc *MQTTClient) Run() {
 					},
 				}
 
+				//这里有幺蛾子，当与mqtt断开连接后，不会重连
 				if _, err := mc.client.Publish(context.Background(), pb); err != nil {
-					// log.Println(err)
 					mc.logger.Error("Failed to Publish to broker ", zap.Error(err))
 				} else {
 					mc.logger.Info("Succeed Publish to broker", zap.String("topic", topic))
