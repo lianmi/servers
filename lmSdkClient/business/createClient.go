@@ -76,12 +76,19 @@ func CreateClient(payloadCh chan []byte) *paho.Client {
 				PrintPretty(m.Properties)
 
 				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
-				code := m.Properties.User.Get("code")
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+				code := m.Properties.User["code"]
+
+				// jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
+				// deviceId := m.Properties.User.Get("deviceId")
+				// businessTypeStr := m.Properties.User.Get("businessType")
+				// businessSubTypeStr := m.Properties.User.Get("businessSubType")
+				// taskIdStr := m.Properties.User.Get("taskId")
+				// code := m.Properties.User.Get("code")
 
 				log.Println("topic: ", topic)
 				log.Println("jwtToken: ", jwtToken)
@@ -116,13 +123,20 @@ func CreateClient(payloadCh chan []byte) *paho.Client {
 				log.Println("Incoming mqtt broker message")
 
 				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
-				code := m.Properties.User.Get("code")
-				errormsg := m.Properties.User.Get("errormsg")
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
+				code := m.Properties.User["code"]
+				errormsg := m.Properties.User["errormsg"]
+				// jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
+				// deviceId := m.Properties.User.Get("deviceId")
+				// businessTypeStr := m.Properties.User.Get("businessType")
+				// businessSubTypeStr := m.Properties.User.Get("businessSubType")
+				// taskIdStr := m.Properties.User.Get("taskId")
+				// code := m.Properties.User.Get("code")
+				// errormsg := m.Properties.User.Get("errormsg")
 
 				log.Println("topic: ", topic)
 				log.Println("jwtToken: ", jwtToken)

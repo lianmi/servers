@@ -107,19 +107,22 @@ var subCmd = &cobra.Command{
 			topic := m.Topic
 			log.Println("topic:", topic)
 
-			jwtToken := m.Properties.User.Get("jwtToken")
+			jwtToken := m.Properties.User["jwtToken"]
+			deviceId := m.Properties.User["deviceId"]
+			businessTypeStr := m.Properties.User["businessType"]
+			businessSubTypeStr := m.Properties.User["businessSubType"]
+			taskIdStr := m.Properties.User["taskId"]
+
+			// jwtToken := m.Properties.User.Get("jwtToken")
+			// deviceId := m.Properties.User.Get("deviceId")
+			// businessTypeStr := m.Properties.User.Get("businessType")
+			// businessSubTypeStr := m.Properties.User.Get("businessSubType")
+			// taskIdStr := m.Properties.User.Get("taskId")
+
 			log.Println("jwtToken:", jwtToken)
-
-			deviceId := m.Properties.User.Get("deviceId")
 			log.Println("deviceId:", deviceId)
-
-			businessTypeStr := m.Properties.User.Get("businessType")
 			log.Println("businessType:", businessTypeStr)
-
-			businessSubTypeStr := m.Properties.User.Get("businessSubType")
 			log.Println("businessSubType:", businessSubTypeStr)
-
-			taskIdStr := m.Properties.User.Get("taskId")
 			log.Println("taskId:", taskIdStr)
 
 			log.Println("Received message:", m.Payload)
@@ -169,30 +172,30 @@ var subCmd = &cobra.Command{
 					// _ = data
 
 					pb := &paho.Publish{
-						Topic:      "lianmi/cloud/device/testdeviceid",
-						QoS:        byte(qos),
-						Retain:     false,
-						Payload:    data,
+						Topic:   "lianmi/cloud/device/testdeviceid",
+						QoS:     byte(qos),
+						Retain:  false,
+						Payload: data,
 						Properties: &paho.PublishProperties{
-							// User: map[string]string{
-							// 	"jwtToken":        jwtToken, // jwt令牌
-							// 	"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
-							// 	"businessType":    "1",
-							// 	"businessSubType": "1",
-							// 	"taskId":          taskIdStr,
-							// 	"code":            "200",
-							// 	"errormsg":        "",
-							// },
+							User: map[string]string{
+								"jwtToken":        jwtToken, // jwt令牌
+								"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
+								"businessType":    "1",
+								"businessSubType": "1",
+								"taskId":          taskIdStr,
+								"code":            "200",
+								"errormsg":        "",
+							},
 						},
 					}
 
-					pb.Properties.User.Add("jwtToken", jwtToken)
-					pb.Properties.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
-					pb.Properties.User.Add("businessType", "1")
-					pb.Properties.User.Add("businessSubType", "1")
-					pb.Properties.User.Add("taskId", taskIdStr)
-					pb.Properties.User.Add("code", "200")
-					pb.Properties.User.Add("errormsg", "")
+					// pb.Properties.User.Add("jwtToken", jwtToken)
+					// pb.Properties.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
+					// pb.Properties.User.Add("businessType", "1")
+					// pb.Properties.User.Add("businessSubType", "1")
+					// pb.Properties.User.Add("taskId", taskIdStr)
+					// pb.Properties.User.Add("code", "200")
+					// pb.Properties.User.Add("errormsg", "")
 
 					if _, err = c.Publish(context.Background(), pb); err != nil {
 						log.Println("error sending message:", err)
