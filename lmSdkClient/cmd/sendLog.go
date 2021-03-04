@@ -23,21 +23,28 @@ var sendLogCmd = &cobra.Command{
 		topic := "lianmi/cloud/dispatcher"
 
 		pb := &paho.Publish{
-			Topic:   topic,
-			QoS:     byte(2),
-			Payload: []byte(content),
+			Topic:      topic,
+			QoS:        byte(2),
+			Payload:    []byte(content),
 			Properties: &paho.PublishProperties{
-				User: map[string]string{
-					"jwtToken":        "",   // jwt令牌
-					"deviceId":        "",   // 设备号
-					"businessType":    "98", // 日志专用业务号
-					"businessSubType": "0",  // 业务子号
-					"taskId":          "0",
-					"code":            "0",
-					"errormsg":        "",
-				},
+				// User: map[string]string{
+				// 	"jwtToken":        "",   // jwt令牌
+				// 	"deviceId":        "",   // 设备号
+				// 	"businessType":    "11", // 日志专用业务号
+				// 	"businessSubType": "1",  // 业务子号
+				// 	"taskId":          "0",
+				// 	"code":            "0",
+				// 	"errormsg":        "",
+				// },
 			},
 		}
+		pb.Properties.User.Add("jwtToken", "")
+		pb.Properties.User.Add("deviceId", "")
+		pb.Properties.User.Add("businessType", "11")
+		pb.Properties.User.Add("businessSubType", "1")
+		pb.Properties.User.Add("taskId", "1")
+		pb.Properties.User.Add("code", "0")
+		pb.Properties.User.Add("errormsg", "")
 
 		var client *paho.Client
 		var payloadCh chan []byte

@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/eclipse/paho.golang/paho"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,8 +18,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	User "github.com/lianmi/servers/api/proto/user"
+
+	"github.com/eclipse/paho.golang/paho"
 	"github.com/golang/protobuf/proto"
+	User "github.com/lianmi/servers/api/proto/user"
 )
 
 const (
@@ -124,23 +125,33 @@ var pubCmd = &cobra.Command{
 
 			jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
 
-			if _, err = c.Publish(context.Background(), &paho.Publish{
-				Topic:    topic,
-				QoS:     byte(qos),
-				Retain:  retained,
-				Payload: data,
+			pb := &paho.Publish{
+				Topic:      topic,
+				QoS:        byte(qos),
+				Retain:     retained,
+				Payload:    data,
 				Properties: &paho.PublishProperties{
-					User: map[string]string{
-						"jwtToken":        jwtToken, // jwt令牌
-						"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
-						"businessType":    "1",
-						"businessSubType": "1",
-						"taskId":          "1",
-						"code":            "200",
-						"errormsg":        "",
-					},
+					// User: map[string]string{
+					// 	"jwtToken":        jwtToken, // jwt令牌
+					// 	"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
+					// 	"businessType":    "1",
+					// 	"businessSubType": "1",
+					// 	"taskId":          "1",
+					// 	"code":            "200",
+					// 	"errormsg":        "",
+					// },
 				},
-			}); err != nil {
+			}
+
+			pb.Properties.User.Add("jwtToken", jwtToken)
+			pb.Properties.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
+			pb.Properties.User.Add("businessType", "1")
+			pb.Properties.User.Add("businessSubType", "1")
+			pb.Properties.User.Add("taskId", "1")
+			pb.Properties.User.Add("code", "0")
+			pb.Properties.User.Add("errormsg", "")
+
+			if _, err = c.Publish(context.Background(), pb); err != nil {
 				log.Println("error sending message:", err)
 				continue
 			}

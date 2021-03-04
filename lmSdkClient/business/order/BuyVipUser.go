@@ -11,20 +11,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+
 	// "github.com/lianmi/servers/util/array"
 	"github.com/lianmi/servers/internal/pkg/models"
+
+	"log"
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/lianmi/servers/util/array"
-	"log"
 )
 
 //向商户id3 购买Vip会员
@@ -135,17 +138,24 @@ func BuyVipUser(price float64, orderID, productID string) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "5",           // 业务号
-				"businessSubType": "1",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "5",           // 业务号
+			// 	"businessSubType": "1",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
+	pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User.Add("businessType", "5")
+	pb.Properties.User.Add("businessSubType", "1")
+	pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User.Add("code", "0")
+	pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte

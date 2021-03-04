@@ -594,20 +594,20 @@ func (mc *MQTTClient) SendLogMsg(body []byte) error {
 		zap.String("code", codeStr))
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(2),
-		Payload: body, //完整转发
-		// Properties: &paho.PublishProperties{
-		// 	User: map[string]string{
-		// 		"jwtToken":        jwtToken,
-		// 		"deviceId":        "",
-		// 		"businessType":    businessTypeStr,
-		// 		"businessSubType": businessSubTypeStr,
-		// 		"taskId":          taskIdStr,
-		// 		"code":            codeStr,
-		// 		"errormsg":        "",
-		// 	},
-		// },
+		Topic:      topic,
+		QoS:        byte(2),
+		Payload:    body, //完整转发
+		Properties: &paho.PublishProperties{
+			// 	User: map[string]string{
+			// 		"jwtToken":        jwtToken,
+			// 		"deviceId":        "",
+			// 		"businessType":    businessTypeStr,
+			// 		"businessSubType": businessSubTypeStr,
+			// 		"taskId":          taskIdStr,
+			// 		"code":            codeStr,
+			// 		"errormsg":        "",
+			// 	},
+		},
 	}
 	pb.Properties.User.Add("jwtToken", jwtToken)
 	pb.Properties.User.Add("deviceId", "")
@@ -716,6 +716,7 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		return jwtUserName, isAuthed, nil
 
 	} else {
+
 		mc.logger.Warn("MakeSureAuthed, 授权被拒绝", zap.Bool("isAuthed", isAuthed))
 		// topic := "lianmi/cloud/device/" + deviceId
 
