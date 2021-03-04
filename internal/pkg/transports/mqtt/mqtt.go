@@ -227,9 +227,6 @@ func (mc *MQTTClient) Start() error {
 					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
 				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 1) {
-					// mc.logger.Debug("=====日志======",
-					// 	zap.ByteString("log", m.Payload),
-					// )
 
 					mc.SendLogMsg(m.Payload)
 

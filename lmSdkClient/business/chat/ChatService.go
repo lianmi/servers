@@ -37,7 +37,7 @@ func GetOssToken(isPrivate bool) error {
 		return errors.New("localUserName is empty error")
 	}
 	if localDeviceID == "" {
-		log.Println("localDeviceID is  empty")
+		log.Println("localDeviceID is empty")
 		return errors.New("localDeviceID is empty error")
 	}
 	responseTopic := fmt.Sprintf("lianmi/cloud/%s", localDeviceID)
