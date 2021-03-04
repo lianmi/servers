@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/lianmi/servers/lmSdkClient/business"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 
 	"fmt"
 
@@ -20,7 +21,6 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	"github.com/lianmi/servers/internal/pkg/models"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/lianmi/servers/util/array"
 )
 
@@ -28,7 +28,7 @@ import (
 func AddOrder(orderID, productID string) error {
 	var attach string
 	// var imageFile = "/Users/mac/developments/lianmi/产品/图片/双色球彩票.jpeg"
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err

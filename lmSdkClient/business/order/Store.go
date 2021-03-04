@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/lianmi/servers/lmSdkClient/business"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 	"github.com/golang/protobuf/proto"
@@ -20,13 +21,12 @@ import (
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
 //9-1 商户上传订单DH加密公钥
 func RegisterPreKeys() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -160,7 +160,7 @@ func RegisterPreKeys() error {
 //9-2 获取网点OPK公钥及订单ID, 只允许普通用户获取
 func GetPreKeyOrderID(productId string) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err

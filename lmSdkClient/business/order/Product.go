@@ -15,13 +15,14 @@ import (
 
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
+
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
 // 7-1  查询某个商户的所有商品信息
 func QueryProducts() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -170,7 +171,7 @@ func QueryProducts() error {
 //  模拟  7-2 商品上架
 func AddProduct() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -328,7 +329,7 @@ func AddProduct() error {
 //  模拟 7-3 商品编辑更新
 func UpdateProduct() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -478,7 +479,7 @@ func UpdateProduct() error {
 // 7-4 商品下架
 func SoldoutProduct() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err

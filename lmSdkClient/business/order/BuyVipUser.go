@@ -26,14 +26,14 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 	"github.com/lianmi/servers/util/array"
 )
 
 //向商户id3 购买Vip会员
 func BuyVipUser(price float64, orderID, productID string) error {
 	var attach string
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err

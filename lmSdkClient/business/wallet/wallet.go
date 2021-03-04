@@ -19,7 +19,7 @@ import (
 	Global "github.com/lianmi/servers/api/proto/global"
 	Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/pkg/blockchain/hdwallet"
-	LMCommon "github.com/lianmi/servers/lmSdkClient/common"
+	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
 )
 
 const (
@@ -40,7 +40,7 @@ type KeyPair struct {
 //创建 用户 HD钱包
 func CreateHDWallet(localUserName string) string {
 	var mnemonic string
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return ""
@@ -68,10 +68,10 @@ func CreateHDWallet(localUserName string) string {
 		return ""
 	}
 
-	// mnemonic := LMCommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
+	// mnemonic := clientcommon.MnemonicServer // "element urban soda endless beach celery scheme wet envelope east glory retire"
 	// log.Println("mnemonic:", mnemonic)
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, clientcommon.SeedPassword)
 	if err != nil {
 		log.Fatalln(err)
 		return ""
@@ -112,7 +112,7 @@ func CreateHDWallet(localUserName string) string {
 //根据叶子索引号获取到公私钥对
 func GetKeyPairsFromLeafIndex(mnemonic string, index uint64) *KeyPair {
 
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic, LMCommon.SeedPassword)
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic, clientcommon.SeedPassword)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
@@ -161,7 +161,7 @@ func GetKeyPairsFromLeafIndex(mnemonic string, index uint64) *KeyPair {
 func RegisterWallet() error {
 	var walletAddress string
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -298,7 +298,7 @@ func Deposit(rechargeAmount float64) error {
 		return errors.New("rechargeAmount must gather than 0")
 	}
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -475,7 +475,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		log.Println("amount:", amount)
 	}
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -647,7 +647,7 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 //10-4 确认转账
 func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -779,7 +779,7 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 //10-5 查询账号余额
 func Balance() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -907,7 +907,7 @@ func Balance() error {
 //10-13 签到
 func UserSignIn() error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1043,7 +1043,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		smscode = "123456"
 	}
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1221,7 +1221,7 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 //10-7 确认提现
 func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1355,7 +1355,7 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 //10-10 同步充值历史
 func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page, pageSize int32) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1495,7 +1495,7 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 //10-11 同步提现历史
 func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1635,7 +1635,7 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 //10-9 同步收款历史
 func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page, pageSize int32) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1775,7 +1775,7 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 //10-12 同步转账历史
 func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -1914,7 +1914,7 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 //10-14查询交易哈希详情
 func DoTxHashInfo(txType int32, txHash string) error {
 
-	redisConn, err := redis.Dial("tcp", LMCommon.RedisAddr)
+	redisConn, err := redis.Dial("tcp", clientcommon.RedisAddr)
 	if err != nil {
 		log.Fatalln(err)
 		return err

@@ -21,8 +21,11 @@ import (
 	// Msg "github.com/lianmi/servers/api/proto/msg"
 	"net"
 
-	LMCommon "github.com/lianmi/servers/internal/common"
 	clientcommon "github.com/lianmi/servers/lmSdkClient/common"
+)
+
+const (
+	isUseCa = true
 )
 
 func NewTlsConfig() *tls.Config {
@@ -59,7 +62,7 @@ func PrintPretty(i interface{}) {
 func CreateClient(payloadCh chan []byte) *paho.Client {
 	//使用ca
 	var client *paho.Client
-	if LMCommon.IsUseCa {
+	if isUseCa {
 		//Connect mqtt broker using ssl
 		tlsConfig := NewTlsConfig()
 		conn, err := tls.Dial("tcp", clientcommon.BrokerAddr, tlsConfig)
