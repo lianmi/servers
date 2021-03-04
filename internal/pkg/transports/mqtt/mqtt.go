@@ -208,11 +208,11 @@ func (mc *MQTTClient) Start() error {
 		mc.client = paho.NewClient(paho.ClientConfig{
 			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
 
 				taskId, _ := strconv.Atoi(taskIdStr)
 				businessType, _ := strconv.Atoi(businessTypeStr)
@@ -329,11 +329,11 @@ func (mc *MQTTClient) Start() error {
 		mc.client = paho.NewClient(paho.ClientConfig{
 			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
+				jwtToken := m.Properties.User["jwtToken"] // Add by lishijia  for flutter mqtt
+				deviceId := m.Properties.User["deviceId"]
+				businessTypeStr := m.Properties.User["businessType"]
+				businessSubTypeStr := m.Properties.User["businessSubType"]
+				taskIdStr := m.Properties.User["taskId"]
 
 				taskId, _ := strconv.Atoi(taskIdStr)
 				businessType, _ := strconv.Atoi(businessTypeStr)
@@ -524,25 +524,24 @@ func (mc *MQTTClient) Run() {
 					Payload: msg.Content,
 					Properties: &paho.PublishProperties{
 						ResponseTopic: mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
-						// User: map[string]string{
-						// 	"jwtToken":        jwtToken,
-						// 	"deviceId":        msg.GetDeviceID(),
-						// 	"businessType":    businessTypeStr,
-						// 	"businessSubType": businessSubTypeStr,
-						// 	"taskId":          taskIdStr,
-						// 	"code":            codeStr,
-						// 	"errormsg":        string(msg.GetErrorMsg()),
-						// },
-						// User: paho.UserProperties{"jwtToken": jwtToken},
+						User: map[string]string{
+							"jwtToken":        jwtToken,
+							"deviceId":        msg.GetDeviceID(),
+							"businessType":    businessTypeStr,
+							"businessSubType": businessSubTypeStr,
+							"taskId":          taskIdStr,
+							"code":            codeStr,
+							"errormsg":        string(msg.GetErrorMsg()),
+						},
 					},
 				}
-				pb.Properties.User.Add("jwtToken", jwtToken)
-				pb.Properties.User.Add("deviceId", msg.GetDeviceID())
-				pb.Properties.User.Add("businessType", businessTypeStr)
-				pb.Properties.User.Add("businessSubType", businessSubTypeStr)
-				pb.Properties.User.Add("taskId", taskIdStr)
-				pb.Properties.User.Add("code", codeStr)
-				pb.Properties.User.Add("errormsg", string(msg.GetErrorMsg()))
+				// pb.Properties.User.Add("jwtToken", jwtToken)
+				// pb.Properties.User.Add("deviceId", msg.GetDeviceID())
+				// pb.Properties.User.Add("businessType", businessTypeStr)
+				// pb.Properties.User.Add("businessSubType", businessSubTypeStr)
+				// pb.Properties.User.Add("taskId", taskIdStr)
+				// pb.Properties.User.Add("code", codeStr)
+				// pb.Properties.User.Add("errormsg", string(msg.GetErrorMsg()))
 
 				//这里有幺蛾子，当与mqtt断开连接后，不会重连
 				if _, err := mc.client.Publish(context.Background(), pb); err != nil {
@@ -594,28 +593,28 @@ func (mc *MQTTClient) SendLogMsg(body []byte) error {
 		zap.String("code", codeStr))
 
 	pb := &paho.Publish{
-		Topic:      topic,
-		QoS:        byte(2),
-		Payload:    body, //完整转发
+		Topic:   topic,
+		QoS:     byte(2),
+		Payload: body, //完整转发
 		Properties: &paho.PublishProperties{
-			// 	User: map[string]string{
-			// 		"jwtToken":        jwtToken,
-			// 		"deviceId":        "",
-			// 		"businessType":    businessTypeStr,
-			// 		"businessSubType": businessSubTypeStr,
-			// 		"taskId":          taskIdStr,
-			// 		"code":            codeStr,
-			// 		"errormsg":        "",
-			// 	},
+			User: map[string]string{
+				"jwtToken":        jwtToken,
+				"deviceId":        "",
+				"businessType":    businessTypeStr,
+				"businessSubType": businessSubTypeStr,
+				"taskId":          taskIdStr,
+				"code":            codeStr,
+				"errormsg":        "",
+			},
 		},
 	}
-	pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User.Add("deviceId", "")
-	pb.Properties.User.Add("businessType", businessTypeStr)
-	pb.Properties.User.Add("businessSubType", businessSubTypeStr)
-	pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User.Add("code", codeStr)
-	pb.Properties.User.Add("errormsg", "")
+	// pb.Properties.User.Add("jwtToken", jwtToken)
+	// pb.Properties.User.Add("deviceId", "")
+	// pb.Properties.User.Add("businessType", businessTypeStr)
+	// pb.Properties.User.Add("businessSubType", businessSubTypeStr)
+	// pb.Properties.User.Add("taskId", taskIdStr)
+	// pb.Properties.User.Add("code", codeStr)
+	// pb.Properties.User.Add("errormsg", "")
 
 	if _, err := mc.client.Publish(context.Background(), pb); err != nil {
 		// log.Println(err)
@@ -716,7 +715,6 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		return jwtUserName, isAuthed, nil
 
 	} else {
-
 		mc.logger.Warn("MakeSureAuthed, 授权被拒绝", zap.Bool("isAuthed", isAuthed))
 		// topic := "lianmi/cloud/device/" + deviceId
 
@@ -731,24 +729,24 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 			Payload: []byte{},
 			Properties: &paho.PublishProperties{
 				ResponseTopic: mc.o.ResponseTopic,
-				// User: map[string]string{
-				// 	"jwtToken":        "none",
-				// 	"deviceId":        deviceID,
-				// 	"businessType":    businessTypeStr,
-				// 	"businessSubType": businessSubTypeStr,
-				// 	"taskId":          taskIDStr,
-				// 	"code":            "403",
-				// 	"errormsg":        "Without authorization",
-				// },
+				User: map[string]string{
+					"jwtToken":        "none",
+					"deviceId":        deviceID,
+					"businessType":    businessTypeStr,
+					"businessSubType": businessSubTypeStr,
+					"taskId":          taskIdStr,
+					"code":            "403",
+					"errormsg":        "Without authorization",
+				},
 			},
 		}
-		pb.Properties.User.Add("jwtToken", "none")
-		pb.Properties.User.Add("deviceId", deviceID)
-		pb.Properties.User.Add("businessType", businessTypeStr)
-		pb.Properties.User.Add("businessSubType", businessSubTypeStr)
-		pb.Properties.User.Add("taskId", taskIdStr)
-		pb.Properties.User.Add("code", "403") //无授权
-		pb.Properties.User.Add("errormsg", "Without authorization")
+		// pb.Properties.User.Add("jwtToken", "none")
+		// pb.Properties.User.Add("deviceId", deviceID)
+		// pb.Properties.User.Add("businessType", businessTypeStr)
+		// pb.Properties.User.Add("businessSubType", businessSubTypeStr)
+		// pb.Properties.User.Add("taskId", taskIdStr)
+		// pb.Properties.User.Add("code", "403") //无授权
+		// pb.Properties.User.Add("errormsg", "Without authorization")
 
 		if _, err := mc.client.Publish(context.Background(), pb); err != nil {
 			// log.Println(err)

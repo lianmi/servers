@@ -55,6 +55,7 @@ func PrintPretty(i interface{}) {
 	}
 	fmt.Printf("%s\n", data)
 }
+
 func CreateClient(payloadCh chan []byte) *paho.Client {
 	//使用ca
 	var client *paho.Client

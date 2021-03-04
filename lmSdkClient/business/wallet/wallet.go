@@ -814,6 +814,8 @@ func Balance() error {
 		return errors.New("jwtToken is empty error")
 	}
 
+	log.Println("jwtToken:", jwtToken)
+
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 

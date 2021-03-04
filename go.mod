@@ -98,8 +98,7 @@ replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go v0.0.0-2019020420134
 
 // replace github.com/lianmi/servers => /Users/mac/developments/goprojects/src/lianmi/servers
 
-// replace github.com/eclipse/paho.golang v0.9.0 => github.com/eclipse/paho.golang v0.9.1-0.20200717101128-7369e711591a
-replace github.com/eclipse/paho.golang v0.9.0 => github.com/lianmi/paho.golang v0.9.2
-// replace github.com/eclipse/paho.golang v0.9.0 => /Users/mac/developments/lianmi/lm-cloud/mqtt/eclipse/paho.golang
+replace github.com/eclipse/paho.golang v0.9.0 => github.com/eclipse/paho.golang v0.9.1-0.20200717101128-7369e711591a
+// replace github.com/eclipse/paho.golang v0.9.0 => github.com/lianmi/paho.golang v0.9.2
 
 replace github.com/casbin/gorm-adapter/v3 => github.com/casbin/gorm-adapter/v3 v3.0.2
