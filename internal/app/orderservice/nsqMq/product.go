@@ -1325,7 +1325,6 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 	errorCode := 200
 
 	rsp := &Order.GetPreKeyOrderIDRsp{}
-	var count int //OPK有序集合的数量
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
@@ -1417,61 +1416,15 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 			//TODO 当购买Vip会员时，不需要 opk
 		} else {
 
-			//从商户的prekeys有序集合取出一个opk
-			prekeySlice, _ := redis.Strings(redisConn.Do("ZRANGE", fmt.Sprintf("prekeys:%s", req.UserName), 0, 0))
-			if len(prekeySlice) > 0 {
-				opk = prekeySlice[0]
+			opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", req.UserName)))
 
-				//取出后就删除此OPK
-				if _, err = redisConn.Do("ZREM", fmt.Sprintf("prekeys:%s", req.UserName), opk); err != nil {
-					nc.logger.Error("ZREM Error", zap.Error(err))
-				}
-
-			} else {
-				nc.logger.Warn("商户的prekeys有序集合为空, 取出此商户的默认的OPK")
-				opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", req.UserName)))
-
-			}
 			if opk == "" {
-				nc.logger.Error("商户的OPK池是空的，并且默认OPK也是空")
-
-				//向商户推送9-10事件通知
-				go func() {
-					time.Sleep(200 * time.Millisecond)
-					nc.logger.Debug("延时200ms向商户推送9-10事件通知",
-						zap.String("to", req.UserName),
-					)
-					nc.SendOPKNoSufficientToMasterDevice(req.UserName, 0)
-				}()
+				nc.logger.Error("商户的默认OPK是空")
 
 				errorCode = LMCError.OPKEmptyError
 				goto COMPLETE
 			}
 
-			//商户的prekeys有序集合是否少于10个，如果少于，则推送报警，让SDK上传OPK
-			if count, err = redis.Int(redisConn.Do("ZCOUNT", fmt.Sprintf("prekeys:%s", req.UserName), "-inf", "+inf")); err != nil {
-				nc.logger.Error("ZCOUNT Error", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
-			} else {
-
-				if count < 10 {
-					nc.logger.Warn("商户的prekeys存量不足", zap.Int("count", count))
-
-					//向商户推送9-10事件通知
-					go func() {
-						time.Sleep(200 * time.Millisecond)
-						nc.logger.Debug("延时200ms向商户推送9-10事件通知",
-							zap.String("to", req.UserName),
-						)
-						nc.SendOPKNoSufficientToMasterDevice(req.UserName, count)
-					}()
-
-				} else {
-					nc.logger.Debug("商户的prekeys存量", zap.Int("count", count))
-				}
-
-			}
 		}
 
 		rsp.UserName = req.UserName
@@ -1523,60 +1476,6 @@ COMPLETE:
 		nc.logger.Error("Failed to send  message to ProduceChannel", zap.Error(err))
 	}
 	_ = err
-	return nil
-}
-
-/*
-9-10 OPk存量不足事件
-OPk存量不足会触发此事件， 并推送给商户
-*/
-func (nc *NsqClient) SendOPKNoSufficientToMasterDevice(toUsername string, count int) error {
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	//查询出商户主设备
-	deviceListKey := fmt.Sprintf("devices:%s", toUsername)
-	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
-
-	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-	jwtToken, _ := redis.String(redisConn.Do("GET", deviceKey))
-	nc.logger.Debug("Redis GET ", zap.String("deviceKey", deviceKey), zap.String("jwtToken", jwtToken))
-
-	//向商户主设备推送 9-10 OPK存量不足事件
-	opkAlertMsg := &models.Message{}
-	now := time.Now().UnixNano() / 1e6 //毫秒
-	opkAlertMsg.UpdateID()
-
-	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-	opkAlertMsg.BuildRouter("Order", "", "Order.Frontend")
-	opkAlertMsg.SetJwtToken(jwtToken)
-	opkAlertMsg.SetUserName(toUsername)
-	opkAlertMsg.SetDeviceID(string(eDeviceID))
-	// opkAlertMsg.SetTaskID(uint32(taskId))
-	opkAlertMsg.SetBusinessTypeName("Order")
-	opkAlertMsg.SetBusinessType(uint32(Global.BusinessType_Order))            //订单模块
-	opkAlertMsg.SetBusinessSubType(uint32(Global.OrderSubType_OPKLimitAlert)) //9-10. 商户OPK存量不足事件
-
-	opkAlertMsg.BuildHeader("OrderService", now)
-
-	//构造负载数据
-	resp := &Order.OPKLimitAlertRsp{
-		Count: int32(count),
-	}
-	data, _ := proto.Marshal(resp)
-	opkAlertMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-	opkAlertMsg.SetCode(200) //成功的状态码
-
-	//构建数据完成，向dispatcher发送
-	topic := "Order.Frontend"
-	rawData, _ := json.Marshal(opkAlertMsg)
-	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-	} else {
-		nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-	}
-
 	return nil
 }
 

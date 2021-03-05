@@ -48,15 +48,15 @@ func New(o *Options) (*gorm.DB, error) {
 	}
 
 	//自动迁移仅仅会创建表，缺少列和索引，并且不会改变现有列的类型或删除未使用的列以保护数据
-	db.AutoMigrate(&models.User{})                     // 用户表
-	db.AutoMigrate(&models.Token{})                    // 令牌表
-	db.AutoMigrate(&models.BankCard{})                 // 银行卡表
-	db.AutoMigrate(&models.Role{})                     // 权限表
-	db.AutoMigrate(&models.Tag{})                      // 标签表
-	db.AutoMigrate(&models.Friend{})                   // 好友表
-	db.AutoMigrate(&models.Team{})                     // 群组表
-	db.AutoMigrate(&models.TeamUser{})                 // 群成员表
-	db.AutoMigrate(&models.Prekey{})                   // OPK表, 商户上传
+	db.AutoMigrate(&models.User{})     // 用户表
+	db.AutoMigrate(&models.Token{})    // 令牌表
+	db.AutoMigrate(&models.BankCard{}) // 银行卡表
+	db.AutoMigrate(&models.Role{})     // 权限表
+	db.AutoMigrate(&models.Tag{})      // 标签表
+	db.AutoMigrate(&models.Friend{})   // 好友表
+	db.AutoMigrate(&models.Team{})     // 群组表
+	db.AutoMigrate(&models.TeamUser{}) // 群成员表
+	//已取消  db.AutoMigrate(&models.Prekey{})                   // OPK表, 商户上传
 	db.AutoMigrate(&models.Product{})                  // 商品表
 	db.AutoMigrate(&models.GeneralProduct{})           // 通用商品表
 	db.AutoMigrate(&models.UserWallet{})               // 用户钱包表
@@ -134,8 +134,6 @@ func New(o *Options) (*gorm.DB, error) {
 	sc.ID = 1
 	sc.ChargeProductID = uuid.NewV4().String()
 	db.Save(sc)
-
-	
 
 	return db, nil
 }
