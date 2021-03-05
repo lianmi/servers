@@ -147,21 +147,11 @@ func AddOrder(orderID, productID string) error {
 
 	content, _ := proto.Marshal(msgReq)
 
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = responseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", localDeviceID)
-	props.User = props.User.Add("businessType", "5")
-	props.User = props.User.Add("businessSubType", "1")
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", "0")
-	props.User = props.User.Add("errormsg", "")
-
 	pb := &paho.Publish{
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "5", "1", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client

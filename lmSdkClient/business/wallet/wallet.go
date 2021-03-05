@@ -206,21 +206,11 @@ func RegisterWallet() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = responseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", localDeviceID)
-	props.User = props.User.Add("businessType", "10")
-	props.User = props.User.Add("businessSubType", "1")
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", "0")
-	props.User = props.User.Add("errormsg", "")
-
 	pb := &paho.Publish{
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "1", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client
@@ -334,30 +324,11 @@ func Deposit(rechargeAmount float64) error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "2",           // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "2", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "2")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -518,30 +489,11 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "3",           //  业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "3", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "3")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -683,30 +635,11 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "4",           //  业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "4", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "4")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -811,31 +744,11 @@ func Balance() error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: nil, //不需要包体
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "5",           // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    nil, //不需要包体
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "5", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "5")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
-
 	var client *paho.Client
 	var payloadCh chan []byte
 	payloadCh = make(chan []byte, 0)
@@ -937,30 +850,11 @@ func UserSignIn() error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: nil, //不需要包体
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "13",          // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    nil, //不需要包体
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "13", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "13")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1087,30 +981,11 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "6",           // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "6", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "6")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1257,30 +1132,11 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "7",           // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "7", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "7")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1400,30 +1256,11 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "10",          // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "10", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "10")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1539,30 +1376,11 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "11",          // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "11", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "11")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1680,30 +1498,11 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "9",           // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "9", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "9")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1819,30 +1618,11 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "12",          // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "12", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "12")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1954,30 +1734,11 @@ func DoTxHashInfo(txType int32, txHash string) error {
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			// User: map[string]string{
-			// 	"jwtToken":        jwtToken,      // jwt令牌
-			// 	"deviceId":        localDeviceID, // 设备号
-			// 	"businessType":    "10",          // 业务号
-			// 	"businessSubType": "14",          // 业务子号
-			// 	"taskId":          taskIdStr,
-			// 	"code":            "0",
-			// 	"errormsg":        "",
-			// },
-		},
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "10", "14", taskIdStr, "0", ""),
 	}
-
-	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
-	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
-	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
-	pb.Properties.User = pb.Properties.User.Add("businessSubType", "14")
-	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
-	pb.Properties.User = pb.Properties.User.Add("code", "0")
-	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	/*
 		//send req to mqtt

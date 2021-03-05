@@ -70,21 +70,11 @@ func QueryProducts() error {
 
 	content, _ := proto.Marshal(req)
 
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = responseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", localDeviceID)
-	props.User = props.User.Add("businessType", "7")
-	props.User = props.User.Add("businessSubType", "1")
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", "0")
-	props.User = props.User.Add("errormsg", "")
-
 	pb := &paho.Publish{
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "7", "1", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client
@@ -248,7 +238,7 @@ func AddProduct() error {
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "7", "2", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client
@@ -385,21 +375,11 @@ func UpdateProduct() error {
 
 	content, _ := proto.Marshal(req)
 
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = responseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", localDeviceID)
-	props.User = props.User.Add("businessType", "7")
-	props.User = props.User.Add("businessSubType", "3")
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", "0")
-	props.User = props.User.Add("errormsg", "")
-
 	pb := &paho.Publish{
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "7", "3", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client
@@ -497,21 +477,11 @@ func SoldoutProduct() error {
 
 	content, _ := proto.Marshal(req)
 
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = responseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", localDeviceID)
-	props.User = props.User.Add("businessType", "7")
-	props.User = props.User.Add("businessSubType", "4")
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", "0")
-	props.User = props.User.Add("errormsg", "")
-
 	pb := &paho.Publish{
 		Topic:      topic,
 		QoS:        byte(1),
 		Payload:    content,
-		Properties: props,
+		Properties: business.GeneProps(responseTopic, jwtToken, localDeviceID, "7", "4", taskIdStr, "0", ""),
 	}
 
 	var client *paho.Client

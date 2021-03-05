@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/golang/protobuf/proto"
 	User "github.com/lianmi/servers/api/proto/user"
+	"github.com/lianmi/servers/lmSdkClient/business"
 )
 
 const (
@@ -125,22 +126,12 @@ var pubCmd = &cobra.Command{
 
 			jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
 
-			props := &paho.PublishProperties{}
-			// props.ResponseTopic = responseTopic
-			props.User = props.User.Add("jwtToken", jwtToken)
-			props.User = props.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
-			props.User = props.User.Add("businessType", "1")
-			props.User = props.User.Add("businessSubType", "1")
-			props.User = props.User.Add("taskId", "1")
-			props.User = props.User.Add("code", "0")
-			props.User = props.User.Add("errormsg", "")
-
 			pb := &paho.Publish{
 				Topic:      topic,
 				QoS:        byte(qos),
 				Retain:     retained,
 				Payload:    data,
-				Properties: props,
+				Properties: business.GeneProps("", jwtToken, "b5d10669-403a-4e36-8b58-dbc31856126c", "1", "1", "1", "0", ""),
 			}
 
 			if _, err = c.Publish(context.Background(), pb); err != nil {
