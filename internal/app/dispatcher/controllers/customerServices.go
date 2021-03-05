@@ -59,7 +59,7 @@ func (pc *LianmiApisController) QueryGrades(c *gin.Context) {
 			pageIndex = 1
 		}
 		if pageSize == 0 {
-			pageSize = 100
+			pageSize = 20
 		}
 
 		// GetPages 分页返回数据

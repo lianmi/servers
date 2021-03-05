@@ -132,30 +132,22 @@ func BuyVipUser(price float64, orderID, productID string) error {
 
 	content, _ := proto.Marshal(msgReq)
 
+	props := &paho.PublishProperties{}
+	props.ResponseTopic = responseTopic
+	props.User = props.User.Add("jwtToken", jwtToken)
+	props.User = props.User.Add("deviceId", localDeviceID)
+	props.User = props.User.Add("businessType", "5")
+	props.User = props.User.Add("businessSubType", "1")
+	props.User = props.User.Add("taskId", taskIdStr)
+	props.User = props.User.Add("code", "0")
+	props.User = props.User.Add("errormsg", "")
+
 	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(2),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "5",           // 业务号
-				"businessSubType": "1",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
-		},
+		Topic:      topic,
+		QoS:        byte(2),
+		Payload:    content,
+		Properties: props,
 	}
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "5")
-	// pb.Properties.User.Add("businessSubType", "1")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte

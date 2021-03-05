@@ -59,7 +59,8 @@ type WalletRepository interface {
 
 	GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error
 
-	GetCollectionHistorys(toUsername, fromUsername string, PageNum int, PageSize int, total *int64, where interface{}) []*models.LnmcCollectionHistory
+	GetCollectionHistorys(toUsername, fromUsername string, startAt, endAt uint64, pageNum int, pageSize int, total *int64) ([]*models.LnmcCollectionHistory, error)
+
 
 	GetDepositHistorys(username string, PageNum int, PageSize int, total *int64, where interface{}) []*models.LnmcDepositHistory
 
@@ -477,21 +478,6 @@ func (m *MysqlWalletRepository) GetPages(model interface{}, out interface{}, pag
 	return db2.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
 }
 
-//分页获取收款历史
-func (m *MysqlWalletRepository) GetCollectionHistorys(toUsername, fromUsername string, PageNum int, PageSize int, total *int64, where interface{}) []*models.LnmcCollectionHistory {
-	var collections []*models.LnmcCollectionHistory
-	if fromUsername == "" {
-		if err := m.GetPages(&models.LnmcCollectionHistory{ToUsername: toUsername}, &collections, PageNum, PageSize, total, where); err != nil {
-			m.logger.Error("获取收款历史失败", zap.Error(err))
-		}
-	} else {
-		if err := m.GetPages(&models.LnmcCollectionHistory{ToUsername: toUsername, FromUsername: fromUsername}, &collections, PageNum, PageSize, total, where); err != nil {
-			m.logger.Error("获取收款历史失败", zap.Error(err))
-		}
-	}
-
-	return collections
-}
 
 //分页获取充值历史
 func (m *MysqlWalletRepository) GetDepositHistorys(username string, PageNum int, PageSize int, total *int64, where interface{}) []*models.LnmcDepositHistory {

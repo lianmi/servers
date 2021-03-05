@@ -107,11 +107,11 @@ var subCmd = &cobra.Command{
 			topic := m.Topic
 			log.Println("topic:", topic)
 
-			jwtToken := m.Properties.User["jwtToken"]
-			deviceId := m.Properties.User["deviceId"]
-			businessTypeStr := m.Properties.User["businessType"]
-			businessSubTypeStr := m.Properties.User["businessSubType"]
-			taskIdStr := m.Properties.User["taskId"]
+			jwtToken := m.Properties.User.Get("jwtToken")
+			deviceId := m.Properties.User.Get("deviceId")
+			businessTypeStr := m.Properties.User.Get("businessType")
+			businessSubTypeStr := m.Properties.User.Get("businessSubType")
+			taskIdStr := m.Properties.User.Get("taskId")
 
 			// jwtToken := m.Properties.User.Get("jwtToken")
 			// deviceId := m.Properties.User.Get("deviceId")
@@ -128,8 +128,6 @@ var subCmd = &cobra.Command{
 			log.Println("Received message:", m.Payload)
 			log.Println("=========================")
 			log.Println()
-
-			// jwtToken= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VJRCI6ImJkMmQ1ZDBjLThiZjctNDY3Yy1iNTVjLWVhNWEwZTBmOGYwMyIsImV4cCI6MTYxMzM2MjIxNSwib3JpZ19pYXQiOjE2MTA3NzAyMTUsInVzZXJOYW1lIjoiaWQxIiwidXNlclJvbGVzIjoiW3tcImlkXCI6MSxcInVzZXJfaWRcIjoxLFwidXNlcl9uYW1lXCI6XCJpZDFcIixcInZhbHVlXCI6XCJcIn1dIn0.8ugMtx3l7S_6d21Y8yRCC-fAG1-IjWFOECkxrLYCKlk"
 
 			if businessTypeStr == "1" && businessSubTypeStr == "1" {
 				//解包body
@@ -171,31 +169,23 @@ var subCmd = &cobra.Command{
 					data, _ := proto.Marshal(rsp)
 					// _ = data
 
-					pb := &paho.Publish{
-						Topic:   "lianmi/cloud/device/testdeviceid",
-						QoS:     byte(qos),
-						Retain:  false,
-						Payload: data,
-						Properties: &paho.PublishProperties{
-							User: map[string]string{
-								"jwtToken":        jwtToken, // jwt令牌
-								"deviceId":        "b5d10669-403a-4e36-8b58-dbc31856126c",
-								"businessType":    "1",
-								"businessSubType": "1",
-								"taskId":          taskIdStr,
-								"code":            "200",
-								"errormsg":        "",
-							},
-						},
-					}
+					props := &paho.PublishProperties{}
+					// props.ResponseTopic = responseTopic
+					props.User = props.User.Add("jwtToken", jwtToken)
+					props.User = props.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
+					props.User = props.User.Add("businessType", "1")
+					props.User = props.User.Add("businessSubType", "1")
+					props.User = props.User.Add("taskId", "1")
+					props.User = props.User.Add("code", "200")
+					props.User = props.User.Add("errormsg", "")
 
-					// pb.Properties.User.Add("jwtToken", jwtToken)
-					// pb.Properties.User.Add("deviceId", "b5d10669-403a-4e36-8b58-dbc31856126c")
-					// pb.Properties.User.Add("businessType", "1")
-					// pb.Properties.User.Add("businessSubType", "1")
-					// pb.Properties.User.Add("taskId", taskIdStr)
-					// pb.Properties.User.Add("code", "200")
-					// pb.Properties.User.Add("errormsg", "")
+					pb := &paho.Publish{
+						Topic:      "lianmi/cloud/device/testdeviceid",
+						QoS:        byte(qos),
+						Retain:     false,
+						Payload:    data,
+						Properties: props,
+					}
 
 					if _, err = c.Publish(context.Background(), pb); err != nil {
 						log.Println("error sending message:", err)

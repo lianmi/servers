@@ -22,29 +22,22 @@ var sendLogCmd = &cobra.Command{
 
 		topic := "lianmi/cloud/dispatcher"
 
+		props := &paho.PublishProperties{}
+		// props.ResponseTopic = responseTopic
+		props.User = props.User.Add("jwtToken", "")
+		props.User = props.User.Add("deviceId", "")
+		props.User = props.User.Add("businessType", "11")
+		props.User = props.User.Add("businessSubType", "1")
+		props.User = props.User.Add("taskId", "1")
+		props.User = props.User.Add("code", "0")
+		props.User = props.User.Add("errormsg", "")
+
 		pb := &paho.Publish{
-			Topic:   topic,
-			QoS:     byte(2),
-			Payload: []byte(content),
-			Properties: &paho.PublishProperties{
-				User: map[string]string{
-					"jwtToken":        "",   // jwt令牌
-					"deviceId":        "",   // 设备号
-					"businessType":    "11", // 日志专用业务号
-					"businessSubType": "1",  // 业务子号
-					"taskId":          "0",
-					"code":            "0",
-					"errormsg":        "",
-				},
-			},
+			Topic:      topic,
+			QoS:        byte(2),
+			Payload:    []byte(content),
+			Properties: props,
 		}
-		// pb.Properties.User.Add("jwtToken", "")
-		// pb.Properties.User.Add("deviceId", "")
-		// pb.Properties.User.Add("businessType", "11")
-		// pb.Properties.User.Add("businessSubType", "1")
-		// pb.Properties.User.Add("taskId", "1")
-		// pb.Properties.User.Add("code", "0")
-		// pb.Properties.User.Add("errormsg", "")
 
 		var client *paho.Client
 		var payloadCh chan []byte

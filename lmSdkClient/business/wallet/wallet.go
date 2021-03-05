@@ -206,31 +206,22 @@ func RegisterWallet() error {
 	taskId, _ := redis.Int(redisConn.Do("INCR", fmt.Sprintf("taksID:%s", localUserName)))
 	taskIdStr := fmt.Sprintf("%d", taskId)
 
-	pb := &paho.Publish{
-		Topic:   topic,
-		QoS:     byte(1),
-		Payload: content,
-		Properties: &paho.PublishProperties{
-			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "1",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
-		},
-	}
+	props := &paho.PublishProperties{}
+	props.ResponseTopic = responseTopic
+	props.User = props.User.Add("jwtToken", jwtToken)
+	props.User = props.User.Add("deviceId", localDeviceID)
+	props.User = props.User.Add("businessType", "10")
+	props.User = props.User.Add("businessSubType", "1")
+	props.User = props.User.Add("taskId", taskIdStr)
+	props.User = props.User.Add("code", "0")
+	props.User = props.User.Add("errormsg", "")
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "1")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb := &paho.Publish{
+		Topic:      topic,
+		QoS:        byte(1),
+		Payload:    content,
+		Properties: props,
+	}
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -348,25 +339,25 @@ func Deposit(rechargeAmount float64) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "2",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "2",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "2")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "2")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -532,25 +523,25 @@ func PreTransfer(orderID, targetUserName string, amount float64) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "3",           //  业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "3",           //  业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "3")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "3")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -697,25 +688,25 @@ func ConfirmTransfer(uuid string, signedTxToTarget string) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "4",           //  业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "4",           //  业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "4")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "4")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -825,25 +816,25 @@ func Balance() error {
 		Payload: nil, //不需要包体
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "5",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "5",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "5")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "5")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -951,25 +942,25 @@ func UserSignIn() error {
 		Payload: nil, //不需要包体
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "13",          // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "13",          // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "13")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "13")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1101,25 +1092,25 @@ func PreWithDraw(amount float64, smscode, bank, bankCard, cardOwner string) erro
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "6",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "6",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "6")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "6")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1271,25 +1262,25 @@ func WithDraw(withdrawUUID, signedTxToPlatform string) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "7",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "7",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "7")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "7")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1367,7 +1358,7 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 		page = 1
 	}
 	if pageSize == 0 {
-		pageSize = 100
+		pageSize = 20
 	}
 	req := &Wallet.SyncDepositHistoryPageReq{
 		DepositRecharge: 0, //TODO
@@ -1414,25 +1405,25 @@ func DoSyncDepositHistoryPage(depositRecharge int32, startAt, endAt int64, page,
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "10",          // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "10",          // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "10")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "10")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1507,7 +1498,7 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		page = 1
 	}
 	if pageSize == 0 {
-		pageSize = 100
+		pageSize = 20
 	}
 	req := &Wallet.SyncWithdrawHistoryPageReq{
 		StartAt:  uint64(startAt),
@@ -1553,25 +1544,25 @@ func DoSyncWithdrawHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "11",          // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "11",          // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "11")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "11")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1647,7 +1638,7 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 		page = 1
 	}
 	if pageSize == 0 {
-		pageSize = 100
+		pageSize = 20
 	}
 	req := &Wallet.SyncCollectionHistoryPageReq{
 		FromUsername: fromUsername,
@@ -1694,25 +1685,25 @@ func DoSyncCollectionHistoryPage(fromUsername string, startAt, endAt int64, page
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "9",           // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "9",           // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "9")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "9")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1787,7 +1778,7 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		page = 1
 	}
 	if pageSize == 0 {
-		pageSize = 100
+		pageSize = 20
 	}
 	req := &Wallet.SyncTransferHistoryPageReq{
 		StartAt:  uint64(startAt),
@@ -1833,25 +1824,25 @@ func DoSyncTransferHistoryPage(startAt, endAt int64, page, pageSize int32) error
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "12",          // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "12",          // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "12")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "12")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	var client *paho.Client
 	var payloadCh chan []byte
@@ -1968,25 +1959,25 @@ func DoTxHashInfo(txType int32, txHash string) error {
 		Payload: content,
 		Properties: &paho.PublishProperties{
 			ResponseTopic: responseTopic,
-			User: map[string]string{
-				"jwtToken":        jwtToken,      // jwt令牌
-				"deviceId":        localDeviceID, // 设备号
-				"businessType":    "10",          // 业务号
-				"businessSubType": "14",          // 业务子号
-				"taskId":          taskIdStr,
-				"code":            "0",
-				"errormsg":        "",
-			},
+			// User: map[string]string{
+			// 	"jwtToken":        jwtToken,      // jwt令牌
+			// 	"deviceId":        localDeviceID, // 设备号
+			// 	"businessType":    "10",          // 业务号
+			// 	"businessSubType": "14",          // 业务子号
+			// 	"taskId":          taskIdStr,
+			// 	"code":            "0",
+			// 	"errormsg":        "",
+			// },
 		},
 	}
 
-	// pb.Properties.User.Add("jwtToken", jwtToken)
-	// pb.Properties.User.Add("deviceId", localDeviceID)
-	// pb.Properties.User.Add("businessType", "10")
-	// pb.Properties.User.Add("businessSubType", "14")
-	// pb.Properties.User.Add("taskId", taskIdStr)
-	// pb.Properties.User.Add("code", "0")
-	// pb.Properties.User.Add("errormsg", "")
+	pb.Properties.User = pb.Properties.User.Add("jwtToken", jwtToken)
+	pb.Properties.User = pb.Properties.User.Add("deviceId", localDeviceID)
+	pb.Properties.User = pb.Properties.User.Add("businessType", "10")
+	pb.Properties.User = pb.Properties.User.Add("businessSubType", "14")
+	pb.Properties.User = pb.Properties.User.Add("taskId", taskIdStr)
+	pb.Properties.User = pb.Properties.User.Add("code", "0")
+	pb.Properties.User = pb.Properties.User.Add("errormsg", "")
 
 	/*
 		//send req to mqtt

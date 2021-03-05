@@ -1798,14 +1798,13 @@ func (nc *NsqClient) BroadcastOrderMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toU
 }
 
 // 10-9 同步收款历史
-// 此接口 支持分页查询，默认是全量查询
+// 此接口 支持分页查询
 
 func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
 	var data []byte
-	var maps string
 	var page, pageSize int
 	var total int64
 
@@ -1865,33 +1864,34 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 
 		pageSize = int(req.PageSize)
 		if pageSize == 0 {
-			pageSize = 100
+			pageSize = 20
 		}
 
-		// GetPages 分页返回数据
-		if req.StartAt > 0 && req.EndAt > 0 {
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d", req.StartAt, req.EndAt)
-		}
+		collections, err := nc.Repository.GetCollectionHistorys(username, req.FromUsername, req.StartAt, req.EndAt, page, pageSize, &total)
+		if err != nil {
+			nc.logger.Error("GetCollectionHistorys error", zap.Error(err))
 
-		collections := nc.Repository.GetCollectionHistorys(username, req.FromUsername, page, pageSize, &total, maps)
-		nc.logger.Debug("GetCollectionHistorys", zap.Int64("total", total))
+		} else {
 
-		rsp.Total = int32(total) //总页数
-		for _, collection := range collections {
-			nc.logger.Debug("for...range: collections",
-				zap.String("FromUsername", collection.FromUsername),
-				zap.String("ToUsername", collection.ToUsername),
-			)
-			rsp.Collections = append(rsp.Collections, &Wallet.Collection{
-				// Uuid:         collection.UUID,              //UUID
-				// CreatedAt:    uint64(collection.CreatedAt), //创建时间
-				FromUsername: collection.FromUsername, //发送方用户账号
-				ToUsername:   collection.ToUsername,   //接收方的用户账号
-				AmountLNMC:   collection.AmountLNMC,   //本次转账的用户连米币数量
-				OrderID:      collection.OrderID,      //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-				BlockNumber:  collection.BlockNumber,  //成功执行合约的所在区块高度
-				Hash:         collection.TxHash,       //交易哈希
-			})
+			nc.logger.Debug("GetCollectionHistorys", zap.Int64("total", total))
+
+			rsp.Total = int32(total) //总页数
+			for _, collection := range collections {
+				nc.logger.Debug("for...range: collections",
+					zap.String("FromUsername", collection.FromUsername),
+					zap.String("ToUsername", collection.ToUsername),
+				)
+				rsp.Collections = append(rsp.Collections, &Wallet.Collection{
+					// Uuid:         collection.uu,              //UUID
+					CreatedAt:    uint64(collection.CreatedAt), //创建时间
+					FromUsername: collection.FromUsername,      //发送方用户账号
+					ToUsername:   collection.ToUsername,        //接收方的用户账号
+					AmountLNMC:   collection.AmountLNMC,        //本次转账的用户连米币数量
+					OrderID:      collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+					BlockNumber:  collection.BlockNumber,       //成功执行合约的所在区块高度
+					Hash:         collection.TxHash,            //交易哈希
+				})
+			}
 		}
 
 	}
@@ -1921,7 +1921,7 @@ COMPLETE:
 }
 
 // 10-10 同步充值历史
-// 此接口 支持分页查询，默认是全量查询
+// 此接口 支持分页查询
 
 func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 	var err error
@@ -1988,7 +1988,7 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 
 		pageSize = int(req.PageSize)
 		if pageSize == 0 {
-			pageSize = 100
+			pageSize = 20
 		}
 
 		//  DR_100         = 1;     //100元
@@ -2073,7 +2073,7 @@ COMPLETE:
 }
 
 // 10-11 同步提现历史
-// 此接口 支持分页查询，默认是全量查询
+// 此接口 支持分页查询
 
 func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 	var err error
@@ -2139,7 +2139,7 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 
 		pageSize = int(req.PageSize)
 		if pageSize == 0 {
-			pageSize = 100
+			pageSize = 20
 		}
 		if req.StartAt > 0 && req.EndAt > 0 {
 
@@ -2194,7 +2194,7 @@ COMPLETE:
 }
 
 // 10-12 同步转账历史
-// 此接口 支持分页查询，默认是全量查询
+// 此接口 支持分页查询
 
 func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 	var err error
@@ -2260,7 +2260,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 
 		pageSize = int(req.PageSize)
 		if pageSize == 0 {
-			pageSize = 100
+			pageSize = 20
 		}
 		if req.StartAt > 0 && req.EndAt > 0 {
 

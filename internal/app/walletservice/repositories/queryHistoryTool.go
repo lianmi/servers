@@ -74,44 +74,33 @@ func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-//按createAt的时间段
-func BetweenCreateAt(startAt, endAt uint64) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("created_at>= ? and created_at<= ? ", startAt, endAt)
-	}
-}
+//分页查询lnmc_collection_histories列表, pageSize default 20
+func (s *MysqlWalletRepository) GetCollectionHistorys(toUsername, fromUsername string, startAt, endAt uint64, pageNum int, pageSize int, total *int64) ([]*models.LnmcCollectionHistory, error) {
 
-//分页显示users列表
-func (s *MysqlLianmiRepository) usersPageDemo(page, pageSize int) {
-	// page := 1
-	// pageSize := 20
-	// var count int64
-	var users []models.User
-	userModel := new(models.User)
+	var count int64
+	var lnmcCollectionHistories []*models.LnmcCollectionHistory
+	model := new(models.LnmcCollectionHistory)
 
-	s.db.Model(&userModel).Find(&users, "user_type=?", 0)
+	s.db.Model(&model).Find(&lnmcCollectionHistories, "to_username = ? AND from_username=?", toUsername, fromUsername)
 
-	// db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users)
-	// db.Model(&userModel).Scopes(IsBusinessUser, Paginate(page, pageSize)).Find(&users)
-	//注意！Order必须在Find之前
-	s.db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize), BetweenCreateAt(1606408683991, 1606514952437)).Order("created_at DESC").Find(&users)
+	resultError := s.db.Model(&model).Scopes(BetweenCreatedAt(startAt, endAt), Paginate(pageNum, pageSize)).Order("created_at DESC").Find(&lnmcCollectionHistories)
 
-	// s.db.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
+	count = int64(len(lnmcCollectionHistories))
+	total = &count
+	s.logger.Debug("分页查询lnmc_collection_histories列表 ", zap.Int64("count", count))
 
-	// count =
-	s.logger.Debug("分页显示users列表, count: ", zap.Int("len", len(users)))
-
-	for _, user := range users {
-		// log.Printf("idx=%d, username=%s, mobile=%d\n", idx, user.Username, user.Mobile)
-		s.logger.Debug("分页显示users列表 ",
-			zap.String("username", user.Username),
-			zap.String("Mobile", user.Mobile),
+	for _, history := range lnmcCollectionHistories {
+		s.logger.Debug("分页显示lnmc_collection_histories列表 ",
+			zap.Int64("CreatedAt", history.CreatedAt),
+			zap.String("ToUsername", history.ToUsername),
+			zap.String("FromUsername", history.FromUsername),
+			zap.String("OrderID", history.OrderID),
 		)
 	}
+	if resultError.Error != nil {
+		return nil, resultError.Error
+	}
 
-}
+	return lnmcCollectionHistories, nil
 
-//分页查询lnmc_collection_histories列表
-func (s *MysqlLianmiRepository) CollectionHistorysPage(page, pageSize int) {
-	// CollectionHistorys
 }

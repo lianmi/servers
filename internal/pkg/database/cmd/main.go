@@ -36,7 +36,7 @@ func PrintPretty(i interface{}) {
 }
 
 func main() {
-	page := 3
+	page := 0
 	pageSize := 20
 	// var count int64
 	var users []models.User
@@ -47,14 +47,17 @@ func main() {
 	log.Println(" *********  查询 users *******  ", len(users))
 	// PrintPretty(users)
 
-	db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users)
+	// db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users).Order("updated_at DESC")
+	//注意！Order必须在Find之前
+	db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize), BetweenCreateAt(1606408683991, 1606514952437)).Order("created_at DESC").Find(&users)
+	// db = db
 	// db.Model(&userModel).Scopes(IsBusinessUser, Paginate(page, pageSize)).Find(&users)
 	// db.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
 
 	log.Println("分页显示users列表, count: ", len(users))
 
 	for idx, user := range users {
-		log.Printf("idx=%d, username=%s, mobile=%d\n", idx, user.Username, user.Mobile)
+		log.Printf("idx=%d, create_at %d, username=%s, mobile=%s\n", idx, user.CreatedAt, user.Username, user.Mobile)
 	}
 	_ = page
 	_ = pageSize
@@ -97,6 +100,12 @@ func Branchesname(branchesnames []string) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
+//按createAt的时间段
+func BetweenCreateAt(startAt, endAt uint64) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("created_at>= ? and created_at<= ? ", startAt, endAt)
+	}
+}
 func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if page == 0 {
@@ -105,7 +114,7 @@ func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
 
 		switch {
 		case pageSize > 100:
-			pageSize = 100
+			pageSize = 20
 		case pageSize <= 0:
 			pageSize = 10
 		}
@@ -114,3 +123,5 @@ func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
 		return db.Offset(offset).Limit(pageSize)
 	}
 }
+
+// SELECT * FROM `users` WHERE user_type = 1  AND (create_at>= 1605328128169 and create_at<= 1603789653918 ) AND `users`.`deleted_at` IS NULL LIMIT 20
