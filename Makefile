@@ -140,13 +140,10 @@ dart:
 								api/proto/order/AddProductEvent.proto \
 								api/proto/order/ChangeOrderState.proto \
 								api/proto/order/GetPreKeyOrderID.proto \
-								api/proto/order/GetPreKeysCount.proto \
-								api/proto/order/OPKLimitAlert.proto \
 								api/proto/order/UploadOrderBodyEvent.proto \
 								api/proto/order/PayOrder.proto \
 								api/proto/order/Product.proto \
 								api/proto/order/QueryProducts.proto \
-								api/proto/order/RegisterPreKeys.proto \
 								api/proto/order/Service.proto \
 								api/proto/order/SoldouProduct.proto \
 								api/proto/order/SoldoutProductEvent.proto \

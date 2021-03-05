@@ -15,7 +15,6 @@ type OrderRepository interface {
 	AddProduct(product *models.Product) error
 	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
-	AddPreKeys(prekeys []*models.Prekey) error
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
 	GetNotaryServicePublickey(businessUsername string) (string, error)
@@ -97,21 +96,7 @@ func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 	return nil
 }
 
-//保存商户的OPK, 批量
-func (m *MysqlOrderRepository) AddPreKeys(prekeys []*models.Prekey) error {
 
-	for _, prekey := range prekeys {
-		//增加记录
-		if err := m.db.Clauses(clause.OnConflict{DoNothing: true}).Create(prekey).Error; err != nil {
-			m.logger.Error("增加prekey失败", zap.Error(err))
-			continue
-		} else {
-			m.logger.Debug("增加prekey成功")
-		}
-	}
-
-	return nil
-}
 
 //根据 PayType获取价格信息
 func (m *MysqlOrderRepository) GetVipUserPrice(payType int) (*models.VipPrice, error) {

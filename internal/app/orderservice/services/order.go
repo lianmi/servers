@@ -14,7 +14,6 @@ type OrderService interface {
 	AddProduct(product *models.Product) error
 	UpdateProduct(product *models.Product) error
 	DeleteProduct(productID, username string) error
-	AddPreKeys(prekeys []*models.Prekey) error
 	//订单完成或退款
 	TransferByOrder(ctx context.Context, req *Wallet.TransferReq) (*Wallet.TransferResp, error)
 
@@ -56,10 +55,6 @@ func (s *DefaultApisService) UpdateProduct(product *models.Product) error {
 
 func (s *DefaultApisService) DeleteProduct(productID, username string) error {
 	return s.Repository.DeleteProduct(productID, username)
-}
-
-func (s *DefaultApisService) AddPreKeys(prekeys []*models.Prekey) error {
-	return s.Repository.AddPreKeys(prekeys)
 }
 
 //根据 PayType获取价格信息

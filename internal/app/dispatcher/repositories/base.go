@@ -241,15 +241,6 @@ type LianmiRepository interface {
 	//获取各种彩票的开售及停售时刻
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 
-	//清除所有OPK
-	ClearAllOPK(username string) error
-
-	//获取当前商户的所有OPK
-	GetAllOPKS(username string) (*Order.GetAllOPKSRsp, error)
-
-	//删除当前商户的指定OPK
-	EraseOPK(username string, req *Order.EraseOPKSReq) error
-
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error
 }

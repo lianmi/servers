@@ -646,12 +646,12 @@ type OrderSubType int32
 
 const (
 	OrderSubType_OST_undefined             OrderSubType = 0  //proto3必须从0开始
-	OrderSubType_RegisterPreKeys           OrderSubType = 1  //*< 9-1. 商户上传订单DH加密公钥
+	OrderSubType_RegisterPreKeys           OrderSubType = 1  //*< 已取消 9-1. 商户上传订单DH加密公钥
 	OrderSubType_GetPreKeyOrderID          OrderSubType = 2  //*< 9-2. 获取网点OPK公钥及订单ID
 	OrderSubType_OrderStateEvent           OrderSubType = 4  //*< 已取消 9-4. 订单状态变化事件
 	OrderSubType_ChangeOrderState          OrderSubType = 5  //*< 9-5. 对订单进行状态更改
-	OrderSubType_GetPreKeysCount           OrderSubType = 6  //*< 9-6. 商户获取OPK存量
-	OrderSubType_OPKLimitAlert             OrderSubType = 10 //*< 9-10. 商户OPK存量不足事件
+	OrderSubType_GetPreKeysCount           OrderSubType = 6  //*< 已取消  9-6. 商户获取OPK存量
+	OrderSubType_OPKLimitAlert             OrderSubType = 10 //*< 已取消  9-10. 商户OPK存量不足事件
 	OrderSubType_PayOrder                  OrderSubType = 11 //*< 9-11. 确认支付订单
 	OrderSubType_UploadOrderBodyEvent      OrderSubType = 13 //*< 9-13. 买家将订单body加密发送给第三方公证
 	OrderSubType_GetNotaryServicePublickey OrderSubType = 14 //*< 9-14. 买家获取商户对应的第三方公证的公钥
