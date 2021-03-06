@@ -1869,7 +1869,8 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 
 		collections, err := nc.Repository.GetCollectionHistorys(username, req.FromUsername, req.StartAt, req.EndAt, page, pageSize, &total)
 		if err != nil {
-			nc.logger.Error("GetCollectionHistorys error", zap.Error(err))
+			errorCode = LMCError.GetCollectionHistorysError
+			goto COMPLETE
 
 		} else {
 
@@ -1882,14 +1883,14 @@ func (nc *NsqClient) HandleSyncCollectionHistoryPage(msg *models.Message) error 
 					zap.String("ToUsername", collection.ToUsername),
 				)
 				rsp.Collections = append(rsp.Collections, &Wallet.Collection{
-					// Uuid:         collection.uu,              //UUID
-					CreatedAt:    uint64(collection.CreatedAt), //创建时间
-					FromUsername: collection.FromUsername,      //发送方用户账号
-					ToUsername:   collection.ToUsername,        //接收方的用户账号
-					AmountLNMC:   collection.AmountLNMC,        //本次转账的用户连米币数量
-					OrderID:      collection.OrderID,           //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
-					BlockNumber:  collection.BlockNumber,       //成功执行合约的所在区块高度
-					Hash:         collection.TxHash,            //交易哈希
+					Uuid:         fmt.Sprintf("%d", collection.ID), //UUID
+					CreatedAt:    uint64(collection.CreatedAt),     //创建时间
+					FromUsername: collection.FromUsername,          //发送方用户账号
+					ToUsername:   collection.ToUsername,            //接收方的用户账号
+					AmountLNMC:   collection.AmountLNMC,            //本次转账的用户连米币数量
+					OrderID:      collection.OrderID,               //如果非空，则此次支付是对订单的支付，如果空，则为普通转账
+					BlockNumber:  collection.BlockNumber,           //成功执行合约的所在区块高度
+					Hash:         collection.TxHash,                //交易哈希
 				})
 			}
 		}
@@ -1928,7 +1929,7 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 	errorCode := 200
 
 	var data []byte
-	var maps string
+	// var maps string
 	var page, pageSize int
 	var total int64
 
@@ -1991,53 +1992,20 @@ func (nc *NsqClient) HandleSyncDepositHistoryPage(msg *models.Message) error {
 			pageSize = 20
 		}
 
-		//  DR_100         = 1;     //100元
-		//  DR_200         = 2;     //200元
-		//  DR_300         = 3;     //300元
-		//  DR_500         = 4;     //500元
-		//  DR_1000        = 5;    //1000元
-		//  DR_3000        = 6;    //3000元
-		//  DR_10000       = 7;   //10000元
-
-		var depositRecharge float64
-		switch req.DepositRecharge {
-		case 1:
-			depositRecharge = 100.00
-		case 2:
-			depositRecharge = 200.00
-		case 3:
-			depositRecharge = 300.00
-		case 4:
-			depositRecharge = 500.00
-		case 5:
-			depositRecharge = 1000.00
-		case 6:
-			depositRecharge = 3000.00
-		case 7:
-			depositRecharge = 10000.00
-		default:
-			depositRecharge = 0.0
-
+		deposits, err := nc.Repository.GetDepositHistorys(username, req.StartAt, req.EndAt, page, pageSize, &total)
+		if err != nil {
+			errorCode = LMCError.GetDepositHistorysError
+			goto COMPLETE
 		}
-
-		if req.StartAt > 0 && req.EndAt > 0 {
-
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d and recharge_amount >= %f", req.StartAt, req.EndAt, depositRecharge)
-
-		}
-
-		deposits := nc.Repository.GetDepositHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetDepositHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, deposit := range deposits {
-			nc.logger.Debug("for...range: deposits",
-				zap.String("Username", deposit.Username),
-			)
+
 			amountLNMC := uint64(deposit.RechargeAmount * 100)
 			rsp.Deposits = append(rsp.Deposits, &Wallet.Deposit{
-				// Uuid:        deposit.UUID,              //uuid
-				// CreatedAt:   uint64(deposit.CreatedAt), //创建时间
+				Uuid:        fmt.Sprintf("%d", deposit.ID),
+				CreatedAt:   uint64(deposit.CreatedAt), //创建时间
 				PaymentType: Global.ThirdPartyPaymentType(deposit.PaymentType),
 				Recharge:    deposit.RechargeAmount,      //充值金额，单位是人民币
 				AmountLNMC:  amountLNMC,                  //换算为连米币的数量, 无小数点
@@ -2080,7 +2048,6 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 	errorCode := 200
 
 	var data []byte
-	var maps string
 	var page, pageSize int
 	var total int64
 
@@ -2141,26 +2108,24 @@ func (nc *NsqClient) HandleSyncWithdrawHistoryPage(msg *models.Message) error {
 		if pageSize == 0 {
 			pageSize = 20
 		}
-		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("ucreated_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
-
+		withdraws, err := nc.Repository.GetWithdrawHistorys(username, req.StartAt, req.EndAt, page, pageSize, &total)
+		if err != nil {
+			errorCode = LMCError.GetWithdrawHistorysError
+			goto COMPLETE
 		}
-
-		withdraws := nc.Repository.GetWithdrawHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetWithdrawHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, withdraw := range withdraws {
-			nc.logger.Debug("for...range: deposits",
-				zap.String("Username", withdraw.Username),
-			)
+
 			rsp.Withdraws = append(rsp.Withdraws, &Wallet.Withdraw{
-				// Uuid:        withdraw.UUID,              //UUID
-				// CreatedAt:   uint64(withdraw.CreatedAt), //创建时间
+				Uuid:        withdraw.WithdrawUUID,      //UUID
+				CreatedAt:   uint64(withdraw.CreatedAt), //创建时间
 				Bank:        withdraw.Bank,
 				BankCard:    withdraw.BankCard,
 				CardOwner:   withdraw.CardOwner,
+				AmountLNMC:  withdraw.AmountLNMC,
 				State:       int32(withdraw.State),
 				BlockNumber: uint64(withdraw.BlockNumber), //成功执行合约的所在区块高度
 				Hash:        withdraw.TxHash,              //交易哈希
@@ -2201,7 +2166,7 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 	errorCode := 200
 
 	var data []byte
-	var maps string
+	// var maps string
 	var page, pageSize int
 	var total int64
 
@@ -2262,24 +2227,21 @@ func (nc *NsqClient) HandleSyncTransferHistoryPage(msg *models.Message) error {
 		if pageSize == 0 {
 			pageSize = 20
 		}
-		if req.StartAt > 0 && req.EndAt > 0 {
 
-			maps = fmt.Sprintf("created_at >= %d and created_at <= %d ", req.StartAt, req.EndAt)
-
+		transfers, err := nc.Repository.GetTransferHistorys(username, req.StartAt, req.EndAt, page, pageSize, &total)
+		if err != nil {
+			errorCode = LMCError.GetTransferHistorysError
+			goto COMPLETE
 		}
-
-		transfers := nc.Repository.GetTransferHistorys(username, page, pageSize, &total, maps)
 		nc.logger.Debug("GetTransferHistorys", zap.Int64("total", total))
 
 		rsp.Total = int32(total) //总页数
 		for _, transfer := range transfers {
-			nc.logger.Debug("for...range: deposits",
-				zap.String("Username", transfer.Username),
-			)
+
 			rsp.Transfers = append(rsp.Transfers, &Wallet.Transfer{
-				Uuid: transfer.UUID, //UUID
-				// CreatedAt:   uint64(transfer.CreatedAt), //创建时间
-				ToUsername:  transfer.ToUsername, //接收方
+				Uuid:        transfer.UUID,              //UUID
+				CreatedAt:   uint64(transfer.CreatedAt), //创建时间
+				ToUsername:  transfer.ToUsername,        //接收方
 				AmountLNMC:  transfer.AmountLNMC,
 				State:       int32(transfer.State),
 				OrderID:     transfer.OrderID,

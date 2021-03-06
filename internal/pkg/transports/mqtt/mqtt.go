@@ -530,18 +530,6 @@ func (mc *MQTTClient) Run() {
 					QoS:        byte(1),
 					Payload:    msg.Content,
 					Properties: props,
-					// Properties: &paho.PublishProperties{
-					// 	ResponseTopic: mc.o.ResponseTopic, //"lianmi/cloud/dispatcher",
-					// 	User: map[string]string{
-					// 		"jwtToken":        jwtToken,
-					// 		"deviceId":        msg.GetDeviceID(),
-					// 		"businessType":    businessTypeStr,
-					// 		"businessSubType": businessSubTypeStr,
-					// 		"taskId":          taskIdStr,
-					// 		"code":            codeStr,
-					// 		"errormsg":        string(msg.GetErrorMsg()),
-					// 	},
-					// },
 				}
 
 				//这里有幺蛾子，当与mqtt断开连接后，不会重连

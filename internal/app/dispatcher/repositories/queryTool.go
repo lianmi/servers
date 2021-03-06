@@ -111,7 +111,3 @@ func (s *MysqlLianmiRepository) usersPageDemo(page, pageSize int) {
 
 }
 
-//分页查询lnmc_collection_histories列表
-func (s *MysqlLianmiRepository) CollectionHistorysPage(page, pageSize int) {
-	// CollectionHistorys
-}

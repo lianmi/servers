@@ -159,6 +159,7 @@ func (b *BaseRepository) Find(where interface{}, out interface{}, sel string, or
 	return db2.Find(out).Error
 }
 
+/*
 // GetPages 分页返回数据
 func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex, pageSize int, totalCount *int64, where interface{}, orders ...string) error {
 	db2 := b.db.Model(model).Where(model)
@@ -178,6 +179,7 @@ func (b *BaseRepository) GetPages(model interface{}, out interface{}, pageIndex,
 	}
 	return db2.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(out).Error
 }
+*/
 
 // PluckList 查询 model 中的一个列作为切片
 func (b *BaseRepository) PluckList(model, where interface{}, out interface{}, fieldName string) error {

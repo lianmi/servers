@@ -125,6 +125,10 @@ const (
 	GenerateTransferLNMCTokenTxError        = 2100120 //构造交易数据时发生错误
 	UserSignInError                         = 2100121 //"每天只能签到一次"
 	TranferUUIDIsEmptyError                 = 2100122 //交易流水号Uuid不能为空
+	GetCollectionHistorysError              = 2100123 //查询收款历史出错
+	GetTransferHistorysError                = 2100124 //查询转账历史出错
+	GetDepositHistorysError                 = 2100125 //查询充值历史出错
+	GetWithdrawHistorysError                = 2100126 //查询提现历史出错
 )
 
 var LmcErrors = map[int]string{
@@ -254,6 +258,10 @@ var LmcErrors = map[int]string{
 	GenerateTransferLNMCTokenTxError:        "构造交易数据时发生错误",
 	UserSignInError:                         "每天只能签到一次",
 	TranferUUIDIsEmptyError:                 "交易流水号Uuid不能为空",
+	GetCollectionHistorysError:              "查询收款历史出错",
+	GetTransferHistorysError:                "查询转账历史出错",
+	GetDepositHistorysError:                 "查询充值历史出错",
+	GetWithdrawHistorysError:                "查询提现历史出错",
 }
 
 func ErrorMsg(errorCode int) string {
