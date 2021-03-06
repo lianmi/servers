@@ -38,6 +38,8 @@ require (
 	github.com/ipfs/go-ipfs-api v0.1.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pty v1.1.8 // indirect
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/mitchellh/go-homedir v1.1.0

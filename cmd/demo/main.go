@@ -20,27 +20,28 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-var level zapcore.Level
+var level zapcore.Level // 初始化配置文件的Level, 必须高于或等于此级别才显示或写入日志 文件
+
+// const LogZap = "silent"
+
+// const LogZap = "zap"
+const LogZap = "error"
 
 const Director = "./logs"
-const Prefix = "database"
+const Prefix = "demo"
 const StacktraceKey = "stacktrace"
 const LinkName = "latest_log"
+const Zap_Level = "debug"
+const LogInConsole = true     //同时显示在屏幕上
+const OnlyLogInConsole = true //只显示在屏幕上
 
 var (
 	//使用 lianmicloud 数据库
 	// dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
-	dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
-	db  *gorm.DB
-	// GVA_LOG *zap.Logger
-)
-
-var (
-	GVA_DB  *gorm.DB
+	dsn     = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
+	db      *gorm.DB
 	GVA_LOG *zap.Logger
 )
-
-// const LogZap = "zap"
 
 // writer log writer interface
 type writer interface {
@@ -62,8 +63,6 @@ var (
 	})
 	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
 )
-
-const LogZap = "zap"
 
 func New(writer writer, config config) logger.Interface {
 	var (
@@ -230,10 +229,13 @@ func GetWriteSyncer() (zapcore.WriteSyncer, error) {
 		zaprotatelogs.WithMaxAge(7*24*time.Hour),
 		zaprotatelogs.WithRotationTime(24*time.Hour),
 	)
-	// if global.GVA_CONFIG.Zap.LogInConsole {
-	return zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(fileWriter)), err
-	// }
-	// return zapcore.AddSync(fileWriter), err
+	if OnlyLogInConsole {
+		return zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout)), err
+	}
+	if LogInConsole {
+		return zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(fileWriter)), err
+	}
+	return zapcore.AddSync(fileWriter), err
 }
 
 func Zap() (logger *zap.Logger) {
@@ -242,10 +244,24 @@ func Zap() (logger *zap.Logger) {
 		_ = os.Mkdir(Director, os.ModePerm)
 	}
 
-	level = zap.DebugLevel
-
-	// level = zap.InfoLevel
-	// }
+	switch Zap_Level { // 初始化配置文件的Level
+	case "debug":
+		level = zap.DebugLevel
+	case "info":
+		level = zap.InfoLevel
+	case "warn":
+		level = zap.WarnLevel
+	case "error":
+		level = zap.ErrorLevel
+	case "dpanic":
+		level = zap.DPanicLevel
+	case "panic":
+		level = zap.PanicLevel
+	case "fatal":
+		level = zap.FatalLevel
+	default:
+		level = zap.InfoLevel
+	}
 
 	if level == zap.DebugLevel || level == zap.ErrorLevel {
 		logger = zap.New(getEncoderCore(), zap.AddStacktrace(level))
@@ -261,14 +277,15 @@ func Zap() (logger *zap.Logger) {
 // getEncoderConfig 获取zapcore.EncoderConfig
 func getEncoderConfig() (config zapcore.EncoderConfig) {
 	config = zapcore.EncoderConfig{
-		MessageKey:     "message",
-		LevelKey:       "level",
-		TimeKey:        "time",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		StacktraceKey:  StacktraceKey,
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		MessageKey: "message",
+		LevelKey:   "level",
+		TimeKey:    "time",
+		NameKey:    "logger",
+		CallerKey:  "caller",
+		// StacktraceKey:  StacktraceKey,
+		LineEnding: zapcore.DefaultLineEnding,
+		// EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeLevel:    zapcore.LowercaseColorLevelEncoder,
 		EncodeTime:     CustomTimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.FullCallerEncoder,
@@ -280,9 +297,9 @@ func getEncoderConfig() (config zapcore.EncoderConfig) {
 // getEncoder 获取zapcore.Encoder
 func getEncoder() zapcore.Encoder {
 	// if global.GVA_CONFIG.Zap.Format == "json" {
-	return zapcore.NewJSONEncoder(getEncoderConfig())
+	// return zapcore.NewJSONEncoder(getEncoderConfig())
 	// 	}
-	// 	return zapcore.NewConsoleEncoder(getEncoderConfig())
+	return zapcore.NewConsoleEncoder(getEncoderConfig())
 }
 
 // getEncoderCore 获取Encoder的zapcore.Core
@@ -297,7 +314,7 @@ func getEncoderCore() (core zapcore.Core) {
 
 // 自定义日志输出时间格式
 func CustomTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(t.Format(Prefix + "2006/01/02 - 15:04:05.000"))
+	enc.AppendString(t.Format(Prefix + " 2006/01/02 - 15:04:05.000"))
 }
 
 func gormConfig(mod bool) *gorm.Config {
@@ -327,7 +344,7 @@ func init() {
 	var err error
 	GVA_LOG = Zap() // 初始化zap日志库
 
-	db, err = gorm.Open(mysql.Open(dsn), gormConfig(true))
+	db, err = gorm.Open(mysql.Open(dsn), gormConfig(false))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -352,20 +369,21 @@ func main() {
 
 	db.Model(&userModel).Find(&users, "user_type=?", 0)
 
-	log.Println(" *********  查询 users *******  ", len(users))
+	GVA_LOG.Info(" *********  查询 users *******  ", zap.Int("count", len(users)))
 	// PrintPretty(users)
 
 	// db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize)).Find(&users).Order("updated_at DESC")
 	//注意！Order必须在Find之前
-	db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize), BetweenCreateAt(1606408683991, 1606514952437)).Order("created_at DESC").Find(&users)
+	db.Model(&userModel).Scopes(IsNormalUser, Paginate(page, pageSize), BetweenCreateAt(0, 1606514952437)).Order("created_at DESC").Find(&users)
 	// db = db
 	// db.Model(&userModel).Scopes(IsBusinessUser, Paginate(page, pageSize)).Find(&users)
 	// db.Model(&userModel).Scopes(IsPreBusinessUser, LegalPerson([]string{"杜老板"}), Paginate(page, pageSize)).Find(&users)
 
-	log.Println("分页显示users列表, count: ", len(users))
+	// log.Println("分页显示users列表, count: ", len(users))
+	GVA_LOG.Info("分页显示users列表", zap.Int("count", len(users)))
 
 	for idx, user := range users {
-		log.Printf("idx=%d, create_at %d, username=%s, mobile=%s\n", idx, user.CreatedAt, user.Username, user.Mobile)
+		GVA_LOG.Debug(fmt.Sprintf("idx=%d, create_at %d, username=%s, mobile=%s\n", idx, user.CreatedAt, user.Username, user.Mobile))
 	}
 	_ = page
 	_ = pageSize

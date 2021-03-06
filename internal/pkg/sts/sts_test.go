@@ -20,7 +20,7 @@ var (
 func TestGenerateSignatureUrl(t *testing.T) {
 	client := NewStsClient(TempKey, TempSecret, RoleAcs)
 
-	url, err := client.GenerateSignatureUrl("client", "1800")
+	url, err := client.GenerateSignatureUrl("client", "1800", "")
 	if err != nil {
 		t.Error(err)
 	}
