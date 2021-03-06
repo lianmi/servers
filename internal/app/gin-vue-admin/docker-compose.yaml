@@ -1,66 +1,79 @@
-version: "3.8"
+# Gin-Vue-Admin Global Configuration
 
-networks:
-  network:
-    ipam:
-      driver: default
-      config:
-        - subnet: '177.7.0.0/16'
+# jwt configuration
+jwt:
+  signing-key: 'lianmicloud'
+  expires-time: 604800
+  buffer-time: 86400
 
-services:
-  web:
-    build:
-      context: ./
-      dockerfile: ./dockerfile_web
-    container_name: gva-web
-    restart: always
-    ports:
-      - '8080:8080'
-    depends_on:
-      - server
-    command: [ 'nginx-debug', '-g', 'daemon off;' ]
-    networks:
-      network:
-        ipv4_address: 177.7.0.11
+# zap logger configuration
+zap:
+  level: 'info'
+  format: 'console'
+  prefix: '[GIN-VUE-ADMIN]'
+  director: 'log'
+  link-name: 'latest_log'
+  show-line: true
+  encode-level: 'LowercaseColorLevelEncoder'
+  stacktrace-key: 'stacktrace'
+  log-in-console: true
 
-  server:
-    build:
-      context: ./
-      dockerfile: ./dockerfile_server
-    container_name: gva-server
-    restart: always
-    ports:
-      - '8888:8888'
-    depends_on:
-      - mysql
-      - redis
-    links:
-      - mysql
-      - redis
-    networks:
-      network:
-        ipv4_address: 177.7.0.12
+# redis configuration
+redis:
+  db: 0
+  addr: '127.0.0.1:6379'
+  password: ''
 
-  mysql:
-    image: mysql:8.0.21
-    container_name: gva-mysql
-    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci #设置utf8字符集
-    restart: always
-    ports:
-      - "13306:3306"  # host物理直接映射端口为13306
-    environment:
-      MYSQL_DATABASE: 'qmPlus' # 初始化启动时要创建的数据库的名称
-      MYSQL_ROOT_PASSWORD: 'Aa@6447985' # root管理员用户密码
-    networks:
-      network:
-        ipv4_address: 177.7.0.13
+# email configuration
+email:
+  to: '368409858@qq.com'
+  port: 465
+  from: 'lsj0109@163.com'
+  host: 'smtp.163.com'
+  is-ssl: true
+  secret: 'xxx'
+  nickname: 'test'
 
-  redis:
-    image: redis:6.0.6
-    container_name: gva-redis # 容器名
-    restart: always
-    ports:
-      - '16379:6379'
-    networks:
-      network:
-        ipv4_address: 177.7.0.14
+# casbin configuration
+casbin:
+  model-path: './resource/rbac_model.conf'
+
+# system configuration
+system:
+  env: 'public'  # Change to "develop" to skip authentication for development mode
+  addr: 8888
+  db-type: 'mysql'
+  oss-type: 'local'
+  use-multipoint: false
+
+# captcha configuration
+captcha:
+  key-long: 6
+  img-width: 240
+  img-height: 80
+
+# mysql connect configuration
+mysql:
+  path: '127.0.0.1:3306'
+  config: 'charset=utf8mb4&parseTime=True&loc=Local'
+  db-name: 'lianmicloud'
+  username: 'root'
+  password: 'password'
+  max-idle-conns: 10
+  max-open-conns: 100
+  log-mode: false
+  log-zap: ""
+
+# local configuration
+local:
+  path: 'uploads/file'
+
+# qiniu configuration (请自行七牛申请对应的 公钥 私钥 bucket �?域名地址)
+qiniu:
+  zone: 'ZoneHuadong'
+  bucket: 'qm-plus-img'
+  img-path: 'http://qmplusimg.henrongyi.top'
+  use-https: false
+  access-key: '25j8dYBZ2wuiy0yhwShytjZDTX662b8xiFguwxzZ'
+  secret-key: 'pgdbqEsf7ooZh7W3xokP833h3dZ_VecFXPDeG5JY'
+  use-cdn-domains: false
