@@ -31,7 +31,8 @@ admin_linux:
 	
 .PHONY: admin_mac
 admin_mac:
-	GOOS=darwin GOARCH="amd64" go build -o dist/gin-vue-admin-darwin-amd64 ./cmd/gin-vue-admin
+	# GOOS=darwin GOARCH="amd64" go build -o dist/gin-vue-admin-darwin-amd64 ./cmd/gin-vue-admin
+	$(MAKE) -C internal/app/gin-vue-admin/ all
 
 .PHONY: linux
 linux:

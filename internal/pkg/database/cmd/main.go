@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/lianmi/servers/internal/pkg/database/cmd/core"
+	"github.com/lianmi/servers/internal/pkg/database/cmd/global"
+	"github.com/lianmi/servers/internal/pkg/database/cmd/internal"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -15,11 +19,39 @@ var (
 	// dsn = "lianmidba:12345678@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
 	dsn = "root:password@tcp(127.0.0.1:3306)/lianmicloud?charset=utf8&parseTime=True&loc=Local"
 	db  *gorm.DB
+	// GVA_LOG *zap.Logger
 )
+
+const LogZap = "zap"
+
+func gormConfig(mod bool) *gorm.Config {
+	var config = &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true}
+	switch LogZap {
+	case "silent", "Silent":
+		config.Logger = internal.Default.LogMode(logger.Silent)
+	case "error", "Error":
+		config.Logger = internal.Default.LogMode(logger.Error)
+	case "warn", "Warn":
+		config.Logger = internal.Default.LogMode(logger.Warn)
+	case "info", "Info":
+		config.Logger = internal.Default.LogMode(logger.Info)
+	case "zap", "Zap":
+		config.Logger = internal.Default.LogMode(logger.Info)
+	default:
+		if mod {
+			config.Logger = internal.Default.LogMode(logger.Info)
+			break
+		}
+		config.Logger = internal.Default.LogMode(logger.Silent)
+	}
+	return config
+}
 
 func init() {
 	var err error
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	global.GVA_LOG = core.Zap() // 初始化zap日志库
+
+	db, err = gorm.Open(mysql.Open(dsn), gormConfig(true))
 	if err != nil {
 		log.Fatalln(err)
 	}
