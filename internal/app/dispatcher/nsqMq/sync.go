@@ -187,7 +187,6 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			Friends:         make([]*Friends.Friend, 0),
 			RemovedAccounts: make([]string, 0),
 		}
-		
 
 		//从redis的有序集合查询出score大于req.GetTimeTag()的成员
 		friends, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), friendsAt, "+inf"))
@@ -1087,9 +1086,9 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("ProductAt", req.ProductAt),
 		)
 
-		//延时1000ms下发
+		//延时200ms下发
 		go func() {
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(200 * time.Millisecond)
 
 			if err := nc.SyncMyInfoAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncMyInfoAt 失败，Error", zap.Error(err))
