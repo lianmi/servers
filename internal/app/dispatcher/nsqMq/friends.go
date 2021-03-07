@@ -166,6 +166,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 			nc.logger.Debug(fmt.Sprintf("已经互为好友，就直接回复, userA: %s, userB: %s", username, req.GetUsername()))
 
 			err = nil
+			rsp.Username = username
 			rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 			goto COMPLETE
 		}
@@ -188,6 +189,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					nc.logger.Debug("允许人加为好友")
 
+					rsp.Username = username
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 					//在A的预审核好友列表里删除B ZREM
@@ -389,6 +391,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					//生成工作流ID
 					workflowID := uuid.NewV4().String()
+					rsp.Username = username
 					rsp.Status = Friends.OpStatusType_Ost_WaitConfirm
 					rsp.WorkflowID = workflowID
 
@@ -479,6 +482,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 				nc.logger.Debug(fmt.Sprintf("对方同意加你为好友, OptType_Fr_PassFriendApply, userA: %s, userB: %s", userA, userB))
 
+				rsp.Username = username
 				rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
 
 				//在A的预审核好友列表里删除B ZREM
@@ -651,7 +655,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				}
 
 				nc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
-
+				
+				rsp.Username = username
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
 				//在A的预审核好友列表里删除B ZREM
