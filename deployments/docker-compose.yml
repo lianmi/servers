@@ -47,8 +47,8 @@ services:
     ports:
       - '127.0.0.1:28088:8888'
     volumes:
-#      - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
-      - ./lianmi-admin-server/config.yaml:/app/config.yaml
+     - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
+     - ./lianmi-admin-server/config.yaml:/app/config.yaml
 
 networks:
   default:

@@ -187,55 +187,7 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			Friends:         make([]*Friends.Friend, 0),
 			RemovedAccounts: make([]string, 0),
 		}
-		/*
-			//从redis里读取username的好友列表
-			friends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), "-inf", "+inf"))
-			if err != nil {
-				nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
-			}
-
-			for _, friendUsername := range friends {
-
-				nick, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
-				if err != nil {
-					nc.logger.Error("HGET error", zap.Error(err))
-					continue
-				}
-				source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
-				ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
-				avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", friendUsername), "Avatar"))
-				if err != nil {
-					nc.logger.Error("HGET Avatar error", zap.Error(err))
-				}
-				if (avatar != "") && !strings.HasPrefix(avatar, "http") {
-
-					avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
-				}
-
-				rsp.Friends = append(rsp.Friends, &Friends.Friend{
-					Username: friendUsername,
-					Nick:     nick,
-					Avatar:   avatar,
-					Source:   source,
-					Ex:       ex,
-				})
-			}
-			//从redis里读取username的删除的好友列表
-			RemoveFriends, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:2", username), "-inf", "+inf"))
-			if err != nil {
-				nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
-			}
-
-			for _, friendUsername := range RemoveFriends {
-
-				rsp.RemovedAccounts = append(rsp.RemovedAccounts, friendUsername)
-
-			}
-		*/
+		
 
 		//从redis的有序集合查询出score大于req.GetTimeTag()的成员
 		friends, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Friend:%s:1", username), friendsAt, "+inf"))
@@ -1182,8 +1134,8 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			}
 
 			//发送SyncDoneEvent
-			// nc.SendSyncDoneEventToUser(username, deviceID, token)
-			// nc.logger.Debug("All Sync done")
+			nc.SendSyncDoneEventToUser(username, deviceID, token)
+			nc.logger.Debug("All Sync done")
 		}()
 
 	}

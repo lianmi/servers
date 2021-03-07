@@ -9,7 +9,7 @@ import (
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/router"
 
 	"github.com/gin-gonic/gin"
-	"github.com/swaggo/gin-swagger"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
 )
 
@@ -29,7 +29,9 @@ func Routers() *gin.Engine {
 	PublicGroup := Router.Group("")
 	{
 		router.InitBaseRouter(PublicGroup) // 注册基础功能路由 不做鉴权
-		router.InitInitRouter(PublicGroup)  // 自动初始化相关
+		router.InitInitRouter(PublicGroup) // 自动初始化相关
+
+		router.InitLianmiPubRouter(PublicGroup) //连米公共接口
 	}
 	PrivateGroup := Router.Group("")
 	PrivateGroup.Use(middleware.JWTAuth()).Use(middleware.CasbinHandler())
