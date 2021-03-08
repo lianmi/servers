@@ -32,6 +32,8 @@ func Routers() *gin.Engine {
 		router.InitInitRouter(PublicGroup) // 自动初始化相关
 
 		router.InitLianmiPubRouter(PublicGroup) //连米公共接口
+		// router.InitLianmiPrivRouter(PublicGroup) //连米业务接口
+
 	}
 	PrivateGroup := Router.Group("")
 	PrivateGroup.Use(middleware.JWTAuth()).Use(middleware.CasbinHandler())
@@ -53,6 +55,9 @@ func Routers() *gin.Engine {
 		router.InitFileUploadAndDownloadRouter(PrivateGroup) // 文件上传下载功能路由
 		router.InitWorkflowProcessRouter(PrivateGroup)       // 工作流相关接口
 		router.InitExcelRouter(PrivateGroup)                 // 表格导入导出
+
+		router.InitLianmiPrivRouter(PrivateGroup) //连米业务接口
+
 	}
 	global.GVA_LOG.Info("router register success")
 	return Router

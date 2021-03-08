@@ -45,6 +45,7 @@ system:
   db-type: 'mysql'
   oss-type: 'local'
   use-multipoint: false
+  need-init-data: true
 
 # captcha configuration
 captcha:

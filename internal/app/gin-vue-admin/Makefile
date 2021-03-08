@@ -18,6 +18,9 @@ gva:
 	go env -w GOPROXY=https://goproxy.io,direct
 	go build -o ${GVA} cmd/main.go
 	
+initdb:
+	@if [ -f ${GVA} ] ; then ./gva initdb && rm ${GVA} ; fi
+
 docker: linux
 	-docker rmi ${DOCKER_IMAGE}
 	docker build -t ${DOCKER_IMAGE} .

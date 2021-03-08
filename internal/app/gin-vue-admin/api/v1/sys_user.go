@@ -29,17 +29,17 @@ func Login(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	if store.Verify(L.CaptchaId, L.Captcha, true) {
-		U := &model.SysUser{Username: L.Username, Password: L.Password}
-		if err, user := service.Login(U); err != nil {
-			global.GVA_LOG.Error("登陆失败! 用户名不存在或者密码错误", zap.Any("err", err))
-			response.FailWithMessage("用户名不存在或者密码错误", c)
-		} else {
-			tokenNext(c, *user)
-		}
+	// if store.Verify(L.CaptchaId, L.Captcha, true) {
+	U := &model.SysUser{Username: L.Username, Password: L.Password}
+	if err, user := service.Login(U); err != nil {
+		global.GVA_LOG.Error("登陆失败! 用户名不存在或者密码错误", zap.Any("err", err))
+		response.FailWithMessage("用户名不存在或者密码错误", c)
 	} else {
-		response.FailWithMessage("验证码错误", c)
+		tokenNext(c, *user)
 	}
+	// 	} else {
+	// 		response.FailWithMessage("验证码错误", c)
+	// 	}
 }
 
 // 登录以后签发jwt

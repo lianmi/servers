@@ -31,3 +31,4 @@ internal/app/gin-vue-admin/log
 internal/pkg/blockchain/lnmc/contracts/ERC20/build
 cmd/demo
 internal/app/gin-vue-admin/lianmi-admin-server-linux-amd64
+internal/app/gin-vue-admin/gva

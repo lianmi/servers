@@ -1,13 +1,12 @@
 package utils
 
 import (
-	"os"
-	"path"
-	"time"
-
 	zaprotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"go.uber.org/zap/zapcore"
+	"os"
+	"path"
+	"time"
 )
 
 //@author: [SliverHorn](https://github.com/SliverHorn)

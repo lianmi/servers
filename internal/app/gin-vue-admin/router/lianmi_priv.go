@@ -1,3 +1,8 @@
+/*
+
+此文件用于lianmi接口的路由
+
+*/
 package router
 
 import (
@@ -6,9 +11,11 @@ import (
 )
 
 func InitLianmiPrivRouter(Router *gin.RouterGroup) (R gin.IRoutes) {
-	LianmiPrivRouter := Router.Group("")
+	LianmiPrivRouter := Router.Group("lianmi")
 	{
-		LianmiPrivRouter.GET("about", v1.About)
+		//用户模块
+		LianmiPrivRouter.POST("getUsers", v1.LianmiGetUsers)
+
 	}
 	return LianmiPrivRouter
 }
