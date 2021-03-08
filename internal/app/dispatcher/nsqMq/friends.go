@@ -43,9 +43,9 @@ import (
 
 注意：
 1. Alice加Bob, 先判断Bob是否已经注册，不用判断Alice是否注册，因为在 dispatcher已经做了这个工作。
-2. Bob是否允许加好友, 如果Bob拒绝任何人添加好友，就直接返回给Alice.
-   如果Bob运行任何人加好友，就直接互加成功。
-   如果Bob的加好友设定是需要confirm，则需要发系统消息给Bob， 让Bob同意或拒绝。
+2. Bob是否允许加好友, 如果Bob拒绝任何人添加好友，就直接返回给Alice。
+   如果Bob运行任何人加好友，就直接互加成功, 并且通过5-2向双方推送加好友成功。
+   如果Bob的加好友设定是需要confirm，则需要发系统消息5-2给Bob， 让Bob同意或拒绝。
 3. 服务端利用redis的哈希表，保存Alice加Bob的状态，当Bob同意或拒绝后，才进行入库及更新Alice的好友表
 4. 要考虑到多端的环境，交互的动作可以在任一端进行，结果需要同步给其他端
 5. 以有序集合存储所发生的系统通知， 当已经有了最终结果后，这个有序集合就会只保留最后一个结果，
@@ -175,19 +175,48 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		switch Friends.OptType(req.GetType()) {
 		case Friends.OptType_Fr_ApplyFriend: //发起加好友验证
 			{
-				userA := username          //此时username是被加的人
-				userB := req.GetUsername() //发起方
+				userA := username          //发起方
+				userB := req.GetUsername() //被加方
 				nc.logger.Debug(fmt.Sprintf("OptType_Fr_ApplyFriend, userA: %s, userB: %s", userA, userB))
 
-				//拒绝任何人添加好友
-				if allowType == LMCommon.DenyAny {
+				if allowType == LMCommon.DenyAny { //拒绝任何人添加好友
 					nc.logger.Debug("拒绝任何人添加好友")
 					rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
+					body := &Msg.MessageNotificationBody{
+						Type:           Msg.MessageNotificationType_MNT_RejectFriendApply, //拒绝好友请求
+						HandledAccount: userB,
+						HandledMsg:     "拒绝任何人添加好友",
+						Status:         Msg.MessageStatus_MOS_Done,
+						Data:           nil,
+						To:             userA,
+					}
+					bodyData, _ := proto.Marshal(body)
+					eRsp := &Msg.RecvMsgEventRsp{
+						Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+						Type:         Msg.MessageType_MsgType_Notification, //通知类型
+						Body:         bodyData,
+						From:         username,    //谁发的
+						FromDeviceId: deviceID,    //哪个设备发的
+						Recv:         userA,       //接收方, 根据场景判断to是个人还是群
+						ServerMsgId:  msg.GetID(), //服务器分配的消息ID
+						WorkflowID:   "",
+						Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+						Time:         uint64(time.Now().UnixNano() / 1e6),
+					}
 
-					//允许人加为好友
-				} else if allowType == LMCommon.AllowAny {
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						nc.logger.Debug("5-2, userB拒绝任何人添加好友",
+							zap.String("userB", userB),
+							zap.String("to", userA),
+						)
+						nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+					}()
 
-					nc.logger.Debug("允许人加为好友")
+				} else if allowType == LMCommon.AllowAny { //允许任何人加为好友
+
+					nc.logger.Debug("允许任何人加为好友")
 
 					rsp.Username = username
 					rsp.Status = Friends.OpStatusType_Ost_ApplySucceed
@@ -288,9 +317,9 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							goto COMPLETE
 						}
 						body := &Msg.MessageNotificationBody{
-							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
-							HandledAccount: userA,
-							HandledMsg:     "对方同意加你为好友",
+							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //userB同意加你为好友
+							HandledAccount: userB,
+							HandledMsg:     "同意加你为好友",
 							Status:         Msg.MessageStatus_MOS_Passed, //消息状态: 已通过验证
 							Data:           psSourceData,                 // 用来存储附言及来源
 							To:             userA,
@@ -300,9 +329,9 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         bodyData,
-							From:         username,                           //谁发的
+							From:         userB,                              //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
-							Recv:         userB,                              //接收方, 根据场景判断to是个人还是群
+							Recv:         userA,                              //接收方, 根据场景判断Recv是个人还是群
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
 							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
@@ -311,7 +340,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						}
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("延时100ms消息, 5-2",
+							nc.logger.Debug("5-2, 对方设置了运行任何人加好友",
+								zap.String("userB", userB),
 								zap.String("to", userA),
 							)
 							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
@@ -331,8 +361,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 						body := &Msg.MessageNotificationBody{
 							Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
-							HandledAccount: userB,
-							HandledMsg:     "对方同意加你为好友",
+							HandledAccount: userA,
+							HandledMsg:     "由于您设置了运行任何人加好友， 因此加好友成功",
 							Status:         1,            // 消息状态  存储
 							Data:           psSourceData, // 用来存储附言及来源
 							To:             userB,
@@ -342,10 +372,10 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 							Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 							Type:         Msg.MessageType_MsgType_Notification, //通知类型
 							Body:         bodyData,
-							From:         username,                           //谁发的
+							From:         userA,                              //谁发的
 							FromDeviceId: deviceID,                           //哪个设备发的
 							ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-							Recv:         userB,                              //接收方, 根据场景判断to是个人还是群
+							Recv:         userB,                              //接收方, 根据场景判断Recv是个人还是群
 							WorkflowID:   "",                                 //工作流ID
 							Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
 							Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
@@ -353,7 +383,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						}
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("延时100ms消息, 5-2",
+							nc.logger.Debug("5-2,由于您设置了运行任何人加好友， 因此加好友成功",
 								zap.String("to", userB),
 							)
 							nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
@@ -371,8 +401,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						"friendsAt",
 						time.Now().UnixNano()/1e6)
 
-					//加好友设定是需要审核
-				} else if allowType == LMCommon.NeedConfirm {
+				} else if allowType == LMCommon.NeedConfirm { //加好友设定是需要审核
 					nc.logger.Debug("加好友设定是需要审核")
 
 					//判断是否已经在预审核好友列表里
@@ -434,41 +463,68 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("延时100ms消息, 5-2",
+							nc.logger.Debug("5-2, 下发系统通知给userB",
 								zap.String("to", userB),
 							)
 							nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 						}()
 
-					}
-
-					//A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
-					if isAhaveB && !isBhaveA {
+					} else if isAhaveB && !isBhaveA { //A好友列表中有B，B好友列表没有A，A发起好友申请，B所有终端均会接收该消息，并且B可以选择同意、拒绝
 						//Go程，下发系统通知给B
 						nc.logger.Debug("A好友列表中有B，B好友列表没有A, 下发系统通知给B", zap.String("userB", userB))
-						nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
-					}
-
-					//A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
-					if !isAhaveB && isBhaveA {
-						//Go程，下发系统通知给B
-						nc.logger.Debug("A好友列表中没有B，B好友列表有A, 下发系统通知给A", zap.String("userA", userA))
-
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("延时100ms消息, 5-2",
-								zap.String("to", userA),
+							nc.logger.Debug("5-2, 下发系统通知给userB",
+								zap.String("to", userB),
 							)
-							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+							nc.BroadcastSystemMsgToAllDevices(eRsp, userB)
 						}()
+
+					} else if !isAhaveB && isBhaveA { //A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。
+						nc.logger.Debug("A好友列表中没有B，B好友列表有A，A发起好友申请，A会收到B好友通过系统通知，B不接收好友申请系统通知。", zap.String("userA", userA))
+
+						//TODO 直接向userA发好友已经通过
+						{
+							body := &Msg.MessageNotificationBody{
+								Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //userB同意加你为好友
+								HandledAccount: userB,
+								HandledMsg:     "B好友列表有A， 因此加好友成功",
+								Status:         1,            // 消息状态  存储
+								Data:           psSourceData, // 用来存储附言及来源
+								To:             userA,
+							}
+							bodyData, _ := proto.Marshal(body)
+							eRsp := &Msg.RecvMsgEventRsp{
+								Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+								Type:         Msg.MessageType_MsgType_Notification, //通知类型
+								Body:         bodyData,
+								From:         userB,                              //谁发的
+								FromDeviceId: deviceID,                           //哪个设备发的
+								ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+								Recv:         userA,                              //接收方, 根据场景判断Recv是个人还是群
+								WorkflowID:   "",                                 //工作流ID
+								Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+								Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+								Time:         uint64(time.Now().UnixNano() / 1e6),
+							}
+							go func() {
+								time.Sleep(100 * time.Millisecond)
+								nc.logger.Debug("5-2, B好友列表有A， 因此加好友成功 下发系统通知给userA",
+									zap.String("to", userA),
+								)
+								nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
+							}()
+
+						}
+
 					}
 
 				}
 			}
-		case Friends.OptType_Fr_PassFriendApply: //对方同意加你为好友
+		case Friends.OptType_Fr_PassFriendApply: //userB同意加userA为好友
 			{
-				userA := req.GetUsername() //发起方
-				userB := username          //此时username是被加的人
+				userA := req.GetUsername() //最开始的发起方
+				userB := username          //当前用户
 
 				//注意: 好友请求有效期 7 天， 定时任务模块要处理
 				//判断是否已经在预审核好友列表里
@@ -593,7 +649,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
 						HandledMsg:     "对方同意加你为好友",
-						Status:         1,            //TODO, 消息状态  存储
+						Status:         1,          
 						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
 					}
@@ -625,7 +681,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							nc.logger.Debug("延时100ms消息, 5-2",
+							nc.logger.Debug("5-2, 对方同意加你为好友",
+								zap.String("userB", userB),
 								zap.String("to", userA),
 							)
 							nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
@@ -638,8 +695,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 			}
 
-			//对方拒绝添加好友
-		case Friends.OptType_Fr_RejectFriendApply:
+		case Friends.OptType_Fr_RejectFriendApply: //对方拒绝添加好友
 			{
 				userA := req.GetUsername() //发起方
 				userB := username          //此时username是被加的人
@@ -655,7 +711,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 				}
 
 				nc.logger.Debug(fmt.Sprintf("对方拒绝添加好友, OptType_Fr_RejectFriendApply, userA: %s, userB: %s", userA, userB))
-				
+
 				rsp.Username = username
 				rsp.Status = Friends.OpStatusType_Ost_RejectFriendApply
 
@@ -697,7 +753,8 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 
 					go func() {
 						time.Sleep(100 * time.Millisecond)
-						nc.logger.Debug("延时100ms消息, 5-2",
+						nc.logger.Debug("5-2, 向userA推送拒绝添加好友的回复",
+							zap.String("userB", userB),
 							zap.String("to", userA),
 						)
 						nc.BroadcastSystemMsgToAllDevices(eRsp, userA)
@@ -888,7 +945,7 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 			body := &Msg.MessageNotificationBody{
 				Type:           Msg.MessageNotificationType_MNT_DeleteFriend, //删除好友
-				HandledAccount: username,
+				HandledAccount: username,                                     //主动方，也就是用户自己
 				HandledMsg:     "多端同步删除好友",
 				Status:         Msg.MessageStatus_MOS_Done,
 				Data:           []byte(""), // 附带的文本 该系统消息的文本
@@ -911,7 +968,8 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 			go func() {
 				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms消息, 5-2",
+				nc.logger.Debug("5-2, 用户自己主动删除好友",
+					zap.String("主动方", username),
 					zap.String("to", targetUsername),
 				)
 				nc.BroadcastSystemMsgToAllDevices(eRsp, targetUsername)
@@ -919,45 +977,45 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 
 		}
 
-		//向当前用户的其它端推送
-		{
-			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
-				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
-				errorCode = LMCError.RedisError
-				goto COMPLETE
-			}
+		// //向当前用户的其它端推送
+		// {
+		// 	if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", username))); err != nil {
+		// 		nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+		// 		errorCode = LMCError.RedisError
+		// 		goto COMPLETE
+		// 	}
 
-			body := Msg.MessageNotificationBody{
-				Type:           Msg.MessageNotificationType_MNT_MultiDeleteFriend, //多端同步删除好友
-				HandledAccount: username,                                          //当前用户
-				HandledMsg:     "",
-				Status:         Msg.MessageStatus_MOS_Done,
-				Data:           []byte(""),
-				To:             targetUsername, //删除的好友
-			}
-			bodyData, _ := proto.Marshal(&body)
-			eRsp := &Msg.RecvMsgEventRsp{
-				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
-				Type:         Msg.MessageType_MsgType_Notification, //通知类型
-				Body:         bodyData,
-				From:         username,
-				FromDeviceId: deviceID,
-				ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
-				Recv:         targetUsername,                     //接收方, 根据场景判断to是个人还是群
-				Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
-				Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
-				Time:         uint64(time.Now().UnixNano() / 1e6),
-			}
+		// 	body := Msg.MessageNotificationBody{
+		// 		Type:           Msg.MessageNotificationType_MNT_MultiDeleteFriend, //多端同步删除好友
+		// 		HandledAccount: username,                                          //当前用户
+		// 		HandledMsg:     "",
+		// 		Status:         Msg.MessageStatus_MOS_Done,
+		// 		Data:           []byte(""),
+		// 		To:             targetUsername, //删除的好友
+		// 	}
+		// 	bodyData, _ := proto.Marshal(&body)
+		// 	eRsp := &Msg.RecvMsgEventRsp{
+		// 		Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+		// 		Type:         Msg.MessageType_MsgType_Notification, //通知类型
+		// 		Body:         bodyData,
+		// 		From:         username,
+		// 		FromDeviceId: deviceID,
+		// 		ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
+		// 		Recv:         targetUsername,                     //接收方, 根据场景判断to是个人还是群
+		// 		Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对teamMembere这个用户的通知序号
+		// 		Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+		// 		Time:         uint64(time.Now().UnixNano() / 1e6),
+		// 	}
 
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				nc.logger.Debug("延时100ms消息, 5-2",
-					zap.String("to", targetUsername),
-				)
-				nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
-			}()
+		// 	go func() {
+		// 		time.Sleep(100 * time.Millisecond)
+		// 		nc.logger.Debug("延时100ms消息, 5-2",
+		// 			zap.String("to", targetUsername),
+		// 		)
+		// 		nc.BroadcastSystemMsgToAllDevices(eRsp, username, deviceID)
+		// 	}()
 
-		}
+		// }
 	}
 
 COMPLETE:
