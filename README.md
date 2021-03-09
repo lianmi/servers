@@ -124,12 +124,18 @@ set global validate_password.length=1;
 
 CREATE USER lianmidba IDENTIFIED BY '12345678';
 
-CREATE USER lianmidba IDENTIFIED BY 'lianmicloud!@#$1234';
+//CREATE USER lianmidba IDENTIFIED BY 'lianmicloud!@#$1234';
 
-set password for 'lianmidba'@'localhost'=password('lianmicloud!@#$1234');
+//set password for 'lianmidba'@'localhost'=password('lianmicloud!@#$1234');
 
 //让lianmidba拥有lianmicloud数据库的所有权限
+
+
+CREATE DATABASE IF NOT EXISTS lianmidashboard DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
+
 GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'%';
+GRANT ALL PRIVILEGES ON lianmidashboard.* TO 'lianmidba'@'%';
+
 FLUSH PRIVILEGES;
 
 use lianmicloud;
@@ -372,6 +378,7 @@ docker-compose up -d
 cd /root/developments/lianmi/work/basic
 docker-compose down
 docker-compose up -d
+
 
 ```
 

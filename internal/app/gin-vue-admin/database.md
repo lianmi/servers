@@ -28,7 +28,7 @@ mysql> show tables;
 +-------------------------------+
 
 
-drop table authority_menu;
+drop view authority_menu;
 drop table casbin_rule;
 drop table exa_customers;
 drop table  exa_file_chunks;
