@@ -91,8 +91,8 @@ proto:
 .PHONY: dart
 dart:
 
-	rm -f dart_out/api/proto/auth/*.dart
-	protoc --dart_out=dart_out api/proto/auth/AddSlaveDevice.proto \
+	rm -f ../lianmiui/wujehy/linkme_flutter_sdk/lib/api/proto/auth/*.dart
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/auth/AddSlaveDevice.proto \
 								api/proto/auth/AuthorizeCode.proto \
 								api/proto/auth/GetAllDevices.proto \
 								api/proto/auth/Kick.proto \
@@ -104,8 +104,8 @@ dart:
 								api/proto/auth/SlaveDeviceAuthEvent.proto \
 								api/proto/auth/ValidCode.proto
 
-	rm -f dart_out/api/proto/friends/*.dart
-	protoc --dart_out=dart_out api/proto/friends/CancelWatching.proto \
+	rm -f ../lianmiui/wujehy/linkme_flutter_sdk/lib/api/proto/friends/*.dart
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/friends/CancelWatching.proto \
 								api/proto/friends/DeleteFriend.proto \
 								api/proto/friends/FriendChange.proto \
 								api/proto/friends/FriendRequest.proto \
@@ -117,12 +117,12 @@ dart:
 								api/proto/friends/UpdateFriend.proto \
 								api/proto/friends/Watching.proto
 
-	rm -f dart_out/api/proto/global/*.dart
-	protoc --dart_out=dart_out api/proto/global/Global.proto
+	rm -f ../lianmiui/wujehy/linkme_flutter_sdk/lib/api/proto/global/*.dart
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/global/Global.proto
 	
 
-	rm -f dart_out/api/proto/msg/*.dart
-	protoc --dart_out=dart_out api/proto/msg/GetOssToken.proto \
+	rm -f ../lianmiui/wujehy/linkme_flutter_sdk/lib/api/proto/msg/*.dart
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/msg/GetOssToken.proto \
 	 						   api/proto/msg/MessageAttachType.proto \
 							   api/proto/msg/MessagePackage.proto \
 							   api/proto/msg/MsgAck.proto \
@@ -137,7 +137,7 @@ dart:
 							   api/proto/msg/Grpc.proto
 
 	rm -f dart_out/api/proto/order/*.dart
-	protoc --dart_out=dart_out api/proto/order/AddProduct.proto \
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/order/AddProduct.proto \
 								api/proto/order/AddProductEvent.proto \
 								api/proto/order/ChangeOrderState.proto \
 								api/proto/order/GetPreKeyOrderID.proto \
@@ -157,11 +157,11 @@ dart:
 								api/proto/order/GetNotaryServicePublickey.proto 
 
 	rm -f dart_out/api/proto/syn/*.dart
-	protoc --dart_out=dart_out api/proto/syn/Sync.proto \
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/syn/Sync.proto \
 	 							api/proto/syn/SyncDone.proto
 
 	rm -f dart_out/api/proto/team/*.dart
-	protoc --dart_out=dart_out api/proto/team/AcceptTeamInvite.proto \
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/team/AcceptTeamInvite.proto \
 	 api/proto/team/AddTeamManagers.proto \
 	 api/proto/team/ApplyTeam.proto \
 	 api/proto/team/CheckTeamInvite.proto \
@@ -191,7 +191,7 @@ dart:
 	 api/proto/team/UpdateTeam.proto
 
 	rm -f dart_out/api/proto/user/*.dart
-	protoc --dart_out=dart_out api/proto/user/MarkTag.proto \
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/user/MarkTag.proto \
 								api/proto/user/SyncMarkTagEvent.proto \
 								api/proto/user/SyncTagsEvent.proto \
 								api/proto/user/SyncUpdateProfileEvent.proto \
@@ -203,7 +203,7 @@ dart:
 								api/proto/user/NotaryServiceUploadPublickey.proto 
 
 	rm -f dart_out/api/proto/wallet/*.*.dart
-	protoc --dart_out=dart_out api/proto/wallet/Alipay.proto \
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/wallet/Alipay.proto \
 								api/proto/wallet/Balance.proto \
 								api/proto/wallet/ConfirmTransfer.proto \
 								api/proto/wallet/Deposit.proto \
@@ -225,7 +225,7 @@ dart:
 								api/proto/wallet/WithDrawBankCompleteEvent.proto \
 								api/proto/wallet/Grpc.proto
 	rm -f dart_out/api/proto/log/*.*.dart
-	protoc --dart_out=dart_out api/proto/log/SendLog.proto
+	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/log/SendLog.proto
 
 
 .PHONY: clear
@@ -240,8 +240,6 @@ clear:
 	rm -f api/proto/team/*.go
 	rm -f api/proto/user/*.go
 	rm -f api/proto/wallet/*.go
-	
-	rm -rf dart_out/api
 
 	
 .PHONY: stop
