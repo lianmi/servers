@@ -3,14 +3,14 @@
 CRUD
 */
 
-package v1
+package lianmiApi
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/model/request"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/model/response"
-	"github.com/lianmi/servers/internal/app/gin-vue-admin/service"
+	"github.com/lianmi/servers/internal/app/gin-vue-admin/service/lianmiservice"
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/utils"
 	"go.uber.org/zap"
 )
@@ -30,7 +30,7 @@ func LianmiGetUsers(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	if err, list, total := service.LianmiGetUsers(pageInfo); err != nil {
+	if err, list, total := lianmiservice.LianmiGetUsers(pageInfo); err != nil {
 		global.GVA_LOG.Error("获取失败", zap.Any("err", err))
 		response.FailWithMessage("获取失败", c)
 	} else {

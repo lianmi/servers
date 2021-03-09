@@ -1,7 +1,7 @@
 /*
 公有接口，关于
 */
-package v1
+package lianmiApi
 
 import (
 	"github.com/gin-gonic/gin"

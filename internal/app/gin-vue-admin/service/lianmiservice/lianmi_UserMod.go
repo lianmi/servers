@@ -1,4 +1,4 @@
-package service
+package lianmiservice
 
 import (
 	"github.com/lianmi/servers/internal/app/gin-vue-admin/global"

@@ -53,11 +53,23 @@ captcha:
   img-width: 240
   img-height: 80
 
-# mysql connect configuration
-mysql:
+# 连米服务器mysql
+lianmiservermysql:
   path: '127.0.0.1:3306'
   config: 'charset=utf8mb4&parseTime=True&loc=Local'
   db-name: 'lianmicloud'
+  username: 'lianmidba'
+  password: '12345678'
+  max-idle-conns: 10
+  max-open-conns: 100
+  log-mode: true
+  log-zap: ""
+
+# 后台数据库
+mysql:
+  path: '127.0.0.1:3306'
+  config: 'charset=utf8mb4&parseTime=True&loc=Local'
+  db-name: 'lianmidashboard'
   username: 'lianmidba'
   password: '12345678'
   max-idle-conns: 10
