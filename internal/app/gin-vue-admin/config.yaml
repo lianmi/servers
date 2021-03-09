@@ -54,7 +54,7 @@ captcha:
   img-height: 80
 
 # 连米服务器mysql
-lianmiservermysql:
+lianmi-mysql:
   path: '127.0.0.1:3306'
   config: 'charset=utf8mb4&parseTime=True&loc=Local'
   db-name: 'lianmicloud'

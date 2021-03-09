@@ -15,5 +15,7 @@ var (
 	GVA_CONFIG config.Server
 	GVA_VP     *viper.Viper
 	//GVA_LOG    *oplogging.Logger
-	GVA_LOG    *zap.Logger
+	GVA_LOG *zap.Logger
+
+	LIANMI_DB *gorm.DB //连米mysql
 )

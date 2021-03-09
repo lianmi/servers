@@ -30,6 +30,7 @@ mysql> show tables;
 
 drop view authority_menu;
 drop table casbin_rule;
+drop table exa_wf_leaves;
 drop table exa_customers;
 drop table  exa_file_chunks;
 drop table exa_file_upload_and_downloads;

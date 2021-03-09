@@ -10,10 +10,12 @@ type Server struct {
 	Captcha Captcha `mapstructure:"captcha" json:"captcha" yaml:"captcha"`
 	// gorm
 	Mysql Mysql `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	// lianmi gorm
+	Lianmimysql Mysql `mapstructure:"lianmi-mysql" json:"lianmi-mysql" yaml:"lianmi-mysql"`
 	// oss
-	Local     Local     `mapstructure:"local" json:"local" yaml:"local"`
-	Qiniu     Qiniu     `mapstructure:"qiniu" json:"qiniu" yaml:"qiniu"`
-	AliyunOSS AliyunOSS `mapstructure:"aliyun-oss" json:"aliyunOSS" yaml:"aliyun-oss"`
+	Local      Local      `mapstructure:"local" json:"local" yaml:"local"`
+	Qiniu      Qiniu      `mapstructure:"qiniu" json:"qiniu" yaml:"qiniu"`
+	AliyunOSS  AliyunOSS  `mapstructure:"aliyun-oss" json:"aliyunOSS" yaml:"aliyun-oss"`
 	TencentCOS TencentCOS `mapstructure:"tencent-cos" json:"tencentCOS" yaml:"tencent-cos"`
-	Excel Excel `mapstructure:"excel" json:"excel" yaml:"excel"`
+	Excel      Excel      `mapstructure:"excel" json:"excel" yaml:"excel"`
 }

@@ -26,5 +26,14 @@ func main() {
 		db, _ := global.GVA_DB.DB()
 		defer db.Close()
 	}
+
+	global.LIANMI_DB = initialize.LianmiGorm() // gorm连接 连米  数据库
+	if global.LIANMI_DB != nil {
+		// 程序结束前关闭数据库链接
+		db, _ := global.LIANMI_DB.DB()
+		defer db.Close()
+	} else{
+		global.GVA_LOG.Error(" gorm连接 连米  数据库   失败")
+	}
 	core.RunWindowsServer()
 }
