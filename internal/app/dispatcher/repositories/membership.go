@@ -203,6 +203,7 @@ func (s *MysqlLianmiRepository) GetVipPriceList(payType int) (*Auth.GetVipPriceR
 
 	}
 	if err := s.db.Model(vipPriceList).Where(&where).Find(&vipPriceList).Error; err != nil {
+		s.logger.Error("vip_prices表查询错误出差错", zap.Error(err))
 		return nil, errors.Wrapf(err, "PayType not found[payType=%distribution]", payType)
 	}
 	var resp Auth.GetVipPriceResp

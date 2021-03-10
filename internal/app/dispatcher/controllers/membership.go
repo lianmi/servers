@@ -7,14 +7,17 @@ import (
 	// "context"
 	"net/http"
 	"strconv"
+
 	// "time"
 
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	LMCommon "github.com/lianmi/servers/internal/common"
+
 	// Global "github.com/lianmi/servers/api/proto/global"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+
 	// "github.com/lianmi/servers/internal/common"
 	"go.uber.org/zap"
 )
@@ -29,6 +32,7 @@ func (pc *LianmiApisController) GetVipPriceList(c *gin.Context) {
 	resp, err := pc.service.GetVipPriceList(payType)
 
 	if err != nil {
+		pc.logger.Error("GetVipPriceList error", zap.Error(err))
 		RespData(c, http.StatusOK, 400, "GetVipPriceList failed")
 	} else {
 
