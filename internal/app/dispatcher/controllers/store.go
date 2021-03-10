@@ -252,6 +252,28 @@ func (pc *LianmiApisController) StoreLikes(c *gin.Context) {
 
 }
 
+//获取店铺的所有点赞总数
+func (pc *LianmiApisController) StoreLikesCount(c *gin.Context) {
+	code := codes.InvalidParams
+
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespData(c, http.StatusOK, 500, "id is empty")
+		return
+	}
+
+	count, err := pc.service.StoreLikesCount(businessUsername)
+	if err != nil {
+		RespData(c, http.StatusOK, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, count)
+
+}
+
 //对某个店铺点赞
 func (pc *LianmiApisController) ClickLike(c *gin.Context) {
 	code := codes.InvalidParams

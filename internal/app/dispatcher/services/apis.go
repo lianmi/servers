@@ -193,6 +193,9 @@ type LianmiApisService interface {
 	//获取店铺的所有点赞的用户列表
 	StoreLikes(businessUsername string) (*User.StoreLikesResp, error)
 
+	//获取店铺的所有点赞总数
+	StoreLikesCount(businessUsername string) (int, error)
+
 	//对某个店铺点赞
 	ClickLike(username, businessUsername string) (int64, error)
 
@@ -623,6 +626,12 @@ func (s *DefaultLianmiApisService) UserLikes(username string) (*User.UserLikesRe
 func (s *DefaultLianmiApisService) StoreLikes(businessUsername string) (*User.StoreLikesResp, error) {
 	return s.Repository.StoreLikes(businessUsername)
 }
+
+	//获取店铺的所有点赞总数
+	func (s *DefaultLianmiApisService) StoreLikesCount(businessUsername string) (int, error) {
+		return s.Repository.StoreLikesCount(businessUsername)
+	}
+
 
 //对某个店铺点赞
 func (s *DefaultLianmiApisService) ClickLike(username, businessUsername string) (int64, error) {

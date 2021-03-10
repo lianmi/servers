@@ -528,6 +528,35 @@ func (s *MysqlLianmiRepository) StoreLikes(businessUsername string) (*User.Store
 	return rsp, nil
 }
 
+//获取店铺的所有点赞总数
+func (s *MysqlLianmiRepository) StoreLikesCount(businessUsername string) (int, error) {
+	s.logger.Debug("StoreLikesCount start ...")
+	var err error
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	// 判断businessUsername是否是商户
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
+	if userType != int(User.UserType_Ut_Business) {
+		return 0, errors.Wrap(err, "此用户非商户类型")
+	}
+
+	var count int
+
+	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
+	s.logger.Debug("StoreLikes", zap.String("storelikeKey", storelikeKey))
+
+	if count, err = redis.Int(redisConn.Do("SCARD", storelikeKey)); err != nil {
+		s.logger.Error("SCARD Error", zap.Error(err))
+		return 0, err
+	}
+
+	return count, nil
+}
+
 //对某个店铺点赞，返回当前所有的点赞总数
 func (s *MysqlLianmiRepository) ClickLike(username, businessUsername string) (int64, error) {
 
