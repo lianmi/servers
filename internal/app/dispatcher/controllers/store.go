@@ -332,6 +332,35 @@ func (pc *LianmiApisController) DeleteClickLike(c *gin.Context) {
 
 }
 
+//判断当前用户是否对某个店铺点过赞
+func (pc *LianmiApisController) GetIsLike(c *gin.Context) {
+	code := codes.InvalidParams
+
+	claims := jwt_v2.ExtractClaims(c)
+	username := claims[LMCommon.IdentityKey].(string)
+	if username == "" {
+		RespData(c, http.StatusOK, 500, "username is empty")
+		return
+	}
+
+	businessUsername := c.Param("id")
+
+	if businessUsername == "" {
+		RespData(c, http.StatusOK, 500, "id is empty")
+		return
+	}
+
+	isLike, err := pc.service.GetIsLike(username, businessUsername)
+	if err != nil {
+		RespData(c, http.StatusOK, 500, err.Error())
+		return
+	}
+
+	code = codes.SUCCESS
+	RespData(c, http.StatusOK, code, isLike)
+
+}
+
 //获取各种彩票的开售及停售时刻
 func (pc *LianmiApisController) QueryLotterySaleTimes(c *gin.Context) {
 	code := codes.InvalidParams

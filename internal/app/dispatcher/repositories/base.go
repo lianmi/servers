@@ -212,7 +212,7 @@ type LianmiRepository interface {
 
 	//获取店铺的所有点赞的用户列表
 	StoreLikes(username string) (*User.StoreLikesResp, error)
-	
+
 	//获取店铺的所有点赞总数
 	StoreLikesCount(businessUsername string) (int, error)
 
@@ -220,6 +220,11 @@ type LianmiRepository interface {
 
 	DeleteClickLike(username, businessUsername string) (int64, error)
 
+
+	//取消对某个店铺点赞
+	GetIsLike(username, businessUsername string) (bool, error)
+
+	
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
 

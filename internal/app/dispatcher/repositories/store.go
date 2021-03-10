@@ -637,6 +637,18 @@ func (s *MysqlLianmiRepository) DeleteClickLike(username, businessUsername strin
 	return totalLikeCount, nil
 }
 
+//取消对某个店铺点赞
+func (s *MysqlLianmiRepository) GetIsLike(username, businessUsername string) (bool, error) {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//SISMEMBER
+	storelikeKey := fmt.Sprintf("StoreLike:%s", businessUsername)
+
+	return redis.Bool(redisConn.Do("SCARD", storelikeKey))
+
+}
+
 //将点赞记录插入到UserLike表
 func (s *MysqlLianmiRepository) AddUserLike(username, businessUser string) error {
 	var err error

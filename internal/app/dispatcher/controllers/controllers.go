@@ -369,6 +369,7 @@ func CreateInitControllersFn(
 			storeGroup.GET("/likescount/:id", pc.StoreLikesCount)        //获取店铺的点赞总数
 			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞
 			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
+			storeGroup.GET("/islike/:id", pc.GetIsLike)                  //判断当前用户是否对某个店铺点过赞
 			storeGroup.GET("/lottersaletimes", pc.QueryLotterySaleTimes) //获取各种彩票的开售及停售时刻
 			storeGroup.POST("/defaultopk", pc.DefaultOPK)                //设置当前商户的默认OPK
 

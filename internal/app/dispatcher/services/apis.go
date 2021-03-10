@@ -202,6 +202,9 @@ type LianmiApisService interface {
 	//取消对某个店铺点赞
 	DeleteClickLike(username, businessUsername string) (int64, error)
 
+	//取消对某个店铺点赞
+	GetIsLike(username, businessUsername string) (bool, error)
+
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
 
@@ -627,11 +630,10 @@ func (s *DefaultLianmiApisService) StoreLikes(businessUsername string) (*User.St
 	return s.Repository.StoreLikes(businessUsername)
 }
 
-	//获取店铺的所有点赞总数
-	func (s *DefaultLianmiApisService) StoreLikesCount(businessUsername string) (int, error) {
-		return s.Repository.StoreLikesCount(businessUsername)
-	}
-
+//获取店铺的所有点赞总数
+func (s *DefaultLianmiApisService) StoreLikesCount(businessUsername string) (int, error) {
+	return s.Repository.StoreLikesCount(businessUsername)
+}
 
 //对某个店铺点赞
 func (s *DefaultLianmiApisService) ClickLike(username, businessUsername string) (int64, error) {
@@ -641,6 +643,11 @@ func (s *DefaultLianmiApisService) ClickLike(username, businessUsername string) 
 //取消对某个店铺点赞
 func (s *DefaultLianmiApisService) DeleteClickLike(username, businessUsername string) (int64, error) {
 	return s.Repository.DeleteClickLike(username, businessUsername)
+}
+
+//取消对某个店铺点赞
+func (s *DefaultLianmiApisService) GetIsLike(username, businessUsername string) (bool, error) {
+	return s.Repository.GetIsLike(username, businessUsername)
 }
 
 //将点赞记录插入到UserLike表
