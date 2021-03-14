@@ -321,7 +321,7 @@ func (nc *NsqClient) SyncFriendUsersAt(username, token, deviceID string, req Syn
 						avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 					}
 					rsp.UInfos = append(rsp.UInfos, &User.User{
-						Username: username,
+						Username: fuser, // 好友注册id
 						Gender:   User.Gender(fUserData.Gender),
 						Nick:     fUserData.Nick,
 						Avatar:   avatar,
