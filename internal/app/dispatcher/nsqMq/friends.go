@@ -16,6 +16,7 @@ package nsqMq
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -649,7 +650,7 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 						Type:           Msg.MessageNotificationType_MNT_PassFriendApply, //对方同意加你为好友
 						HandledAccount: userB,
 						HandledMsg:     "对方同意加你为好友",
-						Status:         1,          
+						Status:         1,
 						Data:           psSourceData, // 用来存储附言及来源
 						To:             userA,
 					}
@@ -1223,9 +1224,18 @@ func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 			nick, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Nick"))
 			source, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Source"))
 			ex, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("FriendInfo:%s:%s", username, friendUsername), "Ex"))
+			avatar, _ := redis.String(redisConn.Do("HGET", fmt.Sprintf("userData:%s", friendUsername), "Avatar"))
+			if err != nil {
+				nc.logger.Error("HGET Avatar error", zap.Error(err))
+			}
+			if (avatar != "") && !strings.HasPrefix(avatar, "http") {
+
+				avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			}
 
 			rsp.Friends = append(rsp.Friends, &Friends.Friend{
 				Username: friendUsername,
+				Avatar:   avatar,
 				Nick:     nick,
 				Source:   source,
 				Ex:       ex,
