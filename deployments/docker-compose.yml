@@ -40,15 +40,15 @@ services:
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
       
-  lianmi-admin-server:
-    image: lianmi/admin-server:0.1
-    container_name: lianmi-admin-server
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:28088:8888'
-    volumes:
-     - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
-     - ./lianmi-admin-server/config.yaml:/app/config.yaml
+  # lianmi-admin-server:
+  #   image: lianmi/admin-server:0.1
+  #   container_name: lianmi-admin-server
+  #   restart: unless-stopped
+  #   ports:
+  #     - '127.0.0.1:28088:8888'
+  #   volumes:
+  #    - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
+  #    - ./lianmi-admin-server/config.yaml:/app/config.yaml
 
 networks:
   default:

@@ -24,24 +24,13 @@ mac:
 		GOOS=darwin GOARCH="amd64" go build -o dist/$$app-darwin-amd64 ./cmd/$$app/; \
 	done
 
-.PHONY: admin_linux
-admin_linux:
-	#GOOS=linux GOARCH="amd64" go build -o dist/gin-vue-admin-linux-amd64 ./cmd/gin-vue-admin
-	$(MAKE) -C internal/app/gin-vue-admin/ all
-	
-.PHONY: admin_mac
-admin_mac:
-	# GOOS=darwin GOARCH="amd64" go build -o dist/gin-vue-admin-darwin-amd64 ./cmd/gin-vue-admin
-	$(MAKE) -C internal/app/gin-vue-admin/ all
-
 .PHONY: linux
 linux:
 	for app in $(apps) ;\
 	do \
 		GOOS=linux GOARCH="amd64" go build -o dist/$$app-linux-amd64 ./cmd/$$app/; \
 	done
-	# Make lianmi-admin-server (incl. binary and docker image)
-	$(MAKE) -C internal/app/gin-vue-admin/ all
+
 	
 .PHONY: cover
 cover: test

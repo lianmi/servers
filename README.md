@@ -102,7 +102,7 @@ https://github.com/Bingjian-Zhu/gin-vue
 
 ### 后台
 ```
-https://github.com/Bingjian-Zhu/gin-vue-admin
+
 ```
 
 ### JWT+Redis实现用户登录验证
