@@ -224,7 +224,6 @@ COMPLETE:
 2. 如果removedUsers不为空，终端根据removedUsers移除本机群成员缓存数据
 3. 终端开发获取群成员接口的流程是: 发起获取成员请求 → 更新本地数据库 → 返回数据给UI
 
-
 */
 func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 	var err error
@@ -335,7 +334,7 @@ func (nc *NsqClient) HandleGetTeamMembers(msg *models.Message) error {
 
 				rsp.Tmembers = append(rsp.Tmembers, &Team.Tmember{
 					TeamId:          teamID,
-					Username:        teamUserInfo.Username,
+					Username:        teamMember,
 					Invitedusername: teamUserInfo.InvitedUsername,
 					Nick:            nick,
 					AliasName:       aliasName,
@@ -2463,14 +2462,12 @@ func (nc *NsqClient) HandlePassTeamApply(msg *models.Message) error {
 					Time:         uint64(time.Now().UnixNano() / 1e6),
 				}
 
-				// go func() {
 				nc.logger.Debug("5-2, 向所有群成员推送此用户的入群通知",
 					zap.Int("群组全部成员数量", len(teamMembers)),
 					zap.String("新成员", targetUsername),
 					zap.String("to", teamMember),
 				)
 				nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember) //向群成员广播
-				// }()
 
 			}
 
