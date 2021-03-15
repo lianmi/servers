@@ -635,20 +635,24 @@ func (nc *NsqClient) HandleInviteTeamMembers(msg *models.Message) error {
 
 			//此群的拉人进群的模式设定
 			switch Team.InviteMode(teamInviteMode) {
-			case Team.InviteMode_Invite_All: //所有人都可以邀请其他人入群
+			case Team.InviteMode_Invite_All: //所有人都可以邀请其他人入群，无须被邀请者同意
 
-				//判断当前用户的类型是否是群成员
+				//判断当前用户是否是群成员
 				if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), username); err == nil {
-					if reply == nil { //不是群成员
+					if reply == nil { //当前用户不是群成员
 						err = nil
-						nc.logger.Debug("User is not member", zap.String("Username", username))
+						nc.logger.Debug("当前用户不是群成员 User is not member", zap.String("Username", username))
 						errorCode = LMCError.TeamUserIsNotExists
 						goto COMPLETE
 					}
 				}
 
-				//处理待入群用户列表
-				abortUsers := nc.processInviteMembers(redisConn, teamID, teamName, username, deviceID, req.Ps, req.Usernames)
+				// 处理待入群用户列表
+				abortUsers, err := nc.processNewJoinedMembers(redisConn, teamID, teamName, username, req.Usernames)
+				if err != nil {
+					errorCode = LMCError.TeamStatusError
+					goto COMPLETE
+				}
 				for _, abortUser := range abortUsers {
 					rsp.AbortedUsers = append(rsp.AbortedUsers, abortUser)
 				}
@@ -892,6 +896,164 @@ func (nc *NsqClient) processInviteMembers(redisConn redis.Conn, teamID, teamName
 		}
 	}
 	return abortedUsers
+}
+
+//当群邀请模式设置为自由加入时，  处理待入群用户列表, 直接让被邀请人拉入群
+func (nc *NsqClient) processNewJoinedMembers(redisConn redis.Conn, teamID, teamName, inviter string, invitees []string) ([]string, error) {
+	var err error
+	var newSeq uint64
+	abortedUsers := make([]string, 0)
+	nc.logger.Debug("processNewJoinedMembers start...")
+
+	//遍历整个被邀请加群用户列表, 注意：每个用户都必须有独立的工作流ID
+	for _, invitee := range invitees {
+
+		//判断invitee是不是已经是群成员了
+		//首先判断一下是否是群成员
+		if reply, err := redisConn.Do("ZRANK", fmt.Sprintf("TeamUsers:%s", teamID), invitee); err == nil {
+			if reply != nil { //是群成员
+				err = nil
+				nc.logger.Debug("User is already member", zap.String("invitee", invitee))
+				abortedUsers = append(abortedUsers, invitee)
+				continue
+			}
+		}
+
+		userData := new(models.UserBase)
+		userKey := fmt.Sprintf("userData:%s", invitee)
+		if result, err := redis.Values(redisConn.Do("HGETALL", userKey)); err == nil {
+			if err := redis.ScanStruct(result, userData); err != nil {
+
+				nc.logger.Error("错误：ScanStruct", zap.Error(err))
+				abortedUsers = append(abortedUsers, invitee)
+				continue
+
+			}
+		}
+		if userData.State == LMCommon.UserBlocked {
+			nc.logger.Debug("User is blocked")
+			abortedUsers = append(abortedUsers, invitee)
+			continue
+		}
+
+		//增加群成员信息 TeamUser
+		teamUser := new(models.TeamUser)
+		teamUser.TeamUserInfo.JoinAt = time.Now().UnixNano() / 1e6
+		teamUser.TeamUserInfo.TeamID = teamID                                      //群id
+		teamUser.TeamUserInfo.Teamname = teamName                                  //群名称
+		teamUser.TeamUserInfo.Username = userData.Username                         //群成员用户账号
+		teamUser.TeamUserInfo.InvitedUsername = inviter                            //邀请者
+		teamUser.TeamUserInfo.Nick = userData.Nick                                 //群成员呢称
+		teamUser.TeamUserInfo.AliasName = userData.Nick                            //群成员别名
+		teamUser.TeamUserInfo.Avatar = userData.Avatar                             //群成员头像
+		teamUser.TeamUserInfo.Label = userData.Label                               //群成员标签
+		teamUser.TeamUserInfo.Source = ""                                          //群成员来源  TODO
+		teamUser.TeamUserInfo.Extend = userData.Extend                             //群成员扩展字段
+		teamUser.TeamUserInfo.TeamMemberType = int(Team.TeamMemberType_Tmt_Normal) //群成员类型 3-普通
+		teamUser.TeamUserInfo.IsMute = false                                       //是否被禁言
+		teamUser.TeamUserInfo.NotifyType = 1                                       //群消息通知方式 All(1) - 群全部消息提醒
+
+		if err := nc.service.AddTeamUser(teamUser); err != nil {
+			nc.logger.Error("增加群成员teamUser失败", zap.Error(err))
+			abortedUsers = append(abortedUsers, invitee)
+			continue
+
+		}
+
+		/*
+			1. 用户拥有的群，用有序集合存储，Key: Team:{Owner}, 成员元素是: TeamnID
+			2. 群信息哈希表, key格式为: TeamInfo:{TeamnID}, 字段为: Teamname Nick Icon 等Team表的字段
+			3. 用户有拥有的群用有序集合存储, key格式为： TeamUsers:{TeamnID}, 成员元素是: Username
+			4. 每个群成员用哈希表存储，Key格式为： TeamUser:{TeamnID}:{Username} , 字段为: Teamname Username Nick JoinAt 等TeamUser表的字段
+			5. 被移除的成员列表，Key格式为： RemoveTeamMembers:{TeamnID}
+		*/
+		_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeam:%s", invitee), teamID)
+		if err != nil {
+			nc.logger.Error("从用户自己的退群列表删除此teamID, ZREM 出错", zap.Error(err))
+		}
+
+		_, err = redisConn.Do("ZADD", fmt.Sprintf("Team:%s", invitee), time.Now().UnixNano()/1e6, teamID)
+		if err != nil {
+			nc.logger.Error("ZADD 错误", zap.Error(err))
+		}
+
+		//删除退群名单列表里的此用户
+		_, err = redisConn.Do("ZREM", fmt.Sprintf("RemoveTeamMembers:%s", teamID), invitee)
+		if err != nil {
+			nc.logger.Error("ZREM 错误", zap.Error(err))
+		}
+
+		//add群成员
+		_, err = redisConn.Do("ZADD", fmt.Sprintf("TeamUsers:%s", teamID), time.Now().UnixNano()/1e6, invitee)
+		if err != nil {
+			nc.logger.Error("ZADD 错误", zap.Error(err))
+		}
+
+		_, err = redisConn.Do("HMSET", redis.Args{}.Add(fmt.Sprintf("TeamUser:%s:%s", teamID, invitee)).AddFlat(teamUser.TeamUserInfo)...)
+		if err != nil {
+			nc.logger.Error("HMSET 错误", zap.Error(err))
+		}
+
+		//向群所有成员推送此用户的入群通知
+		teamMembers, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("TeamUsers:%s", teamID), "-inf", "+inf"))
+		psSource := &Friends.PsSource{
+			Ps:     "",
+			Source: inviter, //发起邀请方
+		}
+		psSourceData, _ := proto.Marshal(psSource)
+
+		handledMsg := fmt.Sprintf("欢迎[\"%s\"]入群[\"%s\"]", userData.Nick, teamName)
+
+		//向所有群成员发出用户[invitee]入群事件
+		for _, teamMember := range teamMembers {
+			// 更新redis的sync:{用户账号} teamsAt 时间戳
+			redisConn.Do("HSET",
+				fmt.Sprintf("sync:%s", teamMember),
+				"teamsAt",
+				time.Now().UnixNano()/1e6)
+
+			if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", teamMember))); err != nil {
+				nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+				continue
+			}
+			body := Msg.MessageNotificationBody{
+				Type:           Msg.MessageNotificationType_MNT_MemberJoined, //新成员入群事件
+				HandledAccount: invitee,                                      //invitee
+				HandledMsg:     handledMsg,
+				Status:         Msg.MessageStatus_MOS_Done,
+				Data:           psSourceData,
+				To:             teamMember, //群成员
+			}
+			bodyData, _ := proto.Marshal(&body)
+			inviteEventRsp := &Msg.RecvMsgEventRsp{
+				Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
+				Type:         Msg.MessageType_MsgType_Notification, //通知类型
+				Body:         bodyData,                             //字节流
+				From:         teamName,                             //群名称
+				FromDeviceId: "",
+				Recv:         teamID,                //接收方, 根据场景判断to是个人还是群
+				ServerMsgId:  uuid.NewV4().String(), //服务器分配的消息ID
+				WorkflowID:   "",                    //工作流ID
+				Seq:          newSeq,                //消息序号，单个会话内自然递增, 这里是对inviteUsername这个用户的通知序号
+				Uuid:         "",                    //留空
+				Time:         uint64(time.Now().UnixNano() / 1e6),
+			}
+
+			nc.logger.Debug("5-2 向群成员广播invitee入群事件",
+				zap.String("teamID", teamID),
+				zap.String("teamName", teamName),
+				zap.Int("teamMembers count", len(teamMembers)),
+				zap.String("inviter", inviter),
+				zap.String("invitee", invitee),
+				zap.String("to", teamMember),
+			)
+			nc.BroadcastSystemMsgToAllDevices(inviteEventRsp, teamMember)
+		}
+
+	}
+	nc.logger.Debug("processNewJoinedMembers end")
+	return abortedUsers, nil
+
 }
 
 /*
