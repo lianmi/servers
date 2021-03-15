@@ -1158,7 +1158,7 @@ func (nc *NsqClient) HandleRemoveTeamMembers(msg *models.Message) error {
 			}
 
 			//判断usename是不是管理员身份或群主，如果不是，则返回
-			teamUserInfo := new(models.TeamUser)
+			teamUserInfo := new(models.TeamUserInfo)
 			if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("TeamUser:%s:%s", teamID, username))); err == nil {
 				if err := redis.ScanStruct(result, teamUserInfo); err != nil {
 					errorCode = LMCError.RedisError
