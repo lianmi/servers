@@ -369,6 +369,27 @@ func (pc *LianmiApisController) ExistsTokenInRedis(deviceID, token string) bool 
 	return pc.service.ExistsTokenInRedis(deviceID, token)
 }
 
+func (pc *LianmiApisController) GetAllDevices(c *gin.Context) {
+	claims := jwt_v2.ExtractClaims(c)
+	userName := claims[LMCommon.IdentityKey].(string)
+	deviceID := claims["deviceID"].(string)
+	token := jwt_v2.GetToken(c)
+
+	pc.logger.Debug("GetAllDevices",
+		zap.String("userName", userName),
+		zap.String("deviceID", deviceID),
+		zap.String("token", token))
+
+	device, err := pc.service.GetAllDevices(userName)
+	if err != nil {
+
+		pc.logger.Debug("GetAllDevices  run FAILD")
+
+	}
+
+	RespData(c, http.StatusOK, 200, []string{device})
+}
+
 func (pc *LianmiApisController) SignOut(c *gin.Context) {
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[LMCommon.IdentityKey].(string)

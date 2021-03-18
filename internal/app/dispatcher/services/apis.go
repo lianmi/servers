@@ -44,7 +44,12 @@ type LianmiApisService interface {
 	ExistUserByName(username string) bool
 	// 判断手机号码是否已存在
 	ExistUserByMobile(mobile string) bool
+
 	SaveUserToken(username, deviceID string, token string, expire time.Time) bool
+
+	//获取当前用户的主设备
+	GetAllDevices(username string) (string, error)
+
 	SignOut(token, username, deviceID string) bool
 	ExistsTokenInRedis(deviceID, token string) bool
 
@@ -396,6 +401,10 @@ func (s *DefaultLianmiApisService) ExistUserByMobile(mobile string) bool {
 
 func (s *DefaultLianmiApisService) SaveUserToken(username, deviceID string, token string, expire time.Time) bool {
 	return s.Repository.SaveUserToken(username, deviceID, token, expire)
+}
+
+func (s *DefaultLianmiApisService) GetAllDevices(username string) (string, error) {
+	return s.Repository.GetDeviceFromRedis(username)
 }
 
 func (s *DefaultLianmiApisService) SignOut(token, username, deviceID string) bool {

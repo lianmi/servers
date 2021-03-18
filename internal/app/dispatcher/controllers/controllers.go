@@ -342,7 +342,8 @@ func CreateInitControllersFn(
 		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
-			auth.GET("/signout", pc.SignOut) //登出
+			auth.GET("/devices", pc.GetAllDevices) //获取当前用户的登录设备
+			auth.GET("/signout", pc.SignOut)       //登出
 
 		}
 

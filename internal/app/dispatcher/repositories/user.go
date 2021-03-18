@@ -762,6 +762,7 @@ func (s *MysqlLianmiRepository) GetDeviceFromRedis(username string) (string, err
 	return redis.String(redisConn.Do("GET", deviceListKey))
 }
 
+
 /*
 登出
 1. 如果是主设备，则踢出此用户的所有主从设备， 如果仅仅是从设备，就删除自己的数据
