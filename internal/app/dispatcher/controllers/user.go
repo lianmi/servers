@@ -44,14 +44,24 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 //根据用户注册id获取用户数据库下载url
 func (pc *LianmiApisController) GetUserDb(c *gin.Context) {
 	pc.logger.Debug("Get User DB url start ...")
-	objname := c.Param("objname")
+	type UserDBUrl struct { 
+		Objname  string `json:"objname" validate:"required"`  
+	}
+	var req UserDBUrl
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("GetUserDb, binding JSON error ")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 
-	if objname == "" {
+	// objname := c.Param("objname")
+
+	if req.Objnamereq.Objname == "" {
 		RespData(c, http.StatusOK, 500, "objname is empty")
 		return
+	} else {
+		pc.logger.Debug("GetUserDb", zap.String("objname", objname))
 	}
 
-	url, err := pc.service.GetUserDb(objname)
+	url, err := pc.service.GetUserDb(req.Objname)
 	if err != nil {
 		pc.logger.Error("Get User DB url by id error", zap.Error(err))
 		RespData(c, http.StatusOK, 500, "Get  User DB url by id error")
