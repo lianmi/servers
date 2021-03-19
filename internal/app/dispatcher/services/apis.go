@@ -306,7 +306,7 @@ func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
 }
 
 //多条件不定参数批量分页获取用户列表
-c QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
+func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
 	return s.Repository.QueryUsers(req)
 }
 
