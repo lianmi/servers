@@ -131,9 +131,9 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMq
 		mc := &MQTTClient{
 			o:                   o,
 			Addr:                o.Addr,
-			User:                o.User,
-			Passwd:              o.Passwd,
-			ClientID:            o.ClientID,
+			User:                o.User,   //dispatcher 登录 broker 用户名  reis里要设置正确 
+			Passwd:              o.Passwd, //dispatcher 登录 broker 密码   reis里要设置正确
+			ClientID:            o.ClientID,  //
 			Order:               false,
 			KeepAliveInterval:   120 * time.Second,
 			PingTimeout:         120 * time.Second,

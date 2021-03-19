@@ -28,6 +28,7 @@ type LianmiApisService interface {
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
 	GetUser(username string) (*Auth.UserRsp, error)
+	GetUserDb(objname string) (string, error)
 
 	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
@@ -299,8 +300,13 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 	}, nil
 }
 
+func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
+	return s.Repository.GetUserDb(objname)
+
+}
+
 //多条件不定参数批量分页获取用户列表
-func (s *DefaultLianmiApisService) QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
+c QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error) {
 	return s.Repository.QueryUsers(req)
 }
 

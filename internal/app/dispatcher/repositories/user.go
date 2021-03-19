@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 
 	// Global "github.com/lianmi/servers/api/proto/global"
@@ -46,6 +47,35 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 	}
 	s.logger.Debug("GetUser run...")
 	return
+}
+
+func (s *MysqlLianmiRepository) GetUserDb(objname string) (string, error) {
+	// 超级用户创建OSSClient实例。
+	client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)
+
+	if err != nil {
+		return "", errors.Wrapf(err, "oss.New失败[objname=%s]", objname)
+
+	}
+
+	// 获取存储空间。
+	bucket, err := client.Bucket(LMCommon.BucketName)
+	if err != nil {
+		return "", errors.Wrapf(err, "client.Bucket失败[objname=%s]", objname)
+
+	}
+
+	//生成签名URL下载链接， 300s后过期
+
+	signedURL, err := bucket.SignURL(objname, oss.HTTPGet, 300)
+	if err != nil {
+		s.logger.Error("bucket.SignURL error", zap.Error(err))
+		return "", errors.Wrapf(err, "bucket.SignURL失败[objname=%s]", objname)
+	} else {
+		s.logger.Debug("bucket.SignURL 生成成功")
+
+	}
+	return signedURL, nil
 }
 
 //根据注册用户id获取redis里此用户的缓存
@@ -761,7 +791,6 @@ func (s *MysqlLianmiRepository) GetDeviceFromRedis(username string) (string, err
 	deviceListKey := fmt.Sprintf("devices:%s", username)
 	return redis.String(redisConn.Do("GET", deviceListKey))
 }
-
 
 /*
 登出

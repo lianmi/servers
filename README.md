@@ -225,6 +225,12 @@ http -v --json GET localhost:28080/v1/user/2 "Authorization:Bearer eyJhbGciOiJIU
 mosquitto-1.6.10/test/random/auth_plugin.c
 ```
 
+mosquitto版本
+```
+docker exec -it 4ff458797d74  /usr/sbin/mosquitto -h
+```
+
+
 # 服务器的日志目录
 部署在腾讯云服务器后，日志输出需要在 /root/developments/lianmi/lm-cloud/servers/deployments 建立.env文件
 内容是：

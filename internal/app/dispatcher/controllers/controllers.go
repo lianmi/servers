@@ -354,6 +354,8 @@ func CreateInitControllersFn(
 			userGroup.GET("/getuser/:id", pc.GetUser) //根据用户注册号获取用户详细 信息,  如果是本身，则返回更加详尽的信息，包括到期时间
 			userGroup.POST("/list", pc.QueryUsers)    //多条件不定参数批量分页获取用户列表
 			userGroup.GET("/likes", pc.UserLikes)     //获取当前用户对所有店铺点赞情况
+			userGroup.GET("/getuserdb/:objname", pc.GetUserDb) //根据用户注册号获取用户数据库
+
 
 		}
 

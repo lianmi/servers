@@ -21,6 +21,8 @@ type LianmiRepository interface {
 	//根据注册用户id获取用户的资料
 	GetUser(username string) (p *models.User, err error)
 
+	GetUserDb(objname string) (string, error)
+
 	//根据注册用户id获取redis里此用户的缓存
 	GetUserDataFromRedis(username string) (p *models.UserBase, err error)
 

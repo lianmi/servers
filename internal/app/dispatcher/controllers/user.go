@@ -41,6 +41,27 @@ func (pc *LianmiApisController) GetUser(c *gin.Context) {
 
 }
 
+//根据用户注册id获取用户数据库下载url
+func (pc *LianmiApisController) GetUserDb(c *gin.Context) {
+	pc.logger.Debug("Get User DB url start ...")
+	objname := c.Param("objname")
+
+	if objname == "" {
+		RespData(c, http.StatusOK, 500, "objname is empty")
+		return
+	}
+
+	url, err := pc.service.GetUserDb(objname)
+	if err != nil {
+		pc.logger.Error("Get User DB url by id error", zap.Error(err))
+		RespData(c, http.StatusOK, 500, "Get  User DB url by id error")
+		return
+	}
+
+	RespData(c, http.StatusOK, 200, url)
+
+}
+
 //多条件不定参数批量分页获取用户列表
 func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
 	code := codes.InvalidParams
