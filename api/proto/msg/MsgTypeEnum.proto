@@ -85,6 +85,9 @@ enum AttachType {
     //Vip会员费
     AttachType_VipPrice = 9;
 
+    //自定义带附件（json）的消息
+    AttachType_CustomAttach = 10;
+
 
 }
 

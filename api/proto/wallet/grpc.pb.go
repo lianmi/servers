@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.7.0
-// source: api/proto/wallet/grpc.proto
+// source: api/proto/wallet/Grpc.proto
 
 package wallet
 
@@ -44,7 +44,7 @@ type TransferReq struct {
 func (x *TransferReq) Reset() {
 	*x = TransferReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[0]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -57,7 +57,7 @@ func (x *TransferReq) String() string {
 func (*TransferReq) ProtoMessage() {}
 
 func (x *TransferReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[0]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,7 +70,7 @@ func (x *TransferReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferReq.ProtoReflect.Descriptor instead.
 func (*TransferReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *TransferReq) GetOrderID() string {
@@ -99,7 +99,7 @@ type TransferResp struct {
 func (x *TransferResp) Reset() {
 	*x = TransferResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[1]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -112,7 +112,7 @@ func (x *TransferResp) String() string {
 func (*TransferResp) ProtoMessage() {}
 
 func (x *TransferResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[1]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -125,7 +125,7 @@ func (x *TransferResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferResp.ProtoReflect.Descriptor instead.
 func (*TransferResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *TransferResp) GetErrCode() int32 {
@@ -154,7 +154,7 @@ type GetUserBalanceReq struct {
 func (x *GetUserBalanceReq) Reset() {
 	*x = GetUserBalanceReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[2]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -167,7 +167,7 @@ func (x *GetUserBalanceReq) String() string {
 func (*GetUserBalanceReq) ProtoMessage() {}
 
 func (x *GetUserBalanceReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[2]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -180,7 +180,7 @@ func (x *GetUserBalanceReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserBalanceReq.ProtoReflect.Descriptor instead.
 func (*GetUserBalanceReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetUserBalanceReq) GetUsername() string {
@@ -203,7 +203,7 @@ type GetUserBalanceResp struct {
 func (x *GetUserBalanceResp) Reset() {
 	*x = GetUserBalanceResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[3]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -216,7 +216,7 @@ func (x *GetUserBalanceResp) String() string {
 func (*GetUserBalanceResp) ProtoMessage() {}
 
 func (x *GetUserBalanceResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[3]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +229,7 @@ func (x *GetUserBalanceResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserBalanceResp.ProtoReflect.Descriptor instead.
 func (*GetUserBalanceResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetUserBalanceResp) GetBalanceEth() uint64 {
@@ -265,7 +265,7 @@ type GetWalletAddressbyBip32IndexReq struct {
 func (x *GetWalletAddressbyBip32IndexReq) Reset() {
 	*x = GetWalletAddressbyBip32IndexReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[4]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -278,7 +278,7 @@ func (x *GetWalletAddressbyBip32IndexReq) String() string {
 func (*GetWalletAddressbyBip32IndexReq) ProtoMessage() {}
 
 func (x *GetWalletAddressbyBip32IndexReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[4]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -291,7 +291,7 @@ func (x *GetWalletAddressbyBip32IndexReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWalletAddressbyBip32IndexReq.ProtoReflect.Descriptor instead.
 func (*GetWalletAddressbyBip32IndexReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetWalletAddressbyBip32IndexReq) GetBip32Index() uint64 {
@@ -312,7 +312,7 @@ type GetWalletAddressbyBip32IndexResp struct {
 func (x *GetWalletAddressbyBip32IndexResp) Reset() {
 	*x = GetWalletAddressbyBip32IndexResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[5]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -325,7 +325,7 @@ func (x *GetWalletAddressbyBip32IndexResp) String() string {
 func (*GetWalletAddressbyBip32IndexResp) ProtoMessage() {}
 
 func (x *GetWalletAddressbyBip32IndexResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[5]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +338,7 @@ func (x *GetWalletAddressbyBip32IndexResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWalletAddressbyBip32IndexResp.ProtoReflect.Descriptor instead.
 func (*GetWalletAddressbyBip32IndexResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetWalletAddressbyBip32IndexResp) GetWalletAddress() string {
@@ -372,7 +372,7 @@ type OrderImagesOnBlockchainReq struct {
 func (x *OrderImagesOnBlockchainReq) Reset() {
 	*x = OrderImagesOnBlockchainReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[6]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -385,7 +385,7 @@ func (x *OrderImagesOnBlockchainReq) String() string {
 func (*OrderImagesOnBlockchainReq) ProtoMessage() {}
 
 func (x *OrderImagesOnBlockchainReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[6]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +398,7 @@ func (x *OrderImagesOnBlockchainReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderImagesOnBlockchainReq.ProtoReflect.Descriptor instead.
 func (*OrderImagesOnBlockchainReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *OrderImagesOnBlockchainReq) GetOrderID() string {
@@ -468,7 +468,7 @@ type OrderImagesOnBlockchainResp struct {
 func (x *OrderImagesOnBlockchainResp) Reset() {
 	*x = OrderImagesOnBlockchainResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[7]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -481,7 +481,7 @@ func (x *OrderImagesOnBlockchainResp) String() string {
 func (*OrderImagesOnBlockchainResp) ProtoMessage() {}
 
 func (x *OrderImagesOnBlockchainResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[7]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -494,7 +494,7 @@ func (x *OrderImagesOnBlockchainResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderImagesOnBlockchainResp.ProtoReflect.Descriptor instead.
 func (*OrderImagesOnBlockchainResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *OrderImagesOnBlockchainResp) GetOrderID() string {
@@ -541,7 +541,7 @@ type DepositForPayReq struct {
 func (x *DepositForPayReq) Reset() {
 	*x = DepositForPayReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[8]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -554,7 +554,7 @@ func (x *DepositForPayReq) String() string {
 func (*DepositForPayReq) ProtoMessage() {}
 
 func (x *DepositForPayReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[8]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +567,7 @@ func (x *DepositForPayReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DepositForPayReq.ProtoReflect.Descriptor instead.
 func (*DepositForPayReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DepositForPayReq) GetTradeNo() string {
@@ -609,7 +609,7 @@ type DepositForPayResp struct {
 func (x *DepositForPayResp) Reset() {
 	*x = DepositForPayResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[9]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -622,7 +622,7 @@ func (x *DepositForPayResp) String() string {
 func (*DepositForPayResp) ProtoMessage() {}
 
 func (x *DepositForPayResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[9]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +635,7 @@ func (x *DepositForPayResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DepositForPayResp.ProtoReflect.Descriptor instead.
 func (*DepositForPayResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DepositForPayResp) GetBalanceLNMC() uint64 {
@@ -679,7 +679,7 @@ type OrderPendingStateReq struct {
 func (x *OrderPendingStateReq) Reset() {
 	*x = OrderPendingStateReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[10]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -692,7 +692,7 @@ func (x *OrderPendingStateReq) String() string {
 func (*OrderPendingStateReq) ProtoMessage() {}
 
 func (x *OrderPendingStateReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[10]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -705,7 +705,7 @@ func (x *OrderPendingStateReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderPendingStateReq.ProtoReflect.Descriptor instead.
 func (*OrderPendingStateReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *OrderPendingStateReq) GetOrderID() string {
@@ -736,7 +736,7 @@ type OrderPendingStateResp struct {
 func (x *OrderPendingStateResp) Reset() {
 	*x = OrderPendingStateResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_wallet_grpc_proto_msgTypes[11]
+		mi := &file_api_proto_wallet_Grpc_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -749,7 +749,7 @@ func (x *OrderPendingStateResp) String() string {
 func (*OrderPendingStateResp) ProtoMessage() {}
 
 func (x *OrderPendingStateResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_wallet_grpc_proto_msgTypes[11]
+	mi := &file_api_proto_wallet_Grpc_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -762,7 +762,7 @@ func (x *OrderPendingStateResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderPendingStateResp.ProtoReflect.Descriptor instead.
 func (*OrderPendingStateResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_wallet_grpc_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_wallet_Grpc_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *OrderPendingStateResp) GetIsPending() bool {
@@ -800,11 +800,11 @@ func (x *OrderPendingStateResp) GetBlockNumber() uint64 {
 	return 0
 }
 
-var File_api_proto_wallet_grpc_proto protoreflect.FileDescriptor
+var File_api_proto_wallet_Grpc_proto protoreflect.FileDescriptor
 
-var file_api_proto_wallet_grpc_proto_rawDesc = []byte{
+var file_api_proto_wallet_Grpc_proto_rawDesc = []byte{
 	0x0a, 0x1b, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x77, 0x61, 0x6c, 0x6c,
-	0x65, 0x74, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x16, 0x63,
+	0x65, 0x74, 0x2f, 0x47, 0x72, 0x70, 0x63, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x16, 0x63,
 	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x6c, 0x69, 0x61, 0x6e, 0x6d, 0x69, 0x2e, 0x69, 0x6d, 0x2e, 0x77,
 	0x61, 0x6c, 0x6c, 0x65, 0x74, 0x1a, 0x1d, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x2f, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2f, 0x41, 0x6c, 0x69, 0x70, 0x61, 0x79, 0x2e, 0x70,
@@ -953,19 +953,19 @@ var file_api_proto_wallet_grpc_proto_rawDesc = []byte{
 }
 
 var (
-	file_api_proto_wallet_grpc_proto_rawDescOnce sync.Once
-	file_api_proto_wallet_grpc_proto_rawDescData = file_api_proto_wallet_grpc_proto_rawDesc
+	file_api_proto_wallet_Grpc_proto_rawDescOnce sync.Once
+	file_api_proto_wallet_Grpc_proto_rawDescData = file_api_proto_wallet_Grpc_proto_rawDesc
 )
 
-func file_api_proto_wallet_grpc_proto_rawDescGZIP() []byte {
-	file_api_proto_wallet_grpc_proto_rawDescOnce.Do(func() {
-		file_api_proto_wallet_grpc_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_wallet_grpc_proto_rawDescData)
+func file_api_proto_wallet_Grpc_proto_rawDescGZIP() []byte {
+	file_api_proto_wallet_Grpc_proto_rawDescOnce.Do(func() {
+		file_api_proto_wallet_Grpc_proto_rawDescData = protoimpl.X.CompressGZIP(file_api_proto_wallet_Grpc_proto_rawDescData)
 	})
-	return file_api_proto_wallet_grpc_proto_rawDescData
+	return file_api_proto_wallet_Grpc_proto_rawDescData
 }
 
-var file_api_proto_wallet_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_api_proto_wallet_grpc_proto_goTypes = []interface{}{
+var file_api_proto_wallet_Grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_api_proto_wallet_Grpc_proto_goTypes = []interface{}{
 	(*TransferReq)(nil),                      // 0: cloud.lianmi.im.wallet.TransferReq
 	(*TransferResp)(nil),                     // 1: cloud.lianmi.im.wallet.TransferResp
 	(*GetUserBalanceReq)(nil),                // 2: cloud.lianmi.im.wallet.GetUserBalanceReq
@@ -983,7 +983,7 @@ var file_api_proto_wallet_grpc_proto_goTypes = []interface{}{
 	(*PreAlipayResp)(nil),                    // 14: cloud.lianmi.im.wallet.PreAlipayResp
 	(*PreWXpayResp)(nil),                     // 15: cloud.lianmi.im.wallet.PreWXpayResp
 }
-var file_api_proto_wallet_grpc_proto_depIdxs = []int32{
+var file_api_proto_wallet_Grpc_proto_depIdxs = []int32{
 	0,  // 0: cloud.lianmi.im.wallet.LianmiWallet.TransferByOrder:input_type -> cloud.lianmi.im.wallet.TransferReq
 	2,  // 1: cloud.lianmi.im.wallet.LianmiWallet.GetUserBalance:input_type -> cloud.lianmi.im.wallet.GetUserBalanceReq
 	4,  // 2: cloud.lianmi.im.wallet.LianmiWallet.GetWalletAddressbyBip32Index:input_type -> cloud.lianmi.im.wallet.GetWalletAddressbyBip32IndexReq
@@ -1007,15 +1007,15 @@ var file_api_proto_wallet_grpc_proto_depIdxs = []int32{
 	0,  // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_wallet_grpc_proto_init() }
-func file_api_proto_wallet_grpc_proto_init() {
-	if File_api_proto_wallet_grpc_proto != nil {
+func init() { file_api_proto_wallet_Grpc_proto_init() }
+func file_api_proto_wallet_Grpc_proto_init() {
+	if File_api_proto_wallet_Grpc_proto != nil {
 		return
 	}
 	file_api_proto_wallet_Alipay_proto_init()
 	file_api_proto_wallet_WXPay_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_api_proto_wallet_grpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TransferReq); i {
 			case 0:
 				return &v.state
@@ -1027,7 +1027,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TransferResp); i {
 			case 0:
 				return &v.state
@@ -1039,7 +1039,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUserBalanceReq); i {
 			case 0:
 				return &v.state
@@ -1051,7 +1051,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUserBalanceResp); i {
 			case 0:
 				return &v.state
@@ -1063,7 +1063,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetWalletAddressbyBip32IndexReq); i {
 			case 0:
 				return &v.state
@@ -1075,7 +1075,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetWalletAddressbyBip32IndexResp); i {
 			case 0:
 				return &v.state
@@ -1087,7 +1087,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OrderImagesOnBlockchainReq); i {
 			case 0:
 				return &v.state
@@ -1099,7 +1099,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OrderImagesOnBlockchainResp); i {
 			case 0:
 				return &v.state
@@ -1111,7 +1111,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DepositForPayReq); i {
 			case 0:
 				return &v.state
@@ -1123,7 +1123,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DepositForPayResp); i {
 			case 0:
 				return &v.state
@@ -1135,7 +1135,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OrderPendingStateReq); i {
 			case 0:
 				return &v.state
@@ -1147,7 +1147,7 @@ func file_api_proto_wallet_grpc_proto_init() {
 				return nil
 			}
 		}
-		file_api_proto_wallet_grpc_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_api_proto_wallet_Grpc_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OrderPendingStateResp); i {
 			case 0:
 				return &v.state
@@ -1164,20 +1164,20 @@ func file_api_proto_wallet_grpc_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_api_proto_wallet_grpc_proto_rawDesc,
+			RawDescriptor: file_api_proto_wallet_Grpc_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_wallet_grpc_proto_goTypes,
-		DependencyIndexes: file_api_proto_wallet_grpc_proto_depIdxs,
-		MessageInfos:      file_api_proto_wallet_grpc_proto_msgTypes,
+		GoTypes:           file_api_proto_wallet_Grpc_proto_goTypes,
+		DependencyIndexes: file_api_proto_wallet_Grpc_proto_depIdxs,
+		MessageInfos:      file_api_proto_wallet_Grpc_proto_msgTypes,
 	}.Build()
-	File_api_proto_wallet_grpc_proto = out.File
-	file_api_proto_wallet_grpc_proto_rawDesc = nil
-	file_api_proto_wallet_grpc_proto_goTypes = nil
-	file_api_proto_wallet_grpc_proto_depIdxs = nil
+	File_api_proto_wallet_Grpc_proto = out.File
+	file_api_proto_wallet_Grpc_proto_rawDesc = nil
+	file_api_proto_wallet_Grpc_proto_goTypes = nil
+	file_api_proto_wallet_Grpc_proto_depIdxs = nil
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1525,5 +1525,5 @@ var _LianmiWallet_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/wallet/grpc.proto",
+	Metadata: "api/proto/wallet/Grpc.proto",
 }
