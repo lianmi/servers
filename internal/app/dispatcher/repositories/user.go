@@ -178,7 +178,7 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) (*User.Query
 			Label:    userData.Label,
 			// Mobile:       userData.Mobile, 隐私
 			// Email:        userData.Email,
-			// UserType:     User.UserType(userData.UserType),
+			UserType: User.UserType(userData.UserType),
 			// Extend:       userData.Extend,
 			// TrueName:     userData.TrueName,
 			// IdentityCard: userData.IdentityCard,
