@@ -60,7 +60,7 @@ func (s *MysqlLianmiRepository) ApproveTeam(teamID string) error {
 	teamUser.TeamUserInfo.AliasName = memberNick                              //群成员别名
 	teamUser.TeamUserInfo.Avatar = memberAvatar                               //群成员头像
 	teamUser.TeamUserInfo.Label = memberLabel                                 //群成员标签
-	teamUser.TeamUserInfo.Source = ""                                         //群成员来源  TODO
+	teamUser.TeamUserInfo.Source = "系统指派"                                     //群成员来源  TODO
 	teamUser.TeamUserInfo.Extend = memberExtend                               //群成员扩展字段
 	teamUser.TeamUserInfo.TeamMemberType = int(Team.TeamMemberType_Tmt_Owner) //群成员类型 Owner(4) - 创建者
 	teamUser.TeamUserInfo.IsMute = false                                      //是否被禁言
@@ -313,9 +313,14 @@ func (s *MysqlLianmiRepository) UpdateTeamMute(teamID string, muteType int) erro
 }
 
 //增加群成员资料
-func (s *MysqlLianmiRepository) AddTeamUser(pTeamUser *models.TeamUser) error {
-	if pTeamUser == nil {
-		return errors.New("pTeamUser is nil")
+func (s *MysqlLianmiRepository) AddTeamUser(teamUserInfo *models.TeamUserInfo) error {
+
+	if teamUserInfo == nil {
+		return errors.New("teamUserInfo is nil")
+	}
+
+	pTeamUser := &models.TeamUser{
+		TeamUserInfo: *teamUserInfo,
 	}
 
 	//增加记录

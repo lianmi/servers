@@ -155,7 +155,7 @@ type LianmiRepository interface {
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 
 	//增加群成员
-	AddTeamUser(pTeamUser *models.TeamUser) error
+	AddTeamUser(teamUserInfo *models.TeamUserInfo) error
 
 	//设置获取取消群管理员
 	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error

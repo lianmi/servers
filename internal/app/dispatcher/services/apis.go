@@ -142,7 +142,7 @@ type LianmiApisService interface {
 	SubmitCommssionWithdraw(username, yearMonth string) (*Auth.CommssionWithdrawResp, error)
 
 	// 增加群成员资料
-	AddTeamUser(pTeamUser *models.TeamUser) error
+	AddTeamUser(teamUserInfo *models.TeamUserInfo) error
 
 	//设置群管理员s
 	UpdateTeamUserManager(teamID, managerUsername string, isAdd bool) error
@@ -548,8 +548,8 @@ func (s *DefaultLianmiApisService) UpdateTeamUserNotifyType(teamID string, notif
 }
 
 // 增加群成员资料
-func (s *DefaultLianmiApisService) AddTeamUser(pTeamUser *models.TeamUser) error {
-	return s.Repository.AddTeamUser(pTeamUser)
+func (s *DefaultLianmiApisService) AddTeamUser(teamUserInfo *models.TeamUserInfo) error {
+	return s.Repository.AddTeamUser(teamUserInfo)
 }
 
 //解除群成员的禁言
