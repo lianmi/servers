@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -131,9 +130,9 @@ func NewMQTTClient(o *MQTTOptions, redisPool *redis.Pool, channel *channel.NsqMq
 		mc := &MQTTClient{
 			o:                   o,
 			Addr:                o.Addr,
-			User:                o.User,   //dispatcher 登录 broker 用户名  reis里要设置正确 
-			Passwd:              o.Passwd, //dispatcher 登录 broker 密码   reis里要设置正确
-			ClientID:            o.ClientID,  //
+			User:                o.User,     //dispatcher 登录 broker 用户名  reis里要设置正确
+			Passwd:              o.Passwd,   //dispatcher 登录 broker 密码   reis里要设置正确
+			ClientID:            o.ClientID, //
 			Order:               false,
 			KeepAliveInterval:   120 * time.Second,
 			PingTimeout:         120 * time.Second,
@@ -208,226 +207,121 @@ func (mc *MQTTClient) Start() error {
 		mc.client = paho.NewClient(paho.ClientConfig{
 			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
 				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
 
-				taskId, _ := strconv.Atoi(taskIdStr)
-				businessType, _ := strconv.Atoi(businessTypeStr)
-				businessSubType, _ := strconv.Atoi(businessSubTypeStr)
+				switch topic {
+				case "lianmi/lwt":
+					lwtPayload := string(m.Payload)
+					mc.logger.Debug("Incoming lwt message", zap.String("topic", topic), zap.String("Payload", lwtPayload))
 
-				//是否是必须经过授权的请求包
-				isAuthed := false
-				userName := ""
+				case "lianmi/cloud/dispatcher":
+					jwtToken := m.Properties.User.Get("jwtToken")
+					deviceId := m.Properties.User.Get("deviceId")
+					businessTypeStr := m.Properties.User.Get("businessType")
+					businessSubTypeStr := m.Properties.User.Get("businessSubType")
+					taskIdStr := m.Properties.User.Get("taskId")
 
-				//从设备申请授权码，此时还没有令牌
-				if businessType == 2 && businessSubType == 7 {
-					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
+					taskId, _ := strconv.Atoi(taskIdStr)
+					businessType, _ := strconv.Atoi(businessTypeStr)
+					businessSubType, _ := strconv.Atoi(businessSubTypeStr)
 
-				} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 1) {
+					//是否是必须经过授权的请求包
+					isAuthed := false
+					userName := ""
 
-					mc.SendLogMsg(m.Payload)
+					//从设备申请授权码，此时还没有令牌
+					if businessType == 2 && businessSubType == 7 {
+						mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
-				} else {
-					//是否需要有效授权才能传递到后端
-					if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
-						mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
-						return
+					} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 1) {
+
+						mc.SendLogMsg(m.Payload)
+
 					} else {
-						if !isAuthed {
-							mc.logger.Warn("This message is unauthirized!!!")
+						//是否需要有效授权才能传递到后端
+						if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
+							mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
 							return
+						} else {
+							if !isAuthed {
+								mc.logger.Warn("This message is unauthirized!!!")
+								return
+							}
 						}
 					}
-				}
 
-				//输出
-				mc.logger.Debug("Incoming mqtt message",
-					zap.String("jwtToken", jwtToken),
-					zap.String("userName", userName),
-					zap.String("Topic", topic),
-					zap.String("DeviceId", deviceId),            // 设备id
-					zap.Int("TaskID", taskId),                   // 任务id
-					zap.Int("BusinessType", businessType),       // 业务类型
-					zap.Int("BusinessSubType", businessSubType), // 业务子类型
-				)
-
-				businessTypeName := Global.BusinessType_name[int32(businessType)]
-
-				nsqTopic := businessTypeName + ".Backend"
-				backendService := businessTypeName + "Service"
-
-				//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
-				backendMsg := &models.Message{}
-				now := time.Now().UnixNano() / 1e6
-				backendMsg.UpdateID()
-				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
-
-				backendMsg.SetJwtToken(jwtToken)
-				backendMsg.SetUserName(userName)
-				backendMsg.SetDeviceID(string(deviceId))
-				backendMsg.SetTaskID(uint32(taskId))
-				backendMsg.SetBusinessTypeName(businessTypeName)
-				backendMsg.SetBusinessType(uint32(businessType))
-				backendMsg.SetBusinessSubType(uint32(businessSubType))
-
-				backendMsg.BuildHeader(backendService, now)
-				backendMsg.FillBody(m.Payload) //承载真正的业务数据
-
-				//分发
-				switch Global.BusinessType(businessType) {
-				case Global.BusinessType_User,
-					Global.BusinessType_Auth,
-					Global.BusinessType_Friends,
-					Global.BusinessType_Team,
-					Global.BusinessType_Sync,
-					Global.BusinessType_Msg,
-					Global.BusinessType_Product,
-					Global.BusinessType_Order,
-					Global.BusinessType_Wallet:
-
-					//发送到Nsq
-					mc.nsqMqttChannel.NsqChan <- backendMsg
-					mc.logger.Info("Message发送到Nsq通道",
-						zap.String("nsqTopic", nsqTopic),
-						zap.String("backendService", backendService),
-						zap.Int("businessType", businessType),
-						zap.Int("businessSubType", businessSubType),
-						zap.String("msgID", backendMsg.GetID()),
+					//输出
+					mc.logger.Debug("Incoming mqtt message",
+						zap.String("jwtToken", jwtToken),
+						zap.String("userName", userName),
+						zap.String("Topic", topic),
+						zap.String("DeviceId", deviceId),            // 设备id
+						zap.Int("TaskID", taskId),                   // 任务id
+						zap.Int("BusinessType", businessType),       // 业务类型
+						zap.Int("BusinessSubType", businessSubType), // 业务子类型
 					)
 
-				case Global.BusinessType_Log: //日志, 转发到日志订阅服务器
+					businessTypeName := Global.BusinessType_name[int32(businessType)]
 
-				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+					nsqTopic := businessTypeName + ".Backend"
+					backendService := businessTypeName + "Service"
 
+					//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
+					backendMsg := &models.Message{}
+					now := time.Now().UnixNano() / 1e6
+					backendMsg.UpdateID()
+					//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+					backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
+
+					backendMsg.SetJwtToken(jwtToken)
+					backendMsg.SetUserName(userName)
+					backendMsg.SetDeviceID(string(deviceId))
+					backendMsg.SetTaskID(uint32(taskId))
+					backendMsg.SetBusinessTypeName(businessTypeName)
+					backendMsg.SetBusinessType(uint32(businessType))
+					backendMsg.SetBusinessSubType(uint32(businessSubType))
+
+					backendMsg.BuildHeader(backendService, now)
+					backendMsg.FillBody(m.Payload) //承载真正的业务数据
+
+					//分发
+					switch Global.BusinessType(businessType) {
+					case Global.BusinessType_User,
+						Global.BusinessType_Auth,
+						Global.BusinessType_Friends,
+						Global.BusinessType_Team,
+						Global.BusinessType_Sync,
+						Global.BusinessType_Msg,
+						Global.BusinessType_Product,
+						Global.BusinessType_Order,
+						Global.BusinessType_Wallet:
+
+						//发送到Nsq
+						mc.nsqMqttChannel.NsqChan <- backendMsg
+						mc.logger.Info("Message发送到Nsq通道",
+							zap.String("nsqTopic", nsqTopic),
+							zap.String("backendService", backendService),
+							zap.Int("businessType", businessType),
+							zap.Int("businessSubType", businessSubType),
+							zap.String("msgID", backendMsg.GetID()),
+						)
+
+					case Global.BusinessType_Log: //日志, 转发到日志订阅服务器
+
+					case Global.BusinessType_Custom: //自定义服务， 一般用于测试
+
+					default: //default case
+						mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
+						return
+					}
 				default: //default case
-					mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
+					mc.logger.Warn("Invalid topic", zap.String("topic", topic), zap.String("Payload", string(m.Payload)))
 					return
 				}
 
 			}),
 			Conn: conn,
 		})
-	} else { //利用TCP协议连接broker
-		conn, err := net.Dial("tcp", mc.Addr)
 
-		if err != nil {
-			mc.logger.Error("net.Dial error ", zap.String("BrokerServer", mc.Addr), zap.Error(err))
-			return errors.New("net.Dial error")
-		}
-		if conn == nil {
-			return errors.New("net.Dial error, conn is nil")
-		}
-
-		// Create paho client.
-		mc.client = paho.NewClient(paho.ClientConfig{
-			Router: paho.NewSingleHandlerRouter(func(m *paho.Publish) {
-				topic := m.Topic
-				jwtToken := m.Properties.User.Get("jwtToken") // Add by lishijia  for flutter mqtt
-				deviceId := m.Properties.User.Get("deviceId")
-				businessTypeStr := m.Properties.User.Get("businessType")
-				businessSubTypeStr := m.Properties.User.Get("businessSubType")
-				taskIdStr := m.Properties.User.Get("taskId")
-
-				taskId, _ := strconv.Atoi(taskIdStr)
-				businessType, _ := strconv.Atoi(businessTypeStr)
-				businessSubType, _ := strconv.Atoi(businessSubTypeStr)
-
-				//是否是必须经过授权的请求包
-				isAuthed := false
-				userName := ""
-				mc.logger.Debug("=====是否是必须经过授权的请求包======",
-					zap.Int("BusinessType", businessType),       // 业务类型
-					zap.Int("BusinessSubType", businessSubType), // 业务子类型
-				)
-
-				//从设备申请授权码，此时还没有令牌
-				if businessType == 2 && businessSubType == 7 {
-					mc.logger.Debug("从设备申请授权码，此时还没有令牌")
-
-				} else {
-					//是否需要有效授权才能传递到后端
-					if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
-						mc.logger.Error("MakeSureAuthed error", zap.String("Error", err.Error()))
-						return
-					} else {
-						if !isAuthed {
-							mc.logger.Warn("This message is unauthirized!!!")
-							return
-						}
-					}
-				}
-
-				//输出
-				mc.logger.Debug("Incoming mqtt message",
-					zap.String("jwtToken", jwtToken),
-					zap.String("userName", userName),
-					zap.String("Topic", topic),
-					zap.String("DeviceId", deviceId),            // 设备id
-					zap.Int("TaskID", taskId),                   // 任务id
-					zap.Int("BusinessType", businessType),       // 业务类型
-					zap.Int("BusinessSubType", businessSubType), // 业务子类型
-				)
-
-				businessTypeName := Global.BusinessType_name[int32(businessType)]
-
-				nsqTopic := businessTypeName + ".Backend"
-				backendService := businessTypeName + "Service"
-
-				//重要! 构造在后端传输的消息，包括：消息头，消息路由，业务负载
-				backendMsg := &models.Message{}
-				now := time.Now().UnixNano() / 1e6
-				backendMsg.UpdateID()
-				//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-				backendMsg.BuildRouter(businessTypeName, "", nsqTopic)
-
-				backendMsg.SetJwtToken(jwtToken)
-				backendMsg.SetUserName(userName)
-				backendMsg.SetDeviceID(string(deviceId))
-				backendMsg.SetTaskID(uint32(taskId))
-				backendMsg.SetBusinessTypeName(businessTypeName)
-				backendMsg.SetBusinessType(uint32(businessType))
-				backendMsg.SetBusinessSubType(uint32(businessSubType))
-
-				backendMsg.BuildHeader(backendService, now)
-				backendMsg.FillBody(m.Payload) //承载真正的业务数据
-
-				//分发
-				switch Global.BusinessType(businessType) {
-				case Global.BusinessType_User,
-					Global.BusinessType_Auth,
-					Global.BusinessType_Friends,
-					Global.BusinessType_Team,
-					Global.BusinessType_Sync,
-					Global.BusinessType_Msg,
-					Global.BusinessType_Product,
-					Global.BusinessType_Order,
-					Global.BusinessType_Wallet:
-
-					//发送到Nsq
-					mc.nsqMqttChannel.NsqChan <- backendMsg
-					mc.logger.Info("Message发送到Nsq通道",
-						zap.String("nsqTopic", nsqTopic),
-						zap.String("backendService", backendService),
-						zap.Int("businessType", businessType),
-						zap.Int("businessSubType", businessSubType),
-						zap.String("msgID", backendMsg.GetID()),
-					)
-					break //与C语言等规则相反，Go语言不需要用break来明确退出一个case；
-
-				case Global.BusinessType_Custom: //自定义服务， 一般用于测试
-
-				default: //default case
-					mc.logger.Warn("Incorrect business type", zap.Int("businessType", businessType), zap.String("m.Payload", string(m.Payload)))
-					return
-				}
-
-			}),
-			Conn: conn,
-		})
 	}
 
 	cp := &paho.Connect{
@@ -445,7 +339,7 @@ func (mc *MQTTClient) Start() error {
 		cp.PasswordFlag = true
 	}
 
-	//订阅的topic， 客户端发送这个topic
+	//订阅的topic， 客户端发送这个topic. lianmi/cloud/dispatcher
 	subTopic := mc.o.ResponseTopic
 	for i := 0; i < retryCount; i++ {
 		ca, err := mc.client.Connect(context.Background(), cp)
@@ -454,12 +348,13 @@ func (mc *MQTTClient) Start() error {
 				mc.logger.Info("Connected to broker server successful.", zap.String("BrokerServer", mc.Addr))
 				if _, err := mc.client.Subscribe(context.Background(), &paho.Subscribe{
 					Subscriptions: map[string]paho.SubscribeOptions{
-						subTopic: paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
+						subTopic:     paho.SubscribeOptions{QoS: byte(1), NoLocal: true},
+						"lianmi/lwt": {QoS: 1},
 					},
 				}); err != nil {
 					mc.logger.Error("Failed to subscribe", zap.Error(err))
 				}
-				mc.logger.Info("Subscribed succed", zap.String("subTopic", subTopic))
+				mc.logger.Info("Subscribed succed", zap.String("subTopic", subTopic), zap.String("lwtTopic", "lianmi/lwt"))
 
 				//启动主循环Go程, 发送给SDK的订阅回包
 				go mc.Run()
