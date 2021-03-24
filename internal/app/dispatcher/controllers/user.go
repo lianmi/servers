@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	User "github.com/lianmi/servers/api/proto/user"
 	"github.com/lianmi/servers/util/conv"
@@ -507,4 +508,32 @@ func (pc *LianmiApisController) ValidateCode(c *gin.Context) {
 	}
 
 	return
+}
+
+/*
+mqtt broker auth 插件初始化
+*/
+func (pc *LianmiApisController) SetMqttBrokerRedisAuth(deviceID, password string) {
+
+	pc.logger.Info("MqttBrokerRedisAuth start...")
+
+	setdb := redis.DialDatabase(6) //固定为6
+	setPasswd := redis.DialPassword("")
+
+	c1, err := redis.Dial("tcp", "redis:6379", setdb, setPasswd)
+	if err != nil {
+		pc.logger.Error("redis.Dial db 6 failed", zap.Error(err))
+	}
+	defer c1.Close()
+
+	_, err = redis.String(c1.Do("SET", deviceID, password))
+	if err != nil {
+		pc.logger.Error("redis SET failed", zap.Error(err))
+	} else {
+		pc.logger.Info("SetMqttBrokerRedisAuth SET ok")
+	}
+	_, err = c1.Do("EXPIRE", deviceID, LMCommon.SMSEXPIRE) //设置有效期
+	if err != nil {
+		pc.logger.Error("EXPIRE failed", zap.Error(err))
+	}
 }

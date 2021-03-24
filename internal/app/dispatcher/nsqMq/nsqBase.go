@@ -181,10 +181,10 @@ func NewNsqClient(o *NsqOptions, db *gorm.DB, redisPool *redis.Pool, channel *ch
 	}
 
 	//注册每个业务子类型的处理方法
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 1)] = nsqClient.HandleGetUsers          //1-1 获取用户资料
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 2)] = nsqClient.HandleUpdateUserProfile //1-2 修改用户资料
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 5)] = nsqClient.HandleMarkTag           //1-5 打标签
-	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 8)] = nsqClient.HandleNotaryServiceUploadPublickey           //1-8 第三方公证上传Rsa公钥
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 1)] = nsqClient.HandleGetUsers                     //1-1 获取用户资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 2)] = nsqClient.HandleUpdateUserProfile            //1-2 修改用户资料
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 5)] = nsqClient.HandleMarkTag                      //1-5 打标签
+	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(1, 8)] = nsqClient.HandleNotaryServiceUploadPublickey //1-8 第三方公证上传Rsa公钥
 
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 2)] = nsqClient.HandleSignOut        //登出处理程序
 	nsqClient.handleFuncMap[randtool.UnionUint16ToUint32(2, 4)] = nsqClient.HandleKick           //Kick处理程序
@@ -265,6 +265,32 @@ func (nc *NsqClient) RedisInit() {
 
 }
 
+/*
+mqtt broker auth 插件初始化
+*/
+func (nc *NsqClient) MqttBrokerRedisAuth() {
+
+	nc.logger.Info("MqttBrokerRedisAuth start...")
+	
+	setdb := redis.DialDatabase(6) //固定为6
+	setPasswd := redis.DialPassword("")
+
+	// addr := o.Addr
+	c1, err := redis.Dial("tcp", "redis:6379", setdb, setPasswd)
+	if err != nil {
+		nc.logger.Error("redis.Dial db 6 failed", zap.Error(err))
+	}
+	defer c1.Close()
+
+	_, err = redis.String(c1.Do("SET", "dispatcher", "lianmicloud")) //写死
+	if err != nil {
+		nc.logger.Error("redis SET failed", zap.Error(err))
+	} else {
+		nc.logger.Info("MqttBrokerRedisAuth SET ok")
+	}
+
+}
+
 //启动Nsq实例
 func (nc *NsqClient) Start() error {
 	nc.logger.Info("Dispatcher NsqClient Start()")
@@ -285,6 +311,9 @@ func (nc *NsqClient) Start() error {
 
 	//redis初始化
 	go nc.RedisInit()
+
+	//mqtt broker auth初始化
+	go nc.MqttBrokerRedisAuth()
 
 	//Go程，启动定时任务
 	go nc.RunCron()

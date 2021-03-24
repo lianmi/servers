@@ -273,6 +273,9 @@ func CreateInitControllersFn(
 				//将userName, deviceID, token及expire保存到redis, 用于mqtt协议的消息的授权验证
 				pc.SaveUserToken(userName, deviceID, token, t)
 
+				//将新的token写入redis（db=6）
+				pc.SetMqttBrokerRedisAuth(deviceID, token)
+
 				user, err := pc.service.GetUser(userName)
 				if err != nil {
 					pc.logger.Error("Get User by userName error", zap.Error(err))

@@ -13,8 +13,8 @@ nsq:
   chnanel: im
 mqtt:
   addr: mosquitto:1883
-  user: ""
-  passwd: ""
+  user: "dispatcher"
+  passwd: "lianmicloud"
   clientid: dispatcher-client01
   topicprefix: lianmi/cloud/device/
   responseTopic: lianmi/cloud/dispatcher

@@ -16,8 +16,8 @@ nsq:
   chnanelName: im
 mqtt:
   addr: 127.0.0.1:1883
-  user: ""
-  passwd: ""
+  user: "dispatcher"
+  passwd: "lianmicloud"
   clientid: dispatcher-client01
   topicprefix: lianmi/cloud/device/
   responseTopic: lianmi/cloud/dispatcher
