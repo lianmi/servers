@@ -1,0 +1,15 @@
+version: '3'
+services:
+  mqtt_server:
+    ports:
+      - 1883:1883
+    build:
+      context: .
+      dockerfile: "./mqtt_base/Dockerfile"
+    volumes:
+      - "./mq_config.conf:/mosquitto/config/mosquitto.conf"
+      - "./logs/:/mosquitto/log/"
+      - "./conf.d/:/mosquitto/config/conf.d/"
+      - "./plguin/:/mosquitto/config/plguin/"
+      - "./ca/:/mosquitto/ca/"
+

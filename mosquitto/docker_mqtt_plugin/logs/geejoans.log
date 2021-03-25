@@ -1,0 +1,307 @@
+1616494820: New connection from 172.22.0.1:55244 on port 1883.
+1616494820: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494820: Client <unknown> disconnected: Protocol error.
+1616494821: New connection from 172.22.0.1:55248 on port 1883.
+1616494821: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494821: Client <unknown> disconnected: Protocol error.
+1616494822: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494823: New connection from 172.22.0.1:55256 on port 1883.
+1616494823: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494823: Client <unknown> disconnected: Protocol error.
+1616494824: New connection from 172.22.0.1:55262 on port 1883.
+1616494824: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494824: Client <unknown> disconnected: Protocol error.
+1616494825: New connection from 172.22.0.1:55266 on port 1883.
+1616494825: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494825: Client <unknown> disconnected: Protocol error.
+1616494826: New connection from 172.22.0.1:55270 on port 1883.
+1616494826: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494826: Client <unknown> disconnected: Protocol error.
+1616494827: New connection from 172.22.0.1:55274 on port 1883.
+1616494827: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494827: Client <unknown> disconnected: Protocol error.
+1616494828: New connection from 172.22.0.1:55278 on port 1883.
+1616494828: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494828: Client <unknown> disconnected: Protocol error.
+1616494829: New connection from 172.22.0.1:55288 on port 1883.
+1616494829: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494829: Client <unknown> disconnected: Protocol error.
+1616494830: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494831: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494832: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494833: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494834: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494835: New connection from 172.22.0.1:55340 on port 1883.
+1616494835: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494835: Client <unknown> disconnected: Protocol error.
+1616494836: New connection from 172.22.0.1:55350 on port 1883.
+1616494836: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494836: Client <unknown> disconnected: Protocol error.
+1616494837: New connection from 172.22.0.1:55362 on port 1883.
+1616494837: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494837: Client <unknown> disconnected: Protocol error.
+1616494838: New connection from 172.22.0.1:55384 on port 1883.
+1616494838: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494838: Client <unknown> disconnected: Protocol error.
+1616494839: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494840: New connection from 172.22.0.1:55398 on port 1883.
+1616494840: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494840: Client <unknown> disconnected: Protocol error.
+1616494841: New connection from 172.22.0.1:55404 on port 1883.
+1616494841: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494841: Client <unknown> disconnected: Protocol error.
+1616494842: New connection from 172.22.0.1:55408 on port 1883.
+1616494842: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494842: Client <unknown> disconnected: Protocol error.
+1616494843: New connection from 172.22.0.1:55412 on port 1883.
+1616494843: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494843: Client <unknown> disconnected: Protocol error.
+1616494844: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494845: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494846: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494847: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494848: New connection from 172.22.0.1:55442 on port 1883.
+1616494848: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494848: Client <unknown> disconnected: Protocol error.
+1616494849: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494850: New connection from 172.22.0.1:55450 on port 1883.
+1616494850: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494850: Client <unknown> disconnected: Protocol error.
+1616494851: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494852: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494853: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494854: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494855: New connection from 172.22.0.1:55530 on port 1883.
+1616494855: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494855: Client <unknown> disconnected: Protocol error.
+1616494856: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494857: New connection from 172.22.0.1:55548 on port 1883.
+1616494857: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494857: Client <unknown> disconnected: Protocol error.
+1616494858: New connection from 172.22.0.1:55562 on port 1883.
+1616494858: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494858: Client <unknown> disconnected: Protocol error.
+1616494859: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494860: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494861: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494862: New connection from 172.22.0.1:55590 on port 1883.
+1616494862: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494862: Client <unknown> disconnected: Protocol error.
+1616494863: New connection from 172.22.0.1:55594 on port 1883.
+1616494863: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494863: Client <unknown> disconnected: Protocol error.
+1616494864: New connection from 172.22.0.1:55598 on port 1883.
+1616494864: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494864: Client <unknown> disconnected: Protocol error.
+1616494865: New connection from 172.22.0.1:55602 on port 1883.
+1616494865: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494865: Client <unknown> disconnected: Protocol error.
+1616494866: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494867: New connection from 172.22.0.1:55618 on port 1883.
+1616494867: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494867: Client <unknown> disconnected: Protocol error.
+1616494868: New connection from 172.22.0.1:55630 on port 1883.
+1616494868: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494868: Client <unknown> disconnected: Protocol error.
+1616494869: New connection from 172.22.0.1:55634 on port 1883.
+1616494869: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494869: Client <unknown> disconnected: Protocol error.
+1616494870: New connection from 172.22.0.1:55662 on port 1883.
+1616494870: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494870: Client <unknown> disconnected: Protocol error.
+1616494871: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494872: New connection from 172.22.0.1:55714 on port 1883.
+1616494872: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494872: Client <unknown> disconnected: Protocol error.
+1616494873: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494874: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494875: New connection from 172.22.0.1:55734 on port 1883.
+1616494875: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494875: Client <unknown> disconnected: Protocol error.
+1616494876: New connection from 172.22.0.1:55738 on port 1883.
+1616494876: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494876: Client <unknown> disconnected: Protocol error.
+1616494877: New connection from 172.22.0.1:55748 on port 1883.
+1616494877: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494877: Client <unknown> disconnected: Protocol error.
+1616494878: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494879: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494880: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494881: New connection from 172.22.0.1:55764 on port 1883.
+1616494881: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494881: Client <unknown> disconnected: Protocol error.
+1616494882: New connection from 172.22.0.1:55768 on port 1883.
+1616494882: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494882: Client <unknown> disconnected: Protocol error.
+1616494883: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494884: New connection from 172.22.0.1:55776 on port 1883.
+1616494884: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494884: Client <unknown> disconnected: Protocol error.
+1616494885: New connection from 172.22.0.1:55780 on port 1883.
+1616494885: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494885: Client <unknown> disconnected: Protocol error.
+1616494886: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494887: New connection from 172.22.0.1:55790 on port 1883.
+1616494887: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494887: Client <unknown> disconnected: Protocol error.
+1616494888: New connection from 172.22.0.1:55794 on port 1883.
+1616494888: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494888: Client <unknown> disconnected: Protocol error.
+1616494889: New connection from 172.22.0.1:55804 on port 1883.
+1616494889: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494889: Client <unknown> disconnected: Protocol error.
+1616494890: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494891: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494892: New connection from 172.22.0.1:55820 on port 1883.
+1616494892: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494892: Client <unknown> disconnected: Protocol error.
+1616494893: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494894: New connection from 172.22.0.1:55828 on port 1883.
+1616494894: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494894: Client <unknown> disconnected: Protocol error.
+1616494895: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494896: New connection from 172.22.0.1:55874 on port 1883.
+1616494896: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494896: Client <unknown> disconnected: Protocol error.
+1616494897: New connection from 172.22.0.1:55910 on port 1883.
+1616494897: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494897: Client <unknown> disconnected: Protocol error.
+1616494898: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494899: New connection from 172.22.0.1:55944 on port 1883.
+1616494899: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494899: Client <unknown> disconnected: Protocol error.
+1616494900: New connection from 172.22.0.1:55948 on port 1883.
+1616494900: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494900: Client <unknown> disconnected: Protocol error.
+1616494901: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494902: New connection from 172.22.0.1:55968 on port 1883.
+1616494902: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494902: Client <unknown> disconnected: Protocol error.
+1616494903: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494904: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494905: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494906: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494907: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616494908: New connection from 172.22.0.1:56004 on port 1883.
+1616494908: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494908: Client <unknown> disconnected: Protocol error.
+1616494909: New connection from 172.22.0.1:56008 on port 1883.
+1616494909: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616494909: Client <unknown> disconnected: Protocol error.
+1616494910: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495006: mosquitto version 2.0.9 terminating
+1616495007: mosquitto version 2.0.9 starting
+1616495007: Config loaded from /mosquitto/config/mosquitto.conf.
+1616495007: Loading plugin: /mosquitto/config/plguin/libmqtt_plugin.so
+1616495007:  ├── Username/password checking enabled.
+1616495007:  ├── TLS-PSK checking enabled.
+1616495007:  └── Extended authentication not enabled.
+1616495007: Opening ipv4 listen socket on port 1883.
+1616495007: Opening ipv6 listen socket on port 1883.
+1616495007: mosquitto version 2.0.9 running
+1616495018: New connection from 172.22.0.1:56524 on port 1883.
+1616495018: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495018: Client <unknown> disconnected: Protocol error.
+1616495019: New connection from 172.22.0.1:56528 on port 1883.
+1616495019: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495019: Client <unknown> disconnected: Protocol error.
+1616495020: New connection from 172.22.0.1:56532 on port 1883.
+1616495020: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495020: Client <unknown> disconnected: Protocol error.
+1616495021: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495022: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495023: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495024: New connection from 172.22.0.1:56552 on port 1883.
+1616495024: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495024: Client <unknown> disconnected: Protocol error.
+1616495025: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495026: New connection from 172.22.0.1:56574 on port 1883.
+1616495026: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495026: Client <unknown> disconnected: Protocol error.
+1616495027: New connection from 172.22.0.1:56596 on port 1883.
+1616495027: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495027: Client <unknown> disconnected: Protocol error.
+1616495028: New connection from 172.22.0.1:56602 on port 1883.
+1616495028: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495028: Client <unknown> disconnected: Protocol error.
+1616495029: New connection from 172.22.0.1:56614 on port 1883.
+1616495029: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495029: Client <unknown> disconnected: Protocol error.
+1616495030: New connection from 172.22.0.1:56622 on port 1883.
+1616495030: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495030: Client <unknown> disconnected: Protocol error.
+1616495031: New connection from 172.22.0.1:56632 on port 1883.
+1616495031: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495031: Client <unknown> disconnected: Protocol error.
+1616495032: New connection from 172.22.0.1:56638 on port 1883.
+1616495032: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495032: Client <unknown> disconnected: Protocol error.
+1616495033: New connection from 172.22.0.1:56644 on port 1883.
+1616495033: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495033: Client <unknown> disconnected: Protocol error.
+1616495034: New connection from 172.22.0.1:56656 on port 1883.
+1616495034: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495034: Client <unknown> disconnected: Protocol error.
+1616495035: New connection from 172.22.0.1:56662 on port 1883.
+1616495035: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495035: Client <unknown> disconnected: Protocol error.
+1616495036: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495037: New connection from 172.22.0.1:56678 on port 1883.
+1616495037: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495037: Client <unknown> disconnected: Protocol error.
+1616495038: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495039: New connection from 172.22.0.1:56692 on port 1883.
+1616495039: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495039: Client <unknown> disconnected: Protocol error.
+1616495040: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495041: New connection from 172.22.0.1:56700 on port 1883.
+1616495041: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495041: Client <unknown> disconnected: Protocol error.
+1616495042: New connection from 172.22.0.1:56704 on port 1883.
+1616495042: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495042: Client <unknown> disconnected: Protocol error.
+1616495043: New connection from 172.22.0.1:56708 on port 1883.
+1616495043: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495043: Client <unknown> disconnected: Protocol error.
+1616495044: New connection from 172.22.0.1:56714 on port 1883.
+1616495044: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495044: Client <unknown> disconnected: Protocol error.
+1616495045: New connection from 172.22.0.1:56718 on port 1883.
+1616495045: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495045: Client <unknown> disconnected: Protocol error.
+1616495046: New connection from 172.22.0.1:56722 on port 1883.
+1616495046: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495046: Client <unknown> disconnected: Protocol error.
+1616495047: New connection from 172.22.0.1:56726 on port 1883.
+1616495047: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495047: Client <unknown> disconnected: Protocol error.
+1616495048: Client connection from 172.22.0.1 failed: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol.
+1616495049: New connection from 172.22.0.1:56748 on port 1883.
+1616495049: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495049: Client <unknown> disconnected: Protocol error.
+1616495050: New connection from 172.22.0.1:56752 on port 1883.
+1616495050: OpenSSL Error[0]: error:140260FC:SSL routines:ACCEPT_SR_CLNT_HELLO:unknown protocol
+1616495050: Client <unknown> disconnected: Protocol error.
+1616495085: mosquitto version 2.0.9 terminating
+1616495086: mosquitto version 2.0.9 starting
+1616495086: Config loaded from /mosquitto/config/mosquitto.conf.
+1616495086: Loading plugin: /mosquitto/config/plguin/libmqtt_plugin.so
+1616495086:  ├── Username/password checking enabled.
+1616495086:  ├── TLS-PSK checking enabled.
+1616495086:  └── Extended authentication not enabled.
+1616495086: Opening ipv4 listen socket on port 1883.
+1616495086: Opening ipv6 listen socket on port 1883.
+1616495086: mosquitto version 2.0.9 running
+1616495097: New connection from 172.22.0.1:56860 on port 1883.
+1616495097: Sending CONNACK to 172.22.0.1 (0, 5)
+1616495097: Client <unknown> disconnected, not authorised.
+1616495136: New connection from 172.22.0.1:57284 on port 1883.
+1616495136: New client connected from 172.22.0.1:57284 as mosq-xJDpPceN77KXx6tAVH (p2, c1, k60, u'test').
+1616495136: No will message specified.
+1616495136: Sending CONNACK to mosq-xJDpPceN77KXx6tAVH (0, 0)
+1616495136: Received SUBSCRIBE from mosq-xJDpPceN77KXx6tAVH
+1616495136: 	test (QoS 0)
+1616495136: mosq-xJDpPceN77KXx6tAVH 0 test
+1616495136: Sending SUBACK to mosq-xJDpPceN77KXx6tAVH
+1616495150: Received DISCONNECT from mosq-xJDpPceN77KXx6tAVH
+1616495150: Client mosq-xJDpPceN77KXx6tAVH disconnected.

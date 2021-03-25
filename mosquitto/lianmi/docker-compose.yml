@@ -1,0 +1,129 @@
+version: "3.4"
+services:
+  redis:
+    image: redis:6.0.6
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:6379:6379
+    volumes:
+      - ./redis/data:/data
+      - ./redis/conf/redis.conf:/redis.conf
+    command:
+      - "redis-server"
+      - "/redis.conf"
+      - "--appendonly"
+      - "yes"
+#    logging:
+#      driver: fluentd
+#      options:
+#        fluentd-address: localhost:24224
+#        fluentd-retry-wait: '1s'
+#        fluentd-max-retries: '30'
+#        tag: lianmi.lm-cloud.redis
+
+
+  db:
+    image: mariadb:10.5.5
+    container_name: mariadb
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:3306:3306
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: lianmicloud
+      MYSQL_USER: lianmidba
+      MYSQL_PASSWORD: 12345678
+#    logging:
+#      driver: fluentd
+#      options:
+#        fluentd-address: localhost:24224
+#        fluentd-retry-wait: '1s'
+#        fluentd-max-retries: '30'
+#        tag: lianmi.lm-cloud.mariadb
+
+  admindb:
+    image: mysql:8.0.23
+    container_name: mysql8
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:3316:3316
+    volumes:
+      - ./mysql8/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: lianmiadmin
+      MYSQL_USER: lianmiadmin
+      MYSQL_PASSWORD: 12345678
+
+  consul:
+    image: consul:1.8.2
+    container_name: consul
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:8500:8500       # Web UI
+      - 127.0.0.1:8600:8600/udp   # DNS (TCP also supported)
+    # environment:
+      # CONSUL_BIND_INTERFACE: eth0
+    command:
+      - "agent"
+      - "-server"
+      - "-ui"
+      - "-node=server-1"
+      - "-bootstrap-expect=1"
+      - "-client=0.0.0.0"
+#    logging:
+#      driver: fluentd
+#      options:
+#        fluentd-address: localhost:24224
+#        fluentd-retry-wait: '1s'
+#        fluentd-max-retries: '30'
+#        tag: lianmi.lm-cloud.consul
+
+  mosquitto:
+    # image: eclipse-mosquitto:2.0.9 不能用官方的
+    container_name: mosquitto
+    restart: unless-stopped    
+    ports:
+      - 1883:1883
+      - 127.0.0.1:9001:9001
+    build:
+      context: .
+      dockerfile: "./mqtt_base/Dockerfile"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+      - ./mosquitto/conf.d:/mosquitto/config/conf.d
+      - ./mosquitto/plguin:/mosquitto/config/plguin
+      - ./mosquitto/ca:/mosquitto/ca
+    
+    
+  # mosquitto:
+  #   image: eclipse-mosquitto
+  #   container_name: mosquitto
+  #   restart: unless-stopped
+  #   ports:
+  #     - 1883:1883
+  #     - 127.0.0.1:9001:9001
+  #   volumes:
+  #     - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+  #     - ./mosquitto/data:/mosquitto/data
+  #     - ./mosquitto/log:/mosquitto/log
+  #     - ./mosquitto/ca:/mosquitto/ca
+#    logging:
+#      driver: fluentd
+#      options:
+#        fluentd-address: localhost:24224
+#        fluentd-retry-wait: '1s'
+#        fluentd-max-retries: '30'
+#        tag: lianmi.lm-cloud.mosquitto
+
+
+networks:
+  default:
+    # driver: bridge
+    external:
+      name: br-lianmi # Create using "docker network create br-lianmi" before run.
