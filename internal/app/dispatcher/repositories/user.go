@@ -825,6 +825,11 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 	deviceKey := fmt.Sprintf("DeviceJwtToken:%s", deviceID)
 	_, err = redisConn.Do("DEL", deviceKey) //删除DeviceJwtToken
 
+	//从在线用户列表移除此设备id
+	if _, err := redisConn.Do("ZREM", "OnlineUsers", deviceID); err != nil {
+		s.logger.Error("ZREM Error", zap.Error(err))
+	}
+
 	s.logger.Debug("SignOut end")
 	_ = err
 	return true
