@@ -1034,6 +1034,8 @@ COMPLETE:
 
 /*
 6-1 发起同步请求
+由于SDK在断线重连后也需要增量同步一次，因为，将broker的 在线用户列表放在这里 
+
 */
 func (nc *NsqClient) HandleSync(msg *models.Message) error {
 	var err error
@@ -1076,6 +1078,10 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
+		if err := mc.AddOnlineUsers(deviceID); err != nil {
+			mc.logger.Error("AddOnlineUsers Error", zap.Error(err))
+		}
+		
 		nc.logger.Debug("Sync payload",
 			zap.Uint64("MyInfoAt", req.MyInfoAt),
 			zap.Uint64("FriendsAt", req.FriendsAt),

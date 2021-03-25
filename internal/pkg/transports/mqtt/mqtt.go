@@ -584,9 +584,6 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 								} else {
 									isAuthed = true //授权通过
 
-									if err := mc.AddOnlineUsers(deviceID); err != nil {
-										mc.logger.Error("AddOnlineUsers Error", zap.Error(err))
-									}
 								}
 							}
 						}
