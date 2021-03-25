@@ -532,7 +532,7 @@ func (pc *LianmiApisController) SetMqttBrokerRedisAuth(deviceID, password string
 	} else {
 		pc.logger.Info("SetMqttBrokerRedisAuth SET ok")
 	}
-	_, err = c1.Do("EXPIRE", deviceID, LMCommon.SMSEXPIRE) //设置有效期
+	_, err = c1.Do("EXPIRE", deviceID, LMCommon.ExpireTime) //设置有效期30天
 	if err != nil {
 		pc.logger.Error("EXPIRE failed", zap.Error(err))
 	}
