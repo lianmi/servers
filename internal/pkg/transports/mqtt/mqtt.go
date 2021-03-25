@@ -26,6 +26,7 @@ import (
 	Log "github.com/lianmi/servers/api/proto/log"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/array"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	LMCommon "github.com/lianmi/servers/internal/common"
@@ -211,7 +212,14 @@ func (mc *MQTTClient) Start() error {
 				switch topic {
 				case "lianmi/lwt":
 					lwtPayload := string(m.Payload)
-					mc.logger.Debug("Incoming lwt message", zap.String("topic", topic), zap.String("Payload", lwtPayload))
+					lwtDeviceID := array.Substr2(lwtPayload, len("disconnected:"), len(lwtPayload))
+
+					mc.logger.Debug("Incoming lwt message", zap.String("topic", topic), zap.String("Payload", lwtPayload), zap.String("lwtDeviceID", lwtDeviceID))
+
+					//从在线用户列表里移除出这个设备id
+					if err := mc.RemoveOnlineUsers(lwtDeviceID); err != nil {
+						mc.logger.Error("RemoveOnlineUsers error", zap.Error(err))
+					}
 
 				case "lianmi/cloud/dispatcher":
 					jwtToken := m.Properties.User.Get("jwtToken")
@@ -575,6 +583,10 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 									isAuthed = false
 								} else {
 									isAuthed = true //授权通过
+
+									if err := mc.AddOnlineUsers(deviceID); err != nil {
+										mc.logger.Error("AddOnlineUsers Error", zap.Error(err))
+									}
 								}
 							}
 						}
@@ -624,6 +636,32 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 		return jwtUserName, false, errors.New("DeviceId is not authorized")
 	}
 
+}
+
+//redis 的 OnlineUsers
+func (mc *MQTTClient) AddOnlineUsers(deviceId string) error {
+	redisConn := mc.redisPool.Get()
+	defer redisConn.Close()
+
+	if _, err := redisConn.Do("ZADD", "OnlineUsers", time.Now().UnixNano()/1e6, deviceId); err != nil {
+		mc.logger.Error("ZADD Error", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+//redis 的 OnlineUsers
+func (mc *MQTTClient) RemoveOnlineUsers(deviceId string) error {
+	redisConn := mc.redisPool.Get()
+	defer redisConn.Close()
+
+	if _, err := redisConn.Do("ZREM", "OnlineUsers", deviceId); err != nil {
+		mc.logger.Error("ZREM Error", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 var ProviderSet = wire.NewSet(NewMQTTOptions, NewMQTTClient)
