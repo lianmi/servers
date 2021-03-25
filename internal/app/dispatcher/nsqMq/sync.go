@@ -1034,7 +1034,7 @@ COMPLETE:
 
 /*
 6-1 发起同步请求
-由于SDK在断线重连后也需要增量同步一次，因为，将broker的 在线用户列表放在这里 
+由于SDK在断线重连后也需要增量同步一次，因为，将broker的 在线用户列表放在这里
 
 */
 func (nc *NsqClient) HandleSync(msg *models.Message) error {
@@ -1078,10 +1078,12 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 		goto COMPLETE
 
 	} else {
-		if err := mc.AddOnlineUsers(deviceID); err != nil {
-			mc.logger.Error("AddOnlineUsers Error", zap.Error(err))
+		if err := nc.AddOnlineUsers(deviceID); err != nil {
+			nc.logger.Error("AddOnlineUsers Error", zap.Error(err))
+		} else {
+			nc.logger.Debug("AddOnlineUsers OK", zap.String("deviceID", deviceID))
 		}
-		
+
 		nc.logger.Debug("Sync payload",
 			zap.Uint64("MyInfoAt", req.MyInfoAt),
 			zap.Uint64("FriendsAt", req.FriendsAt),
@@ -1168,6 +1170,19 @@ COMPLETE:
 	_ = token
 	return nil
 
+}
+
+//redis 的 OnlineUsers
+func (nc *NsqClient) AddOnlineUsers(deviceId string) error {
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	if _, err := redisConn.Do("ZADD", "OnlineUsers", time.Now().UnixNano()/1e6, deviceId); err != nil {
+		nc.logger.Error("ZADD Error", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (nc *NsqClient) SendSyncDoneEventToUser(toUser, deviceID, token string) error {

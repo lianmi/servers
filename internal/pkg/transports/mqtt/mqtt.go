@@ -635,18 +635,6 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 
 }
 
-//redis 的 OnlineUsers
-func (mc *MQTTClient) AddOnlineUsers(deviceId string) error {
-	redisConn := mc.redisPool.Get()
-	defer redisConn.Close()
-
-	if _, err := redisConn.Do("ZADD", "OnlineUsers", time.Now().UnixNano()/1e6, deviceId); err != nil {
-		mc.logger.Error("ZADD Error", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
 
 //redis 的 OnlineUsers
 func (mc *MQTTClient) RemoveOnlineUsers(deviceId string) error {
