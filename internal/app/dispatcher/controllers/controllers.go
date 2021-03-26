@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/common"
+	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
+	"github.com/pkg/errors"
 
 	"github.com/lianmi/servers/internal/common/helper"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -27,16 +29,16 @@ const (
 
 // Login form structure.
 type Login struct {
-	Mobile          string `form:"mobile" json:"mobile"`      // 11位手机号 选填
-	Username        string `form:"username" json:"username"`  //注册号，当mobile非空的时候，选填
-	Password        string `form:"password" json:"password" ` //密码 Username非空时必填
-	SmsCode         string `form:"smscode" json:"smscode" `   //短信校验码，Mobile非空时必填
-	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
-	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
-	Os              string `form:"os" json:"os" binding:"required"`
-	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
-	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`
-	IsMaster        bool   `form:"ismaster" json:"ismaster"` //由于golang对false处理不对，所以不能设为必填
+	Mobile          string `form:"mobile" json:"mobile"`                          // 11位手机号 选填
+	Username        string `form:"username" json:"username"`                      //注册号，当mobile非空的时候，选填
+	Password        string `form:"password" json:"password" `                     //密码 Username非空时必填
+	SmsCode         string `form:"smscode" json:"smscode" `                       //短信校验码，Mobile非空时必填
+	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`   //必填
+	ClientType      int    `form:"clientype" json:"clientype" binding:"required"` //必填，用户类型，区分普通用户或商户
+	Os              string `form:"os" json:"os" `                                 //非必填，客户端的操作系统
+	ProtocolVersion string `form:"protocolversion" json:"protocolversion"`        //非必填，协议版本
+	SdkVersion      string `form:"sdkversion" json:"sdkversion"`                  //非必填，sdk版本
+	IsMaster        bool   `form:"ismaster" json:"ismaster"`                      //由于golang对false处理不对，所以不能设为必填
 }
 
 type LoginResp struct {
@@ -126,13 +128,14 @@ func CreateInitControllersFn(
 					return "", gin_jwt_v2.ErrMissingLoginValues
 				}
 				var err error
-				isMaster := loginVals.IsMaster
+				// isMaster := loginVals.IsMaster
+				isMaster := true  //强制设置为主设备 
 				smscode := strings.TrimSpace(loginVals.SmsCode)
 				mobile := strings.TrimSpace(loginVals.Mobile)
 				username := strings.TrimSpace(loginVals.Username)
 				password := strings.TrimSpace(loginVals.Password)
 				deviceID := strings.TrimSpace(loginVals.DeviceID)
-				clientType := loginVals.ClientType
+				clientType := loginVals.ClientType //1-普通用户 2-商户
 				os := strings.TrimSpace(loginVals.Os)
 
 				pc.logger.Debug("Authenticator ...",
@@ -164,27 +167,71 @@ func CreateInitControllersFn(
 						pc.logger.Warn("Mobile Is not Digit")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
+					//检测校验码是否正确
+					if !pc.service.CheckSmsCode(mobile, smscode) {
+						pc.logger.Error("Register user error, SmsCode is wrong")
+
+						errMsg := LMCError.ErrorMsg(LMCError.SmsCodeCheckError)
+						return "", errors.Wrap(err, errMsg)
+					}
+
+					//根据手机号获取用户id
 					username, err = pc.service.GetUsernameByMobile(mobile)
 					if err != nil {
 						pc.logger.Warn("GetUsernameByMobile error")
-						return "", gin_jwt_v2.ErrMissingLoginValues
+						errMsg := LMCError.ErrorMsg(LMCError.MobileNotRegisterError)
+						return "", errors.Wrap(err, errMsg)
 					}
 
 					//如果最终username为空则未注册
 					if username == "" {
-						pc.logger.Warn("username get error")
-						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-					//检测校验码是否正确
-					if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
-						pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
+						pc.logger.Warn("mobile is not registered")
 
-						return &models.UserRole{
-							UserName: username,
-							DeviceID: deviceID,
-						}, nil
+						//将用户注册
+						// return "", gin_jwt_v2.ErrMissingLoginValues
+						user := models.User{
+							UserBase: models.UserBase{
+								Mobile:    mobile, //注册手机
+								AllowType: 3,      //用户加好友枚举，默认是3
+								UserType:  1,      //用户类型 1-普通，2-商户
+								State:     0,      //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+							},
+						}
+
+						if userName, err := pc.service.Register(&user); err == nil {
+							pc.logger.Debug("Register user success", zap.String("userName", userName))
+							// 检测用户是否可以登录, true-可以允许登录
+							if pc.CheckUser(true, username, password, deviceID, os, clientType) {
+								pc.logger.Debug("Authenticator , CheckUser .... true")
+
+								return &models.UserRole{
+									UserName: username,
+									DeviceID: deviceID,
+								}, nil
+
+							} else {
+								pc.logger.Warn("Authenticator , CheckUser .... false")
+								return "", gin_jwt_v2.ErrMissingLoginValues
+							}
+
+						} else {
+							pc.logger.Error("Register user error", zap.Error(err))
+							pc.logger.Warn("Authenticator , CheckUser .... false")
+						}
+
 					} else {
-						pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
+
+						//检测校验码是否正确
+						if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
+							pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
+
+							return &models.UserRole{
+								UserName: username,
+								DeviceID: deviceID,
+							}, nil
+						} else {
+							pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
+						}
 					}
 
 				} else if mobile == "" && username != "" {
@@ -345,7 +392,7 @@ func CreateInitControllersFn(
 		auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
-			
+
 			auth.GET("/devices", pc.GetAllDevices) //获取当前用户的登录设备
 			auth.GET("/signout", pc.SignOut)       //登出
 

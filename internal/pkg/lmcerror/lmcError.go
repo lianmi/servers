@@ -21,6 +21,7 @@ const (
 	GenerateSignatureUrlError        = 10015 // 生成临时凭证错误
 	UserNotExistsError               = 10016 // 用户不存在或未注册
 	SmsCodeCheckError                = 10017 // 手机验证码错误
+	MobileNotRegisterError           = 10018 // 手机未注册错误
 
 	UserModUpdateProfileError = 2010201 //修改用户资料出错
 	UserModUpdateStoreError   = 2010202 //修改商户店铺资料出错
@@ -136,15 +137,17 @@ var LmcErrors = map[int]string{
 
 	ProtobufUnmarshalError: "协议解包错误",
 
-	RedisError:           "缓存错误",
-	DataBaseError:        "系统数据库错误",
-	DecodingHexError:     "Hex解码错误",
-	ParseAttachError:     "解释Attach错误",
-	Base64DecodingError:  "Base64解码错误",
-	AttachBodyTypeError:  "Attach里的类型错误",
-	UnkownOrderTypeError: "订单状态未定义",
-	ParamError:           "参数错误",
-	UserNotExistsError:   "用户不存在或未注册",
+	RedisError:             "缓存错误",
+	DataBaseError:          "系统数据库错误",
+	DecodingHexError:       "Hex解码错误",
+	ParseAttachError:       "解释Attach错误",
+	Base64DecodingError:    "Base64解码错误",
+	AttachBodyTypeError:    "Attach里的类型错误",
+	UnkownOrderTypeError:   "订单状态未定义",
+	ParamError:             "参数错误",
+	UserNotExistsError:     "用户不存在或未注册",
+	SmsCodeCheckError:      "手机验证码错误",
+	MobileNotRegisterError: "手机未注册错误",
 
 	NormalUsernameIsEmptyError:   "普通用户账号不能为空",
 	BusinessUsernameIsEmptyError: "商户用户账号不能为空",
