@@ -930,7 +930,8 @@ func (s *MysqlLianmiRepository) GetUsernameByMobile(mobile string) (string, erro
 		},
 	}).First(user).Error; err != nil {
 		s.logger.Error("MySQL里读取错误或记录不存在", zap.Error(err))
-		return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
+		// return "", errors.Wrapf(err, "Get username error[mobile=%s]", mobile)
+		return "", err
 	} else {
 		return user.Username, nil
 	}
