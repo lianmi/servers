@@ -173,7 +173,7 @@ func CreateInitControllersFn(
 						pc.logger.Error("CheckSmsCode error, SmsCode is wrong")
 
 						errMsg := LMCError.ErrorMsg(LMCError.SmsCodeCheckError)
-						return "", errors.Wrap(err, errMsg)
+						return "", errors.New(errMsg)
 					}
 
 					//根据手机号获取用户id ???
@@ -193,8 +193,8 @@ func CreateInitControllersFn(
 								},
 							}
 
-							if userName, err := pc.service.Register(&user); err == nil {
-								pc.logger.Debug("Register user success", zap.String("userName", userName))
+							if username, err = pc.service.Register(&user); err == nil {
+								pc.logger.Debug("Register user success", zap.String("username", username))
 								// 检测用户是否可以登录, true-可以允许登录
 								if pc.CheckUser(true, username, password, deviceID, os, userType) {
 									pc.logger.Debug("Authenticator , CheckUser .... true")
