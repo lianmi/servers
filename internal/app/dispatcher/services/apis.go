@@ -36,10 +36,10 @@ type LianmiApisService interface {
 	QueryAllUsernames() ([]string, error)
 
 	//检测用户登录
-	CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string)
+	CheckUser(isMaster bool, username, password, deviceID, os string, userType int) (bool, string)
 
 	//  使用手机及短信验证码登录
-	LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string)
+	LoginBySmscode(username, mobile, smscode, deviceID, os string, userType int) (bool, string)
 
 	// 判断用户名是否已存在
 	ExistUserByName(username string) bool
@@ -384,15 +384,15 @@ func (s *DefaultLianmiApisService) GetUserRoles(username string) []*models.Role 
 }
 
 //CheckUser 身份验证
-func (s *DefaultLianmiApisService) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string) {
+func (s *DefaultLianmiApisService) CheckUser(isMaster bool, username, password, deviceID, os string, userType int) (bool, string) {
 
-	return s.Repository.CheckUser(isMaster, username, password, deviceID, os, clientType)
+	return s.Repository.CheckUser(isMaster, username, password, deviceID, os, userType)
 }
 
 //  使用手机及短信验证码登录
-func (s *DefaultLianmiApisService) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string) {
+func (s *DefaultLianmiApisService) LoginBySmscode(username, mobile, smscode, deviceID, os string, userType int) (bool, string) {
 
-	return s.Repository.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType)
+	return s.Repository.LoginBySmscode(username, mobile, smscode, deviceID, os, userType)
 }
 
 func (s *DefaultLianmiApisService) ExistUserByName(username string) bool {

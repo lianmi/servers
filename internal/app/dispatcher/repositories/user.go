@@ -438,7 +438,7 @@ func (s *MysqlLianmiRepository) GetUserRoles(where interface{}) []*models.Role {
 }
 
 //  使用手机及短信验证码登录
-func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) (bool, string) {
+func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, deviceID, os string, userType int) (bool, string) {
 	s.logger.Debug("LoginBySmsode start...")
 	var err error
 	redisConn := s.redisPool.Get()
@@ -511,7 +511,6 @@ func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, device
 		"deviceid", deviceID,
 		"ismaster", 1,
 		"usertype", user.UserType,
-		"clientType", clientType,
 		"os", os,
 		"logonAt", uint64(time.Now().UnixNano()/1e6),
 	)
@@ -564,7 +563,7 @@ ZRANGEBYSCORE devices:lsj001 4 4
 HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS" protocolversion "2.0" sdkversion "3.0"
 
 */
-func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) (bool, string) {
+func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, deviceID, os string, userType int) (bool, string) {
 	s.logger.Debug("CheckUser start...")
 	var err error
 	redisConn := s.redisPool.Get()
@@ -617,7 +616,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
 			isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
+			// curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
 			s.logger.Debug("当前在线设备id与即将登录的设备不同",
@@ -627,7 +626,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 				zap.String("即将登录deviceID", deviceID),
 				zap.String("curJwtToken", curJwtToken),
 				zap.String("curOs", curOs),
-				zap.Int("curClientType", curClientType),
+				// zap.Int("curClientType", curClientType),
 				zap.Uint64("curLogonAt", curLogonAt))
 
 			//删除当前主设备的redis缓存
@@ -645,7 +644,7 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 		"deviceid", deviceID,
 		"ismaster", 1,
 		"usertype", user.UserType,
-		"clientType", clientType,
+		// "clientType", clientType,
 		"os", os,
 		"logonAt", uint64(time.Now().UnixNano()/1e6),
 	)

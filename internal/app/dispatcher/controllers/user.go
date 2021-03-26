@@ -347,8 +347,8 @@ func (pc *LianmiApisController) GetUserRoles(username string) []*models.Role {
 	return pc.service.GetUserRoles(username)
 }
 
-func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, deviceID, os string, clientType int) bool {
-	isPass, curOnlineDevieID := pc.service.CheckUser(isMaster, username, password, deviceID, os, clientType)
+func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, deviceID, os string, userType int) bool {
+	isPass, curOnlineDevieID := pc.service.CheckUser(isMaster, username, password, deviceID, os, userType)
 
 	pc.logger.Debug("LianmiApisController:CheckUser", zap.String("curOnlineDevieID", curOnlineDevieID))
 	if curOnlineDevieID != "" {
@@ -371,9 +371,9 @@ func (pc *LianmiApisController) CheckUser(isMaster bool, username, password, dev
 }
 
 //  使用手机及短信验证码登录
-func (pc *LianmiApisController) LoginBySmscode(username, mobile, smscode, deviceID, os string, clientType int) bool {
+func (pc *LianmiApisController) LoginBySmscode(username, mobile, smscode, deviceID, os string, userType int) bool {
 
-	isPass, curOnlineDevieID := pc.service.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType)
+	isPass, curOnlineDevieID := pc.service.LoginBySmscode(username, mobile, smscode, deviceID, os, userType)
 
 	pc.logger.Debug("LianmiApisController:LoginBySmscode", zap.Bool("isPass", isPass), zap.String("curOnlineDevieID", curOnlineDevieID))
 	if curOnlineDevieID != "" {

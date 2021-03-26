@@ -29,16 +29,16 @@ const (
 
 // Login form structure.
 type Login struct {
-	Mobile          string `form:"mobile" json:"mobile"`                          // 11位手机号 选填
-	Username        string `form:"username" json:"username"`                      //注册号，当mobile非空的时候，选填
-	Password        string `form:"password" json:"password" `                     //密码 Username非空时必填
-	SmsCode         string `form:"smscode" json:"smscode" `                       //短信校验码，Mobile非空时必填
-	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`   //必填
-	ClientType      int    `form:"clientype" json:"clientype" binding:"required"` //必填，用户类型，区分普通用户或商户
-	Os              string `form:"os" json:"os" `                                 //非必填，客户端的操作系统
-	ProtocolVersion string `form:"protocolversion" json:"protocolversion"`        //非必填，协议版本
-	SdkVersion      string `form:"sdkversion" json:"sdkversion"`                  //非必填，sdk版本
-	IsMaster        bool   `form:"ismaster" json:"ismaster"`                      //由于golang对false处理不对，所以不能设为必填
+	Mobile          string `form:"mobile" json:"mobile"`                        // 11位手机号 选填
+	Username        string `form:"username" json:"username"`                    //注册号，当mobile非空的时候，选填
+	Password        string `form:"password" json:"password" `                   //密码 Username非空时必填
+	SmsCode         string `form:"smscode" json:"smscode" `                     //短信校验码，Mobile非空时必填
+	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"` //必填
+	UserType        int    `form:"usertype" json:"usertype" binding:"required"` //必填，用户类型，区分普通用户或商户
+	Os              string `form:"os" json:"os" `                               //非必填，客户端的操作系统
+	ProtocolVersion string `form:"protocolversion" json:"protocolversion"`      //非必填，协议版本
+	SdkVersion      string `form:"sdkversion" json:"sdkversion"`                //非必填，sdk版本
+	IsMaster        bool   `form:"ismaster" json:"ismaster"`                    //由于golang对false处理不对，所以不能设为必填
 }
 
 type LoginResp struct {
@@ -129,13 +129,13 @@ func CreateInitControllersFn(
 				}
 				var err error
 				// isMaster := loginVals.IsMaster
-				isMaster := true  //强制设置为主设备 
+				isMaster := true //强制设置为主设备
 				smscode := strings.TrimSpace(loginVals.SmsCode)
 				mobile := strings.TrimSpace(loginVals.Mobile)
 				username := strings.TrimSpace(loginVals.Username)
 				password := strings.TrimSpace(loginVals.Password)
 				deviceID := strings.TrimSpace(loginVals.DeviceID)
-				clientType := loginVals.ClientType //1-普通用户 2-商户
+				userType := loginVals.UserType //1-普通用户 2-商户
 				os := strings.TrimSpace(loginVals.Os)
 
 				pc.logger.Debug("Authenticator ...",
@@ -144,7 +144,7 @@ func CreateInitControllersFn(
 					zap.String("password", password),
 					zap.String("smscode", smscode),
 					zap.String("deviceID", deviceID),
-					zap.Int("clientType", clientType),
+					zap.Int("userType", userType),
 					zap.String("os", os),
 				)
 
@@ -191,17 +191,17 @@ func CreateInitControllersFn(
 						// return "", gin_jwt_v2.ErrMissingLoginValues
 						user := models.User{
 							UserBase: models.UserBase{
-								Mobile:    mobile, //注册手机
-								AllowType: 3,      //用户加好友枚举，默认是3
-								UserType:  1,      //用户类型 1-普通，2-商户
-								State:     0,      //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+								Mobile:    mobile,   //注册手机
+								AllowType: 3,        //用户加好友枚举，默认是3
+								UserType:  userType, //用户类型 1-普通，2-商户
+								State:     0,        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 							},
 						}
 
 						if userName, err := pc.service.Register(&user); err == nil {
 							pc.logger.Debug("Register user success", zap.String("userName", userName))
 							// 检测用户是否可以登录, true-可以允许登录
-							if pc.CheckUser(true, username, password, deviceID, os, clientType) {
+							if pc.CheckUser(true, username, password, deviceID, os, userType) {
 								pc.logger.Debug("Authenticator , CheckUser .... true")
 
 								return &models.UserRole{
@@ -222,7 +222,7 @@ func CreateInitControllersFn(
 					} else {
 
 						//检测校验码是否正确
-						if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, clientType) {
+						if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, userType) {
 							pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
 
 							return &models.UserRole{
@@ -250,7 +250,7 @@ func CreateInitControllersFn(
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
 					// 检测用户是否可以登录, true-可以允许登录
-					if pc.CheckUser(isMaster, username, password, deviceID, os, clientType) {
+					if pc.CheckUser(isMaster, username, password, deviceID, os, userType) {
 						pc.logger.Debug("Authenticator , CheckUser .... true")
 
 						return &models.UserRole{
