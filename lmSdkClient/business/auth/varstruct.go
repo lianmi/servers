@@ -9,7 +9,7 @@ type Login struct {
 	Password        string `form:"password" json:"password" binding:"required"`
 	SmsCode         string `form:"smscode" json:"smscode" binding:"required"`
 	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"`
-	ClientType      int    `form:"clientype" json:"clientype" binding:"required"`
+	UserType        int    `form:"userType" json:"userType" binding:"required"`
 	Os              string `form:"os" json:"os" binding:"required"`
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion" binding:"required"`
 	SdkVersion      string `form:"sdkversion" json:"sdkversion" binding:"required"`

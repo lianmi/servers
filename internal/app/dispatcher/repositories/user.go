@@ -479,11 +479,10 @@ func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, device
 
 		} else {
 
-			//取出当前设备的os， clientType， logonAt
+			//取出当前设备的os，  logonAt
 			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
 			isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-			curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
 			s.logger.Debug("当前在线设备id与即将登录的设备不同",
@@ -493,7 +492,6 @@ func (s *MysqlLianmiRepository) LoginBySmscode(username, mobile, smscode, device
 				zap.String("即将登录deviceID", deviceID),
 				zap.String("curJwtToken", curJwtToken),
 				zap.String("curOs", curOs),
-				zap.Int("curClientType", curClientType),
 				zap.Uint64("curLogonAt", curLogonAt))
 
 			//删除当前主设备的redis缓存
@@ -614,11 +612,10 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 
 		} else {
 
-			//取出当前设备的os， clientType， logonAt
+			//取出当前设备的os logonAt
 			curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, curOnlineDevieID)
 			isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 			curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-			// curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 			curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 			curJwtToken, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DeviceJwtToken:%s", curOnlineDevieID)))
 			s.logger.Debug("当前在线设备id与即将登录的设备不同",
@@ -628,7 +625,6 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 				zap.String("即将登录deviceID", deviceID),
 				zap.String("curJwtToken", curJwtToken),
 				zap.String("curOs", curOs),
-				// zap.Int("curClientType", curClientType),
 				zap.Uint64("curLogonAt", curLogonAt))
 
 			//删除当前主设备的redis缓存
@@ -646,7 +642,6 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 		"deviceid", deviceID,
 		"ismaster", 1,
 		"usertype", user.UserType,
-		// "clientType", clientType,
 		"os", os,
 		"logonAt", uint64(time.Now().UnixNano()/1e6),
 	)
@@ -804,18 +799,16 @@ func (s *MysqlLianmiRepository) SignOut(token, username, deviceID string) bool {
 	defer redisConn.Close()
 	var err error
 
-	//取出当前旧的设备的os， clientType， logonAt
+	//取出当前旧的设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	s.logger.Debug("SignOut", zap.Bool("isMaster", isMaster),
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)

@@ -77,11 +77,10 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("FriendRequest",
@@ -89,7 +88,6 @@ func (nc *NsqClient) HandleFriendRequest(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -815,11 +813,10 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("FriendRequest",
@@ -827,7 +824,6 @@ func (nc *NsqClient) HandleDeleteFriend(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1064,11 +1060,10 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("UpdateFriend",
@@ -1076,7 +1071,6 @@ func (nc *NsqClient) HandleUpdateFriend(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1182,11 +1176,10 @@ func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("GetFriends",
@@ -1194,7 +1187,6 @@ func (nc *NsqClient) HandleGetFriends(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1292,11 +1284,10 @@ func (nc *NsqClient) HandleWatching(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("Watching",
@@ -1304,7 +1295,6 @@ func (nc *NsqClient) HandleWatching(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1421,11 +1411,10 @@ func (nc *NsqClient) HandleCancelWatching(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("CancelWatching",
@@ -1433,7 +1422,6 @@ func (nc *NsqClient) HandleCancelWatching(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数

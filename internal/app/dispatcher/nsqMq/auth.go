@@ -27,6 +27,7 @@ import (
 	LMCommon "github.com/lianmi/servers/internal/common"
 	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
+
 	// "github.com/lianmi/servers/util/randtool"
 	"go.uber.org/zap"
 )
@@ -50,11 +51,10 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前旧的设备的os， clientType， logonAt
+	//取出当前旧的设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("SignOut",
@@ -62,7 +62,6 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	redisConn.Do("DEL", fmt.Sprintf("devices:%s", username))
@@ -86,7 +85,6 @@ func (nc *NsqClient) HandleSignOut(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	return nil
@@ -113,11 +111,10 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("Kick",
@@ -125,7 +122,6 @@ func (nc *NsqClient) HandleKick(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	msg.SetCode(int32(errorCode)) //状态码
@@ -166,11 +162,10 @@ func (nc *NsqClient) HandleGetAllDevices(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("GetAllDevices",
@@ -178,7 +173,6 @@ func (nc *NsqClient) HandleGetAllDevices(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	deviceListKey := fmt.Sprintf("devices:%s", username)
@@ -199,7 +193,6 @@ func (nc *NsqClient) HandleGetAllDevices(msg *models.Message) error {
 		DeviceIndex:  int32(1), //从1开始
 		IsMaster:     true,
 		Os:           curOs,
-		ClientType:   Auth.ClientType(curClientType),
 		LogonAt:      curLogonAt,
 	}
 
@@ -370,83 +363,83 @@ COMPLETE:
 1. 此接口是从设备发起，从设备还没有JWT令牌，因此不能拦截
 */
 func (nc *NsqClient) HandleAuthorizeCode(msg *models.Message) error {
-// 	var err error
-// 	rsp := &Auth.AuthorizeCodeRsp{}
-// 	errorCode := 200
+	// 	var err error
+	// 	rsp := &Auth.AuthorizeCodeRsp{}
+	// 	errorCode := 200
 
-// 	nc.logger.Info("HandleAuthorizeCode start...", zap.String("DeviceId", msg.GetDeviceID()))
+	// 	nc.logger.Info("HandleAuthorizeCode start...", zap.String("DeviceId", msg.GetDeviceID()))
 
-// 	deviceID := msg.GetDeviceID()
-// 	redisConn := nc.redisPool.Get()
-// 	defer redisConn.Close()
+	// 	deviceID := msg.GetDeviceID()
+	// 	redisConn := nc.redisPool.Get()
+	// 	defer redisConn.Close()
 
-// 	//打开msg里的负载， 获取里面的参赛
-// 	body := msg.GetContent()
-// 	//解包body
-// 	var req Auth.AuthorizeCodeReq
-// 	if err := proto.Unmarshal(body, &req); err != nil {
-// 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-// 		errorCode = LMCError.ProtobufUnmarshalError
-// 		goto COMPLETE
-// 	} else {
-// 		nc.logger.Debug("AuthorizeCodeReq",
-// 			zap.String("AppKey", req.GetAppKey()),
-// 			zap.Int32("ClientType", int32(req.GetClientType())),
-// 			zap.String("Os", req.GetOs()),
-// 			zap.String("ProtocolVersion", req.GetProtocolVersion()),
-// 			zap.String("SdkVersion", req.GetSdkVersion()),
-// 		)
+	// 	//打开msg里的负载， 获取里面的参赛
+	// 	body := msg.GetContent()
+	// 	//解包body
+	// 	var req Auth.AuthorizeCodeReq
+	// 	if err := proto.Unmarshal(body, &req); err != nil {
+	// 		nc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
+	// 		errorCode = LMCError.ProtobufUnmarshalError
+	// 		goto COMPLETE
+	// 	} else {
+	// 		nc.logger.Debug("AuthorizeCodeReq",
+	// 			zap.String("AppKey", req.GetAppKey()),
+	// 			zap.Int32("ClientType", int32(req.GetClientType())),
+	// 			zap.String("Os", req.GetOs()),
+	// 			zap.String("ProtocolVersion", req.GetProtocolVersion()),
+	// 			zap.String("SdkVersion", req.GetSdkVersion()),
+	// 		)
 
-// 		//生成一个 100000 - 999999 之间的随机数
-// 		tId := randtool.RangeRand(100000, 999999)
+	// 		//生成一个 100000 - 999999 之间的随机数
+	// 		tId := randtool.RangeRand(100000, 999999)
 
-// 		tempKey := fmt.Sprintf("SlaveTemporaryIdentity:%d", tId)
+	// 		tempKey := fmt.Sprintf("SlaveTemporaryIdentity:%d", tId)
 
-// 		_, err = redisConn.Do("SET", tempKey, deviceID)
-// 		if err != nil {
-// 			nc.logger.Error("Failed to SET ", zap.Error(err))
-// 			errorCode = LMCError.RedisError
-// 			goto COMPLETE
-// 		}
-// 		nc.logger.Debug("HandleAuthorizeCode",
-// 			zap.String("tempKey", tempKey),
-// 			zap.Int64("tId", tId),
-// 		)
-// 		//有效期
-// 		_, err = redisConn.Do("EXPIRE", tempKey, LMCommon.SMSEXPIRE)
-// 		if err != nil {
-// 			nc.logger.Error("Failed to EXPIRE ", zap.Error(err))
-// 			errorCode = LMCError.RedisError
-// 			goto COMPLETE
-// 		}
+	// 		_, err = redisConn.Do("SET", tempKey, deviceID)
+	// 		if err != nil {
+	// 			nc.logger.Error("Failed to SET ", zap.Error(err))
+	// 			errorCode = LMCError.RedisError
+	// 			goto COMPLETE
+	// 		}
+	// 		nc.logger.Debug("HandleAuthorizeCode",
+	// 			zap.String("tempKey", tempKey),
+	// 			zap.Int64("tId", tId),
+	// 		)
+	// 		//有效期
+	// 		_, err = redisConn.Do("EXPIRE", tempKey, LMCommon.SMSEXPIRE)
+	// 		if err != nil {
+	// 			nc.logger.Error("Failed to EXPIRE ", zap.Error(err))
+	// 			errorCode = LMCError.RedisError
+	// 			goto COMPLETE
+	// 		}
 
-// 		rsp.Code = fmt.Sprintf("%d", tId)
+	// 		rsp.Code = fmt.Sprintf("%d", tId)
 
-// 		nc.logger.Info("AuthorizeCode Succeed",
-// 			zap.String("deviceID:", deviceID),
-// 			zap.String("Code", fmt.Sprintf("%d", tId)))
+	// 		nc.logger.Info("AuthorizeCode Succeed",
+	// 			zap.String("deviceID:", deviceID),
+	// 			zap.String("Code", fmt.Sprintf("%d", tId)))
 
-// 	}
+	// 	}
 
-// COMPLETE:
-// 	msg.SetJwtToken("*")          //为了欺骗map
-// 	msg.SetCode(int32(errorCode)) //状态码
-// 	if errorCode == 200 {
-// 		data, _ = proto.Marshal(rsp)
-// 		msg.FillBody(data)
-// 	} else {
-// 		errorMsg := LMCError.ErrorMsg(errorCode)
-// 		msg.FillBody(nil)
-// 	}
+	// COMPLETE:
+	// 	msg.SetJwtToken("*")          //为了欺骗map
+	// 	msg.SetCode(int32(errorCode)) //状态码
+	// 	if errorCode == 200 {
+	// 		data, _ = proto.Marshal(rsp)
+	// 		msg.FillBody(data)
+	// 	} else {
+	// 		errorMsg := LMCError.ErrorMsg(errorCode)
+	// 		msg.FillBody(nil)
+	// 	}
 
-// 	//处理完成，向dispatcher发送
-// 	topic := msg.GetSource() + ".Frontend"
-// 	rawData, _ := json.Marshal(msg)
-// 	if err := nc.Producer.Public(topic, rawData); err == nil {
-// 		nc.logger.Info("Succeed to send AuthorizeCode message to ProduceChannel", zap.String("topic", topic))
-// 	} else {
-// 		nc.logger.Error("Failed to send AuthorizeCode message to ProduceChannel", zap.Error(err))
-// 	}
-// 	_ = err
+	// 	//处理完成，向dispatcher发送
+	// 	topic := msg.GetSource() + ".Frontend"
+	// 	rawData, _ := json.Marshal(msg)
+	// 	if err := nc.Producer.Public(topic, rawData); err == nil {
+	// 		nc.logger.Info("Succeed to send AuthorizeCode message to ProduceChannel", zap.String("topic", topic))
+	// 	} else {
+	// 		nc.logger.Error("Failed to send AuthorizeCode message to ProduceChannel", zap.Error(err))
+	// 	}
+	// 	_ = err
 	return nil
 }

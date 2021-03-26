@@ -64,11 +64,10 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os， logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("QueryProducts",
@@ -76,7 +75,6 @@ func (nc *NsqClient) HandleQueryProducts(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -244,11 +242,10 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("AddProduct",
@@ -256,7 +253,6 @@ func (nc *NsqClient) HandleAddProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -597,11 +593,10 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("UpdateProduct",
@@ -609,7 +604,6 @@ func (nc *NsqClient) HandleUpdateProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -935,11 +929,10 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("SoldoutProduct",
@@ -947,7 +940,6 @@ func (nc *NsqClient) HandleSoldoutProduct(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1232,11 +1224,10 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("GetPreKeyOrderID",
@@ -1244,7 +1235,6 @@ func (nc *NsqClient) HandleGetPreKeyOrderID(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1531,11 +1521,10 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("OrderMsg",
@@ -1543,7 +1532,6 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -1913,11 +1901,10 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("ChangeOrderState",
@@ -1925,7 +1912,6 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数
@@ -2486,11 +2472,10 @@ func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error 
 		zap.String("username", username),
 		zap.String("DeviceId", deviceID))
 
-	//取出当前设备的os， clientType， logonAt
+	//取出当前设备的os，  logonAt
 	curDeviceHashKey := fmt.Sprintf("devices:%s:%s", username, deviceID)
 	isMaster, _ := redis.Bool(redisConn.Do("HGET", curDeviceHashKey, "ismaster"))
 	curOs, _ := redis.String(redisConn.Do("HGET", curDeviceHashKey, "os"))
-	curClientType, _ := redis.Int(redisConn.Do("HGET", curDeviceHashKey, "clientType"))
 	curLogonAt, _ := redis.Uint64(redisConn.Do("HGET", curDeviceHashKey, "logonAt"))
 
 	nc.logger.Debug("GetNotaryServicePublickeyReq",
@@ -2498,7 +2483,6 @@ func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error 
 		zap.String("username", username),
 		zap.String("deviceID", deviceID),
 		zap.String("curOs", curOs),
-		zap.Int("curClientType", curClientType),
 		zap.Uint64("curLogonAt", curLogonAt))
 
 	//打开msg里的负载， 获取请求参数

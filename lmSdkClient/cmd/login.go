@@ -53,9 +53,9 @@ var loginCmd = &cobra.Command{
 			log.Println("deviceid is empty")
 			return
 		}
-		clientType, err := cmd.PersistentFlags().GetInt("deviceid")
-		if clientType == 0 {
-			clientType = 5
+		userType, err := cmd.PersistentFlags().GetInt("userType")
+		if userType == 0 {
+			userType = 1
 		}
 		os, err := cmd.PersistentFlags().GetString("os")
 		if os == "" {
@@ -82,7 +82,7 @@ var loginCmd = &cobra.Command{
 		log.Println(password)
 		log.Println(smscode)
 		log.Println(deviceID)
-		log.Println(clientType)
+		log.Println(userType)
 		log.Println(os)
 		log.Println(protocolVersion)
 		log.Println(sdkVersion)
@@ -93,7 +93,7 @@ var loginCmd = &cobra.Command{
 			Password:        password,
 			SmsCode:         smscode,
 			DeviceID:        deviceID,
-			ClientType:      clientType,
+			UserType:        userType,
 			Os:              os,
 			ProtocolVersion: protocolVersion,
 			SdkVersion:      sdkVersion,
@@ -160,7 +160,7 @@ func init() {
 	loginCmd.PersistentFlags().StringP("password", "p", "C33367701511B4F6020EC61DED352059", "your password, like: C33367701511B4F6020EC61DED352059")
 	loginCmd.PersistentFlags().StringP("smscode", "s", "123456", "code received from mobile, like: 123456")
 	loginCmd.PersistentFlags().StringP("deviceid", "d", "959bb0ae-1c12-4b60-8741-173361ceba8a", "deviceid, like: 959bb0ae-1c12-4b60-8741-173361ceba8a")
-	loginCmd.PersistentFlags().IntP("clientype", "c", 5, "clientype, like: 5")
+	loginCmd.PersistentFlags().IntP("userType", "t", 1, "userType, like: 1")
 	loginCmd.PersistentFlags().StringP("os", "o", "MacOSX", "os, like: MacOSX")
 	loginCmd.PersistentFlags().StringP("protocolversion", "v", "2.0", "protocolversion, like: 2.0")
 	loginCmd.PersistentFlags().StringP("sdkversion", "k", "3.0", "sdkversion, like: 3.0")
