@@ -170,7 +170,7 @@ func CreateInitControllersFn(
 					}
 					//检测校验码是否正确
 					if !pc.service.CheckSmsCode(mobile, smscode) {
-						pc.logger.Error("Register user error, SmsCode is wrong")
+						pc.logger.Error("CheckSmsCode error, SmsCode is wrong")
 
 						errMsg := LMCError.ErrorMsg(LMCError.SmsCodeCheckError)
 						return "", errors.Wrap(err, errMsg)

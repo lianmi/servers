@@ -597,9 +597,11 @@ func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, dev
 	//主设备登录，需要检测是否有另外一台主设备未登出，如果未登出，则向其发出踢下线消息
 
 	//主设备需要核对密码，从设备则无须核对
-	if user.Password != password {
-		s.logger.Error("密码不匹配")
-		return false, ""
+	if password != "" {
+		if user.Password != password {
+			s.logger.Error("密码不匹配")
+			return false, ""
+		}
 	}
 
 	//查询当前在线的主设备
