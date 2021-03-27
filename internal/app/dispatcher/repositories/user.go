@@ -275,6 +275,11 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 
 	}
 
+	//默认呢称
+	if user.Nick == "" {
+		user.Nick = fmt.Sprintf("连米APP用户%d", newIndex)
+	}
+
 	// 判断推荐人是否为空
 	if user.ReferrerUsername != "" {
 		//查询出推荐人的类型
