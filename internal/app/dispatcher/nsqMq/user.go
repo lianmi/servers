@@ -560,10 +560,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					nc.logger.Error("ZREM 错误", zap.Error(err))
 				}
 				//从置顶名单里移除
-				_, err = redisConn.Do("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
-				if err != nil {
-					nc.logger.Error("ZREM 错误", zap.Error(err))
-				}
+				// _, err = redisConn.Do("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
+				// if err != nil {
+				// 	nc.logger.Error("ZREM 错误", zap.Error(err))
+				// }
 				//增加到黑名单
 				_, err = redisConn.Do("ZADD", fmt.Sprintf("BlackList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 				if err != nil {
@@ -666,8 +666,8 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 
 				//从黑名单里移除
 				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
-				//从置顶名单里移除
-				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
+				// //从置顶名单里移除
+				// err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:1", username), req.GetUsername())
 
 				err = redisConn.Send("ZADD", fmt.Sprintf("MutedList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:2", username), req.GetUsername())
@@ -725,10 +725,10 @@ func (nc *NsqClient) HandleMarkTag(msg *models.Message) error {
 					goto COMPLETE
 				}
 				//从黑名单里移除
-				err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
+				// err = redisConn.Send("ZREM", fmt.Sprintf("BlackList:%s:1", username), req.GetUsername())
 
 				//从免打扰名单里移除
-				err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
+				// err = redisConn.Send("ZREM", fmt.Sprintf("MutedList:%s:1", username), req.GetUsername())
 
 				err = redisConn.Send("ZADD", fmt.Sprintf("StickyList:%s:1", username), time.Now().UnixNano()/1e6, req.GetUsername())
 				err = redisConn.Send("ZREM", fmt.Sprintf("StickyList:%s:2", username), req.GetUsername())

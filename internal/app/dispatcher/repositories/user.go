@@ -1013,20 +1013,13 @@ func (s *MysqlLianmiRepository) AddTag(tag *models.Tag) error {
 
 	// 在冲突时，更新除主键以外的所有列到新值。
 	if results := s.db.Clauses(clause.OnConflict{
-		UpdateAll: true,
+		DoNothing: true,
 	}).Create(&tag); results != nil {
 		s.logger.Error("AddTag, failed to Create tag", zap.Error(results.Error))
 		return results.Error
 	} else {
 		s.logger.Debug("AddTag, Create tag succeed", zap.Int64("RowsAffected", results.RowsAffected))
 	}
-
-	// `username` 冲突时，将map里的指定字段值更新
-	// s.db.Clauses(clause.OnConflict{
-	// 	Columns:   []clause.Column{{Name: "username"}},
-	// 	DoUpdates: clause.Assignments(map[string]interface{}{"target_username": tag.TargetUsername, "tag_type": tag.TagType}),
-	// }).Create(&tag)
-
 	return nil
 }
 
