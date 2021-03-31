@@ -2723,7 +2723,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 	var err error
 	errorCode := 200
 
-	var teamName, icon, announcement, introduce, verifyTypeStr, inviteModeStr string
+	var nick, icon, announcement, introduce, verifyTypeStr, inviteModeStr string
 
 	var ok bool
 
@@ -2805,36 +2805,44 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			pTeam := new(models.Team)
-			pTeam.TeamID = teamID
-			if teamName, ok = req.Fields[1]; ok {
+			teamInfo := new(models.TeamInfo)
+			//从redis里读取出现有的群资料
+			if result, err := redis.Values(redisConn.Do("HGETALL", key)); err == nil {
+				if err := redis.ScanStruct(result, teamInfo); err != nil {
+					nc.logger.Error("错误：ScanStruct", zap.Error(err))
+					errorCode = LMCError.RedisError
+					goto COMPLETE
+				}
+			}
+
+			if nick, ok = req.Fields[1]; ok {
 				//修改群组呢称
-				pTeam.Teamname = teamName
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Teamname", pTeam.Teamname); err != nil {
-					nc.logger.Error("HSET Teamname error", zap.Error(err))
+				teamInfo.Nick = nick
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "Nick", nick); err != nil {
+					nc.logger.Error("HSET 修改群组呢称 error", zap.Error(err))
 				}
 
 			}
 			if icon, ok = req.Fields[2]; ok {
 				//修改群组Icon
-				pTeam.Icon = icon
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Icon", icon); err != nil {
+				teamInfo.Icon = icon
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "Icon", icon); err != nil {
 					nc.logger.Error("HSET Icon error", zap.Error(err))
 				}
 
 			}
 			if announcement, ok = req.Fields[3]; ok {
 				//修改群组Announcement
-				pTeam.Announcement = announcement
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Announcement", announcement); err != nil {
+				teamInfo.Announcement = announcement
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "Announcement", announcement); err != nil {
 					nc.logger.Error("HSET Announcement error", zap.Error(err))
 				}
 
 			}
 			if introduce, ok = req.Fields[4]; ok {
 				//修改群组Introductory
-				pTeam.Introductory = introduce
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "Introductory", introduce); err != nil {
+				teamInfo.Introductory = introduce
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "Introductory", introduce); err != nil {
 					nc.logger.Error("HSET Introductory error", zap.Error(err))
 				}
 
@@ -2848,8 +2856,8 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					}
 				}
 				//修改群组VerifyType
-				pTeam.VerifyType = verifyType
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "VerifyType", verifyType); err != nil {
+				teamInfo.VerifyType = verifyType
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "VerifyType", verifyType); err != nil {
 					nc.logger.Error("HSET VerifyType error", zap.Error(err))
 				}
 			}
@@ -2862,23 +2870,25 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					}
 				}
 				//修改群组InviteMode
-				pTeam.InviteMode = inviteMode
-				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", pTeam.TeamID), "InviteMode", inviteMode); err != nil {
+				teamInfo.InviteMode = inviteMode
+				if _, err = redisConn.Do("HSET", fmt.Sprintf("TeamInfo:%s", teamID), "InviteMode", inviteMode); err != nil {
 					nc.logger.Error("HSET InviteMode error", zap.Error(err))
 				}
 			}
 
 			//保存到MySQL 更新群数据
-			nc.service.UpdateTeam(teamID, pTeam)
+			nc.service.UpdateTeam(teamID, &models.Team{
+				TeamInfo: *teamInfo,
+			})
 
 			//群资料主要字段
 			updateTeamInfo := &Team.TeamInfo{
-				TeamName:     pTeam.Teamname,
-				Icon:         pTeam.Icon,
-				Announcement: pTeam.Announcement,
-				Introduce:    pTeam.Introductory,
-				VerifyType:   Team.VerifyType(pTeam.VerifyType),
-				InviteMode:   Team.InviteMode(pTeam.InviteMode),
+				TeamName:     teamInfo.Teamname,
+				Icon:         teamInfo.Icon,
+				Announcement: teamInfo.Announcement,
+				Introduce:    teamInfo.Introductory,
+				VerifyType:   Team.VerifyType(teamInfo.VerifyType),
+				InviteMode:   Team.InviteMode(teamInfo.InviteMode),
 			}
 			updateTeamInfoData, _ := proto.Marshal(updateTeamInfo)
 			//对所有群成员
