@@ -2920,7 +2920,7 @@ func (nc *NsqClient) HandleUpdateTeam(msg *models.Message) error {
 					Scene:        Msg.MessageScene_MsgScene_S2C,        //系统消息
 					Type:         Msg.MessageType_MsgType_Notification, //通知类型
 					Body:         bodyData,
-					From:         teamName, //群名称
+					From:         nick, //群名称(呢称)
 					FromDeviceId: deviceID,
 					Recv:         teamID,                             //接收方, 根据场景判断to是个人还是群
 					ServerMsgId:  msg.GetID(),                        //服务器分配的消息ID
