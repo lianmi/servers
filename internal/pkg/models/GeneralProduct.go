@@ -3,7 +3,6 @@ package models
 import (
 	"time"
 
-	"github.com/lianmi/servers/internal/pkg/models/global"
 	"gorm.io/gorm"
 )
 
@@ -30,7 +29,11 @@ type GeneralProductInfo struct {
 }
 
 type GeneralProduct struct {
-	global.LMC_Model
+	//global.LMC_Model
+	ID        uint           `gorm:"primarykey"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	GeneralProductInfo
 }
 
