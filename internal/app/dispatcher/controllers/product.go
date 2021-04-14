@@ -46,6 +46,25 @@ func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
 	RespData(c, http.StatusOK, 200, resp)
 }
 
+// 获取该商户的商品列表
+func (pc *LianmiApisController) GetStoreProductLists(c *gin.Context) {
+	code := codes.InvalidParams
+	var req Order.ProductsListReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+	} else {
+
+		resp, err := pc.service.GetStoreProductLists(&req)
+		if err != nil {
+			RespData(c, http.StatusOK, code, "获取店铺商品列表错误")
+			return
+		}
+
+		RespData(c, http.StatusOK, 200, resp)
+	}
+}
+
 //获取某个商户的所有商品列表
 func (pc *LianmiApisController) GetProductsList(c *gin.Context) {
 

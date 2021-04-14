@@ -222,11 +222,9 @@ type LianmiRepository interface {
 
 	DeleteClickLike(username, businessUsername string) (int64, error)
 
-
 	//取消对某个店铺点赞
 	GetIsLike(username, businessUsername string) (bool, error)
 
-	
 	//将点赞记录插入到UserLike表
 	AddUserLike(username, businessUser string) error
 
@@ -253,6 +251,7 @@ type LianmiRepository interface {
 
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error
+	GetStoreProductLists(req *Order.ProductsListReq) (*[]models.StoreProductItems, error)
 }
 
 type MysqlLianmiRepository struct {

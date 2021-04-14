@@ -414,11 +414,12 @@ func CreateInitControllersFn(
 		storeGroup := r.Group("/v1/store") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		storeGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			storeGroup.GET("/storeinfo/:id", pc.GetStore)                //根据商户注册id获取店铺资料
-			storeGroup.GET("/types", pc.GetStoreTypes)                   //返回商品种类
-			storeGroup.POST("/savestore", pc.AddStore)                   //增加或修改店铺资料
-			storeGroup.POST("/list", pc.QueryStoresNearby)               //根据gps位置获取一定范围内的店铺列表
-			storeGroup.POST("/productslist", pc.GetProductsList)         //获取某个商户的所有商品列表
+			storeGroup.GET("/storeinfo/:id", pc.GetStore)        //根据商户注册id获取店铺资料
+			storeGroup.GET("/types", pc.GetStoreTypes)           //返回商品种类
+			storeGroup.POST("/savestore", pc.AddStore)           //增加或修改店铺资料
+			storeGroup.POST("/list", pc.QueryStoresNearby)       //根据gps位置获取一定范围内的店铺列表
+			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
+			storeGroup.POST("/productlists", pc.GetStoreProductLists)
 			storeGroup.GET("/likes/:id", pc.StoreLikes)                  //获取店铺的所有点赞用户列表
 			storeGroup.GET("/likescount/:id", pc.StoreLikesCount)        //获取店铺的点赞总数
 			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞

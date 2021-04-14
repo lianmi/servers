@@ -281,3 +281,10 @@ func (s *MysqlLianmiRepository) GetProductInfo(productID string) (*Order.Product
 	return oProduct, nil
 
 }
+func (s *MysqlLianmiRepository) GetStoreProductLists(req *Order.ProductsListReq) (p *[]models.StoreProductItems, err error) {
+	//panic("implement me")
+	// 通过商户id 获取商品列表
+	p = new([]models.StoreProductItems)
+	err = s.db.Model(&models.StoreProductItems{}).Where(&models.StoreProductItems{StoreUUID: req.BusinessUsername}).Where(p).Error
+	return
+}
