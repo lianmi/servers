@@ -285,6 +285,6 @@ func (s *MysqlLianmiRepository) GetStoreProductLists(req *Order.ProductsListReq)
 	//panic("implement me")
 	// 通过商户id 获取商品列表
 	p = new([]models.StoreProductItems)
-	err = s.db.Model(&models.StoreProductItems{}).Where(&models.StoreProductItems{StoreUUID: req.BusinessUsername}).Where(p).Error
+	err = s.db.Model(&models.StoreProductItems{}).Where(&models.StoreProductItems{StoreUUID: req.BusinessUsername}).Find(p).Error
 	return
 }
