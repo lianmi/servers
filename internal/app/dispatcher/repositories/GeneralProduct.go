@@ -83,7 +83,6 @@ func (s *MysqlLianmiRepository) GetGeneralProductPage(req *Order.GetGeneralProdu
 	where := models.GeneralProduct{}
 	if req.ProductType > 0 {
 		where = models.GeneralProduct{
-
 			GeneralProductInfo: models.GeneralProductInfo{
 				ProductType: int(req.ProductType),
 			},
