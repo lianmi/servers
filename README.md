@@ -134,7 +134,7 @@ CREATE USER lianmidba IDENTIFIED BY '12345678';
 CREATE DATABASE IF NOT EXISTS lianmidashboard DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
 
 GRANT ALL PRIVILEGES ON lianmicloud.* TO 'lianmidba'@'%';
-GRANT ALL PRIVILEGES ON lianmidashboard.* TO 'lianmidba'@'%';
+GRANT ALL PRIVILEGES ON lianmiadmin.* TO 'lianmidba'@'%';
 
 FLUSH PRIVILEGES;
 
