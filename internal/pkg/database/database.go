@@ -74,6 +74,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.BusinessUnderling{})        // 商户下属的会员表
 	db.AutoMigrate(&models.BusinessUserStatistics{})   // 商户下属的月会员统计表
 	db.AutoMigrate(&models.Store{})                    // 商户店铺表
+	db.AutoMigrate(&models.StoreProductItems{})        // 商户商品信息表
 	db.AutoMigrate(&models.StoreLike{})                // 商店的点赞明细表
 	db.AutoMigrate(&models.UserLike{})                 // 用户点赞的店铺记录表
 	db.AutoMigrate(&models.OrderImagesHistory{})       // 服务端的订单图片上链历史表

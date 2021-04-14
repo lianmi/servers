@@ -228,6 +228,8 @@ type LianmiApisService interface {
 
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error
+
+	GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -971,4 +973,9 @@ func (s *DefaultLianmiApisService) QueryLotterySaleTimes() (*Order.QueryLotteryS
 func (s *DefaultLianmiApisService) SetDefaultOPK(username, opk string) error {
 	return s.Repository.SetDefaultOPK(username, opk)
 
+}
+
+func (s *DefaultLianmiApisService) GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error) {
+	// panic("implement me")
+	return s.Repository.GetStoreProductLists(o)
 }
