@@ -7,7 +7,7 @@ import (
 
 // 存储商户的商品表
 type StoreProductItems struct {
-	UUID        string         `gorm:"primarykey;type:char(256)" form:"-" json:"-" ` //格式
+	UUID        string         `gorm:"primarykey;type:varchar(256)" form:"-" json:"-" ` //格式
 	CreatedAt   time.Time      `json:"-"`
 	UpdatedAt   time.Time      `json:"-"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
