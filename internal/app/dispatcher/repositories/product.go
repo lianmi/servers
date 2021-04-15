@@ -293,8 +293,20 @@ func (s *MysqlLianmiRepository) GetStoreProductLists(req *Order.ProductsListReq)
 }
 
 func (s *MysqlLianmiRepository) AddStoreProductItem(item *models.StoreProductItems) error {
-	item.UUID = fmt.Sprintf("%s:%s", item.StoreUUID, item.ProductId)
+	// 先判断 商品是否存在
 
+	//s.GetGeneralProductByID(item.ProductId)
+	p := new(models.GeneralProduct)
+	if err := s.db.Model(p).Where(&models.GeneralProduct{
+		GeneralProductInfo: models.GeneralProductInfo{
+			ProductId: item.ProductId,
+		},
+	}).First(p).Error; err != nil {
+		//记录找不到也会触发错误
+		return errors.Wrapf(err, "Get GeneralProduct error[productID=%s]", item.ProductId)
+	}
+
+	item.UUID = fmt.Sprintf("%s:%s", item.StoreUUID, item.ProductId)
 	err := s.db.Create(item).Error
 	return err
 }
