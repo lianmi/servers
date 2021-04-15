@@ -579,6 +579,9 @@ func CreateInitControllersFn(
 			//将店铺审核通过
 			adminGroup.POST("/auditstore", pc.AuditStore)
 
+			// 增加商户支持的彩种
+			adminGroup.POST("/addstoreproduct", pc.AdminAddStoreProductItem)
+
 		}
 	}
 }

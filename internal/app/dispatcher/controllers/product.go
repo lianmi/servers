@@ -4,6 +4,7 @@
 package controllers
 
 import (
+	"github.com/lianmi/servers/internal/pkg/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -110,4 +111,42 @@ func (pc *LianmiApisController) SetProductSubType(c *gin.Context) {
 		RespOk(c, http.StatusOK, 200)
 	}
 
+}
+
+// 增加商户支持的彩种
+func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
+	//
+	if !pc.CheckIsAdmin(context) {
+		RespFail(context, http.StatusUnauthorized, codes.ErrAuth, "无权访问")
+		return
+	}
+
+	//type AddStoreProductReq struct {
+	//	Store string `json:"store"`
+	//	ProductID string `json:"product_id"`
+	//}
+	code := codes.InvalidParams
+	var req models.StoreProductItems
+
+	if context.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(context, http.StatusOK, code, "参数错误, 缺少必填字段")
+	} else {
+		if req.ProjectID == "" {
+			RespData(context, http.StatusOK, code, "商品ID不能为空")
+			return
+		}
+		if req.StoreUUID == "" {
+			RespData(context, http.StatusOK, code, "商户ID不能为空")
+			return
+		}
+
+		err := pc.service.AddStoreProductItem(&req)
+		if err != nil {
+			RespData(context, http.StatusOK, code, "设置商品的子类型发生错误")
+			return
+		}
+
+		RespOk(context, http.StatusOK, 200)
+	}
 }

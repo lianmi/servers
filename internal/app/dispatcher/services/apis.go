@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-
 	// "fmt"
 	"strings"
 	"time"
@@ -230,6 +229,7 @@ type LianmiApisService interface {
 	SetDefaultOPK(username, opk string) error
 
 	GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error)
+	AddStoreProductItem(item *models.StoreProductItems) error
 }
 
 type DefaultLianmiApisService struct {
@@ -978,4 +978,8 @@ func (s *DefaultLianmiApisService) SetDefaultOPK(username, opk string) error {
 func (s *DefaultLianmiApisService) GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error) {
 	// panic("implement me")
 	return s.Repository.GetStoreProductLists(o)
+}
+
+func (s *DefaultLianmiApisService) AddStoreProductItem(item *models.StoreProductItems) error {
+	return s.Repository.AddStoreProductItem(item)
 }
