@@ -245,6 +245,8 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 
 		if err := pc.service.AddGeneralProduct(generalProductInfo); err == nil {
 			pc.logger.Debug("AddGeneralProduct run ok")
+			// NOTE wujehy 添加成功 , 需要同时清理一下 缓存
+			delete(pc.cacheMap, "CacheGetGeneralProjectIDs")
 			RespOk(c, http.StatusOK, 200)
 		} else {
 			pc.logger.Warn("AddGeneralProduct run FAILD")
@@ -476,6 +478,7 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 		}
 	}
 }
+
 /*
 
 func (s *ApiAdapter) SearchPreference(keyword string, page int, pageSize int) (p *[]models.PreferenceItem, err error) {
