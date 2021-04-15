@@ -583,6 +583,13 @@ func CreateInitControllersFn(
 
 			// 增加商户支持的彩种
 			adminGroup.POST("/addstoreproduct", pc.AdminAddStoreProductItem)
+			// 查看现有缓存的key
+			adminGroup.GET("/allcachekey", pc.AdminFindAllCacheLKey)
+
+			// 查看缓存的key 的内容
+			adminGroup.GET("/cachevalue/:key", pc.AdminGetCacheKeyValue)
+			// 删除指定的缓存key
+			adminGroup.DELETE("/cachevalue/:key", pc.AdminDelCacheKeyValue)
 
 		}
 	}

@@ -201,3 +201,55 @@ func (pc *LianmiApisController) GetGeneralProjectIDs(context *gin.Context) {
 	RespData(context, http.StatusOK, codes.SUCCESS, gProductList)
 	return
 }
+
+func (pc *LianmiApisController) AdminFindAllCacheLKey(context *gin.Context) {
+	if !pc.CheckIsAdmin(context) {
+		RespFail(context, http.StatusUnauthorized, codes.ErrAuth, "无权访问")
+		return
+	}
+	keys := []string{}
+
+	for key, _ := range pc.cacheMap {
+		keys = append(keys, key)
+	}
+	RespData(context, http.StatusOK, codes.SUCCESS, keys)
+
+	return
+}
+
+func (pc *LianmiApisController) AdminGetCacheKeyValue(context *gin.Context) {
+	if !pc.CheckIsAdmin(context) {
+		RespFail(context, http.StatusUnauthorized, codes.ErrAuth, "无权访问")
+		return
+	}
+
+	key := context.Param("key")
+
+	value, ok := pc.cacheMap[key]
+	if !ok {
+		RespFail(context, http.StatusNotFound, 404, "数据未找到")
+		return
+	}
+
+	RespData(context, http.StatusOK, 200, value)
+	return
+}
+
+func (pc *LianmiApisController) AdminDelCacheKeyValue(context *gin.Context) {
+	if !pc.CheckIsAdmin(context) {
+		RespFail(context, http.StatusUnauthorized, codes.ErrAuth, "无权访问")
+		return
+	}
+
+	key := context.Param("key")
+
+	_, ok := pc.cacheMap[key]
+	if !ok {
+		RespFail(context, http.StatusOK, 404, "数据未找到,不需要删除")
+		return
+	}
+	//删除
+	delete(pc.cacheMap, key)
+
+	RespOk(context, http.StatusOK, 200)
+}
