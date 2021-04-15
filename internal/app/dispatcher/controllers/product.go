@@ -143,7 +143,7 @@ func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
 
 		err := pc.service.AddStoreProductItem(&req)
 		if err != nil {
-			RespData(context, http.StatusOK, code, "设置商品的子类型发生错误")
+			RespData(context, http.StatusOK, code, "设置商户商品失败")
 			return
 		}
 
