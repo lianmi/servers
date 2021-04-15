@@ -150,3 +150,30 @@ func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
 		RespOk(context, http.StatusOK, 200)
 	}
 }
+func (pc *LianmiApisController) GetGeneralProjectIDs(context *gin.Context) {
+	//type FindDataReq struct {
+	//	Page int `json:"page"`
+	//	Limit int `json:"limit"`
+	//}
+	// 直接返回所有的通用商品的id
+
+	code := codes.InvalidParams
+	var req Order.GetGeneralProductPageReq
+	req.Limit = 20
+	req.Page = 1
+	genProductList, err := pc.service.GetGeneralProductPage(&req)
+	if err != nil {
+		RespFail(context, http.StatusUnauthorized, code, "数据查找错误")
+		return
+	}
+
+	gProductList := []string{}
+
+	for index, item := range genProductList.Generalproducts {
+		_ = index
+		gProductList = append(gProductList, item.ProductId)
+	}
+
+	RespData(context, http.StatusOK, codes.SUCCESS, gProductList)
+	return
+}
