@@ -35,6 +35,7 @@ type GeneralProduct struct {
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	GeneralProductInfo
+	UpdatedAtInt int64 `json:"updated_at" gorm:"-"`
 }
 
 //BeforeCreate CreatedAt赋值

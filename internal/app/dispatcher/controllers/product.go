@@ -21,11 +21,14 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 	}
 
 	resp, err := pc.service.GetGeneralProductByID(productId)
+
 	if err != nil {
 		pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
 		RespData(c, http.StatusOK, 500, "Get GeneralProduct by productId error")
 		return
 	}
+
+	resp.UpdatedAtInt = resp.UpdatedAt.UnixNano() / 1e6
 
 	RespData(c, http.StatusOK, 200, resp)
 }
