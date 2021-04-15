@@ -310,3 +310,10 @@ func (s *MysqlLianmiRepository) AddStoreProductItem(item *models.StoreProductIte
 	err := s.db.Create(item).Error
 	return err
 }
+
+func (s *MysqlLianmiRepository) GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (p *[]models.GeneralProduct, err error) {
+	//panic("implement me")
+	p = new([]models.GeneralProduct)
+	err = s.db.Model(p).Limit(int(req.Limit)).Find(p).Error
+	return
+}

@@ -4,6 +4,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"net/http"
 
@@ -20,6 +21,17 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 		return
 	}
 
+	// 从内存读取缓存
+	cacheKey := fmt.Sprintf("CacheGetGeneralProductByID:%s", productId)
+
+	productInfo, ok := pc.cacheMap[cacheKey]
+
+	if ok {
+		pc.logger.Debug("GetGeneralProductByID 直接内存读取")
+		RespData(c, http.StatusOK, 200, productInfo)
+		return
+	}
+
 	resp, err := pc.service.GetGeneralProductByID(productId)
 
 	if err != nil {
@@ -27,10 +39,10 @@ func (pc *LianmiApisController) GetGeneralProductByID(c *gin.Context) {
 		RespData(c, http.StatusOK, 500, "Get GeneralProduct by productId error")
 		return
 	}
-
 	resp.UpdatedAtInt = resp.UpdatedAt.UnixNano() / 1e6
-
+	pc.cacheMap[cacheKey] = resp
 	RespData(c, http.StatusOK, 200, resp)
+	return
 }
 
 func (pc *LianmiApisController) GetProductInfo(c *gin.Context) {
@@ -160,23 +172,32 @@ func (pc *LianmiApisController) GetGeneralProjectIDs(context *gin.Context) {
 	//}
 	// 直接返回所有的通用商品的id
 
+	findMap, ok := pc.cacheMap["CacheGetGeneralProjectIDs"]
+	if ok {
+		// 内存中存在缓存 直接读取内存
+		pc.logger.Debug("GetGeneralProjectIDs 从内存直接获取")
+		RespData(context, http.StatusOK, codes.SUCCESS, findMap)
+		return
+	}
+
 	code := codes.InvalidParams
 	var req Order.GetGeneralProductPageReq
 	req.Limit = 20
 	req.Page = 1
-	genProductList, err := pc.service.GetGeneralProductPage(&req)
+	genProductList, err := pc.service.GetGeneralProductFromDB(&req)
 	if err != nil {
 		RespFail(context, http.StatusUnauthorized, code, "数据查找错误")
 		return
 	}
 
-	gProductList := []string{}
+	gProductList := make(map[string]int64)
 
-	for index, item := range genProductList.Generalproducts {
+	for index, item := range *genProductList {
 		_ = index
-		gProductList = append(gProductList, item.ProductId)
+		//gProductList = append(gProductList, item.ProductId)
+		gProductList[item.ProductId] = item.UpdatedAt.UnixNano() / 1e6
 	}
-
+	pc.cacheMap["CacheGetGeneralProjectIDs"] = gProductList
 	RespData(context, http.StatusOK, codes.SUCCESS, gProductList)
 	return
 }

@@ -230,6 +230,7 @@ type LianmiApisService interface {
 
 	GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error)
 	AddStoreProductItem(item *models.StoreProductItems) error
+	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -982,4 +983,10 @@ func (s *DefaultLianmiApisService) GetStoreProductLists(o *Order.ProductsListReq
 
 func (s *DefaultLianmiApisService) AddStoreProductItem(item *models.StoreProductItems) error {
 	return s.Repository.AddStoreProductItem(item)
+}
+
+func (s *DefaultLianmiApisService) GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error) {
+	// panic("implement me")
+	return s.Repository.GetGeneralProductFromDB(req)
+
 }

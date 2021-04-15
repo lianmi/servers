@@ -253,6 +253,7 @@ type LianmiRepository interface {
 	SetDefaultOPK(username, opk string) error
 	GetStoreProductLists(req *Order.ProductsListReq) (*[]models.StoreProductItems, error)
 	AddStoreProductItem(item *models.StoreProductItems) error
+	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
 }
 
 type MysqlLianmiRepository struct {

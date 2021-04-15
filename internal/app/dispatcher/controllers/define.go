@@ -9,7 +9,8 @@ import (
 type LianmiApisController struct {
 	logger    *zap.Logger
 	service   services.LianmiApisService
-	nsqClient *nsqMq.NsqClient //nsqMq
+	nsqClient *nsqMq.NsqClient       //nsqMq
+	cacheMap  map[string]interface{} // 内存缓存信息map , 用语缓存一些常用不变的值
 }
 
 func NewLianmiApisController(logger *zap.Logger, s services.LianmiApisService, nsqClient *nsqMq.NsqClient) *LianmiApisController {
@@ -17,5 +18,6 @@ func NewLianmiApisController(logger *zap.Logger, s services.LianmiApisService, n
 		logger:    logger,
 		service:   s,
 		nsqClient: nsqClient,
+		cacheMap:  make(map[string]interface{}),
 	}
 }
