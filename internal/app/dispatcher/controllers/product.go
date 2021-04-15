@@ -132,7 +132,7 @@ func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespData(context, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
-		if req.ProjectID == "" {
+		if req.ProductId == "" {
 			RespData(context, http.StatusOK, code, "商品ID不能为空")
 			return
 		}

@@ -293,7 +293,7 @@ func (s *MysqlLianmiRepository) GetStoreProductLists(req *Order.ProductsListReq)
 }
 
 func (s *MysqlLianmiRepository) AddStoreProductItem(item *models.StoreProductItems) error {
-	item.UUID = fmt.Sprintf("%s:%s", item.StoreUUID, item.ProjectID)
+	item.UUID = fmt.Sprintf("%s:%s", item.StoreUUID, item.ProductId)
 
 	err := s.db.Create(item).Error
 	return err
