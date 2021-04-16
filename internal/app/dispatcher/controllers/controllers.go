@@ -459,6 +459,7 @@ func CreateInitControllersFn(
 			productGroup.POST("/setsubtype", pc.SetProductSubType)
 			// 获取通用商品id列表
 			productGroup.GET("/generalproducts", pc.GetGeneralProjectIDs)
+			productGroup.GET("/generalproductslist", pc.GetGeneralProjectsList)
 
 		}
 

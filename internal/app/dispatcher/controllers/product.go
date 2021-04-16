@@ -202,6 +202,37 @@ func (pc *LianmiApisController) GetGeneralProjectIDs(context *gin.Context) {
 	return
 }
 
+func (pc *LianmiApisController) GetGeneralProjectsList(context *gin.Context) {
+	findMap, ok := pc.cacheMap["CacheGetGeneralProjectLists"]
+	if ok {
+		// 内存中存在缓存 直接读取内存
+		pc.logger.Debug("CacheGetGeneralProjectLists 从内存直接获取")
+		RespData(context, http.StatusOK, codes.SUCCESS, findMap)
+		return
+	}
+
+	code := codes.InvalidParams
+	var req Order.GetGeneralProductPageReq
+	req.Limit = 20
+	req.Page = 1
+	genProductList, err := pc.service.GetGeneralProductFromDB(&req)
+	if err != nil {
+		RespFail(context, http.StatusUnauthorized, code, "数据查找错误")
+		return
+	}
+
+	//gProductList := make(map[string]int64)
+
+	for index, item := range *genProductList {
+		_ = index
+		//gProductList = append(gProductList, item.ProductId)
+		(*genProductList)[index].UpdatedAtInt = item.UpdatedAt.UnixNano() / 1e6
+	}
+	pc.cacheMap["CacheGetGeneralProjectLists"] = genProductList
+	RespData(context, http.StatusOK, codes.SUCCESS, genProductList)
+	return
+}
+
 func (pc *LianmiApisController) AdminFindAllCacheLKey(context *gin.Context) {
 	if !pc.CheckIsAdmin(context) {
 		RespFail(context, http.StatusUnauthorized, codes.ErrAuth, "无权访问")
