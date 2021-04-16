@@ -247,6 +247,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 			pc.logger.Debug("AddGeneralProduct run ok")
 			// NOTE wujehy 添加成功 , 需要同时清理一下 缓存
 			delete(pc.cacheMap, "CacheGetGeneralProjectIDs")
+			delete(pc.cacheMap, "CacheGetGeneralProjectLists")
 			RespOk(c, http.StatusOK, 200)
 		} else {
 			pc.logger.Warn("AddGeneralProduct run FAILD")
