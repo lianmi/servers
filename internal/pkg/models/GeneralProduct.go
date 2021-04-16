@@ -10,15 +10,16 @@ import (
 服务端的通用商品表
 */
 type GeneralProductInfo struct {
-	ProductId        string `json:"productId" form:"productId" gorm:"column:product_id;comment:商品UUID;type:varchar(191);size:191;"`
-	ProductName      string `json:"productName" form:"productName" gorm:"column:product_name;comment:商品名称;type:varchar(191);size:191;"`
-	ProductType      int    `json:"productType" form:"productType" gorm:"column:product_type;comment:商品种类枚举"`
-	ProductDesc      string `json:"productDesc" form:"productDesc" gorm:"column:product_desc;comment:商品详细介绍;type:varchar(191);size:191;"`
-	ProductPic1Large string `json:"productPic1Large" form:"productPic1Large" gorm:"column:product_pic1_large;comment:商品图片1-大图;type:varchar(191);size:191;"`
-	ProductPic2Large string `json:"productPic2Large" form:"productPic2Large" gorm:"column:product_pic2_large;comment:商品图片2-大图;type:varchar(191);size:191;"`
-	ProductPic3Large string `json:"productPic3Large" form:"productPic3Large" gorm:"column:product_pic3_large;comment:商品图片3-大图;type:varchar(191);size:191;"`
-	ShortVideo       string `json:"shortVideo" form:"shortVideo" gorm:"column:short_video;comment:商品短视频;type:varchar(191);size:191;"`
-	AllowCancel      *bool  `json:"allowCancel" form:"allowCancel" gorm:"column:allow_cancel;comment:是否允许撤单， 默认是可以，彩票类的不可以;type:tinyint;"`
+	ProductId        string  `json:"productId" form:"productId" gorm:"column:product_id;comment:商品UUID;type:varchar(191);size:191;"`
+	ProductName      string  `json:"productName" form:"productName" gorm:"column:product_name;comment:商品名称;type:varchar(191);size:191;"`
+	ProductType      int     `json:"productType" form:"productType" gorm:"column:product_type;comment:商品种类枚举"`
+	ProductPrice     float64 `json:"product_price"" form:"productType" gorm:"column:product_price;comment:商品价格"`
+	ProductDesc      string  `json:"productDesc" form:"productDesc" gorm:"column:product_desc;comment:商品详细介绍;type:varchar(191);size:191;"`
+	ProductPic1Large string  `json:"productPic1Large" form:"productPic1Large" gorm:"column:product_pic1_large;comment:商品图片1-大图;type:varchar(191);size:191;"`
+	ProductPic2Large string  `json:"productPic2Large" form:"productPic2Large" gorm:"column:product_pic2_large;comment:商品图片2-大图;type:varchar(191);size:191;"`
+	ProductPic3Large string  `json:"productPic3Large" form:"productPic3Large" gorm:"column:product_pic3_large;comment:商品图片3-大图;type:varchar(191);size:191;"`
+	ShortVideo       string  `json:"shortVideo" form:"shortVideo" gorm:"column:short_video;comment:商品短视频;type:varchar(191);size:191;"`
+	AllowCancel      *bool   `json:"allowCancel" form:"allowCancel" gorm:"column:allow_cancel;comment:是否允许撤单， 默认是可以，彩票类的不可以;type:tinyint;"`
 
 	DescPic1 string `json:"descPic1" form:"descPic1" gorm:"column:desc_pic1;comment:商品介绍pic1 -图片1;type:varchar(191);size:191;"`
 	DescPic2 string `json:"descPic2" form:"descPic2" gorm:"column:desc_pic2;comment:商品介绍pic2 -图片2;type:varchar(191);size:191;"`
