@@ -13,7 +13,7 @@ type GeneralProductInfo struct {
 	ProductId        string  `json:"productId" form:"productId" gorm:"column:product_id;comment:商品UUID;type:varchar(191);size:191;"`
 	ProductName      string  `json:"productName" form:"productName" gorm:"column:product_name;comment:商品名称;type:varchar(191);size:191;"`
 	ProductType      int     `json:"productType" form:"productType" gorm:"column:product_type;comment:商品种类枚举"`
-	ProductPrice     float64 `json:"product_price"" form:"productType" gorm:"column:product_price;comment:商品价格"`
+	ProductPrice     float64 `json:"productPrice" form:"productType" gorm:"column:product_price;comment:商品价格"`
 	ProductDesc      string  `json:"productDesc" form:"productDesc" gorm:"column:product_desc;comment:商品详细介绍;type:varchar(191);size:191;"`
 	ProductPic1Large string  `json:"productPic1Large" form:"productPic1Large" gorm:"column:product_pic1_large;comment:商品图片1-大图;type:varchar(191);size:191;"`
 	ProductPic2Large string  `json:"productPic2Large" form:"productPic2Large" gorm:"column:product_pic2_large;comment:商品图片2-大图;type:varchar(191);size:191;"`
