@@ -82,8 +82,8 @@ type OrderItems struct {
 	Fee          float64        `json:"fee"`
 	CouponID     string         `json:"coupon_id"`
 	ImageHash    string         `json:"image_hash"`
-	StoreInfo    UserBase       `json:"-" gorm:"foreignKey:StoreId;references:Username" `
-	UserInfo     UserBase       `json:"-" gorm:"foreignKey:UserId;references:Username" `
+	StoreInfo    User           `json:"-" gorm:"foreignKey:StoreId;references:Username" `
+	UserInfo     User           `json:"-" gorm:"foreignKey:UserId;references:Username" `
 }
 
 //BeforeCreate CreatedAt赋值
