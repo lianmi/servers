@@ -112,7 +112,7 @@ func CreateInitControllersFn(
 				var userRoles []*models.Role
 				json.Unmarshal(helper.S2B(jsonRole), &userRoles)
 				//Set the identity
-				log.Println("IdentityHandler run ... %#v", roles)
+				//log.Println("IdentityHandler run ... %#v", roles)
 
 				return &models.UserRole{
 					UserName:  roles[common.IdentityKey].(string),
