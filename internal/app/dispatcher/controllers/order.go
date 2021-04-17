@@ -268,15 +268,15 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 		BusinessId string  `json:"business_id"`
 		ProductId  string  `json:"product_id"`
 		Amounts    float64 `json:"amounts"`
-		PayCode    string  `json:"pay_code"`
-		PayType    int     `json:"pay_type"`
+		//PayCode    string  `json:"pay_code"`
+		//PayType    int     `json:"pay_type"`
 	}
 	resp := RespDataBodyInfo{}
 	resp.ProductId = getProductInfo.ProductId
 	resp.BusinessId = req.BusinessId
 	resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
-	resp.PayType = 2
-	resp.PayCode = "test_weixinzhifucode"
+	//resp.PayType = 2
+	//resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
 }
