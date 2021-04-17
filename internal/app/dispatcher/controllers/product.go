@@ -145,20 +145,20 @@ func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
 
 	if context.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespData(context, http.StatusOK, code, "参数错误, 缺少必填字段")
+		RespFail(context, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.ProductId == "" {
-			RespData(context, http.StatusOK, code, "商品ID不能为空")
+			RespFail(context, http.StatusOK, code, "商品ID不能为空")
 			return
 		}
 		if req.StoreUUID == "" {
-			RespData(context, http.StatusOK, code, "商户ID不能为空")
+			RespFail(context, http.StatusOK, code, "商户ID不能为空")
 			return
 		}
 
 		err := pc.service.AddStoreProductItem(&req)
 		if err != nil {
-			RespData(context, http.StatusOK, code, "设置商户商品失败")
+			RespFail(context, http.StatusOK, code, "设置商户商品失败")
 			return
 		}
 

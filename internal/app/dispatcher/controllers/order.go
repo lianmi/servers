@@ -53,24 +53,24 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 	var req Order.UploadOrderBodyReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error")
-		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+		RespFail(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
-			RespData(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
+			RespFail(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
 		}
 		if req.BodyType == 0 {
 			pc.logger.Error("BodyType is empty")
-			RespData(c, http.StatusOK, code, "参数错误, 缺少BodyType字段 ")
+			RespFail(c, http.StatusOK, code, "参数错误, 缺少BodyType字段 ")
 		}
 		if req.BodyObjFile == "" {
 			pc.logger.Error("BodyObjFile is empty")
-			RespData(c, http.StatusOK, code, "参数错误, 缺少BodyObjFile字段 ")
+			RespFail(c, http.StatusOK, code, "参数错误, 缺少BodyObjFile字段 ")
 		}
 
 		resp, rsp, err := pc.service.UploadOrderBody(c, &req)
 		if err != nil {
-			RespData(c, http.StatusOK, code, "买家将订单body经过RSA加密后提交到彩票中心或第三方公证时发生错误")
+			RespFail(c, http.StatusOK, code, "买家将订单body经过RSA加密后提交到彩票中心或第三方公证时发生错误")
 			return
 		}
 		if rsp != nil {
@@ -103,13 +103,13 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	code := codes.InvalidParams
 	orderID := c.Param("orderid")
 	if orderID == "" {
-		RespData(c, http.StatusOK, 400, "orderid is empty")
+		RespFail(c, http.StatusOK, 400, "orderid is empty")
 		return
 
 	} else {
 		resp, err := pc.service.DownloadOrderImage(orderID)
 		if err != nil {
-			RespData(c, http.StatusOK, code, "获取所有订单拍照图片时发生错误")
+			RespFail(c, http.StatusOK, code, "获取所有订单拍照图片时发生错误")
 			return
 		}
 
@@ -122,7 +122,7 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 func (pc *LianmiApisController) OrderPendingState(c *gin.Context) {
 	orderID := c.Param("orderid")
 	if orderID == "" {
-		RespData(c, http.StatusOK, 400, "orderid is empty")
+		RespFail(c, http.StatusOK, 400, "orderid is empty")
 		return
 
 	} else {
@@ -142,7 +142,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	_ = deviceid
 	_ = username
 	if !isok {
-		RespData(context, http.StatusUnauthorized, 401, "token is fail")
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
 	}
 
@@ -157,14 +157,26 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	req := SendOrderDataTypeReq{}
 
 	if err := context.BindJSON(&req); err != nil {
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	// 查找商品是否存在
 	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
 	if err != nil {
-		RespData(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		return
+	}
+
+	// 判断商户状态
+	getStoreInfo, err := pc.service.GetStore(req.BusinessId)
+	if err != nil {
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户信息未找到")
+		return
+	}
+
+	if int(getStoreInfo.StoreType) != getProductInfo.ProductType {
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户不支持的商品类型")
 		return
 	}
 
@@ -173,6 +185,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.OrderId = uuid.NewV4().String()
 	orderItem.ProductId = req.ProductId
 	orderItem.StoreId = req.BusinessId
+	orderItem.UserId = username
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
 	orderItem.OrderStatus = int(global.OrderState_OS_Undefined)
@@ -186,7 +199,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	if err != nil {
 		pc.logger.Error("订单保存错误", zap.Error(err))
-		RespData(context, http.StatusOK, codes.ERROR, "订单保存错误 , 请重试")
+		RespFail(context, http.StatusOK, codes.ERROR, "订单保存错误 , 请重试")
 		return
 	}
 
