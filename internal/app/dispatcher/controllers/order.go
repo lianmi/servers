@@ -175,7 +175,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	}
 
-	if getStoreInfo.StoreType.String() == "" {
+	if getStoreInfo.GetStoreType() == global.StoreType_ST_Undefined {
 		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户信息未定义商店类型")
 		return
 	}
