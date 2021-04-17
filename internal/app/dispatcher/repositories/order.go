@@ -223,3 +223,10 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 	err := s.db.Create(item).Error
 	return err
 }
+
+func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, offset int) (p *[]models.OrderItems, err error) {
+	//panic("implement me")
+	p = new([]models.OrderItems)
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Limit(limit).Offset(offset).Find(p).Error
+	return
+}

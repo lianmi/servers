@@ -255,6 +255,7 @@ type LianmiRepository interface {
 	AddStoreProductItem(item *models.StoreProductItems) error
 	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
 	SavaOrderItemToDB(item *models.OrderItems) error
+	GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error)
 }
 
 type MysqlLianmiRepository struct {

@@ -234,7 +234,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	_ = deviceid
 	_ = username
 	if !isok {
-		RespData(context, http.StatusUnauthorized, 401, "token is fail")
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
 	}
 
@@ -248,14 +248,14 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	req := SendOrderDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	// 查找商品是否存在
 	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
 	if err != nil {
-		RespData(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
 		return
 	}
 
@@ -279,4 +279,40 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	//resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
+}
+
+func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+	_ = deviceid
+	_ = username
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type SendOrderDataTypeReq struct {
+		Limit  int `json:"limit"`
+		Offset int `json:"offset"`
+	}
+
+	req := SendOrderDataTypeReq{}
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	if req.Limit < 10 {
+		req.Limit = 10
+	}
+
+	// 翻页查找 订单信息
+
+	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset)
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
+		return
+	}
+
+	RespData(context, http.StatusOK, codes.SUCCESS, orderList)
+
 }
