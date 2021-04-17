@@ -78,6 +78,7 @@ func New(o *Options) (*gorm.DB, error) {
 	db.AutoMigrate(&models.StoreLike{})                // 商店的点赞明细表
 	db.AutoMigrate(&models.UserLike{})                 // 用户点赞的店铺记录表
 	db.AutoMigrate(&models.OrderImagesHistory{})       // 服务端的订单图片上链历史表
+	db.AutoMigrate(&models.OrderItems{})               // 订单信息表
 	db.AutoMigrate(&models.AliPayHistory{})            // 支付宝充值历史表
 	db.AutoMigrate(&models.VipPrice{})                 // VIP会员价格表
 	db.AutoMigrate(&models.ECoupon{})                  // 系统电子优惠券表
