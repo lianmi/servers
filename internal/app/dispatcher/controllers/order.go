@@ -175,9 +175,9 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	}
 
-	stoeType := int(getStoreInfo.StoreType)
-	pc.logger.Debug("发起订单支付", zap.Any("StoreType", getStoreInfo.StoreType), zap.Int("stoeType", stoeType), zap.Int("productType", getProductInfo.ProductType))
-	if stoeType != getProductInfo.ProductType {
+	//stoeType := int(getStoreInfo.StoreType)
+	pc.logger.Debug("发起订单支付", zap.Any("StoreType", getStoreInfo.StoreType), zap.Int("productType", getProductInfo.ProductType))
+	if getStoreInfo.StoreType != global.StoreType(getProductInfo.ProductType) {
 		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户不支持的商品类型")
 		return
 	}
