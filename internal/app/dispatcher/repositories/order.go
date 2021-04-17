@@ -215,5 +215,11 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 		}, nil
 
 	}
-	
+
+}
+
+func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error {
+	//panic("implement me")
+	err := s.db.Create(item).Error
+	return err
 }

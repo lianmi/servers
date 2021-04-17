@@ -62,3 +62,38 @@ func (o *OrderImagesHistory) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
+
+type OrderItems struct {
+	OrderId      string         `json:"order_id" gorm:"primarykey;type:char(36)"`
+	CreatedAt    int64          `json:"created_at"`
+	UpdatedAt    int64          `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	StoreId      string         `json:"store_id"`
+	UserId       string         `json:"user_id"`
+	WitnessId    string         `json:"witness_id"`
+	ProductId    string         `json:"product_id"`
+	ChainAddress string         `json:"chain_address"`
+	Body         string         `json:"body"`
+	PublicKey    string         `json:"public_key"`
+	OrderStatus  int            `json:"order_status"`
+	PayStatus    int            `json:"pay_status"`
+	ChainStatus  int            `json:"chain_status"`
+	Amounts      float64        `json:"amounts"`
+	Fee          float64        `json:"fee"`
+	CouponID     string         `json:"coupon_id"`
+	ImageHash    string         `json:"image_hash"`
+	StoreInfo    UserBase       `json:"-" gorm:"foreignKey:StoreId;references:Username" `
+	UserInfo     UserBase       `json:"-" gorm:"foreignKey:UserId;references:Username" `
+}
+
+//BeforeCreate CreatedAt赋值
+func (o *OrderItems) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (o *OrderItems) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}

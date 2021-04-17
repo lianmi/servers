@@ -460,7 +460,6 @@ func CreateInitControllersFn(
 			// 获取通用商品id列表
 			productGroup.GET("/generalproducts", pc.GetGeneralProjectIDs)
 			productGroup.GET("/generalproductslist", pc.GetGeneralProjectsList)
-
 		}
 
 		//=======订单模块==========/
@@ -478,6 +477,10 @@ func CreateInitControllersFn(
 
 			//用户端: 根据 OrderID 获取此订单在链上的pending状态
 			// orderGroup.GET("/orderpendingstate/:orderid", pc.OrderPendingState)
+			// 用户向商户发起订单
+			orderGroup.POST("/pay", pc.OrderPayToBusiness)
+			orderGroup.POST("/calculate_order_price", pc.OrderCalcPrice)
+
 		}
 
 		//=======钱包模块==========/

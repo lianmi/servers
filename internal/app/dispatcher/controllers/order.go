@@ -5,6 +5,10 @@ package controllers
 
 import (
 	"context"
+	"github.com/lianmi/servers/api/proto/global"
+	"github.com/lianmi/servers/internal/common"
+	"github.com/lianmi/servers/internal/pkg/models"
+	uuid "github.com/satori/go.uuid"
 	"net/http"
 	"time"
 
@@ -51,7 +55,6 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 		pc.logger.Error("binding JSON error")
 		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
-
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
 			RespData(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
@@ -133,4 +136,128 @@ func (pc *LianmiApisController) OrderPendingState(c *gin.Context) {
 		RespData(c, http.StatusOK, 200, resp)
 
 	}
+}
+func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+	_ = deviceid
+	_ = username
+	if !isok {
+		RespData(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type SendOrderDataTypeReq struct {
+		BusinessId string `json:"business_id" binding:"required" `
+		ProductId  string `json:"product_id" binding:"required"`
+		CouponId   string `json:"coupon_id" `
+		Body       string `json:"body" binding:"required"`
+		Publickey  string `json:"publickey" binding:"required"`
+	}
+
+	req := SendOrderDataTypeReq{}
+
+	if err := context.BindJSON(&req); err != nil {
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	// 查找商品是否存在
+	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
+	if err != nil {
+		RespData(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		return
+	}
+
+	// 创建订单
+	orderItem := models.OrderItems{}
+	orderItem.OrderId = uuid.NewV4().String()
+	orderItem.ProductId = req.ProductId
+	orderItem.StoreId = req.BusinessId
+	orderItem.Body = req.Body
+	orderItem.PublicKey = req.Publickey
+	orderItem.OrderStatus = int(global.OrderState_OS_Undefined)
+	orderItem.Amounts = getProductInfo.ProductPrice
+	orderItem.Fee = common.ChainFee
+
+	// TODO 优惠券处理
+
+	// 入库
+	err = pc.service.SavaOrderItemToDB(&orderItem)
+
+	if err != nil {
+		pc.logger.Error("订单保存错误", zap.Error(err))
+		RespData(context, http.StatusOK, codes.ERROR, "订单保存错误 , 请重试")
+		return
+	}
+
+	// 返回支付信息
+
+	// TODO 向 微信发起支付信息码获取
+	type RespDataBodyInfo struct {
+		BusinessId string  `json:"business_id"`
+		ProductId  string  `json:"product_id"`
+		Amounts    float64 `json:"amounts"`
+		PayCode    string  `json:"pay_code"`
+		PayType    int     `json:"pay_type"`
+	}
+	resp := RespDataBodyInfo{}
+	resp.ProductId = orderItem.ProductId
+	resp.BusinessId = orderItem.StoreId
+	resp.Amounts = orderItem.Amounts + orderItem.Fee
+	resp.PayType = 2
+	resp.PayCode = "test_weixinzhifucode"
+	RespData(context, http.StatusOK, codes.SUCCESS, resp)
+	return
+}
+
+func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+	_ = deviceid
+	_ = username
+	if !isok {
+		RespData(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type SendOrderDataTypeReq struct {
+		BusinessId string `json:"business_id" binding:"required" `
+		ProductId  string `json:"product_id" binding:"required"`
+		CouponId   string `json:"coupon_id" `
+		Body       string `json:"body" binding:"required"`
+		Publickey  string `json:"publickey" binding:"required"`
+	}
+
+	req := SendOrderDataTypeReq{}
+	if err := context.BindJSON(&req); err != nil {
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	// 查找商品是否存在
+	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
+	if err != nil {
+		RespData(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		return
+	}
+
+	// TODO 优惠券处理
+
+	// 返回支付信息
+
+	// TODO 向 微信发起支付信息码获取
+	type RespDataBodyInfo struct {
+		BusinessId string  `json:"business_id"`
+		ProductId  string  `json:"product_id"`
+		Amounts    float64 `json:"amounts"`
+		PayCode    string  `json:"pay_code"`
+		PayType    int     `json:"pay_type"`
+	}
+	resp := RespDataBodyInfo{}
+	resp.ProductId = getProductInfo.ProductId
+	resp.BusinessId = req.BusinessId
+	resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
+	resp.PayType = 2
+	resp.PayCode = "test_weixinzhifucode"
+	RespData(context, http.StatusOK, codes.SUCCESS, resp)
+	return
 }

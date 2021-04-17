@@ -196,3 +196,7 @@ const (
 	RateFreeAmout = 30
 	Rate          = 0.08
 )
+
+const (
+	ChainFee = 0.2 // 上链费用
+)

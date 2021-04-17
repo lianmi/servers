@@ -41,6 +41,18 @@ func (pc *LianmiApisController) CheckIsAdmin(c *gin.Context) bool {
 
 }
 
+func (pc *LianmiApisController) CheckIsUser(c *gin.Context) (username, deviceid string, isok bool) {
+	claims := jwt_v2.ExtractClaims(c)
+	username = claims[common.IdentityKey].(string)
+	deviceid = claims["deviceID"].(string)
+	if username == "" || deviceid == "" {
+		isok = false
+		return
+	}
+	isok = true
+	return
+}
+
 //封号
 func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
