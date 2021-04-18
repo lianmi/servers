@@ -464,6 +464,7 @@ func CreateInitControllersFn(
 
 		//=======订单模块==========/
 		orderGroup := r.Group("/v1/order")
+		orderPubGroup := r.Group("/v1/order")
 		orderGroup.Use(authMiddleware.MiddlewareFunc())
 		{
 			//商户端: 将完成订单拍照所有图片上链
@@ -481,7 +482,10 @@ func CreateInitControllersFn(
 			orderGroup.POST("/pay", pc.OrderPayToBusiness)
 			orderGroup.POST("/calculate_order_price", pc.OrderCalcPrice)
 			orderGroup.GET("/lists", pc.OrderGetLists)
-
+			//
+			orderGroup.POST("/updata_status", pc.OrderUpdateStatus)
+			// 微信支付回调接口
+			orderPubGroup.GET("/wechat/callback", pc.OrderWechatCallback)
 		}
 
 		//=======钱包模块==========/

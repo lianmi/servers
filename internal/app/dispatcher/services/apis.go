@@ -233,6 +233,8 @@ type LianmiApisService interface {
 	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
 	SavaOrderItemToDB(item *models.OrderItems) error
 	GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error)
+	GetOrderListByID(orderID string) (*models.OrderItems, error)
+	SetOrderStatusByOrderID(orderID string, status int) error
 }
 
 type DefaultLianmiApisService struct {
@@ -1000,4 +1002,14 @@ func (s *DefaultLianmiApisService) SavaOrderItemToDB(item *models.OrderItems) er
 
 func (s *DefaultLianmiApisService) GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error) {
 	return s.Repository.GetOrderListByUser(username, limit, offset)
+}
+
+func (s *DefaultLianmiApisService) GetOrderListByID(orderID string) (*models.OrderItems, error) {
+	// panic("implement me")
+	return s.Repository.GetOrderListByID(orderID)
+
+}
+
+func (s *DefaultLianmiApisService) SetOrderStatusByOrderID(orderID string, status int) error {
+	return s.Repository.SetOrderStatusByOrderID(orderID, status)
 }

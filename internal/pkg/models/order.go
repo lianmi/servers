@@ -66,7 +66,7 @@ func (o *OrderImagesHistory) BeforeUpdate(tx *gorm.DB) error {
 type OrderItems struct {
 	OrderId      string         `json:"order_id" gorm:"primarykey;type:char(36)"`
 	CreatedAt    int64          `json:"created_at"`
-	UpdatedAt    int64          `json:"updated_at"`
+	UpdatedAt    int64          `json:"updated_at" json:"-"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 	StoreId      string         `json:"store_id"`
 	UserId       string         `json:"user_id"`

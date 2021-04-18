@@ -230,3 +230,16 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Limit(limit).Offset(offset).Find(p).Error
 	return
 }
+
+func (s *MysqlLianmiRepository) GetOrderListByID(orderID string) (p *models.OrderItems, err error) {
+	//panic("implement me")
+	p = new(models.OrderItems)
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID}).First(p).Error
+	return
+}
+
+func (s *MysqlLianmiRepository) SetOrderStatusByOrderID(orderID string, status int) error {
+	//panic("implement me")
+	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID}).Updates(&models.OrderItems{OrderStatus: status}).Error
+	return err
+}

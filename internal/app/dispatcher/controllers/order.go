@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/lianmi/servers/api/proto/global"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -315,4 +316,77 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 	RespData(context, http.StatusOK, codes.SUCCESS, orderList)
 
+}
+
+func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
+	// 获取订单信息 然后设置支付成功
+	type OrderCallbackDataTypeReq struct {
+		OrderID string `json:"order_id" binding:"required" `
+		Token   string `json:"token" binding:"required"`
+	}
+
+	req := OrderCallbackDataTypeReq{}
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	if req.Token != "lianmi" {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "token fail")
+		return
+	}
+
+	// 查询缓存 当前订单是不是在处理中
+	cacheKey := fmt.Sprintf("OrderStatus:%s", req.OrderID)
+	orderStatus, isok := pc.cacheMap[cacheKey]
+	if isok {
+		// 有数据
+		orderStatusInt := orderStatus.(int)
+		if orderStatusInt != 0 {
+			RespFail(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
+			return
+		}
+	}
+
+	//通过订单id 查找订单
+	orderitem, err := pc.service.GetOrderListByID(req.OrderID)
+
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.ERROR, "订单信息错误")
+		return
+	}
+
+	if orderitem.OrderStatus != int(global.OrderState_OS_Undefined) {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
+		return
+	}
+	// 缓存
+	pc.cacheMap[cacheKey] = orderitem.OrderStatus
+	orderStatus = orderitem.OrderStatus
+
+	// TODO 一系列处理
+
+	// 将订单设置成 支付完成
+	err = pc.service.SetOrderStatusByOrderID(req.OrderID, int(global.OrderState_OS_IsPayed))
+
+	if err != nil {
+		//设置订单
+		pc.logger.Error("订单设置支付失败", zap.Error(err))
+		RespFail(context, http.StatusOK, codes.InvalidParams, "订单处理失败")
+		return
+	}
+
+	// TODO 发送 支付完成通知
+
+	// TODO 上链 ???
+
+	//pc.service.
+
+	delete(pc.cacheMap, cacheKey)
+
+	RespData(context, http.StatusOK, codes.SUCCESS, "支付成功")
+	return
+}
+func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
+	// 更新订单状态
 }

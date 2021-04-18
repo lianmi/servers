@@ -96,8 +96,6 @@ func (m *MysqlOrderRepository) DeleteProduct(productID, username string) error {
 	return nil
 }
 
-
-
 //根据 PayType获取价格信息
 func (m *MysqlOrderRepository) GetVipUserPrice(payType int) (*models.VipPrice, error) {
 	p := new(models.VipPrice)
