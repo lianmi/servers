@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"fmt"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
+	"github.com/lianmi/servers/api/proto/global"
 	LMCommon "github.com/lianmi/servers/internal/common"
 
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -241,5 +241,67 @@ func (s *MysqlLianmiRepository) GetOrderListByID(orderID string) (p *models.Orde
 func (s *MysqlLianmiRepository) SetOrderStatusByOrderID(orderID string, status int) error {
 	//panic("implement me")
 	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID}).Updates(&models.OrderItems{OrderStatus: status}).Error
+	return err
+}
+
+func CheckOrderStatusUpdataRules(currentStatus, newStatus int) bool {
+	//  完成的状态 , 和取消的 不可以修改
+	//if currentStatus == int(global.OrderState_OS_Done) || currentStatus == int(global.OrderState_OS_Cancel){
+	//	return false
+	//}
+	//
+	//// 初始化的可以修改任意状态
+	//if currentStatus == int(global.OrderState_OS_Undefined) {
+	//	return true
+	//}
+	//
+	//// TODO 支付后的不能修改为 特定的场景 等
+	//if currentStatus == int(global.OrderState_OS_IsPayed) && newStatus == int(global.OrderState_OS_Undefined)||
+	// currentStatus == int(global.OrderState_OS_IsPayed) && newStatus == int(global.OrderState_OS_Paying){
+	//	return false
+	//}
+
+	// 白名单模式
+	// 从未支付到支付完成
+
+	isokInitToPayingOrPayedOrApplyCancel := currentStatus == int(global.OrderState_OS_Undefined) && (newStatus == int(global.OrderState_OS_IsPayed) || newStatus == int(global.OrderState_OS_Paying) || newStatus == int(global.OrderState_OS_ApplyCancel))
+
+	// 各种过滤条件
+	isokApplyCancelToCancel := currentStatus == int(global.OrderState_OS_ApplyCancel) && newStatus == int(global.OrderState_OS_Cancel)
+	isokPayingToPayed := currentStatus == int(global.OrderState_OS_Paying) && newStatus == int(global.OrderState_OS_IsPayed)
+	isokIsPayedOrProcessingToProcessingOrTaked := (currentStatus == int(global.OrderState_OS_IsPayed) || currentStatus == int(global.OrderState_OS_Processing)) && (newStatus == int(global.OrderState_OS_Processing) || newStatus == int(global.OrderState_OS_Taked))
+	isokTakedToDone := newStatus == int(global.OrderState_OS_Taked) || newStatus == int(global.OrderState_OS_Done)
+	if isokInitToPayingOrPayedOrApplyCancel ||
+		isokApplyCancelToCancel ||
+		isokPayingToPayed ||
+		isokIsPayedOrProcessingToProcessingOrTaked ||
+		isokTakedToDone {
+		return true
+	}
+
+	return false
+
+}
+
+func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string, orderid string, status int) error {
+	//panic("implement me")
+	// 获取当前的订单信息
+
+	currentOrderItem := models.OrderItems{}
+
+	errFind := s.db.Model(&currentOrderItem).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).First(&currentOrderItem).Error
+	if errFind != nil {
+		s.logger.Error("UpdateOrderStatus DB ", zap.Error(errFind))
+		return fmt.Errorf("未找到订单信息")
+	}
+
+	// 订单状态判断
+
+	isok := CheckOrderStatusUpdataRules(currentOrderItem.OrderStatus, status)
+	if !isok {
+		return fmt.Errorf("订单状态不再允许范围 %d -> %d", currentOrderItem.OrderStatus, status)
+	}
+
+	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: status}).Error
 	return err
 }

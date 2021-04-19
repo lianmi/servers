@@ -483,7 +483,7 @@ func CreateInitControllersFn(
 			orderGroup.POST("/calculate_order_price", pc.OrderCalcPrice)
 			orderGroup.GET("/lists", pc.OrderGetLists)
 			//
-			orderGroup.POST("/updata_status", pc.OrderUpdateStatus)
+			orderGroup.POST("/update_status", pc.OrderUpdateStatus)
 			// 微信支付回调接口
 			orderPubGroup.GET("/wechat/callback", pc.OrderWechatCallback)
 		}

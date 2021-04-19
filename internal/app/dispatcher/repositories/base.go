@@ -258,6 +258,7 @@ type LianmiRepository interface {
 	GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error)
 	GetOrderListByID(orderID string) (*models.OrderItems, error)
 	SetOrderStatusByOrderID(orderID string, status int) error
+	UpdateOrderStatus(userid string, storeID string, orderid string, status int) error
 }
 
 type MysqlLianmiRepository struct {

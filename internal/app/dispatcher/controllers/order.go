@@ -388,5 +388,56 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	return
 }
 func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+
+	_ = deviceid
+	if isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
 	// 更新订单状态
+	// 设置可以设置的状态
+	type OrderCallbackDataTypeReq struct {
+		OrderID string `json:"order_id" binding:"required" `
+		UserID  string `json:"user_id"`
+		StoreID string `json:"store_id"`
+		Status  int    `json:"status"`
+	}
+	req := OrderCallbackDataTypeReq{}
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	if req.UserID == "" || req.StoreID == "" {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
+		return
+	}
+
+	if req.StoreID != "" && req.StoreID != username {
+		// 这个是用户端处理的  , 且自己不是商户自己
+		//修改订单状态
+
+		err := pc.service.UpdateOrderStatus(username, req.StoreID, req.OrderID, req.Status)
+		if err != nil {
+			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+			return
+		}
+		RespOk(context, http.StatusOK, codes.SUCCESS)
+		return
+
+	}
+
+	if req.UserID != "" && req.UserID != username {
+		// 这个是商户端处理的
+		err := pc.service.UpdateOrderStatus(req.UserID, username, req.OrderID, req.Status)
+		if err != nil {
+			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+			return
+		}
+		RespOk(context, http.StatusOK, codes.SUCCESS)
+		return
+	}
+	RespFail(context, http.StatusOK, codes.InvalidParams, "信息错误")
+	return
 }
