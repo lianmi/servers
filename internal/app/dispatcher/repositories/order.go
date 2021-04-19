@@ -264,12 +264,11 @@ func CheckOrderStatusUpdataRules(currentStatus, newStatus int) bool {
 	// 白名单模式
 	// 从未支付到支付完成
 
-	isokInitToPayingOrPayedOrApplyCancel := currentStatus == int(global.OrderState_OS_Undefined) && (newStatus == int(global.OrderState_OS_IsPayed) || newStatus == int(global.OrderState_OS_Paying) || newStatus == int(global.OrderState_OS_ApplyCancel))
-
 	// 各种过滤条件
+	isokInitToPayingOrPayedOrApplyCancel := currentStatus == int(global.OrderState_OS_Undefined) && (newStatus == int(global.OrderState_OS_IsPayed) || newStatus == int(global.OrderState_OS_Paying) || newStatus == int(global.OrderState_OS_ApplyCancel))
 	isokApplyCancelToCancel := currentStatus == int(global.OrderState_OS_ApplyCancel) && newStatus == int(global.OrderState_OS_Cancel)
 	isokPayingToPayed := currentStatus == int(global.OrderState_OS_Paying) && newStatus == int(global.OrderState_OS_IsPayed)
-	isokIsPayedOrProcessingToProcessingOrTaked := (currentStatus == int(global.OrderState_OS_IsPayed) || currentStatus == int(global.OrderState_OS_Processing)) && (newStatus == int(global.OrderState_OS_Processing) || newStatus == int(global.OrderState_OS_Taked))
+	isokIsPayedOrProcessingToProcessingOrTaked := (currentStatus == int(global.OrderState_OS_IsPayed) || currentStatus == int(global.OrderState_OS_Processing)) && (newStatus == int(global.OrderState_OS_Processing) || newStatus == int(global.OrderState_OS_Taked) || newStatus == int(global.OrderState_OS_Refuse))
 	isokTakedToDone := newStatus == int(global.OrderState_OS_Taked) || newStatus == int(global.OrderState_OS_Done)
 	if isokInitToPayingOrPayedOrApplyCancel ||
 		isokApplyCancelToCancel ||

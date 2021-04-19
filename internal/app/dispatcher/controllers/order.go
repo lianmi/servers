@@ -413,6 +413,10 @@ func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
 		return
 	}
+	if req.UserID != "" && req.StoreID != "" {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
+		return
+	}
 
 	if req.StoreID != "" && req.StoreID != username {
 		// 这个是用户端处理的  , 且自己不是商户自己
