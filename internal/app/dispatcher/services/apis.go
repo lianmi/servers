@@ -235,7 +235,7 @@ type LianmiApisService interface {
 	GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error)
 	GetOrderListByID(orderID string) (*models.OrderItems, error)
 	SetOrderStatusByOrderID(orderID string, status int) error
-	UpdateOrderStatus(userid string, storeID string, orderID string, status int) error
+	UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -1015,7 +1015,7 @@ func (s *DefaultLianmiApisService) SetOrderStatusByOrderID(orderID string, statu
 	return s.Repository.SetOrderStatusByOrderID(orderID, status)
 }
 
-func (s *DefaultLianmiApisService) UpdateOrderStatus(userid string, storeID string, orderID string, status int) error {
+func (s *DefaultLianmiApisService) UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error) {
 	//panic("implement me")
 
 	return s.Repository.UpdateOrderStatus(userid, storeID, orderID, status)

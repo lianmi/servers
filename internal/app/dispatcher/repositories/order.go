@@ -282,25 +282,26 @@ func CheckOrderStatusUpdataRules(currentStatus, newStatus int) bool {
 
 }
 
-func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string, orderid string, status int) error {
+func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string, orderid string, status int) (p *models.OrderItems, err error) {
 	//panic("implement me")
 	// 获取当前的订单信息
 
-	currentOrderItem := models.OrderItems{}
+	p = new(models.OrderItems)
 
-	errFind := s.db.Model(&currentOrderItem).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).First(&currentOrderItem).Error
+	errFind := s.db.Model(p).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).First(p).Error
 	if errFind != nil {
 		s.logger.Error("UpdateOrderStatus DB ", zap.Error(errFind))
-		return fmt.Errorf("未找到订单信息")
+		return nil, fmt.Errorf("未找到订单信息")
 	}
 
 	// 订单状态判断
 
-	isok := CheckOrderStatusUpdataRules(currentOrderItem.OrderStatus, status)
+	isok := CheckOrderStatusUpdataRules(p.OrderStatus, status)
 	if !isok {
-		return fmt.Errorf("订单状态不再允许范围 %d -> %d", currentOrderItem.OrderStatus, status)
+		return nil, fmt.Errorf("订单状态不再允许范围 %d -> %d", p.OrderStatus, status)
 	}
 
-	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: status}).Error
-	return err
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: status}).Error
+	p.OrderStatus = status
+	return
 }
