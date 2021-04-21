@@ -119,25 +119,7 @@ dart:
 							   api/proto/msg/SyncSendMsgEvent.proto \
 							   api/proto/msg/Grpc.proto
 
-	rm -f dart_out/api/proto/order/*.dart
-	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/order/AddProduct.proto \
-								api/proto/order/AddProductEvent.proto \
-								api/proto/order/ChangeOrderState.proto \
-								api/proto/order/GetPreKeyOrderID.proto \
-								api/proto/order/UploadOrderBodyEvent.proto \
-								api/proto/order/PayOrder.proto \
-								api/proto/order/Product.proto \
-								api/proto/order/QueryProducts.proto \
-								api/proto/order/Service.proto \
-								api/proto/order/SoldouProduct.proto \
-								api/proto/order/SoldoutProductEvent.proto \
-								api/proto/order/SyncGeneralProductsEvent.proto \
-								api/proto/order/SyncProductsEvent.proto \
-								api/proto/order/SyncWatchEvent.proto \
-								api/proto/order/UpdateProduct.proto \
-								api/proto/order/UpdateProductEvent.proto \
-								api/proto/order/GrpcOrder.proto \
-								api/proto/order/GetNotaryServicePublickey.proto 
+
 
 	rm -f dart_out/api/proto/syn/*.dart
 	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/syn/Sync.proto \
