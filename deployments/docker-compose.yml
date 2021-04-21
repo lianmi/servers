@@ -18,16 +18,6 @@ services:
       # - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
       - /root/developments/lianmi/work/logs/orderservice.log:/tmp/orderservice.log
 
-  lianmi-walletservice:
-    image: lianmi/walletservice:0.1
-    build: ./walletservice
-    container_name: lianmi-walletservice
-    restart: unless-stopped
-    volumes:
-      # - ${LOG_DIR}/walletservice.log:/tmp/walletservice.log
-      - /root/developments/lianmi/work/logs/walletservice.log:/tmp/walletservice.log
-      - /store/blockchain/lianmichain/node1:/etc/node
-
   lianmi-dispatcher:
     image: lianmi/dispatcher:0.1
     build: ./dispatcher
@@ -40,16 +30,6 @@ services:
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
       
-  # lianmi-admin-server:
-  #   image: lianmi/admin-server:0.1
-  #   container_name: lianmi-admin-server
-  #   restart: unless-stopped
-  #   ports:
-  #     - '127.0.0.1:28088:8888'
-  #   volumes:
-  #    - /root/developments/lianmi/work/logs/lianmi-admin-server.log:/app/latest_log
-  #    - ./lianmi-admin-server/config.yaml:/app/config.yaml
-
 networks:
   default:
     # driver: bridge

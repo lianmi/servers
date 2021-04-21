@@ -12,7 +12,6 @@ import (
 	dispatcherNsq "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 
-	// walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
@@ -132,12 +131,6 @@ func (a *Application) Start() error {
 		}
 	}
 
-	// if a.walletNsqClient != nil {
-	// 	if err := a.walletNsqClient.Start(); err != nil {
-	// 		return errors.Wrap(err, "walletservice nsq backend client start error")
-	// 	}
-	// }
-
 	if a.dispatcherNsqClient != nil {
 		if err := a.dispatcherNsqClient.Start(); err != nil {
 			return errors.Wrap(err, "nsq client start error")
@@ -197,11 +190,6 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		// if a.walletNsqClient != nil {
-		// 	if err := a.walletNsqClient.Stop(); err != nil {
-		// 		a.logger.Warn("stop walletservice error", zap.Error(err))
-		// 	}
-		// }
 		os.Exit(0)
 	}
 }

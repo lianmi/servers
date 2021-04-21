@@ -1,6 +1,6 @@
 这是连米信息科技后端微服务整体框架项目，囊括了项目的结构、分层思想、依赖注入、错误处理、单元测试、服务治理、框架选择等方面.
 
-项目分为dispatcher、orderservice、chatservice、walletservice等微服务。
+项目分为dispatcher、orderservice、chatservice等微服务。
 另外内部联盟链是单节点的以太坊。
 ipfs星际文件系统
 
@@ -414,7 +414,6 @@ cd /root/developments/lianmi/work/logs
 tail -f dispatcher.log
 tail -f orderservice.log
 tail -f chatservice.log
-tail -f walletservice.log
 ```
 
 ### 六.  swag 注释规范
