@@ -34,7 +34,7 @@ services:
     container_name: lianmi-dispatcher 
     restart: unless-stopped
     ports:
-      - 28080:28080    
+      - 28080:28080
     volumes:
       # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log

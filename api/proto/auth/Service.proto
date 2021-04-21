@@ -1,7 +1,7 @@
 syntax = "proto3";
 import "api/proto/user/User.proto";
 import "api/proto/global/Global.proto";
-import "api/proto/wallet/PreTransfer.proto";
+//import "api/proto/wallet/PreTransfer.proto";
 
 package cloud.lianmi.im.auth;
 option go_package = "github.com/lianmi/servers/api/proto/auth";
@@ -273,20 +273,20 @@ message PreOrderForPayMembershipReq {
 
 }
 
-message PreOrderForPayMembershipResp {
+  //message PreOrderForPayMembershipResp {
 
    //订单的总金额, 支付的时候以这个金额计算, 人民币格式，带小数点 99.00
-   double OrderTotalAmount=1;
+     //double OrderTotalAmount=1;
 
    //服务端生成的订单id
-   string orderID =2; 
+     //string orderID =2; 
 
    //向收款方转账的裸交易结构体
-   wallet.RawDesc rawDescToTarget=3;
+     //wallet.RawDesc rawDescToTarget=3;
 
    //时间
-   fixed64 time=4;
-}
+     //fixed64 time=4;
+  //}
 
 //确认购买会员
 message ConfirmPayForMembershipReq {

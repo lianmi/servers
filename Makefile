@@ -1,4 +1,4 @@
-apps = 'dispatcher' 'chatservice' 'orderservice' 'walletservice'
+apps = 'dispatcher' 'chatservice' 'orderservice' 
  
 #BINARY='lianmi-admin-server'
 
@@ -70,12 +70,6 @@ proto:
 
 	rm -f api/proto/user/*.go
 	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/user/*.proto
-
-	rm -f api/proto/wallet/*.go
-	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/wallet/*.proto
-
-	rm -f api/proto/log/*.go
-	protoc --go_out=plugins=grpc,paths=source_relative:. ./api/proto/log/*.proto
 
 .PHONY: dart
 dart:
@@ -191,31 +185,7 @@ dart:
 								api/proto/user/Store.proto \
 								api/proto/user/NotaryServiceUploadPublickey.proto 
 
-	rm -f dart_out/api/proto/wallet/*.*.dart
-	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/wallet/Alipay.proto \
-								api/proto/wallet/Balance.proto \
-								api/proto/wallet/ConfirmTransfer.proto \
-								api/proto/wallet/Deposit.proto \
-								api/proto/wallet/EthReceivedEvent.proto \
-								api/proto/wallet/LNMCReceivedEvent.proto  \
-								api/proto/wallet/PreTransfer.proto \
-								api/proto/wallet/PreWithDraw.proto \
-								api/proto/wallet/QueryCommission.proto \
-								api/proto/wallet/RegisterWallet.proto \
-								api/proto/wallet/SyncCollectionHistory.proto \
-								api/proto/wallet/SyncDepositHistory.proto \
-								api/proto/wallet/SyncTransferHistory.proto \
-								api/proto/wallet/SyncWithdrawHistory.proto \
-								api/proto/wallet/TxHashInfo.proto \
-								api/proto/wallet/UserSignIn.proto \
-								api/proto/wallet/WXPay.proto \
-								api/proto/wallet/Wallet.proto \
-								api/proto/wallet/WithDraw.proto \
-								api/proto/wallet/WithDrawBankCompleteEvent.proto \
-								api/proto/wallet/Grpc.proto
-	rm -f dart_out/api/proto/log/*.*.dart
-	protoc --dart_out=../lianmiui/wujehy/linkme_flutter_sdk/lib api/proto/log/SendLog.proto
-
+	
 
 .PHONY: clear
 clear:
@@ -228,7 +198,6 @@ clear:
 	rm -f api/proto/syn/*.go
 	rm -f api/proto/team/*.go
 	rm -f api/proto/user/*.go
-	rm -f api/proto/wallet/*.go
 
 	
 .PHONY: stop
