@@ -3,7 +3,7 @@
 ##   编译智能合约 
 
 ```
-$ cd internal/pkg/blockchain/lnmc/contracts/ERCC20
+$ cd internal/pkg/blockchain/lnmc_server/contracts/ERC20
 $ solc --abi --bin ERC20Token.sol -o build --overwrite 
 $ abigen --bin=./build/ERC20Token.bin --abi=./build/ERC20Token.abi --pkg=contracts --out=ERC20Token.go
 
