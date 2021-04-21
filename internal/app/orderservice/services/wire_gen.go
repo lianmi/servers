@@ -7,7 +7,6 @@ package services
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -41,34 +40,10 @@ func CreateApisService(cf string, sto repositories.OrderRepository) (OrderServic
 	if err != nil {
 		return nil, err
 	}
-	consulOptions, err := consul.NewOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	configuration, err := jaeger.NewConfiguration(viper, logger)
-	if err != nil {
-		return nil, err
-	}
-	tracer, err := jaeger.New(configuration)
-	if err != nil {
-		return nil, err
-	}
-	clientOptions, err := grpc.NewClientOptions(viper, tracer)
-	if err != nil {
-		return nil, err
-	}
-	client, err := grpc.NewClient(consulOptions, clientOptions)
-	if err != nil {
-		return nil, err
-	}
-	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
-	if err != nil {
-		return nil, err
-	}
-	orderService := NewApisService(logger, sto, pool, lianmiWalletClient)
+	orderService := NewApisService(logger, sto, pool)
 	return orderService, nil
 }
 
 // wire.go:
 
-var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, consul.ProviderSet, grpcclients.ProviderSet, grpc.ProviderSet, jaeger.ProviderSet, ProviderSet)
+var testProviderSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, redis.ProviderSet, consul.ProviderSet, grpc.ProviderSet, jaeger.ProviderSet, ProviderSet)

@@ -9,7 +9,8 @@ import (
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
+
+	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/pkg/errors"
@@ -104,9 +105,6 @@ type LianmiApisService interface {
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
-
-	// 用户端: 根据 OrderID 获取此订单在链上的pending状态
-	OrderPendingState(ctx context.Context, orderID string) (*Wallet.OrderPendingStateResp, error)
 
 	//修改在线客服资料
 	UpdateCustomerService(req *Auth.UpdateCustomerServiceReq) error
@@ -214,13 +212,13 @@ type LianmiApisService interface {
 	AddUserLike(username, businessUser string) error
 
 	//支付宝预支付
-	PreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
+	// PreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error)
 
 	//支付宝付款成功
-	AlipayDone(ctx context.Context, outTradeNo string) error
+	// AlipayDone(ctx context.Context, outTradeNo string) error
 
 	//微信预支付
-	PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
+	// PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
 
 	//获取各种彩票的开售及停售时刻
 	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
@@ -239,18 +237,18 @@ type LianmiApisService interface {
 }
 
 type DefaultLianmiApisService struct {
-	logger              *zap.Logger
-	Repository          repositories.LianmiRepository
-	orderGrpcClientSvc  Order.LianmiOrderClient   //order的grpc client
-	walletGrpcClientSvc Wallet.LianmiWalletClient //wallet的grpc client
+	logger             *zap.Logger
+	Repository         repositories.LianmiRepository
+	orderGrpcClientSvc Order.LianmiOrderClient //order的grpc client
+	// walletGrpcClientSvc Wallet.LianmiWalletClient //wallet的grpc client
 }
 
-func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, oc Order.LianmiOrderClient, wc Wallet.LianmiWalletClient) LianmiApisService {
+func NewLianmiApisService(logger *zap.Logger, repository repositories.LianmiRepository, oc Order.LianmiOrderClient) LianmiApisService {
 	return &DefaultLianmiApisService{
-		logger:              logger.With(zap.String("type", "DefaultLianmiApisService")),
-		Repository:          repository,
-		orderGrpcClientSvc:  oc,
-		walletGrpcClientSvc: wc,
+		logger:             logger.With(zap.String("type", "DefaultLianmiApisService")),
+		Repository:         repository,
+		orderGrpcClientSvc: oc,
+		// walletGrpcClientSvc: wc,
 	}
 }
 
@@ -723,50 +721,62 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 	)
 
 	//TODO  调用微服务 上链
-	amout := uint64(orderInfo.Cost * 100)
-	orderImagesOnBlockchainResp, err := s.walletGrpcClientSvc.OrderImagesOnBlockchain(ctx, &Wallet.OrderImagesOnBlockchainReq{
-		OrderID:          req.OrderID,                /// 订单ID
-		ProductID:        orderInfo.ProductID,        // 商品ID
-		BuyUsername:      orderInfo.BuyerUsername,    //买家注册账号
-		BusinessUsername: orderInfo.BusinessUsername, //商户注册账号
-		AttachHash:       orderInfo.AttachHash,       //订单内容hash
-		Amount:           amout,                      //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
-		OrderImage:       req.Image,                  //商户拍照的订单图片oss objectId
-	})
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.OrderImagesOnBlockchain 错误", zap.Error(err))
-		return nil, err
-	} else {
-		s.logger.Debug("walletGrpcClientSvc.OrderImagesOnBlockchain 成功",
-			zap.String("OrderID", req.OrderID),
-			zap.Uint64("BlockNumber", orderImagesOnBlockchainResp.BlockNumber),
-			zap.String("Hash", orderImagesOnBlockchainResp.Hash),
-			zap.Uint64("Time", orderImagesOnBlockchainResp.Time),
-		)
+	/*
+			amout := uint64(orderInfo.Cost * 100)
+			orderImagesOnBlockchainResp, err := s.walletGrpcClientSvc.OrderImagesOnBlockchain(ctx, &Wallet.OrderImagesOnBlockchainReq{
+				OrderID:          req.OrderID,                /// 订单ID
+				ProductID:        orderInfo.ProductID,        // 商品ID
+				BuyUsername:      orderInfo.BuyerUsername,    //买家注册账号
+				BusinessUsername: orderInfo.BusinessUsername, //商户注册账号
+				AttachHash:       orderInfo.AttachHash,       //订单内容hash
+				Amount:           amout,                      //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
+				OrderImage:       req.Image,                  //商户拍照的订单图片oss objectId
+			})
+			if err != nil {
+				s.logger.Error("walletGrpcClientSvc.OrderImagesOnBlockchain 错误", zap.Error(err))
+				return nil, err
+			} else {
+				s.logger.Debug("walletGrpcClientSvc.OrderImagesOnBlockchain 成功",
+					zap.String("OrderID", req.OrderID),
+					zap.Uint64("BlockNumber", orderImagesOnBlockchainResp.BlockNumber),
+					zap.String("Hash", orderImagesOnBlockchainResp.Hash),
+					zap.Uint64("Time", orderImagesOnBlockchainResp.Time),
+				)
 
-	}
+			}
 
-	err = s.Repository.SaveOrderImagesBlockchain(
-		req,
-		orderInfo.Cost,
-		orderImagesOnBlockchainResp.BlockNumber,
-		orderInfo.BuyerUsername,
-		orderInfo.BusinessUsername,
-		orderImagesOnBlockchainResp.Hash)
 
-	if err != nil {
-		return nil, err
-	}
+		err = s.Repository.SaveOrderImagesBlockchain(
+			req,
+			orderInfo.Cost,
+			orderImagesOnBlockchainResp.BlockNumber,
+			orderInfo.BuyerUsername,
+			orderInfo.BusinessUsername,
+			orderImagesOnBlockchainResp.Hash)
+
+		if err != nil {
+			return nil, err
+		}
+		resp := &Order.UploadOrderImagesResp{
+			OrderID: req.OrderID,
+			// 区块高度
+			BlockNumber: orderImagesOnBlockchainResp.BlockNumber,
+			// 交易哈希hex
+			Hash: orderImagesOnBlockchainResp.Hash,
+			//时间
+			Time: uint64(time.Now().UnixNano() / 1e6),
+		}
+	*/
+	//TODO
 	resp := &Order.UploadOrderImagesResp{
 		OrderID: req.OrderID,
 		// 区块高度
-		BlockNumber: orderImagesOnBlockchainResp.BlockNumber,
+		BlockNumber: 0,
 		// 交易哈希hex
-		Hash: orderImagesOnBlockchainResp.Hash,
+		Hash: "000000",
 		//时间
 		Time: uint64(time.Now().UnixNano() / 1e6),
 	}
-
 	return resp, nil
 }
 
@@ -886,83 +896,6 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
 	return s.Repository.DownloadOrderImage(orderID)
-}
-
-// 用户端: 根据 OrderID 获取此订单在链上的pending状态
-func (s *DefaultLianmiApisService) OrderPendingState(ctx context.Context, orderID string) (*Wallet.OrderPendingStateResp, error) {
-	//调用钱包微服务
-	req := &Wallet.OrderPendingStateReq{
-		OrderID: orderID,
-	}
-	rsp, err := s.walletGrpcClientSvc.DoOrderPendingState(ctx, req)
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
-		return nil, err
-	} else {
-		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功")
-		return rsp, nil
-	}
-}
-
-//支付宝预支付
-func (s *DefaultLianmiApisService) PreAlipay(ctx context.Context, req *Wallet.PreAlipayReq) (*Wallet.PreAlipayResp, error) {
-	//调用钱包微服务
-	rsp, err := s.walletGrpcClientSvc.DoPreAlipay(ctx, req)
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
-		return nil, err
-	} else {
-		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功")
-		return rsp, nil
-	}
-}
-
-//支付宝付款成功
-func (s *DefaultLianmiApisService) AlipayDone(ctx context.Context, outTradeNo string) error {
-
-	//从redis里获取当前支付订单状态
-	username, totalAmount, isPayed, err := s.Repository.GetAlipayInfoByTradeNo(outTradeNo)
-	if err != nil {
-		s.logger.Error("GetAlipayInfoByTradeNo 失败", zap.Error(err))
-		return err
-	}
-
-	//不能重复支付
-	if isPayed {
-		s.logger.Warn("不能重复支付", zap.String("outTradeNo", outTradeNo), zap.String("username", username), zap.Float64("totalAmount", totalAmount))
-		return errors.Wrap(err, "The outTradeNo have already payed")
-	}
-
-	//调用钱包微服务
-	rsp, err := s.walletGrpcClientSvc.DepositForPay(ctx, &Wallet.DepositForPayReq{
-		TradeNo:     outTradeNo,
-		Username:    username,
-		TotalAmount: totalAmount,
-	})
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.DoPreAlipay 失败", zap.Error(err))
-		return err
-	} else {
-		s.logger.Debug("walletGrpcClientSvc.DoPreAlipay 成功",
-			zap.Uint64("BalanceLNMC", rsp.BalanceLNMC),
-			zap.Uint64("BlockNumber", rsp.BlockNumber),
-			zap.String("Hash", rsp.Hash),
-		)
-		return nil
-	}
-}
-
-//微信预支付
-func (s *DefaultLianmiApisService) PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error) {
-	//调用钱包微服务
-	rsp, err := s.walletGrpcClientSvc.DoPreWXpay(ctx, req)
-	if err != nil {
-		s.logger.Error("walletGrpcClientSvc.DoPreWXspay 失败", zap.Error(err))
-		return nil, err
-	} else {
-		s.logger.Debug("walletGrpcClientSvc.DoPreWXspay 成功")
-		return rsp, nil
-	}
 }
 
 //查询VIP会员价格表

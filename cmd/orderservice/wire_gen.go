@@ -8,7 +8,6 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/internal/app/orderservice"
-	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
@@ -63,7 +62,22 @@ func CreateApp(cf string) (*app.Application, error) {
 		return nil, err
 	}
 	orderRepository := repositories.NewMysqlOrderRepository(logger, db, pool)
+	orderService := services.NewApisService(logger, orderRepository, pool)
+	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, orderService)
+	serverOptions, err := grpc.NewServerOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	orderGrpcServer, err := grpcservers.NewOrderGrpcServer(logger, orderService)
+	if err != nil {
+		return nil, err
+	}
+	initServers := grpcservers.CreateInitServersFn(orderGrpcServer)
 	consulOptions, err := consul.NewOptions(viper)
+	if err != nil {
+		return nil, err
+	}
+	client, err := consul.New(consulOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -75,34 +89,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientOptions, err := grpc.NewClientOptions(viper, tracer)
-	if err != nil {
-		return nil, err
-	}
-	client, err := grpc.NewClient(consulOptions, clientOptions)
-	if err != nil {
-		return nil, err
-	}
-	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
-	if err != nil {
-		return nil, err
-	}
-	orderService := services.NewApisService(logger, orderRepository, pool, lianmiWalletClient)
-	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, logger, orderService)
-	serverOptions, err := grpc.NewServerOptions(viper)
-	if err != nil {
-		return nil, err
-	}
-	orderGrpcServer, err := grpcservers.NewOrderGrpcServer(logger, orderService)
-	if err != nil {
-		return nil, err
-	}
-	initServers := grpcservers.CreateInitServersFn(orderGrpcServer)
-	apiClient, err := consul.New(consulOptions)
-	if err != nil {
-		return nil, err
-	}
-	server, err := grpc.NewServer(serverOptions, logger, initServers, apiClient, tracer)
+	server, err := grpc.NewServer(serverOptions, logger, initServers, client, tracer)
 	if err != nil {
 		return nil, err
 	}
@@ -115,4 +102,4 @@ func CreateApp(cf string) (*app.Application, error) {
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet, grpcclients.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, database.ProviderSet, services.ProviderSet, repositories.ProviderSet, consul.ProviderSet, jaeger.ProviderSet, redis.ProviderSet, grpc.ProviderSet, grpcservers.ProviderSet, nsqMq.ProviderSet, orderservice.ProviderSet)

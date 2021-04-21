@@ -6,7 +6,7 @@ import (
 	"github.com/google/wire"
 	// "github.com/lianmi/servers/api/proto/auth"
 	"github.com/lianmi/servers/api/proto/order"
-	"github.com/lianmi/servers/api/proto/wallet"
+	// "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"

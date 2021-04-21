@@ -4,15 +4,15 @@
 package controllers
 
 import (
-	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
 	uuid "github.com/satori/go.uuid"
-	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -120,25 +120,6 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	}
 }
 
-// 用户端: 根据 OrderID 获取此订单在链上的pending状态
-func (pc *LianmiApisController) OrderPendingState(c *gin.Context) {
-	orderID := c.Param("orderid")
-	if orderID == "" {
-		RespFail(c, http.StatusOK, 400, "orderid is empty")
-		return
-
-	} else {
-		ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-		resp, err := pc.service.OrderPendingState(ctx, orderID)
-		if err != nil {
-			RespData(c, http.StatusOK, 500, "获取此订单在链上的pending状态时发生错误")
-			return
-		}
-
-		RespData(c, http.StatusOK, 200, resp)
-
-	}
-}
 func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 	_ = deviceid

@@ -4,7 +4,6 @@ package services
 
 import (
 	"github.com/google/wire"
-	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
 	"github.com/lianmi/servers/internal/pkg/config"
 	"github.com/lianmi/servers/internal/pkg/consul"
@@ -21,7 +20,6 @@ var testProviderSet = wire.NewSet(
 	database.ProviderSet,
 	redis.ProviderSet,
 	consul.ProviderSet,
-	grpcclients.ProviderSet,
 	grpc.ProviderSet,
 	jaeger.ProviderSet,
 	ProviderSet,

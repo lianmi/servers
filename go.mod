@@ -68,7 +68,7 @@ require (
 	github.com/shirou/gopsutil v3.21.1+incompatible // indirect
 	github.com/shopspring/decimal v1.2.0
 	github.com/smartwalle/alipay/v3 v3.1.5
-	github.com/smartwalle/xid v1.0.6
+	github.com/smartwalle/xid v1.0.6 // indirect
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.0

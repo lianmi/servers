@@ -6,7 +6,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/lianmi/servers/internal/app/orderservice"
-	"github.com/lianmi/servers/internal/app/orderservice/grpcclients"
+	// "github.com/lianmi/servers/internal/app/orderservice/grpcclients"
 	"github.com/lianmi/servers/internal/app/orderservice/grpcservers"
 	"github.com/lianmi/servers/internal/app/orderservice/nsqMq"
 	"github.com/lianmi/servers/internal/app/orderservice/repositories"
@@ -34,7 +34,7 @@ var providerSet = wire.NewSet(
 	grpcservers.ProviderSet,
 	nsqMq.ProviderSet,
 	orderservice.ProviderSet,
-	grpcclients.ProviderSet,
+	// grpcclients.ProviderSet,
 )
 
 func CreateApp(cf string) (*app.Application, error) {

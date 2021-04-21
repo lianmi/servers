@@ -18,12 +18,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
 
 	Global "github.com/lianmi/servers/api/proto/global"
-	Log "github.com/lianmi/servers/api/proto/log"
 	"github.com/lianmi/servers/internal/pkg/channel"
 	"github.com/lianmi/servers/internal/pkg/models"
 	"github.com/lianmi/servers/util/array"
@@ -240,10 +238,6 @@ func (mc *MQTTClient) Start() error {
 					if businessType == 2 && businessSubType == 7 {
 						mc.logger.Debug("从设备申请授权码，此时还没有令牌")
 
-					} else if businessType == int(Global.BusinessType_Log) && (businessSubType == 1) {
-
-						mc.SendLogMsg(m.Payload)
-
 					} else {
 						//是否需要有效授权才能传递到后端
 						if userName, isAuthed, err = mc.MakeSureAuthed(jwtToken, deviceId, businessType, businessSubType, taskId); err != nil {
@@ -455,62 +449,6 @@ func (mc *MQTTClient) Stop() error {
 	return nil
 }
 
-func (mc *MQTTClient) SendLogMsg(body []byte) error {
-	var err error
-
-	//解包body
-	req := &Log.SendLogReq{}
-	if err = proto.Unmarshal(body, req); err != nil {
-		mc.logger.Error("Protobuf Unmarshal Error", zap.Error(err))
-		return err
-
-	} else {
-		mc.logger.Debug("SendLogReq  payload",
-			zap.String("Username", req.Username),
-			zap.String("Content", req.Content),
-		)
-	}
-
-	//向MQTT Broker发送，加入SDK订阅了Log topic，则会收到
-	jwtToken := ""
-	topic := "lianmi/cloud/sdklogs"
-	businessTypeStr := fmt.Sprintf("%d", int(Global.BusinessType_Log))
-	businessSubTypeStr := fmt.Sprintf("%d", 1)
-	taskIdStr := fmt.Sprintf("%d", 0)
-	codeStr := fmt.Sprintf("%d", 200)
-
-	mc.logger.Info("Send LogMsg to mqtt broker",
-		zap.String("topic", topic),
-		zap.String("businessType", businessTypeStr),
-		zap.String("code", codeStr))
-
-	props := &paho.PublishProperties{}
-	props.ResponseTopic = mc.o.ResponseTopic
-	props.User = props.User.Add("jwtToken", jwtToken)
-	props.User = props.User.Add("deviceId", "")
-	props.User = props.User.Add("businessType", businessTypeStr)
-	props.User = props.User.Add("businessSubType", businessSubTypeStr)
-	props.User = props.User.Add("taskId", taskIdStr)
-	props.User = props.User.Add("code", codeStr)
-	props.User = props.User.Add("errormsg", "")
-
-	pb := &paho.Publish{
-		Topic:      topic,
-		QoS:        byte(2),
-		Payload:    body, //完整转发
-		Properties: props,
-	}
-
-	if _, err := mc.client.Publish(context.Background(), pb); err != nil {
-		// log.Println(err)
-		mc.logger.Error("Failed to Publish to broker ", zap.Error(err))
-	} else {
-		mc.logger.Info("Succeed Publish to broker", zap.String("topic", topic))
-	}
-
-	return nil
-}
-
 func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error) {
 	var token *jwt.Token
 	token, err = jwt.Parse(tokenSrt, func(*jwt.Token) (interface{}, error) {
@@ -634,7 +572,6 @@ func (mc *MQTTClient) MakeSureAuthed(jwtToken, deviceID string, businessType, bu
 	}
 
 }
-
 
 //redis 的 OnlineUsers
 func (mc *MQTTClient) RemoveOnlineUsers(deviceId string) error {

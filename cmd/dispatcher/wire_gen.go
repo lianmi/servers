@@ -93,11 +93,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
-	if err != nil {
-		return nil, err
-	}
-	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiOrderClient, lianmiWalletClient)
+	lianmiApisService := services.NewLianmiApisService(logger, lianmiRepository, lianmiOrderClient)
 	nsqClient := nsqMq.NewNsqClient(nsqOptions, db, pool, nsqMqttChannel, logger, lianmiApisService, nsqChannel)
 	mqttOptions, err := mqtt.NewMQTTOptions(viper)
 	if err != nil {

@@ -1,16 +1,18 @@
 package app
 
 import (
-	"github.com/pkg/errors"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/pkg/errors"
 
 	"github.com/google/wire"
 	chatNsq "github.com/lianmi/servers/internal/app/chatservice/nsqMq"
 	dispatcherNsq "github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	orderNsq "github.com/lianmi/servers/internal/app/orderservice/nsqMq"
-	walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqMq"
+
+	// walletNsq "github.com/lianmi/servers/internal/app/walletservice/nsqMq"
 	"github.com/lianmi/servers/internal/pkg/transports/grpc"
 	"github.com/lianmi/servers/internal/pkg/transports/http"
 	"github.com/lianmi/servers/internal/pkg/transports/mqtt"
@@ -26,8 +28,8 @@ type Application struct {
 	dispatcherNsqClient *dispatcherNsq.NsqClient
 	chatNsqClient       *chatNsq.NsqClient
 	orderNsqClient      *orderNsq.NsqClient
-	walletNsqClient     *walletNsq.NsqClient
-	mqttClient          *mqtt.MQTTClient
+	// walletNsqClient     *walletNsq.NsqClient
+	mqttClient *mqtt.MQTTClient
 }
 
 type Option func(app *Application) error
@@ -73,13 +75,13 @@ func OrderNsqOption(kbc *orderNsq.NsqClient) Option {
 	}
 }
 
-func WalletNsqOption(nsqclient *walletNsq.NsqClient) Option {
-	return func(app *Application) error {
-		nsqclient.Application(app.name)
-		app.walletNsqClient = nsqclient
-		return nil
-	}
-}
+// func WalletNsqOption(nsqclient *walletNsq.NsqClient) Option {
+// 	return func(app *Application) error {
+// 		nsqclient.Application(app.name)
+// 		app.walletNsqClient = nsqclient
+// 		return nil
+// 	}
+// }
 
 func MQTTOption(mc *mqtt.MQTTClient) Option {
 	return func(app *Application) error {
@@ -130,11 +132,11 @@ func (a *Application) Start() error {
 		}
 	}
 
-	if a.walletNsqClient != nil {
-		if err := a.walletNsqClient.Start(); err != nil {
-			return errors.Wrap(err, "walletservice nsq backend client start error")
-		}
-	}
+	// if a.walletNsqClient != nil {
+	// 	if err := a.walletNsqClient.Start(); err != nil {
+	// 		return errors.Wrap(err, "walletservice nsq backend client start error")
+	// 	}
+	// }
 
 	if a.dispatcherNsqClient != nil {
 		if err := a.dispatcherNsqClient.Start(); err != nil {
@@ -195,11 +197,11 @@ func (a *Application) AwaitSignal() {
 			}
 		}
 
-		if a.walletNsqClient != nil {
-			if err := a.walletNsqClient.Stop(); err != nil {
-				a.logger.Warn("stop walletservice error", zap.Error(err))
-			}
-		}
+		// if a.walletNsqClient != nil {
+		// 	if err := a.walletNsqClient.Stop(); err != nil {
+		// 		a.logger.Warn("stop walletservice error", zap.Error(err))
+		// 	}
+		// }
 		os.Exit(0)
 	}
 }

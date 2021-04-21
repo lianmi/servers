@@ -476,8 +476,6 @@ func CreateInitControllersFn(
 			//用户端: 根据 OrderID 获取所有订单拍照图片
 			orderGroup.GET("/orderimage/:orderid", pc.DownloadOrderImage)
 
-			//用户端: 根据 OrderID 获取此订单在链上的pending状态
-			// orderGroup.GET("/orderpendingstate/:orderid", pc.OrderPendingState)
 			// 用户向商户发起订单
 			orderGroup.POST("/pay", pc.OrderPayToBusiness)
 			orderGroup.POST("/calculate_order_price", pc.OrderCalcPrice)
@@ -489,23 +487,23 @@ func CreateInitControllersFn(
 		}
 
 		//=======钱包模块==========/
-		walletGroup := r.Group("/v1/wallet")
-		walletGroup.Use(authMiddleware.MiddlewareFunc())
-		{
-			//支付宝预支付动作
-			walletGroup.POST("/alipay", pc.PreAlipay)
-			//支付宝回调
-			walletGroup.POST("/alipay/callback", pc.AlipayCallback)
-			//支付宝回调
-			walletGroup.POST("/alipay/notify", pc.AlipayNotify)
+		// walletGroup := r.Group("/v1/wallet")
+		// walletGroup.Use(authMiddleware.MiddlewareFunc())
+		// {
+		// 	//支付宝预支付动作
+		// 	walletGroup.POST("/alipay", pc.PreAlipay)
+		// 	//支付宝回调
+		// 	walletGroup.POST("/alipay/callback", pc.AlipayCallback)
+		// 	//支付宝回调
+		// 	walletGroup.POST("/alipay/notify", pc.AlipayNotify)
 
-			//微信预支付动作
-			walletGroup.POST("/wxpay", pc.PreWXpay)
+		// 	//微信预支付动作
+		// 	walletGroup.POST("/wxpay", pc.PreWXpay)
 
-			//微信回调
-			walletGroup.POST("/wxpaynotify", pc.WXpayNotify)
+		// 	//微信回调
+		// 	walletGroup.POST("/wxpaynotify", pc.WXpayNotify)
 
-		}
+		// }
 
 		//=======会员付费分销模块==========/
 		membershipGroup := r.Group("/v1/membership")

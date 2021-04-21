@@ -92,11 +92,7 @@ func CreateApp(cf string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
-	if err != nil {
-		return nil, err
-	}
-	chatService := services.NewApisService(logger, chatRepository, pool, lianmiOrderClient, lianmiWalletClient)
+	chatService := services.NewApisService(logger, chatRepository, pool, lianmiOrderClient)
 	chatGrpcServer, err := grpcservers.NewChatGrpcServer(logger, chatService)
 	if err != nil {
 		return nil, err

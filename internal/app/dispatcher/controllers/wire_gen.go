@@ -8,7 +8,7 @@ package controllers
 import (
 	"github.com/google/wire"
 	"github.com/lianmi/servers/api/proto/order"
-	"github.com/lianmi/servers/api/proto/wallet"
+	// "github.com/lianmi/servers/api/proto/wallet"
 	"github.com/lianmi/servers/internal/app/dispatcher/multichannel"
 	"github.com/lianmi/servers/internal/app/dispatcher/nsqMq"
 	"github.com/lianmi/servers/internal/app/dispatcher/repositories"
@@ -22,7 +22,7 @@ import (
 
 // Injectors from wire.go:
 
-func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc order.LianmiOrderClient, wc wallet.LianmiWalletClient, nsqClient nsqMq.NsqClient) (*LianmiApisController, error) {
+func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc order.LianmiOrderClient, nsqClient nsqMq.NsqClient) (*LianmiApisController, error) {
 	viper, err := config.New(cf)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func CreateLianmiApisController(cf string, sto repositories.LianmiRepository, oc
 	if err != nil {
 		return nil, err
 	}
-	lianmiApisService := services.NewLianmiApisService(logger, sto, oc, wc)
+	lianmiApisService := services.NewLianmiApisService(logger, sto, oc)
 	nsqOptions, err := nsqMq.NewNsqOptions(viper)
 	if err != nil {
 		return nil, err

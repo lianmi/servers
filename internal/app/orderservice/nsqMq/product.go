@@ -1,7 +1,6 @@
 package nsqMq
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -15,7 +14,8 @@ import (
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	User "github.com/lianmi/servers/api/proto/user"
-	Wallet "github.com/lianmi/servers/api/proto/wallet"
+
+	// Wallet "github.com/lianmi/servers/api/proto/wallet"
 	LMCommon "github.com/lianmi/servers/internal/common"
 	LMCError "github.com/lianmi/servers/internal/pkg/lmcerror"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -2220,21 +2220,9 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 			} else {
 				//TODO 扣除手续费
 				nc.logger.Debug("商户同意撤单, 买家完成支付, 需要退款")
-				//向钱包服务端发送一条grpc转账消息，将连米代币从中间账号转到买家的钱包， 实现退款
-				ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-				transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
-					OrderID: orderID,
-					PayType: LMCommon.OrderTransferForCancel, //退款
-				})
-				if err != nil {
-					nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-					errorCode = LMCError.WalletTranferError
 
-					goto COMPLETE
-				} else {
-					nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+				//TODO 退款
 
-				}
 			}
 
 			//通知买家
@@ -2271,21 +2259,23 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				errorCode = LMCError.OrderStatusNotDoneError
 				goto COMPLETE
 			}
+			/*
 
-			//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
-			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
-				OrderID: orderID,
-				PayType: LMCommon.OrderTransferForDone, //完成结算
-			})
-			if err != nil {
-				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-				errorCode = LMCError.WalletTranferError
-				goto COMPLETE
-			} else {
-				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+				//向钱包服务端发送一条转账grpc消息，将连米代币从中间账号转到商户的钱包
+				ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+				transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
+					OrderID: orderID,
+					PayType: LMCommon.OrderTransferForDone, //完成结算
+				})
+				if err != nil {
+					nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+					errorCode = LMCError.WalletTranferError
+					goto COMPLETE
+				} else {
+					nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
 
-			}
+				}
+			*/
 
 			//通知商户
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{
@@ -2318,21 +2308,23 @@ func (nc *NsqClient) HandleChangeOrderState(msg *models.Message) error {
 				goto COMPLETE
 			}
 
-			//向买家发送通知，并且发送grpc消息给钱包服务端，完成退款操作
-			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-			transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
-				OrderID: orderID,
-				PayType: LMCommon.OrderTransferForCancel, //退款
-			})
+			/*
+				//发送grpc给钱包服务端，完成退款操作
+				ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+				transferResp, err := nc.service.TransferByOrder(ctx, &Wallet.TransferReq{
+					OrderID: orderID,
+					PayType: LMCommon.OrderTransferForCancel, //退款
+				})
 
-			if err != nil {
-				nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
-				errorCode = LMCError.WalletTranferError
-				goto COMPLETE
-			} else {
-				nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
+				if err != nil {
+					nc.logger.Error("walletSvc.TransferByOrder Error", zap.Error(err))
+					errorCode = LMCError.WalletTranferError
+					goto COMPLETE
+				} else {
+					nc.logger.Debug("walletSvc.TransferByOrder succeed", zap.Int32("ErrCode", transferResp.ErrCode), zap.String("ErrMsg", transferResp.ErrMsg))
 
-			}
+				}
+			*/
 
 			//通知买家
 			orderBodyData, _ = proto.Marshal(&Order.OrderProductBody{

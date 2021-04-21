@@ -65,11 +65,8 @@ func CreateApisService(cf string, sto repositories.ChatRepository) (ChatService,
 	if err != nil {
 		return nil, err
 	}
-	lianmiWalletClient, err := grpcclients.NewWalletClient(client)
-	if err != nil {
-		return nil, err
-	}
-	chatService := NewApisService(logger, sto, pool, lianmiOrderClient, lianmiWalletClient)
+
+	chatService := NewApisService(logger, sto, pool, lianmiOrderClient)
 	return chatService, nil
 }
 
