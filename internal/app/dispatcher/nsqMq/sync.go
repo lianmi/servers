@@ -2,8 +2,8 @@
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
 	同步处理map，分别处理:
-	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, productAt
-	取消systemMsgAt
+	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt
+	取消systemMsgAt, productAt
 	取消 generalProductAt 让UI手动更新
 
 6-2 同步请求完成
@@ -843,6 +843,7 @@ COMPLETE:
 }
 
 //处理productAt 7-8 同步商品列表
+/*
 func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
@@ -1031,6 +1032,7 @@ COMPLETE:
 		return errors.Wrap(err, errorMsg)
 	}
 }
+*/
 
 /*
 6-1 发起同步请求
@@ -1132,11 +1134,12 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Debug("SyncWatchAt is done")
 			}
 
-			if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
-				nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
-			} else {
-				nc.logger.Debug("SyncProductAt is done")
-			}
+			//取消了
+			// if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
+			// 	nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
+			// } else {
+			// 	nc.logger.Debug("SyncProductAt is done")
+			// }
 
 			//发送SyncDoneEvent
 			nc.SendSyncDoneEventToUser(username, deviceID, token)
