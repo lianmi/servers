@@ -227,8 +227,8 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 		BusinessId string `json:"business_id" binding:"required" `
 		ProductId  string `json:"product_id" binding:"required"`
 		CouponId   string `json:"coupon_id" `
-		Body       string `json:"body" binding:"required"`
-		Publickey  string `json:"publickey" binding:"required"`
+		//Body       string `json:"body" binding:"required"`
+		//Publickey  string `json:"publickey" binding:"required"`
 	}
 
 	req := SendOrderDataTypeReq{}
