@@ -130,11 +130,13 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	}
 
 	type SendOrderDataTypeReq struct {
-		BusinessId string `json:"business_id" binding:"required" `
-		ProductId  string `json:"product_id" binding:"required"`
-		CouponId   string `json:"coupon_id" `
-		Body       string `json:"body" binding:"required"`
-		Publickey  string `json:"publickey" binding:"required"`
+		BusinessId  string  `json:"business_id" binding:"required" `
+		ProductId   string  `json:"product_id" binding:"required"`
+		TotalAmount float64 `json:"total_amount"  binding:"required"`
+		Fee         float64 `json:"fee"`
+		CouponId    string  `json:"coupon_id" `
+		Body        string  `json:"body" binding:"required"`
+		Publickey   string  `json:"publickey" binding:"required"`
 	}
 
 	req := SendOrderDataTypeReq{}
@@ -178,8 +180,8 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
 	orderItem.OrderStatus = int(global.OrderState_OS_Undefined)
-	orderItem.Amounts = getProductInfo.ProductPrice
-	orderItem.Fee = common.ChainFee
+	orderItem.Amounts = req.TotalAmount
+	orderItem.Fee = req.Fee
 
 	// TODO 优惠券处理
 
@@ -205,7 +207,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	resp := RespDataBodyInfo{}
 	resp.ProductId = orderItem.ProductId
 	resp.BusinessId = orderItem.StoreId
-	resp.Amounts = orderItem.Amounts + orderItem.Fee
+	resp.Amounts = orderItem.Amounts
 	resp.PayType = 2
 	resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
@@ -248,16 +250,23 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	// TODO 向 微信发起支付信息码获取
 	type RespDataBodyInfo struct {
-		BusinessId string  `json:"business_id"`
-		ProductId  string  `json:"product_id"`
-		Amounts    float64 `json:"amounts"`
+		BusinessId string `json:"business_id"`
+		ProductId  string `json:"product_id"`
+		//Amounts    float64 `json:"amounts"`
+		CouponAmount   float64 `json:"coupon_amount"`
+		FeeRate        float64 `json:"fee_rate"`
+		RateFreeAmount float64 `json:"rate_free_amount"`
 		//PayCode    string  `json:"pay_code"`
 		//PayType    int     `json:"pay_type"`
 	}
+
 	resp := RespDataBodyInfo{}
 	resp.ProductId = getProductInfo.ProductId
 	resp.BusinessId = req.BusinessId
-	resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
+	resp.FeeRate = common.Rate
+	resp.RateFreeAmount = common.RateFreeAmout
+
+	//resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
 	//resp.PayType = 2
 	//resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
