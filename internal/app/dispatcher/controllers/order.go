@@ -198,6 +198,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	// TODO 向 微信发起支付信息码获取
 	type RespDataBodyInfo struct {
+		OrderId    string  `json:"order_id"`
 		BusinessId string  `json:"business_id"`
 		ProductId  string  `json:"product_id"`
 		Amounts    float64 `json:"amounts"`
@@ -205,6 +206,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		PayType    int     `json:"pay_type"`
 	}
 	resp := RespDataBodyInfo{}
+	resp.OrderId = orderItem.OrderId
 	resp.ProductId = orderItem.ProductId
 	resp.BusinessId = orderItem.StoreId
 	resp.Amounts = orderItem.Amounts
