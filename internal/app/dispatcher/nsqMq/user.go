@@ -148,7 +148,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				Gender:   userBaseData.GetGender(),
 				Avatar:   avatar,
 				Label:    userBaseData.Label,
-				UserType: User.UserType(userBaseData.UserType),	// 区分普通用户 及 商户 , 用户类型 1-普通，2-商户 3-第三方公证
+				UserType: User.UserType(userBaseData.UserType), // 区分普通用户 及 商户 , 用户类型 1-普通，2-商户 3-第三方公证
 				// State:    User.UserState(userBaseData.State), // 隐私
 				// TrueName: userBaseData.TrueName,
 				// Province: userBaseData.Province,
@@ -364,6 +364,8 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Error("更新用户信息失败", zap.Error(err))
 			errorCode = LMCError.UserModUpdateProfileError //错误码
 			goto COMPLETE
+		} else {
+			nc.logger.Debug("更新用户信息成功")
 		}
 
 		/*
