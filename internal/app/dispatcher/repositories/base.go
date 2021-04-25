@@ -255,7 +255,7 @@ type LianmiRepository interface {
 	AddStoreProductItem(item *models.StoreProductItems) error
 	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
 	SavaOrderItemToDB(item *models.OrderItems) error
-	GetOrderListByUser(username string, limit int, offset int) (*[]models.OrderItems, error)
+	GetOrderListByUser(username string, limit int, offset, status int) (*[]models.OrderItems, error)
 	GetOrderListByID(orderID string) (*models.OrderItems, error)
 	SetOrderStatusByOrderID(orderID string, status int) error
 	UpdateOrderStatus(userid string, storeID string, orderid string, status int) (*models.OrderItems, error)

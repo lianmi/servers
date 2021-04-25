@@ -287,6 +287,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	type SendOrderDataTypeReq struct {
 		Limit  int `json:"limit"`
 		Offset int `json:"offset"`
+		Status int `json:"status"`
 	}
 
 	req := SendOrderDataTypeReq{}
@@ -301,7 +302,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 	// 翻页查找 订单信息
 
-	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset)
+	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset, req.Status)
 	if err != nil {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
 		return
