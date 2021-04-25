@@ -130,11 +130,13 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	}
 
 	type SendOrderDataTypeReq struct {
-		BusinessId string `json:"business_id" binding:"required" `
-		ProductId  string `json:"product_id" binding:"required"`
-		CouponId   string `json:"coupon_id" `
-		Body       string `json:"body" binding:"required"`
-		Publickey  string `json:"publickey" binding:"required"`
+		BusinessId  string  `json:"business_id" binding:"required" `
+		ProductId   string  `json:"product_id" binding:"required"`
+		TotalAmount float64 `json:"total_amount"  binding:"required"`
+		Fee         float64 `json:"fee"`
+		CouponId    string  `json:"coupon_id" `
+		Body        string  `json:"body" binding:"required"`
+		Publickey   string  `json:"publickey" binding:"required"`
 	}
 
 	req := SendOrderDataTypeReq{}
@@ -178,8 +180,8 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
 	orderItem.OrderStatus = int(global.OrderState_OS_Undefined)
-	orderItem.Amounts = getProductInfo.ProductPrice
-	orderItem.Fee = common.ChainFee
+	orderItem.Amounts = req.TotalAmount
+	orderItem.Fee = req.Fee
 
 	// TODO 优惠券处理
 
@@ -196,6 +198,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	// TODO 向 微信发起支付信息码获取
 	type RespDataBodyInfo struct {
+		OrderId    string  `json:"order_id"`
 		BusinessId string  `json:"business_id"`
 		ProductId  string  `json:"product_id"`
 		Amounts    float64 `json:"amounts"`
@@ -203,9 +206,10 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		PayType    int     `json:"pay_type"`
 	}
 	resp := RespDataBodyInfo{}
+	resp.OrderId = orderItem.OrderId
 	resp.ProductId = orderItem.ProductId
 	resp.BusinessId = orderItem.StoreId
-	resp.Amounts = orderItem.Amounts + orderItem.Fee
+	resp.Amounts = orderItem.Amounts
 	resp.PayType = 2
 	resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
@@ -225,8 +229,8 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 		BusinessId string `json:"business_id" binding:"required" `
 		ProductId  string `json:"product_id" binding:"required"`
 		CouponId   string `json:"coupon_id" `
-		Body       string `json:"body" binding:"required"`
-		Publickey  string `json:"publickey" binding:"required"`
+		//Body       string `json:"body" binding:"required"`
+		//Publickey  string `json:"publickey" binding:"required"`
 	}
 
 	req := SendOrderDataTypeReq{}
@@ -248,16 +252,23 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	// TODO 向 微信发起支付信息码获取
 	type RespDataBodyInfo struct {
-		BusinessId string  `json:"business_id"`
-		ProductId  string  `json:"product_id"`
-		Amounts    float64 `json:"amounts"`
+		BusinessId string `json:"business_id"`
+		ProductId  string `json:"product_id"`
+		//Amounts    float64 `json:"amounts"`
+		CouponAmount   float64 `json:"coupon_amount"`
+		FeeRate        float64 `json:"fee_rate"`
+		RateFreeAmount float64 `json:"rate_free_amount"`
 		//PayCode    string  `json:"pay_code"`
 		//PayType    int     `json:"pay_type"`
 	}
+
 	resp := RespDataBodyInfo{}
 	resp.ProductId = getProductInfo.ProductId
 	resp.BusinessId = req.BusinessId
-	resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
+	resp.FeeRate = common.Rate
+	resp.RateFreeAmount = common.RateFreeAmout
+
+	//resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
 	//resp.PayType = 2
 	//resp.PayCode = "test_weixinzhifucode"
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
@@ -276,10 +287,11 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	type SendOrderDataTypeReq struct {
 		Limit  int `json:"limit"`
 		Offset int `json:"offset"`
+		Status int `json:"status"`
 	}
 
 	req := SendOrderDataTypeReq{}
-	if err := context.BindJSON(&req); err != nil {
+	if err := context.BindQuery(&req); err != nil {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
@@ -290,7 +302,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 	// 翻页查找 订单信息
 
-	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset)
+	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset, req.Status)
 	if err != nil {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
 		return
