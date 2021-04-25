@@ -2,7 +2,6 @@ syntax = "proto3";
 package cloud.lianmi.im.global;
 option go_package = "github.com/lianmi/servers/api/proto/global";
 
-//重要！！！！ 数字 必须与 Global.h 保持一致
 //业务模块定义
 enum BusinessType {
     Bt_undefined     = 0;    //proto3必须从0开始
@@ -17,6 +16,7 @@ enum BusinessType {
     Order            = 9;    //订单模块
     Wallet           = 10;   //钱包模块
     Log              = 11;   //日志模块
+    Witness          = 12;   //彩票中心
     Custom           = 99;   //自定义模块， 用于测试
 }
 
@@ -154,7 +154,7 @@ enum OrderSubType {
 enum WalletSubType {
     WST_undefined               =  0;    //proto3必须从0开始
     RegisterWallet              =  1;     /**< 10-1 钱包账号注册*/
-    //Deposit                     =  2;     /**< 取消 10-2 充值*/
+    //Deposit                   =  2;   /**< 取消 10-2 充值*/
     PreTransfer                 =  3;     /**< 10-3 发起转账*/
     ConfirmTransfer             =  4;     /**< 10-4 确认转账*/
     Balance                     =  5;     /**< 10-5 查询账号余额*/
@@ -177,6 +177,13 @@ enum LogSubType {
     SendLog                     =  1;     /**< 11-1 日志上报*/
 }
 
+//彩票中心模块子模块定义
+enum WitnessSubType {
+    WIT_undefined               =  0;    //proto3必须从0开始
+    UpChain                     =  1;     /**< 12-1 订单上链通知*/
+    UpChainDone                 =  2;     /**< 12-2 订单上链完成*/
+}
+
 //订单状态枚举：
 enum OrderState {
     OS_Undefined    = 0;     //proto3必须从0开始
@@ -196,6 +203,7 @@ enum OrderState {
     OS_IsPayed      = 14;    /**< 已支付， 支付成功*/
     OS_Urge         = 15;    /**< 买家催单, 商户可以回复7*/
     OS_Expedited    = 16;    /**< 加急订单, 排在首位*/
+    OS_UpChained    = 17;    /**< 订单上链成功*/
 }
 
 enum StoreType {
