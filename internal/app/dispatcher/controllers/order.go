@@ -290,7 +290,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	}
 
 	req := SendOrderDataTypeReq{}
-	if err := context.BindJSON(&req); err != nil {
+	if err := context.BindQuery(&req); err != nil {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
