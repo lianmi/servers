@@ -381,6 +381,86 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	RespData(context, http.StatusOK, codes.SUCCESS, "支付成功")
 	return
 }
+
+func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+
+	_ = deviceid
+	if isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+	// 更新订单状态
+	// 设置可以设置的状态
+	type OrderCallbackDataTypeReq struct {
+		OrderID string `json:"order_id" binding:"required" `
+		Status  int    `json:"status" binding:"required"`
+	}
+
+	req := OrderCallbackDataTypeReq{}
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	// 查询订单
+
+	getOrderInfo, err := pc.service.GetOrderListByID(req.OrderID)
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "订单不存在")
+		return
+	}
+
+	if getOrderInfo.UserId == username || getOrderInfo.StoreId == username {
+
+	} else {
+		RespFail(context, http.StatusOK, codes.ERROR, "无权操作这个订单")
+		return
+	}
+
+	//
+
+	newOrder, err := pc.service.UpdateOrderStatus(getOrderInfo.UserId, getOrderInfo.StoreId, req.OrderID, req.Status)
+	_ = newOrder
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+		return
+	}
+	go func() {
+		// 推送订单状态变更到商户和用户
+
+		orderChangeReq := new(Msg.RecvMsgEventRsp)
+		orderChangeReq.Type = Msg.MessageType_MsgType_Order
+		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+
+		orderProduct := Order.OrderProductBody{}
+		orderProduct.OrderID = newOrder.OrderId
+		orderProduct.State = global.OrderState(newOrder.OrderStatus)
+
+		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+
+		if err != nil {
+			pc.logger.Error("序列化protobuf order 失败")
+			return
+		}
+
+		//orderChangeReq.Time
+
+		// 系统到商户
+		err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.StoreId)
+		if err1 != nil {
+			pc.logger.Error("推送订单变更事件到用户失败")
+		}
+		err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.UserId)
+		if err2 != nil {
+			pc.logger.Error("推送订单变更事件到商户失败")
+
+		}
+	}()
+	RespOk(context, http.StatusOK, codes.SUCCESS)
+	return
+}
+
 func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 
