@@ -382,6 +382,34 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	return
 }
 
+func (pc *LianmiApisController) OrderGetOrderInfoByID(context *gin.Context) {
+	username, deviceid, isok := pc.CheckIsUser(context)
+
+	_ = deviceid
+	if isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	orderid := context.Param("id")
+	getOrderInfo, err := pc.service.GetOrderListByID(orderid)
+	if err != nil {
+		RespFail(context, http.StatusNotFound, 404, "未找到数据")
+		return
+	}
+
+	if getOrderInfo.UserId == username || getOrderInfo.StoreId == username {
+
+	} else {
+		RespFail(context, http.StatusNotFound, 404, "未找到数据")
+		return
+	}
+
+	RespData(context, http.StatusOK, codes.SUCCESS, getOrderInfo)
+	return
+
+}
+
 func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 

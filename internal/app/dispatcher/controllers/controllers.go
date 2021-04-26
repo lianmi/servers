@@ -480,6 +480,7 @@ func CreateInitControllersFn(
 			orderGroup.POST("/pay", pc.OrderPayToBusiness)
 			orderGroup.POST("/get_order_rate", pc.OrderCalcPrice)
 			orderGroup.GET("/lists", pc.OrderGetLists)
+			orderGroup.GET("/info/:id", pc.OrderGetOrderInfoByID)
 			//
 			//orderGroup.POST("/update_status", pc.OrderUpdateStatus)
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
