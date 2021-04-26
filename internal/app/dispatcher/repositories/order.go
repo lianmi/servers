@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 	"github.com/lianmi/servers/api/proto/global"
@@ -72,6 +73,14 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 
 //增加订单拍照图片上链历史表
 func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrderImagesReq, orderTotalAmount float64, blcokNumber uint64, buyUser, businessUser, hash string) error {
+	//保存到redis及 MySQL
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//订单详情
+	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
+	redisConn.Do("HSET", orderIDKey, "OrderImageFile", req.Image)
+
 	//TODO 将字段增加到 OrderImagesHistory 表，然后将订单图片复制到买家id的orders目录
 	//先查询OrderID的数据是否存在，如果存在，则返回，如果不存在，则新增
 	where := models.OrderImagesHistory{

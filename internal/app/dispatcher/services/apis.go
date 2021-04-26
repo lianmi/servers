@@ -727,54 +727,19 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 		zap.String("OrderImageFile", req.Image),
 	)
 
-	//TODO  调用微服务 上链
-	/*
-			amout := uint64(orderInfo.Cost * 100)
-			orderImagesOnBlockchainResp, err := s.walletGrpcClientSvc.OrderImagesOnBlockchain(ctx, &Wallet.OrderImagesOnBlockchainReq{
-				OrderID:          req.OrderID,                /// 订单ID
-				ProductID:        orderInfo.ProductID,        // 商品ID
-				BuyUsername:      orderInfo.BuyerUsername,    //买家注册账号
-				BusinessUsername: orderInfo.BusinessUsername, //商户注册账号
-				AttachHash:       orderInfo.AttachHash,       //订单内容hash
-				Amount:           amout,                      //换算为wei为单位的订单总金额, 例子： cost=2.0元, amount=200wei
-				OrderImage:       req.Image,                  //商户拍照的订单图片oss objectId
-			})
-			if err != nil {
-				s.logger.Error("walletGrpcClientSvc.OrderImagesOnBlockchain 错误", zap.Error(err))
-				return nil, err
-			} else {
-				s.logger.Debug("walletGrpcClientSvc.OrderImagesOnBlockchain 成功",
-					zap.String("OrderID", req.OrderID),
-					zap.Uint64("BlockNumber", orderImagesOnBlockchainResp.BlockNumber),
-					zap.String("Hash", orderImagesOnBlockchainResp.Hash),
-					zap.Uint64("Time", orderImagesOnBlockchainResp.Time),
-				)
+	//增加订单拍照图片上链历史表
+	err = s.Repository.SaveOrderImagesBlockchain(
+		req,
+		orderInfo.Cost,
+		0,
+		orderInfo.BuyerUsername,
+		orderInfo.BusinessUsername,
+		"")
 
-			}
+	if err != nil {
+		return nil, err
+	}
 
-
-		err = s.Repository.SaveOrderImagesBlockchain(
-			req,
-			orderInfo.Cost,
-			orderImagesOnBlockchainResp.BlockNumber,
-			orderInfo.BuyerUsername,
-			orderInfo.BusinessUsername,
-			orderImagesOnBlockchainResp.Hash)
-
-		if err != nil {
-			return nil, err
-		}
-		resp := &Order.UploadOrderImagesResp{
-			OrderID: req.OrderID,
-			// 区块高度
-			BlockNumber: orderImagesOnBlockchainResp.BlockNumber,
-			// 交易哈希hex
-			Hash: orderImagesOnBlockchainResp.Hash,
-			//时间
-			Time: uint64(time.Now().UnixNano() / 1e6),
-		}
-	*/
-	//TODO
 	resp := &Order.UploadOrderImagesResp{
 		OrderID: req.OrderID,
 		// 区块高度
