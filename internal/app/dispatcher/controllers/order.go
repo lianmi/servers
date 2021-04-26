@@ -386,7 +386,7 @@ func (pc *LianmiApisController) OrderGetOrderInfoByID(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 
 	_ = deviceid
-	if isok {
+	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
 	}
@@ -414,7 +414,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	username, deviceid, isok := pc.CheckIsUser(context)
 
 	_ = deviceid
-	if isok {
+	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
 	}
@@ -493,7 +493,7 @@ func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 
 	_ = deviceid
-	if isok {
+	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
 	}
