@@ -230,7 +230,7 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	if status == 0 {
 		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Or(&models.OrderItems{StoreId: username}).Limit(limit).Offset(offset).Find(p).Error
 	} else {
-		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username, OrderStatus: status}).Or(&models.OrderItems{StoreId: username}).Limit(limit).Offset(offset).Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username, OrderStatus: status}).Or(&models.OrderItems{StoreId: username, OrderStatus: status}).Limit(limit).Offset(offset).Find(p).Error
 	}
 	return
 }
