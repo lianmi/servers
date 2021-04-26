@@ -45,7 +45,11 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 		//记录找不到也会触发错误
 		return nil, errors.Wrapf(err, "Get user error[Username=%s]", username)
 	}
-	s.logger.Debug("GetUser run...")
+	s.logger.Debug("GetUser run...",
+		zap.String("Username", user.Username),
+		zap.String("Avatar", user.Avatar),
+		zap.Int("Gender", int(user.Gender)),
+	)
 	return
 }
 

@@ -272,10 +272,17 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 		zap.Int("UserType", fUserData.UserType),
 		zap.Int("State", fUserData.State),
 	)
-	if (fUserData.Avatar != "") && !strings.HasPrefix(fUserData.Avatar, "http") {
+	// 有幺蛾子
+	if fUserData.Avatar != "" {
+		if strings.HasPrefix(fUserData.Avatar, "https") {
+			avatar = fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+		} else {
 
-		avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+			avatar = LMCommon.OSSUploadPicPrefix + fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
+		}
+
 	}
+	s.logger.Debug("GetUser 有幺蛾子", zap.String("Avatar", avatar))
 
 	return &Auth.UserRsp{
 		User: &User.User{
