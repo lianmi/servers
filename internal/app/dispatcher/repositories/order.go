@@ -5,9 +5,12 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lianmi/servers/api/proto/global"
+
+	// "github.com/lianmi/servers/api/proto/global"
 	LMCommon "github.com/lianmi/servers/internal/common"
 
+	"github.com/lianmi/servers/api/proto/global"
+	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
 
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -228,9 +231,40 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 
 }
 
+//创建新订单
+//redis缓存订单各种信息，当订单的状态变化时，需要更新redis
 func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error {
 	//panic("implement me")
-	err := s.db.Create(item).Error
+	var err error
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//将订单ID保存到商户的订单有序集合orders:{username}，订单详情是 orderInfo:{订单ID}
+	if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", item.UserId), time.Now().UnixNano()/1e6, item.OrderId); err != nil {
+		s.logger.Error("ZADD Error", zap.Error(err))
+	}
+
+	//订单详情
+	_, err = redisConn.Do("HMSET",
+		fmt.Sprintf("Order:%s", item.OrderId),
+		"OrderType", int(Global.OrderType_ORT_Normal), //订单类型是普通订单
+		"BuyUser", item.UserId, //发起订单的用户id
+		"BusinessUser", item.StoreId, //商户的用户id
+		"OrderID", item.OrderId, //订单id
+		"ProductID", item.ProductId, //商品id
+		// "Type", req.OrderType, //订单类型
+		"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
+		"AttachHash", "", //订单内容attach的哈希值， 默认为空
+		"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
+		"IsUrge", LMCommon.REDISFALSE, //催单
+		"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
+	)
+	if err != nil {
+		s.logger.Error("HMSET Error", zap.Error(err))
+		return err
+	}
+
+	err = s.db.Create(item).Error
 	return err
 }
 

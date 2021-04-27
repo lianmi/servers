@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lianmi/servers/api/proto/global"
+
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -171,9 +172,12 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	}
 
+	// 生成订单ID
+	orderID := uuid.NewV4().String()
+
 	// 创建订单
 	orderItem := models.OrderItems{}
-	orderItem.OrderId = uuid.NewV4().String()
+	orderItem.OrderId = orderID
 	orderItem.ProductId = req.ProductId
 	orderItem.StoreId = req.BusinessId
 	orderItem.UserId = username
@@ -489,6 +493,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	return
 }
 
+// 用户或商户手动更改 订单状态
 func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 
