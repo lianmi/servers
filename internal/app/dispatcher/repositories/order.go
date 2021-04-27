@@ -239,8 +239,10 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
+	currentTime := time.Now()
+	item.CreatedAt = currentTime.UnixNano() / 1e6
 	//将订单ID保存到商户的订单有序集合orders:{username}，订单详情是 orderInfo:{订单ID}
-	if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", item.UserId), time.Now().UnixNano()/1e6, item.OrderId); err != nil {
+	if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", item.UserId), item.CreatedAt, item.OrderId); err != nil {
 		s.logger.Error("ZADD Error", zap.Error(err))
 	}
 
@@ -253,11 +255,11 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		"OrderID", item.OrderId, //订单id
 		"ProductID", item.ProductId, //商品id
 		// "Type", req.OrderType, //订单类型
-		"State", int(Global.OrderState_OS_Undefined), //订单状态,初始为0
+		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
 		"AttachHash", "", //订单内容attach的哈希值， 默认为空
 		"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 		"IsUrge", LMCommon.REDISFALSE, //催单
-		"CreateAt", uint64(time.Now().UnixNano()/1e6), //毫秒
+		"CreateAt", uint64(item.CreatedAt), //毫秒
 	)
 	if err != nil {
 		s.logger.Error("HMSET Error", zap.Error(err))
@@ -330,12 +332,86 @@ func CheckOrderStatusUpdataRules(currentStatus, newStatus int) bool {
 
 }
 
-func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string, orderid string, status int) (p *models.OrderItems, err error) {
+// 修改订单状态接口
+// 仅能处理 拒单,接单,确认收获这三种状态
+// 其他状态均不可以想这个接口处理
+func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string, orderid string, newStatus int) (p *models.OrderItems, err error) {
 	//panic("implement me")
 	// 获取当前的订单信息
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	// TODO 先用户有效性
+	// 100k * 1000 = 10m
+
+	// 在redis 获取订单的状态
+	currentOrderStatus, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("Order:%s", orderid), "State"))
+	if err != nil {
+		// 订单信息异常
+		s.logger.Error("订单信息异常", zap.Error(err))
+		return nil, fmt.Errorf("订单信息异常")
+	}
+
+	// 订单状态修改的方向有
+	// 用户 : 发送订单 -> 取消订单 -- 不支付, 手动可以取消订单
+	// 系统支付回调 : 发送订单 -> 支付完成 -- 支付回调 触发退款任务
+	// 商户: 支付完成 -> 拒单 -- 服务端触发退款
+	// 商户: 支付完成 -> 已接单 -- 通过上传彩票照片接口触发
+	// 用户: 已接单 -> 确认收货 -- 这时候 会推送到 见证中心
+	// 见证中心回调: 确认收货 -> 上联成功 -- 回调接口
+	//
+
+	// 总结 : 这个接口只处理 以下几个状态的变化 , 其他都拒绝处理
+	// 商户: 支付完成 -> 拒单 -- 服务端触发退款
+	// 商户: 支付完成 -> 已接单 -- 通过上传彩票照片接口触发
+	// 用户: 已接单 -> 确认收货 -- 这时候 会推送到 见证中心
+
+	// 判断当前状态 是不是商户 从 已支付 -> 拒单
+	isokBusinessPayedToRefuse := (Global.OrderState(currentOrderStatus) == Global.OrderState_OS_IsPayed) && (Global.OrderState(newStatus) == Global.OrderState_OS_Refuse)
+	// 判断当前状态 是不是商户 从 已支付 -> 完成订单
+	isokBusinessPayedToDone := (Global.OrderState(currentOrderStatus) == Global.OrderState_OS_IsPayed) && (Global.OrderState(newStatus) == Global.OrderState_OS_Done)
+	// 判断当前状态是不是 用户从 完成订单 -> 确认收货
+	isokUserDoneToConfirm := (Global.OrderState(currentOrderStatus) == Global.OrderState_OS_Done) && (Global.OrderState(newStatus) == Global.OrderState_OS_Confirm)
+
+	if isokBusinessPayedToDone ||
+		isokBusinessPayedToRefuse ||
+		isokUserDoneToConfirm {
+		// 满足条件的状态 才通过
+
+	} else {
+		s.logger.Error("用户无权修改的状态方向 ", zap.Int("开始状态", currentOrderStatus), zap.Int("结束状态", newStatus))
+		return nil, fmt.Errorf("用户无权操作这个状态的变化")
+	}
+	// 以下三种状态相互独立不会同时出现
+
+	// 没有其他的可以处理
+	//// 商户 从 已支付 -> 拒单
+	//if isokBusinessPayedToRefuse {
+	//
+	//}
+	////商户 从 已支付 -> 完成订单
+	//if isokBusinessPayedToDone {
+	//
+	//}
+	//
+	//// 用户从 完成订单 -> 确认收货
+	//if isokUserDoneToConfirm {
+	//
+	//}
+
+	_, err = redisConn.Do("HMSET",
+		fmt.Sprintf("Order:%s", orderid),
+
+		// "Type", req.OrderType, //订单类型
+		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
+
+	)
+	if err != nil {
+		s.logger.Error("HMSET Error", zap.Error(err))
+		return nil, fmt.Errorf("修改状态失败")
+	}
+	// 成功同时更新到数据库
 
 	p = new(models.OrderItems)
-
 	errFind := s.db.Model(p).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).First(p).Error
 	if errFind != nil {
 		s.logger.Error("UpdateOrderStatus DB ", zap.Error(errFind))
@@ -343,13 +419,8 @@ func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string,
 	}
 
 	// 订单状态判断
-
-	isok := CheckOrderStatusUpdataRules(p.OrderStatus, status)
-	if !isok {
-		return nil, fmt.Errorf("订单状态不再允许范围 %d -> %d", p.OrderStatus, status)
-	}
-
-	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: status}).Error
-	p.OrderStatus = status
+	// 更新状态
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: userid, StoreId: storeID, OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: newStatus}).Error
+	p.OrderStatus = newStatus
 	return
 }

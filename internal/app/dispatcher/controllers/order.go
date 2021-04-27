@@ -295,12 +295,21 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	}
 
 	req := SendOrderDataTypeReq{}
-	if err := context.BindQuery(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
-		return
+
+	statusStr, isHave := context.GetQuery("status") //
+	if isHave {
+		req.Status = context.GetInt(statusStr)
 	}
 
-	if req.Limit < 10 {
+	OffsetStr, isHave := context.GetQuery("offset") //
+	if isHave {
+		req.Offset = context.GetInt(OffsetStr)
+	}
+
+	LimitStr, isHave := context.GetQuery("limit") //
+	if isHave {
+		req.Limit = context.GetInt(LimitStr)
+	} else {
 		req.Limit = 10
 	}
 
@@ -435,6 +444,11 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		return
 	}
 
+	// 直接过滤 修改成支付完成状态
+	if req.Status == int(global.OrderState_OS_IsPayed) {
+		RespFail(context, http.StatusOK, codes.ERROR, "无权修改这个状态")
+		return
+	}
 	// 查询订单
 
 	getOrderInfo, err := pc.service.GetOrderListByID(req.OrderID)
@@ -452,15 +466,25 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 
 	//
 
+	//// 修改订单状态接口
+	//// 仅能处理 拒单,接单,确认收获这三种状态
+	//// 其他状态均不可以想这个接口处理
 	newOrder, err := pc.service.UpdateOrderStatus(getOrderInfo.UserId, getOrderInfo.StoreId, req.OrderID, req.Status)
 	_ = newOrder
 	if err != nil {
 		RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
 		return
 	}
+
+	// 订单新状态更新成功 , 可以做其他细化任务
+	// 推送用户和商户 变更更时间
+	// TODO 如果是 完成 则需要推送到 见证中心
+	if req.Status == int(global.OrderState_OS_Confirm) {
+		// TODO 推送消息 到 见证中心
+	}
+
 	go func() {
 		// 推送订单状态变更到商户和用户
-
 		orderChangeReq := new(Msg.RecvMsgEventRsp)
 		orderChangeReq.Type = Msg.MessageType_MsgType_Order
 		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
@@ -493,129 +517,129 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	return
 }
 
-// 用户或商户手动更改 订单状态
-func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
-	username, deviceid, isok := pc.CheckIsUser(context)
-
-	_ = deviceid
-	if !isok {
-		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
-		return
-	}
-	// 更新订单状态
-	// 设置可以设置的状态
-	type OrderCallbackDataTypeReq struct {
-		OrderID string `json:"order_id" binding:"required" `
-		UserID  string `json:"user_id"`
-		StoreID string `json:"store_id"`
-		Status  int    `json:"status"`
-	}
-	req := OrderCallbackDataTypeReq{}
-	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
-		return
-	}
-
-	if req.UserID == "" || req.StoreID == "" {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
-		return
-	}
-	if req.UserID != "" && req.StoreID != "" {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
-		return
-	}
-
-	if req.StoreID != "" && req.StoreID != username {
-		// 这个是用户端处理的  , 且自己不是商户自己
-		//修改订单状态
-
-		newOrder, err := pc.service.UpdateOrderStatus(username, req.StoreID, req.OrderID, req.Status)
-		_ = newOrder
-		if err != nil {
-			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
-			return
-		}
-		go func() {
-			// 推送订单状态变更到商户和用户
-
-			orderChangeReq := new(Msg.RecvMsgEventRsp)
-			orderChangeReq.Type = Msg.MessageType_MsgType_Order
-			orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
-
-			orderProduct := Order.OrderProductBody{}
-			orderProduct.OrderID = newOrder.OrderId
-			orderProduct.State = global.OrderState(newOrder.OrderStatus)
-
-			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
-
-			if err != nil {
-				pc.logger.Error("序列化protobuf order 失败")
-				return
-			}
-
-			//orderChangeReq.Time
-
-			// 系统到商户
-			err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, username)
-			if err1 != nil {
-				pc.logger.Error("推送订单变更事件到用户失败")
-			}
-			err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, req.StoreID)
-			if err2 != nil {
-				pc.logger.Error("推送订单变更事件到商户失败")
-
-			}
-		}()
-		RespOk(context, http.StatusOK, codes.SUCCESS)
-		return
-
-	}
-
-	if req.UserID != "" && req.UserID != username {
-		// 这个是商户端处理的
-		newOrder, err := pc.service.UpdateOrderStatus(req.UserID, username, req.OrderID, req.Status)
-		_ = newOrder
-
-		if err != nil {
-			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
-			return
-		}
-		//TODO  向用户设备推送订单那状态
-
-		go func() {
-			// 推送订单状态变更到商户和用户
-
-			orderChangeReq := new(Msg.RecvMsgEventRsp)
-			orderChangeReq.Type = Msg.MessageType_MsgType_Order
-			orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
-
-			orderProduct := Order.OrderProductBody{}
-			orderProduct.OrderID = newOrder.OrderId
-			orderProduct.State = global.OrderState(newOrder.OrderStatus)
-
-			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
-
-			if err != nil {
-				pc.logger.Error("序列化protobuf order 失败")
-				return
-			}
-
-			//orderChangeReq.Time
-
-			// 系统到商户
-			err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, username)
-			if err1 != nil {
-				pc.logger.Error("推送订单变更事件到商户失败")
-			}
-			err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, req.UserID)
-			if err2 != nil {
-				pc.logger.Error("推送订单变更事件到用户失败")
-
-			}
-		}()
-		RespOk(context, http.StatusOK, codes.SUCCESS)
-		return
-	}
-	RespFail(context, http.StatusOK, codes.InvalidParams, "信息错误")
-	return
-}
+//// 用户或商户手动更改 订单状态
+//func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
+//	username, deviceid, isok := pc.CheckIsUser(context)
+//
+//	_ = deviceid
+//	if !isok {
+//		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+//		return
+//	}
+//	// 更新订单状态
+//	// 设置可以设置的状态
+//	type OrderCallbackDataTypeReq struct {
+//		OrderID string `json:"order_id" binding:"required" `
+//		UserID  string `json:"user_id"`
+//		StoreID string `json:"store_id"`
+//		Status  int    `json:"status"`
+//	}
+//	req := OrderCallbackDataTypeReq{}
+//	if err := context.BindJSON(&req); err != nil {
+//		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+//		return
+//	}
+//
+//	if req.UserID == "" || req.StoreID == "" {
+//		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
+//		return
+//	}
+//	if req.UserID != "" && req.StoreID != "" {
+//		RespFail(context, http.StatusOK, codes.InvalidParams, "没有指定的对方用户")
+//		return
+//	}
+//
+//	if req.StoreID != "" && req.StoreID != username {
+//		// 这个是用户端处理的  , 且自己不是商户自己
+//		//修改订单状态
+//
+//		newOrder, err := pc.service.UpdateOrderStatus(username, req.StoreID, req.OrderID, req.Status)
+//		_ = newOrder
+//		if err != nil {
+//			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+//			return
+//		}
+//		go func() {
+//			// 推送订单状态变更到商户和用户
+//
+//			orderChangeReq := new(Msg.RecvMsgEventRsp)
+//			orderChangeReq.Type = Msg.MessageType_MsgType_Order
+//			orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+//
+//			orderProduct := Order.OrderProductBody{}
+//			orderProduct.OrderID = newOrder.OrderId
+//			orderProduct.State = global.OrderState(newOrder.OrderStatus)
+//
+//			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+//
+//			if err != nil {
+//				pc.logger.Error("序列化protobuf order 失败")
+//				return
+//			}
+//
+//			//orderChangeReq.Time
+//
+//			// 系统到商户
+//			err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, username)
+//			if err1 != nil {
+//				pc.logger.Error("推送订单变更事件到用户失败")
+//			}
+//			err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, req.StoreID)
+//			if err2 != nil {
+//				pc.logger.Error("推送订单变更事件到商户失败")
+//
+//			}
+//		}()
+//		RespOk(context, http.StatusOK, codes.SUCCESS)
+//		return
+//
+//	}
+//
+//	if req.UserID != "" && req.UserID != username {
+//		// 这个是商户端处理的
+//		newOrder, err := pc.service.UpdateOrderStatus(req.UserID, username, req.OrderID, req.Status)
+//		_ = newOrder
+//
+//		if err != nil {
+//			RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+//			return
+//		}
+//		//TODO  向用户设备推送订单那状态
+//
+//		go func() {
+//			// 推送订单状态变更到商户和用户
+//
+//			orderChangeReq := new(Msg.RecvMsgEventRsp)
+//			orderChangeReq.Type = Msg.MessageType_MsgType_Order
+//			orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+//
+//			orderProduct := Order.OrderProductBody{}
+//			orderProduct.OrderID = newOrder.OrderId
+//			orderProduct.State = global.OrderState(newOrder.OrderStatus)
+//
+//			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+//
+//			if err != nil {
+//				pc.logger.Error("序列化protobuf order 失败")
+//				return
+//			}
+//
+//			//orderChangeReq.Time
+//
+//			// 系统到商户
+//			err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, username)
+//			if err1 != nil {
+//				pc.logger.Error("推送订单变更事件到商户失败")
+//			}
+//			err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, req.UserID)
+//			if err2 != nil {
+//				pc.logger.Error("推送订单变更事件到用户失败")
+//
+//			}
+//		}()
+//		RespOk(context, http.StatusOK, codes.SUCCESS)
+//		return
+//	}
+//	RespFail(context, http.StatusOK, codes.InvalidParams, "信息错误")
+//	return
+//}

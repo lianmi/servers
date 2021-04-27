@@ -479,6 +479,7 @@ func CreateInitControllersFn(
 			// 用户向商户发起订单
 			orderGroup.POST("/pay", pc.OrderPayToBusiness)
 			orderGroup.POST("/get_order_rate", pc.OrderCalcPrice)
+			// 翻页获取订单列表
 			orderGroup.GET("/lists", pc.OrderGetLists)
 			orderGroup.GET("/info/:id", pc.OrderGetOrderInfoByID)
 			//
