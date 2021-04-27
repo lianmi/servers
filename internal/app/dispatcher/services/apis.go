@@ -691,16 +691,8 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 		s.logger.Error("从Redis里取出此Order数据 Error")
 	}
 
-	/*
-		暂时屏蔽， 不判断支付是否成功
-		if !isPayed {
-			s.logger.Error("Order is not Payed")
-
-			return errors.Wrapf(err, "Order is not Payed[OrderID=%s]", req.OrderID)
-		}
-	*/
-
 	if orderInfo.ProductID == "" {
+
 		s.logger.Error("ProductID is empty")
 
 		return nil, errors.Wrapf(err, "ProductID is empty[OrderID=%s]", req.OrderID)

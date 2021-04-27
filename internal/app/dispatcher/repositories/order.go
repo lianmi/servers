@@ -166,6 +166,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 	orderImagesHistory := new(models.OrderImagesHistory)
 	if err = s.db.Model(&models.OrderImagesHistory{}).Where(&where).First(orderImagesHistory).Error; err != nil {
 		// if errors.Is(err, gorm.ErrRecordNotFound) {}
+		s.logger.Warn("DownloadOrderImage 无法找到订单id对应的图片", zap.String("OrderID", orderImagesHistory.OrderID))
 		return nil, errors.Wrapf(err, "Record is not exists[OrderID=%s]", orderID)
 	} else {
 
