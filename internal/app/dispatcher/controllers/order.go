@@ -494,6 +494,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 }
 
 // 用户或商户手动更改 订单状态
+// 排他性，譬如，更改为支付成功
 func (pc *LianmiApisController) OrderUpdateStatus(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 

@@ -21,7 +21,7 @@ import (
 func (s *MysqlLianmiRepository) GetProductsList(req *Order.ProductsListReq) (*Order.ProductsListResp, error) {
 	var err error
 	total := new(int64) //总页数
-	pageIndex := int(req.Page)
+	pageIndex := int(req.Page)	
 	pageSize := int(req.Limit)
 
 	columns := []string{"*"}
