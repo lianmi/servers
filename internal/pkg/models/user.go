@@ -35,7 +35,7 @@ type UserBase struct {
 	Extend    string `form:"extend" json:"extend,omitempty" `                            //扩展字段
 	AllowType int    `form:"allow_type" json:"allow_type"`                               //用户加好友枚举，默认是3
 
-	//用户类型 1-普通，2-商户 3-第三方公证
+	//用户类型 1-普通，2-商户 3-第三方公证, 4-客服
 	UserType int `form:"user_type" json:"user_type" binding:"required"`
 
 	//状态 当用户类型为普通用户时: 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号

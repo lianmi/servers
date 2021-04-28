@@ -117,10 +117,10 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 					goto COMPLETE
 				}
 
-				// 商户与买家之间的私聊
-				if userType == 2 || toUserType == 2 {
+				// 商户(或客服)与买家之间的私聊
+				if userType == 2 || toUserType == 2 || userType == 4 || toUserType == 4 {
 					//允许私聊
-					nc.logger.Info("商户与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
+					nc.logger.Debug("商户(或客服)与用户的会话, 放行... ", zap.String("username", username), zap.String("toUser", req.GetTo()))
 				} else {
 					// 除了商户及客服账号外，不支持陌生人聊天
 
@@ -212,7 +212,7 @@ func (nc *NsqClient) HandleRecvMsg(msg *models.Message) error {
 			case Msg.MessageType_MsgType_Roof: //吸顶式群消息 只能是系统、群主或管理员发送，此消息会吸附在群会话的最上面，适合一些倒计时、股价、币价、比分、赔率等
 
 			case Msg.MessageType_MSgType_Customer: //自定义消息
-			nc.logger.Debug("收到自定义消息, 将消息转发", zap.String("toUser", req.GetTo()))
+				nc.logger.Debug("收到自定义消息, 将消息转发", zap.String("toUser", req.GetTo()))
 				//构造转发消息数据
 				if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", req.GetTo()))); err != nil {
 					nc.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
