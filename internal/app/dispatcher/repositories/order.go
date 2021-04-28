@@ -340,7 +340,8 @@ func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string,
 	// 获取当前的订单信息
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
-	// TODO 先用户有效性
+	// 用户有效性 入口已经处理
+
 	// 100k * 1000 = 10m
 
 	// 在redis 获取订单的状态

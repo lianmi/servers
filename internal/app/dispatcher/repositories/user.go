@@ -1043,3 +1043,11 @@ func (s *MysqlLianmiRepository) QueryAllUsernames() ([]string, error) {
 	return usernames, nil
 
 }
+
+func (s *MysqlLianmiRepository) GetUserType(username string) (int, error) {
+	//panic("implement me")
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	return redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+
+}

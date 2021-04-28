@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"fmt"
+	User "github.com/lianmi/servers/api/proto/user"
 	"net/http"
 	"time"
 
@@ -450,6 +451,41 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		return
 	}
 	// 查询订单
+
+	// 读取用户类型
+	//
+	userType, err := pc.service.GetUserType(username)
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.ErrAuth, "用户类型检测异常")
+		return
+	}
+
+	// 可通过 的修改状态
+	if userType == int(User.UserType_Ut_Business) {
+		// 商户类型可修改的状态
+		if req.Status == int(global.OrderState_OS_Done) ||
+			req.Status == int(global.OrderState_OS_Refuse) {
+			// 校验通过
+		} else {
+			RespFail(context, http.StatusOK, codes.ErrAuth, "商户无权修改当前的状态")
+			return
+		}
+	} else if userType == int(User.UserType_Ut_Normal) {
+		// 普通用户可以修改的状态
+		if req.Status == int(global.OrderState_OS_Confirm) {
+			// 校验通过
+		} else {
+			RespFail(context, http.StatusOK, codes.ErrAuth, "用户无权修改当前的状态")
+			return
+		}
+	} else if userType == int(User.UserType_Ut_Operator) {
+		// 管理员直接通过
+	} else {
+		//
+		pc.logger.Error("用户类型检测失败 ", zap.String("userid", username), zap.Int("userTyoe ", userType))
+		RespFail(context, http.StatusOK, codes.ErrAuth, "用户类型错误")
+		return
+	}
 
 	getOrderInfo, err := pc.service.GetOrderListByID(req.OrderID)
 	if err != nil {
