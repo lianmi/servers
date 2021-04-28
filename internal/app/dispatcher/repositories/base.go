@@ -260,6 +260,7 @@ type LianmiRepository interface {
 	SetOrderStatusByOrderID(orderID string, status int) error
 	UpdateOrderStatus(userid string, storeID string, orderid string, status int) (*models.OrderItems, error)
 	GetUserType(username string) (int, error)
+	UpdateOrderStatusByWechatCallback(orderid string) error
 }
 
 type MysqlLianmiRepository struct {
@@ -279,3 +280,5 @@ func NewMysqlLianmiRepository(logger *zap.Logger, db *gorm.DB, redisPool *redis.
 		base:      NewBaseRepository(logger, db),
 	}
 }
+
+

@@ -235,6 +235,7 @@ type LianmiApisService interface {
 	SetOrderStatusByOrderID(orderID string, status int) error
 	UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error)
 	GetUserType(username string) (int, error)
+	UpdateOrderStatusByWechatCallback(orderid string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -927,4 +928,8 @@ func (s *DefaultLianmiApisService) UpdateOrderStatus(userid string, storeID stri
 func (s *DefaultLianmiApisService) GetUserType(username string) (int, error) {
 	//panic("implement me")
 	return s.Repository.GetUserType(username)
+}
+
+func (s *DefaultLianmiApisService) UpdateOrderStatusByWechatCallback(orderid string)  error{
+	return s.Repository.UpdateOrderStatusByWechatCallback(orderid)
 }

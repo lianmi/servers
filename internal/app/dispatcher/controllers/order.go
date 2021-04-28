@@ -5,6 +5,8 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/iGoogle-ink/gopay"
+	"github.com/iGoogle-ink/gopay/wechat"
 	User "github.com/lianmi/servers/api/proto/user"
 	"net/http"
 	"time"
@@ -175,6 +177,56 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	// 生成订单ID
 	orderID := uuid.NewV4().String()
+	// TODO 优惠券处理
+
+	// 返回支付信息
+
+	// TODO 向 微信发起支付信息码获取
+	OutTradeNo := fmt.Sprintf("%s%s%s%s%s", orderID[0:8], orderID[9:13], orderID[14:18], orderID[19:23], orderID[24:36])
+
+	// 获取商户的 商户id
+	wxSubMchID := "1608737479" // 这个是特约商户的子商户id
+	bm := make(gopay.BodyMap)
+	bm.Set("sp_appid", common.WechatPay_appID).
+		Set("sp_mchid", common.WechatPay_mchId).
+		Set("sub_appid", common.WechatPay_SUBAppid_LM).
+		Set("sub_mchid", wxSubMchID). // 这个通过商户id 获取
+		Set("out_trade_no", OutTradeNo).
+		Set("description", req.ProductId).
+		//Set("total_fee", 1).
+		//Set("spbill_create_ip", "127.0.0.1").
+		Set("notify_url", "https://api.lianmi.cloud/v1/order/callback/wechat").
+		//Set("trade_type", wechat.TradeType_H5).
+		//Set("trade_type", wechat).
+		//Set("device_info", "APP").
+		SetBodyMap("amount", func(bmloc gopay.BodyMap) {
+			// 暂时同意 2 毛钱
+			bmloc.Set("total", 20).Set("currency", "CNY")
+		}).
+		//Set("sign_type", wechat.SignTypeRSA).
+		SetBodyMap("settle_info", func(bmloc gopay.BodyMap) {
+			bmloc.Set("profit_sharing", true)
+		})
+
+	wxRsp, err := pc.payWechat.V3PartnerTransactionApp(bm)
+
+	if err != nil {
+	 	pc.logger.Error("生成微信支付失败", zap.Error(err))
+		RespFail(context, http.StatusOK, codes.ERROR, "生成订单失败, 请重试")
+		return
+	}else{
+		pc.logger.Debug("生成微信预支付成功",zap.String("preid" , wxRsp.Response.PrepayId))
+	}
+
+	// 生成 支付码
+	// 临时转化成 app 的 appid
+	pc.payWechat.Appid =common.WechatPay_SUBAppid_LM
+	app ,err := pc.payWechat.PaySignOfApp(wxRsp.Response.PrepayId)
+	if err != nil {
+		pc.logger.Error("生成微信支付码失败", zap.Error(err))
+		RespFail(context, http.StatusOK, codes.ERROR, "生成支付信息失败,请重试")
+		return
+	}
 
 	// 创建订单
 	orderItem := models.OrderItems{}
@@ -184,11 +236,9 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.UserId = username
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
-	orderItem.OrderStatus = int(global.OrderState_OS_Undefined)
+	orderItem.OrderStatus = int(global.OrderState_OS_SendOK) // 设置成 发送
 	orderItem.Amounts = req.TotalAmount
 	orderItem.Fee = req.Fee
-
-	// TODO 优惠券处理
 
 	// 入库
 	err = pc.service.SavaOrderItemToDB(&orderItem)
@@ -199,15 +249,12 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	}
 
-	// 返回支付信息
-
-	// TODO 向 微信发起支付信息码获取
 	type RespDataBodyInfo struct {
 		OrderId    string  `json:"order_id"`
 		BusinessId string  `json:"business_id"`
 		ProductId  string  `json:"product_id"`
 		Amounts    float64 `json:"amounts"`
-		PayCode    string  `json:"pay_code"`
+		PayCode    interface{}  `json:"pay_code"`
 		PayType    int     `json:"pay_type"`
 	}
 	resp := RespDataBodyInfo{}
@@ -216,7 +263,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	resp.BusinessId = orderItem.StoreId
 	resp.Amounts = orderItem.Amounts
 	resp.PayType = 2
-	resp.PayCode = "test_weixinzhifucode"
+	resp.PayCode = app
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
 }
@@ -324,6 +371,57 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 	RespData(context, http.StatusOK, codes.SUCCESS, orderList)
 
+}
+
+func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context) {
+	//req := wechat.NotifyResponse{}
+	fmt.Println("--------微信支付回调 CallbackWalletWeChatNotify---------")
+	//var req *http.Request
+	//req = context.Request
+	req := wechat.NotifyRequest{}
+	type RespCallbackDataType struct {
+		Code int `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := context.BindJSON(&req) ; err != nil{
+		context.JSON(500,&RespCallbackDataType{Code: 500 , Message: "请求参数错误"})
+		return
+	}
+	// 参数处理成功
+
+	if req.Appid != common.WechatPay_appID {
+		// 是我们的订单
+		context.JSON(500,&RespCallbackDataType{Code: 500 , Message: "订单appid错误"})
+		return
+	}
+
+	// 获取订单信息
+
+	orderWechat , err := pc.payWechat.V3PartnerQueryOrder(2,req.SubMchId , req.TransactionId  )
+	if err != nil {
+		 // 找不到订单
+		context.JSON(404,&RespCallbackDataType{Code: 404 , Message: "找不到订单"})
+		return
+	}
+
+	// 找得到
+	pc.logger.Debug("找到支付订单 , " , zap.Any("orderWechat" , orderWechat))
+	pc.logger.Debug("找到支付订单 , " , zap.Any("id" , 	orderWechat.Response.OutTradeNo))
+
+	// 更性订单状态
+	// 订单转化
+	OutTradeNo := orderWechat.Response.OutTradeNo
+	orderid := fmt.Sprintf("%s-%s-%s-%s-%s", OutTradeNo[0:8], OutTradeNo[8:12], OutTradeNo[12:16], OutTradeNo[16:20], OutTradeNo[20:32])
+	errChange := pc.service.UpdateOrderStatusByWechatCallback(orderid )
+	if errChange != nil{
+		 pc.logger.Error("更新失败" ,zap.Error(errChange))
+	}
+
+	context.JSON(200,&RespCallbackDataType{Code: 200 , Message: "SUCCESS"})
+
+	return
+	//
+	//notification, err := pc.payWechat.V3TransactionQueryOrder(req)
 }
 
 func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {

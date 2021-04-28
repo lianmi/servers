@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/iGoogle-ink/gopay/wechat/v3"
 	"log"
 	"net/http"
 	"strings"
@@ -63,6 +64,22 @@ func ParseToken(tokenSrt string, SecretKey []byte) (claims jwt.Claims, err error
 func CreateInitControllersFn(
 	pc *LianmiApisController,
 ) httpImpl.InitControllers {
+
+	var errPay error
+	pc.payWechat , errPay = wechat.NewClientV3(common.WechatPay_appID,common.WechatPay_mchId, common.WechatPay_serierNo, common.WechatPay_apiKey, common.Wechat_apiV3Key)
+
+	if errPay != nil{
+		pc.logger.Warn("微信支付初始化失败")
+		// 失败不影响其他业务
+	}else {
+		pc.logger.Debug("微信支付初始化成功")
+	}
+
+	//if err != nil {
+	//	fmt.Println("微信支付客户端初始化失败")
+	//	return
+	//}
+
 	return func(r *gin.Engine) {
 		//以下路由不做鉴权
 		r.POST("/register", pc.Register)                              //注册用户
@@ -486,7 +503,7 @@ func CreateInitControllersFn(
 			//orderGroup.POST("/update_status", pc.OrderUpdateStatus)
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
 			// 微信支付回调接口
-			orderPubGroup.GET("/wechat/callback", pc.OrderWechatCallback)
+			orderPubGroup.GET("/wechat/callback", pc.OrderWechatCallbackRelease)
 			orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 

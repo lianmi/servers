@@ -95,6 +95,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gorm.io/driver/mysql v1.0.3
 	gorm.io/gorm v1.20.7
+	github.com/iGoogle-ink/gopay v1.5.38
+
 )
 
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1

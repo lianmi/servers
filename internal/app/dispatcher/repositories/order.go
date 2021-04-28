@@ -425,3 +425,50 @@ func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string,
 	p.OrderStatus = newStatus
 	return
 }
+
+func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string) error {
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	// 用户有效性 入口已经处理
+
+	// 100k * 1000 = 10m
+
+	// 在redis 获取订单的状态
+	currentOrderStatus, err := redis.Int(redisConn.Do("HGET", fmt.Sprintf("Order:%s", orderid), "State"))
+	if err != nil {
+		// 订单信息异常
+		s.logger.Error("订单信息异常", zap.Error(err))
+		return  fmt.Errorf("订单信息异常")
+	}
+
+	if currentOrderStatus != int(global.OrderState_OS_SendOK) {
+		return fmt.Errorf("可更换状态错误")
+	}
+
+	_, err = redisConn.Do("HMSET",
+		fmt.Sprintf("Order:%s", orderid),
+
+		// "Type", req.OrderType, //订单类型
+		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
+
+	)
+	if err != nil {
+		s.logger.Error("HMSET Error", zap.Error(err))
+		return  fmt.Errorf("修改状态失败")
+	}
+	// 成功同时更新到数据库
+
+	p := new(models.OrderItems)
+	errFind := s.db.Model(p).Where(&models.OrderItems{OrderId: orderid}).First(p).Error
+	if errFind != nil {
+		s.logger.Error("UpdateOrderStatus DB ", zap.Error(errFind))
+		return fmt.Errorf("未找到订单信息")
+	}
+
+	// 订单状态判断
+	// 更新状态
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{ OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: int(global.OrderState_OS_IsPayed)}).Error
+
+	return nil
+
+}
