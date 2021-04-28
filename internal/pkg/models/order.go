@@ -97,3 +97,16 @@ func (o *OrderItems) BeforeUpdate(tx *gorm.DB) error {
 	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
 	return nil
 }
+
+//  用于记录订单支付的日志记录
+type PayOrderLogItem struct {
+	gorm.Model
+	OperationType int     `json:"operation_type"` // 操作的类型 用户操作 , 系统回调 , 外部回调, 客服操作 等
+	OrderID       string  `json:"order_id"`       // 处理的订单id
+	OrderType     int     `json:"order_type"`     // 订单类型
+	UserID        string  `json:"user_id"`        // 执行操作的用户id
+	Log           string  `json:"log"`            // 日志信息
+	Money         float64 `json:"money"`          // 操作的金额
+	MoneyFrom     string  `json:"money_from"`     // 金额 来源流向
+	MoneyTo       string  `json:"money_to"`       // 金额流向
+}

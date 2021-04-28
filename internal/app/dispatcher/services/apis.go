@@ -741,7 +741,7 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 		//时间
 		Time: uint64(time.Now().UnixNano() / 1e6),
 	}
-	
+
 	return resp, nil
 }
 
@@ -913,6 +913,9 @@ func (s *DefaultLianmiApisService) SetOrderStatusByOrderID(orderID string, statu
 	return s.Repository.SetOrderStatusByOrderID(orderID, status)
 }
 
+// 修改订单状态接口
+// 仅能处理 拒单,接单,确认收获这三种状态
+// 其他状态均不可以想这个接口处理
 func (s *DefaultLianmiApisService) UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error) {
 	//panic("implement me")
 
