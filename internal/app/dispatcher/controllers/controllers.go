@@ -504,7 +504,8 @@ func CreateInitControllersFn(
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
 			// 微信支付回调接口
 			orderPubGroup.GET("/wechat/callback", pc.OrderWechatCallbackRelease)
-			orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
+			orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallbackRelease)
+			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 
 		//=======钱包模块==========/
