@@ -196,13 +196,13 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		Set("description", req.ProductId).
 		//Set("total_fee", 1).
 		//Set("spbill_create_ip", "127.0.0.1").
-		Set("notify_url", "https://api.lianmi.cloud/v1/order/callback/wechat").
+		Set("notify_url", "https://api.lianmi.cloud/callback/wechat/notify").
 		//Set("trade_type", wechat.TradeType_H5).
 		//Set("trade_type", wechat).
 		//Set("device_info", "APP").
 		SetBodyMap("amount", func(bmloc gopay.BodyMap) {
 			// 暂时同意 2 毛钱
-			bmloc.Set("total", 20).Set("currency", "CNY")
+			bmloc.Set("total", 1).Set("currency", "CNY")
 		}).
 		//Set("sign_type", wechat.SignTypeRSA).
 		SetBodyMap("settle_info", func(bmloc gopay.BodyMap) {
@@ -377,6 +377,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		Message string `json:"message" from:"err_msg"`
 	}
 	if err := context.BindJSON(&req) ; err != nil{
+		pc.logger.Error("微信支付请求参数错误")
 		context.JSON(500,&RespCallbackDataType{Code: 500 , Message: "请求参数错误"})
 		return
 	}

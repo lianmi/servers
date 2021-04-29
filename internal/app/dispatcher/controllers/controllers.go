@@ -503,8 +503,8 @@ func CreateInitControllersFn(
 			//orderGroup.POST("/update_status", pc.OrderUpdateStatus)
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
 			// 微信支付回调接口
-			orderPubGroup.GET("/callback/wechat", pc.OrderWechatCallbackRelease)
-			orderPubGroup.POST("/callback/wechat", pc.OrderWechatCallbackRelease)
+			r.GET("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
+			r.POST("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
 			orderPubGroup.POST("/callback/wechat_test", pc.OrderWechatCallback)
 
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
