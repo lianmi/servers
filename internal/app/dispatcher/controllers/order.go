@@ -206,7 +206,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		}).
 		//Set("sign_type", wechat.SignTypeRSA).
 		SetBodyMap("settle_info", func(bmloc gopay.BodyMap) {
-			bmloc.Set("profit_sharing", true)
+			bmloc.Set("profit_sharing", false)
 		})
 
 	pc.logger.Debug("bm", zap.Any("map", bm))
