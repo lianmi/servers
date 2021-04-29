@@ -505,6 +505,8 @@ func CreateInitControllersFn(
 			// 微信支付回调接口
 			orderPubGroup.GET("/callback/wechat", pc.OrderWechatCallbackRelease)
 			orderPubGroup.POST("/callback/wechat", pc.OrderWechatCallbackRelease)
+			orderPubGroup.POST("/callback/wechat_test", pc.OrderWechatCallback)
+
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 

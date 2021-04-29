@@ -379,13 +379,14 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context) {
 	//req := wechat.NotifyResponse{}
+	// TODO 目前只做订单状态处理 具体校验 暂缓
 	fmt.Println("--------微信支付回调 CallbackWalletWeChatNotify---------")
 	//var req *http.Request
 	//req = context.Request
 	req := wechat.NotifyRequest{}
 	type RespCallbackDataType struct {
-		Code int `json:"code"`
-		Message string `json:"message"`
+		Code int `json:"code" from:"code"`
+		Message string `json:"message" from:"err_msg"`
 	}
 	if err := context.BindJSON(&req) ; err != nil{
 		context.JSON(500,&RespCallbackDataType{Code: 500 , Message: "请求参数错误"})
@@ -395,7 +396,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 
 	if req.Appid != common.WechatPay_appID {
 		// 是我们的订单
-		context.JSON(500,&RespCallbackDataType{Code: 500 , Message: "订单appid错误"})
+		context.XML(500,&RespCallbackDataType{Code: 500 , Message: "订单appid错误"})
 		return
 	}
 
@@ -428,6 +429,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//notification, err := pc.payWechat.V3TransactionQueryOrder(req)
 }
 
+// NOTE 这个是手工修改状态的 测试使用
 func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	// 获取订单信息 然后设置支付成功
 	type OrderCallbackDataTypeReq struct {
