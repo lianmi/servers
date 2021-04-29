@@ -127,9 +127,8 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 }
 
 func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
-	username, deviceid, isok := pc.CheckIsUser(context)
-	_ = deviceid
-	_ = username
+	username, _, isok := pc.CheckIsUser(context)
+
 	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
@@ -209,6 +208,8 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		SetBodyMap("settle_info", func(bmloc gopay.BodyMap) {
 			bmloc.Set("profit_sharing", true)
 		})
+
+	pc.logger.Debug("bm", zap.Any("map", bm))
 
 	wxRsp, err := pc.payWechat.V3PartnerTransactionApp(bm)
 
@@ -369,6 +370,8 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//req := wechat.NotifyResponse{}
 	// TODO 目前只做订单状态处理 具体校验 暂缓
 	pc.logger.Debug("--------微信支付回调 CallbackWalletWeChatNotify---------")
+	// notifyReq, err := wechat.V3ParseNotify()
+
 	//var req *http.Request
 	//req = context.Request
 	req := wechat.NotifyRequest{}
