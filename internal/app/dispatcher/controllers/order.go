@@ -4,6 +4,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/iGoogle-ink/gopay"
 	"github.com/iGoogle-ink/gopay/wechat"
@@ -257,13 +258,16 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		PayCode    interface{}  `json:"pay_code"`
 		PayType    int     `json:"pay_type"`
 	}
+
+	jsonStr , _ := json.Marshal(app)
+
 	resp := RespDataBodyInfo{}
 	resp.OrderId = orderItem.OrderId
 	resp.ProductId = orderItem.ProductId
 	resp.BusinessId = orderItem.StoreId
 	resp.Amounts = orderItem.Amounts
 	resp.PayType = 2
-	resp.PayCode = app
+	resp.PayCode = string(jsonStr)
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
 }
