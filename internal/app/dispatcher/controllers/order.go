@@ -368,7 +368,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context) {
 	//req := wechat.NotifyResponse{}
 	// TODO 目前只做订单状态处理 具体校验 暂缓
-	fmt.Println("--------微信支付回调 CallbackWalletWeChatNotify---------")
+	pc.logger.Debug("--------微信支付回调 CallbackWalletWeChatNotify---------")
 	//var req *http.Request
 	//req = context.Request
 	req := wechat.NotifyRequest{}
