@@ -219,6 +219,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	} else {
 		pc.logger.Debug("生成微信预支付成功", zap.String("preid", wxRsp.Response.PrepayId))
+		pc.logger.Debug("wxRsp", zap.Any("map", wxRsp))
 	}
 
 	// 生成 支付码
