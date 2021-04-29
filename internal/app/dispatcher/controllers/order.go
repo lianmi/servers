@@ -341,29 +341,17 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	}
 
 	type SendOrderDataTypeReq struct {
-		Limit  int `json:"limit"`
-		Offset int `json:"offset"`
-		Status int `json:"status"`
+		Limit  int `form:"limit"`
+		Offset int `form:"offset"`
+		Status int `form:"status"`
 	}
 
 	req := SendOrderDataTypeReq{}
 
-	statusStr, isHave := context.GetQuery("status") //
-	if isHave {
-		req.Status = context.GetInt(statusStr)
-	}
-
-	OffsetStr, isHave := context.GetQuery("offset") //
-	if isHave {
-		req.Offset = context.GetInt(OffsetStr)
-	}
-
-	LimitStr, isHave := context.GetQuery("limit") //
-	if isHave {
-		req.Limit = context.GetInt(LimitStr)
-	} else {
+	if err := context.BindQuery(&req); err != nil {
 		req.Limit = 10
 	}
+
 
 	// 翻页查找 订单信息
 
