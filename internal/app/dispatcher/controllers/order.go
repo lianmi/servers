@@ -417,11 +417,40 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	// 订单转化
 	OutTradeNo := orderWechat.Response.OutTradeNo
 	orderid := fmt.Sprintf("%s-%s-%s-%s-%s", OutTradeNo[0:8], OutTradeNo[8:12], OutTradeNo[12:16], OutTradeNo[16:20], OutTradeNo[20:32])
+	// 查询缓存 当前订单是不是在处理中
+	cacheKey := fmt.Sprintf("OrderStatus:%s", orderid)
+	orderStatus, isok := pc.cacheMap[cacheKey]
+	if isok {
+		// 有数据
+		orderStatusInt := orderStatus.(int)
+		if orderStatusInt != 0 {
+			RespFail(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
+			return
+		}
+	}
+
+	//通过订单id 查找订单
+	orderitem, err := pc.service.GetOrderListByID(orderid)
+
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.ERROR, "订单信息错误")
+		return
+	}
+
+	if orderitem.OrderStatus != int(global.OrderState_OS_SendOK) {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
+		return
+	}
+	// 缓存
+	pc.cacheMap[cacheKey] = orderitem.OrderStatus
+	orderStatus = orderitem.OrderStatus
+
 	errChange := pc.service.UpdateOrderStatusByWechatCallback(orderid )
 	if errChange != nil{
 		 pc.logger.Error("更新失败" ,zap.Error(errChange))
 	}
 
+	delete(pc.cacheMap, cacheKey)
 	context.JSON(200,&RespCallbackDataType{Code: 200 , Message: "SUCCESS"})
 
 	return
@@ -468,7 +497,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 		return
 	}
 
-	if orderitem.OrderStatus != int(global.OrderState_OS_Undefined) {
+	if orderitem.OrderStatus != int(global.OrderState_OS_SendOK) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
@@ -479,7 +508,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	// TODO 一系列处理
 
 	// 将订单设置成 支付完成
-	err = pc.service.SetOrderStatusByOrderID(req.OrderID, int(global.OrderState_OS_IsPayed))
+	err = pc.service.UpdateOrderStatusByWechatCallback(req.OrderID)
 
 	if err != nil {
 		//设置订单
