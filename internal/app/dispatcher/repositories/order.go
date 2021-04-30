@@ -441,7 +441,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 		return fmt.Errorf("订单信息异常")
 	}
 
-	if currentOrderStatus != int(global.OrderState_OS_IsPayed) {
+	if currentOrderStatus != int(global.OrderState_OS_SendOK) {
 		return fmt.Errorf("可更换状态错误")
 	}
 
