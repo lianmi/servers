@@ -275,7 +275,8 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	if status == 0 {
 		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Or(&models.OrderItems{StoreId: username}).Limit(limit).Offset(offset).Find(p).Error
 	} else {
-		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username, OrderStatus: status}).Or(&models.OrderItems{StoreId: username, OrderStatus: status}).Limit(limit).Offset(offset).Find(p).Error
+		//err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username, OrderStatus: status}).Or(&models.OrderItems{StoreId: username, OrderStatus: status}).Limit(limit).Offset(offset).Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).Where(" ( user_id = ? or store_id = ? ) and status = ?  ", username, username, status).Limit(limit).Offset(offset).Find(p).Error
 	}
 	return
 }
@@ -437,7 +438,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 	if err != nil {
 		// 订单信息异常
 		s.logger.Error("订单信息异常", zap.Error(err))
-		return  fmt.Errorf("订单信息异常")
+		return fmt.Errorf("订单信息异常")
 	}
 
 	if currentOrderStatus != int(global.OrderState_OS_SendOK) {
@@ -453,7 +454,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 	)
 	if err != nil {
 		s.logger.Error("HMSET Error", zap.Error(err))
-		return  fmt.Errorf("修改状态失败")
+		return fmt.Errorf("修改状态失败")
 	}
 	// 成功同时更新到数据库
 
@@ -466,7 +467,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 
 	// 订单状态判断
 	// 更新状态
-	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{ OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: int(global.OrderState_OS_IsPayed)}).Error
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: int(global.OrderState_OS_IsPayed)}).Error
 
 	return nil
 
@@ -479,8 +480,8 @@ func (s *MysqlLianmiRepository) GetStoreOpkByBusiness(id string) (string, error)
 	opk, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", id)))
 
 	if opk == "" {
-		return "",fmt.Errorf("商户opk找不到")
-	}else {
-		return opk,nil
+		return "", fmt.Errorf("商户opk找不到")
+	} else {
+		return opk, nil
 	}
 }
