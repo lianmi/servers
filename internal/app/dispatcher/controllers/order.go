@@ -376,6 +376,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	if err := context.BindQuery(&req); err != nil {
 		req.Limit = 10
 	}
+	pc.logger.Debug("OrderGetLists", zap.Int("Status", req.Status))
 
 	// 翻页查找 订单信息
 
