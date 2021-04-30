@@ -403,7 +403,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		Code    int    `json:"code" from:"code"`
 		Message string `json:"message" from:"err_msg"`
 	}
-
+	dataBody, _ := context.GetRawData()
 	if err := context.BindJSON(&req); err != nil {
 		pc.logger.Error("微信支付请求参数错误", zap.Error(err))
 		context.JSON(500, &RespCallbackDataType{Code: 500, Message: "请求参数错误"})
@@ -411,7 +411,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	}
 	// 参数处理成功
 
-	dataBody, _ := context.GetRawData()
+	//dataBody, _ := context.GetRawData()
 
 	pc.logger.Debug("wx callbakc log ", zap.Any("req", req), zap.ByteString("dataBody", dataBody))
 
