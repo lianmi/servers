@@ -260,6 +260,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		Amounts    float64     `json:"amounts"`
 		PayCode    interface{} `json:"pay_code"`
 		PayType    int         `json:"pay_type"`
+		OrderTime  int64       `json:"order_time"`
 	}
 
 	jsonStr, _ := json.Marshal(app)
@@ -271,6 +272,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	resp.Amounts = orderItem.Amounts
 	resp.PayType = 2
 	resp.PayCode = string(jsonStr)
+	resp.OrderTime = orderItem.CreatedAt
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
 }
@@ -307,11 +309,10 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	// TODO 优惠券处理
 
-
 	// 读取 okp
 	//
 
-	pub_opk , err := pc.service.GetStoreOpkByBusiness(req.BusinessId)
+	pub_opk, err := pc.service.GetStoreOpkByBusiness(req.BusinessId)
 
 	if err != nil {
 		pc.logger.Warn("该商户没有opk")
@@ -334,7 +335,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 		CouponAmount   float64 `json:"coupon_amount"`
 		FeeRate        float64 `json:"fee_rate"`
 		RateFreeAmount float64 `json:"rate_free_amount"`
-		Publickey   string  `json:"publickey"`
+		Publickey      string  `json:"publickey"`
 	}
 
 	resp := RespDataBodyInfo{}
