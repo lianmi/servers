@@ -402,6 +402,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		Code    int    `json:"code" from:"code"`
 		Message string `json:"message" from:"err_msg"`
 	}
+
 	if err := context.BindJSON(&req); err != nil {
 		pc.logger.Error("微信支付请求参数错误", zap.Error(err))
 		context.JSON(500, &RespCallbackDataType{Code: 500, Message: "请求参数错误"})

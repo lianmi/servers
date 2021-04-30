@@ -441,7 +441,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 		return fmt.Errorf("订单信息异常")
 	}
 
-	if currentOrderStatus != int(global.OrderState_OS_SendOK) {
+	if currentOrderStatus != int(global.OrderState_OS_IsPayed) {
 		return fmt.Errorf("可更换状态错误")
 	}
 
@@ -449,7 +449,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 		fmt.Sprintf("Order:%s", orderid),
 
 		// "Type", req.OrderType, //订单类型
-		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
+		"State", int(Global.OrderState_OS_IsPayed), //订单状态,初始为 发送订单
 
 	)
 	if err != nil {
