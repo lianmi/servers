@@ -6,7 +6,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lianmi/servers/internal/pkg/wxpay"
+	"github.com/iGoogle-ink/gopay/wechat/v3"
 	"net/http"
 	"time"
 
@@ -229,6 +229,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	// 临时转化成 app 的 appid
 	pc.payWechat.Appid = common.WechatPay_SUBAppid_LM
 	app, err := pc.payWechat.PaySignOfApp(wxRsp.Response.PrepayId)
+	pc.payWechat.Appid = common.WechatPay_appID // 重置回来
 	if err != nil {
 		pc.logger.Error("生成微信支付码失败", zap.Error(err))
 		RespFail(context, http.StatusOK, codes.ERROR, "生成支付信息失败,请重试")
@@ -411,8 +412,9 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//}
 	// 参数处理成功
 
-	//pc.payWechat.DecryptCerts()
-	noti, err := wxpay.GetTradeNotification(context.Request, common.WechatPay_apiKey)
+	notifyReq, err := wechat.V3ParseNotify(context.Request)
+	//noti, err := wxpay.GetTradeNotification(context.Request, common.WechatPay_apiKey)
+
 	if err != nil {
 		pc.logger.Debug("无法解析微信支付回调的信息", zap.Error(err))
 		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
@@ -420,11 +422,17 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	}
 	//dataBody, _ := context.GetRawData()
 
-	pc.logger.Debug("wx callbakc log ", zap.Any("req", noti))
+	pc.logger.Debug("wx callbakc log ", zap.Any("req", notifyReq))
+	result, err := notifyReq.DecryptCipherText(common.WechatPay_apiKey)
 
-	if noti.AppId != common.WechatPay_appID {
+	if err != nil {
+		pc.logger.Debug("无法解析微信支付回调的信息 2 ", zap.Error(err))
+		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
+		return
+	}
+	if result.Appid != common.WechatPay_appID {
 		// 是我们的订单
-		pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", noti.AppId))
+		pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", result.Appid))
 		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
 		return
 	}
@@ -432,7 +440,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	// 获取订单信息
 	wxSubMchID := "1608737479" // 这个是特约商户的子商户id
 
-	orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, wxSubMchID, noti.TransactionId)
+	orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, wxSubMchID, result.TransactionId)
 	if err != nil {
 		// 找不到订单
 		context.JSON(404, &RespCallbackDataType{Code: 404, Message: "找不到订单"})
