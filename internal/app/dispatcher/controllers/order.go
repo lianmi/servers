@@ -410,7 +410,10 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		return
 	}
 	// 参数处理成功
-	pc.logger.Debug("wx callbakc log ", zap.Any("req", req))
+
+	dataBody, _ := context.GetRawData()
+
+	pc.logger.Debug("wx callbakc log ", zap.Any("req", req), zap.ByteString("dataBody", dataBody))
 
 	if req.Appid != common.WechatPay_appID {
 		// 是我们的订单
