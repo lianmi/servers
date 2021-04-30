@@ -404,13 +404,13 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		Message string `json:"message" from:"err_msg"`
 	}
 
-	pc.logger.Debug("wx callbakc log ", zap.Any("req", req))
 	if err := context.BindJSON(&req); err != nil {
 		pc.logger.Error("微信支付请求参数错误", zap.Error(err))
 		context.JSON(500, &RespCallbackDataType{Code: 500, Message: "请求参数错误"})
 		return
 	}
 	// 参数处理成功
+	pc.logger.Debug("wx callbakc log ", zap.Any("req", req))
 
 	if req.Appid != common.WechatPay_appID {
 		// 是我们的订单
