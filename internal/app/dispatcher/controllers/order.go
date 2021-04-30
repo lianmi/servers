@@ -6,11 +6,11 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lianmi/servers/internal/pkg/wxpay"
 	"net/http"
 	"time"
 
 	"github.com/iGoogle-ink/gopay"
-	"github.com/iGoogle-ink/gopay/wechat"
 	User "github.com/lianmi/servers/api/proto/user"
 
 	"github.com/lianmi/servers/api/proto/global"
@@ -398,12 +398,12 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 
 	//var req *http.Request
 	//req = context.Request
-	req := wechat.NotifyRequest{}
+	//req := wechat.NotifyRequest{}
 	type RespCallbackDataType struct {
 		Code    int    `json:"code" from:"code"`
 		Message string `json:"message" from:"err_msg"`
 	}
-	dataBody, _ := context.GetRawData()
+	//dataBody, _ := context.GetRawData()
 	//if err := context.BindJSON(&req); err != nil {
 	//	pc.logger.Error("微信支付请求参数错误", zap.Error(err))
 	//	context.JSON(500, &RespCallbackDataType{Code: 500, Message: "请求参数错误"})
@@ -411,20 +411,28 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//}
 	// 参数处理成功
 
+	//pc.payWechat.DecryptCerts()
+	noti, err := wxpay.GetTradeNotification(context.Request, common.WechatPay_apiKey)
+	if err != nil {
+		pc.logger.Debug("无法解析微信支付回调的信息")
+		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
+		return
+	}
 	//dataBody, _ := context.GetRawData()
 
-	pc.logger.Debug("wx callbakc log ", zap.Any("req", req), zap.ByteString("dataBody", dataBody))
+	pc.logger.Debug("wx callbakc log ", zap.Any("req", noti))
 
-	if req.Appid != common.WechatPay_appID {
+	if noti.AppId != common.WechatPay_appID {
 		// 是我们的订单
-		pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", req.Appid))
+		pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", noti.AppId))
 		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
 		return
 	}
 
 	// 获取订单信息
+	wxSubMchID := "1608737479" // 这个是特约商户的子商户id
 
-	orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, req.SubMchId, req.TransactionId)
+	orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, wxSubMchID, noti.TransactionId)
 	if err != nil {
 		// 找不到订单
 		context.JSON(404, &RespCallbackDataType{Code: 404, Message: "找不到订单"})
