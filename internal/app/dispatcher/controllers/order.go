@@ -414,7 +414,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//pc.payWechat.DecryptCerts()
 	noti, err := wxpay.GetTradeNotification(context.Request, common.WechatPay_apiKey)
 	if err != nil {
-		pc.logger.Debug("无法解析微信支付回调的信息")
+		pc.logger.Debug("无法解析微信支付回调的信息", zap.Error(err))
 		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
 		return
 	}
