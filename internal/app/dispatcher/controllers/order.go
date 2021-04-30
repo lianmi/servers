@@ -304,6 +304,23 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	// TODO 优惠券处理
 
+
+	// 读取 okp
+	//
+
+	pub_opk , err := pc.service.GetStoreOpkByBusiness(req.BusinessId)
+
+	if err != nil {
+		pc.logger.Warn("该商户没有opk")
+	}
+	//opk, _ = redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", req.UserName)))
+	//
+	//if opk == "" {
+	//	nc.logger.Error("商户的默认OPK是空")
+	//
+	//	errorCode = LMCError.OPKEmptyError
+	//	goto COMPLETE
+	//}
 	// 返回支付信息
 
 	// TODO 向 微信发起支付信息码获取
@@ -314,8 +331,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 		CouponAmount   float64 `json:"coupon_amount"`
 		FeeRate        float64 `json:"fee_rate"`
 		RateFreeAmount float64 `json:"rate_free_amount"`
-		//PayCode    string  `json:"pay_code"`
-		//PayType    int     `json:"pay_type"`
+		Publickey   string  `json:"publickey"`
 	}
 
 	resp := RespDataBodyInfo{}
@@ -323,7 +339,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	resp.BusinessId = req.BusinessId
 	resp.FeeRate = common.Rate
 	resp.RateFreeAmount = common.RateFreeAmout
-
+	resp.Publickey = pub_opk
 	//resp.Amounts = getProductInfo.ProductPrice + common.ChainFee
 	//resp.PayType = 2
 	//resp.PayCode = "test_weixinzhifucode"

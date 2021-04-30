@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"fmt"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 
@@ -471,4 +470,17 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 
 	return nil
 
+}
+
+func (s *MysqlLianmiRepository) GetStoreOpkByBusiness(id string) (string, error) {
+	//panic("implement me")
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+	opk, _ := redis.String(redisConn.Do("GET", fmt.Sprintf("DefaultOPK:%s", id)))
+
+	if opk == "" {
+		return "",fmt.Errorf("商户opk找不到")
+	}else {
+		return opk,nil
+	}
 }
