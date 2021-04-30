@@ -138,13 +138,14 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	}
 
 	type SendOrderDataTypeReq struct {
-		BusinessId  string  `json:"business_id" binding:"required" `
-		ProductId   string  `json:"product_id" binding:"required"`
-		TotalAmount float64 `json:"total_amount"  binding:"required"`
-		Fee         float64 `json:"fee"`
-		CouponId    string  `json:"coupon_id" `
-		Body        string  `json:"body" binding:"required"`
-		Publickey   string  `json:"publickey" binding:"required"`
+		BusinessId     string  `json:"business_id" binding:"required" `
+		ProductId      string  `json:"product_id" binding:"required"`
+		TotalAmount    float64 `json:"total_amount"  binding:"required"`
+		Fee            float64 `json:"fee"`
+		CouponId       string  `json:"coupon_id" `
+		Body           string  `json:"body" binding:"required"`
+		Publickey      string  `json:"publickey" binding:"required"`
+		StorePublickey string  `json:"store_publickey" binding:"required"`
 	}
 
 	req := SendOrderDataTypeReq{}
@@ -247,6 +248,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.OrderStatus = int(global.OrderState_OS_SendOK) // 设置成 发送
 	orderItem.Amounts = req.TotalAmount
 	orderItem.Fee = req.Fee
+	orderItem.StorePublicKey = req.StorePublickey
 
 	// 入库
 	err = pc.service.SavaOrderItemToDB(&orderItem)
