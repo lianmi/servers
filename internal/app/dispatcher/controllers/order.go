@@ -466,6 +466,38 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	}
 
 	delete(pc.cacheMap, cacheKey)
+
+	// 通知用户和商户推送
+	go func() {
+		// 推送订单状态变更到商户和用户
+		orderChangeReq := new(Msg.RecvMsgEventRsp)
+		orderChangeReq.Type = Msg.MessageType_MsgType_Order
+		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+
+		orderProduct := Order.OrderProductBody{}
+		orderProduct.OrderID = orderid
+		orderProduct.State = global.OrderState_OS_IsPayed
+
+		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+
+		if err != nil {
+			pc.logger.Error("序列化protobuf order 失败")
+			return
+		}
+
+		//orderChangeReq.Time
+
+		// 系统到商户
+		err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, orderitem.StoreId)
+		if err1 != nil {
+			pc.logger.Error("推送订单变更事件到用户失败")
+		}
+		err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, orderitem.UserId)
+		if err2 != nil {
+			pc.logger.Error("推送订单变更事件到商户失败")
+
+		}
+	}()
 	context.JSON(200, &RespCallbackDataType{Code: 200, Message: "SUCCESS"})
 
 	return
