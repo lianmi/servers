@@ -438,22 +438,23 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//}
 
 	// 获取订单信息
-	wxSubMchID := "1608737479" // 这个是特约商户的子商户id
-
-	orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, wxSubMchID, result.TransactionId)
-	if err != nil {
-		// 找不到订单
-		context.JSON(404, &RespCallbackDataType{Code: 404, Message: "找不到订单"})
-		return
-	}
+	//wxSubMchID := "1608737479" // 这个是特约商户的子商户id
+	//
+	//orderWechat, err := pc.payWechat.V3PartnerQueryOrder(2, wxSubMchID, result.TransactionId)
+	//if err != nil {
+	//	// 找不到订单
+	//	context.JSON(404, &RespCallbackDataType{Code: 404, Message: "找不到订单"})
+	//	return
+	//}
 
 	// 找得到
-	pc.logger.Debug("找到支付订单 , ", zap.Any("orderWechat", orderWechat))
-	pc.logger.Debug("找到支付订单 , ", zap.Any("id", orderWechat.Response.OutTradeNo))
+	//pc.logger.Debug("找到支付订单 , ", zap.Any("orderWechat", orderWechat))
+	pc.logger.Debug("找到支付订单 , ", zap.Any("id", result.OutTradeNo))
+	//pc.logger.Debug("找到支付订单 , ", zap.Any("id", orderWechat.Response.OutTradeNo))
 
 	// 更性订单状态
 	// 订单转化
-	OutTradeNo := orderWechat.Response.OutTradeNo
+	OutTradeNo := result.OutTradeNo
 	orderid := fmt.Sprintf("%s-%s-%s-%s-%s", OutTradeNo[0:8], OutTradeNo[8:12], OutTradeNo[12:16], OutTradeNo[16:20], OutTradeNo[20:32])
 	// 查询缓存 当前订单是不是在处理中
 	cacheKey := fmt.Sprintf("OrderStatus:%s", orderid)
