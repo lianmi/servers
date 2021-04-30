@@ -38,10 +38,12 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
 			RespData(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
+			return
 		}
 		if req.Image == "" {
 			pc.logger.Error("Image is empty")
 			RespData(c, http.StatusOK, code, "参数错误, 缺少image字段 ")
+			return
 		}
 
 		resp, err := pc.service.UploadOrderImages(c, &req)
@@ -66,14 +68,17 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
 			RespFail(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
+			return
 		}
 		if req.BodyType == 0 {
 			pc.logger.Error("BodyType is empty")
 			RespFail(c, http.StatusOK, code, "参数错误, 缺少BodyType字段 ")
+			return
 		}
 		if req.BodyObjFile == "" {
 			pc.logger.Error("BodyObjFile is empty")
 			RespFail(c, http.StatusOK, code, "参数错误, 缺少BodyObjFile字段 ")
+			return
 		}
 
 		resp, rsp, err := pc.service.UploadOrderBody(c, &req)
@@ -120,9 +125,7 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 			RespFail(c, http.StatusOK, code, "获取所有订单拍照图片时发生错误")
 			return
 		}
-
 		RespData(c, http.StatusOK, 200, resp)
-
 	}
 }
 
@@ -254,13 +257,14 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	}
 
 	type RespDataBodyInfo struct {
-		OrderId    string      `json:"order_id"`
-		BusinessId string      `json:"business_id"`
-		ProductId  string      `json:"product_id"`
-		Amounts    float64     `json:"amounts"`
-		PayCode    interface{} `json:"pay_code"`
-		PayType    int         `json:"pay_type"`
-		OrderTime  int64       `json:"order_time"`
+		OrderId     string      `json:"order_id"`
+		BusinessId  string      `json:"business_id"`
+		ProductId   string      `json:"product_id"`
+		Amounts     float64     `json:"amounts"`
+		PayCode     interface{} `json:"pay_code"`
+		PayType     int         `json:"pay_type"`
+		OrderTime   int64       `json:"order_time"`
+		ProductType int         `json:"product_type"`
 	}
 
 	jsonStr, _ := json.Marshal(app)
@@ -273,6 +277,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	resp.PayType = 2
 	resp.PayCode = string(jsonStr)
 	resp.OrderTime = orderItem.CreatedAt
+	resp.ProductType = getProductInfo.ProductType
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
 	return
 }
