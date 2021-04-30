@@ -430,12 +430,12 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
 		return
 	}
-	if result.Appid != common.WechatPay_appID {
-		// 是我们的订单
-		pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", result.Appid))
-		context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
-		return
-	}
+	//if result.Appid != common.WechatPay_appID {
+	//	// 是我们的订单
+	//	pc.logger.Debug("请求的信息不是我们的appid ", zap.String("appid", result.Appid))
+	//	context.XML(500, &RespCallbackDataType{Code: 500, Message: "订单appid错误"})
+	//	return
+	//}
 
 	// 获取订单信息
 	wxSubMchID := "1608737479" // 这个是特约商户的子商户id
