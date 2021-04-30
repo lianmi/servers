@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/iGoogle-ink/gopay/wechat/v3"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/iGoogle-ink/gopay/wechat/v3"
 
 	gin_jwt_v2 "github.com/appleboy/gin-jwt/v2"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -66,12 +67,12 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 
 	var errPay error
-	pc.payWechat , errPay = wechat.NewClientV3(common.WechatPay_appID,common.WechatPay_mchId, common.WechatPay_serierNo, common.WechatPay_apiKey, common.Wechat_apiV3Key)
+	pc.payWechat, errPay = wechat.NewClientV3(common.WechatPay_appID, common.WechatPay_mchId, common.WechatPay_serierNo, common.WechatPay_apiKey, common.Wechat_apiV3Key)
 
-	if errPay != nil{
+	if errPay != nil {
 		pc.logger.Warn("微信支付初始化失败")
 		// 失败不影响其他业务
-	}else {
+	} else {
 		pc.logger.Debug("微信支付初始化成功")
 	}
 
@@ -503,7 +504,7 @@ func CreateInitControllersFn(
 			//orderGroup.POST("/update_status", pc.OrderUpdateStatus)
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
 			// 微信支付回调接口
-			r.GET("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
+			// r.GET("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
 			r.POST("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
 			orderPubGroup.POST("/callback/wechat_test", pc.OrderWechatCallback)
 
