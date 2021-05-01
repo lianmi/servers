@@ -74,7 +74,7 @@ type OrderItems struct {
 	ProductId    string         `json:"product_id"`
 	ChainAddress string         `json:"chain_address"`
 	Body         string         `json:"body"`
-	PublicKey    string         `json:"public_key"`
+	PublicKey    string         `json:"public_key"` //用户的opk
 	OrderStatus  int            `json:"order_status"`
 	PayStatus    int            `json:"pay_status"`
 	ChainStatus  int            `json:"chain_status"`
