@@ -544,6 +544,7 @@ func (nc *NsqClient) HandleMsgAck(msg *models.Message) error {
 						Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
 						Time:         uint64(time.Now().UnixNano() / 1e6),
 					}
+					
 					go nc.BroadcastSystemMsgToAllDevices(eRsp, buyUser) //向用户推送订单消息
 
 				}

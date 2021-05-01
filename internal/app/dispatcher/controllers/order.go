@@ -6,15 +6,17 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iGoogle-ink/gopay/wechat/v3"
 	"net/http"
 	"time"
+
+	"github.com/iGoogle-ink/gopay/wechat/v3"
 
 	"github.com/iGoogle-ink/gopay"
 	User "github.com/lianmi/servers/api/proto/user"
 
-	"github.com/lianmi/servers/api/proto/global"
+	// "github.com/lianmi/servers/api/proto/global"
 
+	Global "github.com/lianmi/servers/api/proto/global"
 	Msg "github.com/lianmi/servers/api/proto/msg"
 	"github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/pkg/models"
@@ -169,7 +171,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 		return
 	}
 
-	if getStoreInfo.GetStoreType() == global.StoreType_ST_Undefined {
+	if getStoreInfo.GetStoreType() == Global.StoreType_ST_Undefined {
 		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户信息未定义商店类型")
 		return
 	}
@@ -245,7 +247,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.UserId = username
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
-	orderItem.OrderStatus = int(global.OrderState_OS_SendOK) // 设置成 发送
+	orderItem.OrderStatus = int(Global.OrderState_OS_SendOK) // 设置成 发送
 	orderItem.Amounts = req.TotalAmount
 	orderItem.Fee = req.Fee
 	orderItem.StorePublicKey = req.StorePublickey
@@ -478,7 +480,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		return
 	}
 
-	if orderitem.OrderStatus != int(global.OrderState_OS_SendOK) {
+	if orderitem.OrderStatus != int(Global.OrderState_OS_SendOK) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
@@ -495,16 +497,43 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 
 	// 通知用户和商户推送
 	go func() {
+		orderInfo, err := pc.service.GetOrderInfo(orderid)
+		if err != nil {
+			pc.logger.Error("从Redis里取出此Order数据 Error")
+		}
+
 		// 推送订单状态变更到商户和用户
-		orderChangeReq := new(Msg.RecvMsgEventRsp)
-		orderChangeReq.Type = Msg.MessageType_MsgType_Order
-		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+		orderBodyData, _ := proto.Marshal(&Order.OrderProductBody{
+			OrderID:      orderid,
+			OrderType:    Global.OrderType_ORT_Normal, //订单类型
+			ProductID:    orderInfo.ProductID,
+			BuyUser:      orderInfo.BuyerUsername,
+			BusinessUser: orderInfo.BusinessUsername,
+			State:        Global.OrderState_OS_IsPayed,
+		})
 
-		orderProduct := Order.OrderProductBody{}
-		orderProduct.OrderID = orderid
-		orderProduct.State = global.OrderState_OS_IsPayed
+		orderChangeReq := &Msg.RecvMsgEventRsp{
+			Scene: Msg.MessageScene_MsgScene_S2C, //系统消息
+			Type:  Msg.MessageType_MsgType_Order, //类型-订单消息
+			Body:  orderBodyData,                 //订单载体 OrderProductBody
+			// From:         username,                      //谁发的
+			// FromDeviceId: deviceID,                      //哪个设备发的
+			Recv: orderInfo.BuyerUsername, //用户账户id
+			// ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+			// Seq:          newSeq,                             //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+			// Uuid:         fmt.Sprintf("%d", msg.GetTaskID()), //客户端分配的消息ID，SDK生成的消息id，这里返回TaskID
+			Time: uint64(time.Now().UnixNano() / 1e6),
+		}
 
-		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+		// orderChangeReq := new(Msg.RecvMsgEventRsp)
+		// orderChangeReq.Type = Msg.MessageType_MsgType_Order
+		// orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+
+		// orderProduct := Order.OrderProductBody{}
+		// orderProduct.OrderID = orderid
+		// orderProduct.State = Global.OrderState_OS_IsPayed
+
+		// orderChangeReq.Body, err = proto.Marshal(&orderProduct)
 
 		if err != nil {
 			pc.logger.Error("序列化protobuf order 失败")
@@ -570,7 +599,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 		return
 	}
 
-	if orderitem.OrderStatus != int(global.OrderState_OS_SendOK) {
+	if orderitem.OrderStatus != int(Global.OrderState_OS_SendOK) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
@@ -652,7 +681,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	}
 
 	// 直接过滤 修改成支付完成状态
-	if req.Status == int(global.OrderState_OS_IsPayed) {
+	if req.Status == int(Global.OrderState_OS_IsPayed) {
 		RespFail(context, http.StatusOK, codes.ERROR, "无权修改这个状态")
 		return
 	}
@@ -669,8 +698,8 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	// 可通过 的修改状态
 	if userType == int(User.UserType_Ut_Business) {
 		// 商户类型可修改的状态
-		if req.Status == int(global.OrderState_OS_Done) ||
-			req.Status == int(global.OrderState_OS_Refuse) {
+		if req.Status == int(Global.OrderState_OS_Done) ||
+			req.Status == int(Global.OrderState_OS_Refuse) {
 			// 校验通过
 		} else {
 			RespFail(context, http.StatusOK, codes.ErrAuth, "商户无权修改当前的状态")
@@ -678,7 +707,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		}
 	} else if userType == int(User.UserType_Ut_Normal) {
 		// 普通用户可以修改的状态
-		if req.Status == int(global.OrderState_OS_Confirm) {
+		if req.Status == int(Global.OrderState_OS_Confirm) {
 			// 校验通过
 		} else {
 			RespFail(context, http.StatusOK, codes.ErrAuth, "用户无权修改当前的状态")
@@ -721,7 +750,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	// 订单新状态更新成功 , 可以做其他细化任务
 	// 推送用户和商户 变更更时间
 	// TODO 如果是 完成 则需要推送到 见证中心
-	if req.Status == int(global.OrderState_OS_Confirm) {
+	if req.Status == int(Global.OrderState_OS_Confirm) {
 		// TODO 推送消息 到 见证中心
 	}
 
@@ -733,7 +762,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 
 		orderProduct := Order.OrderProductBody{}
 		orderProduct.OrderID = newOrder.OrderId
-		orderProduct.State = global.OrderState(newOrder.OrderStatus)
+		orderProduct.State = Global.OrderState(newOrder.OrderStatus)
 
 		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
 
@@ -810,7 +839,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 //
 //			orderProduct := Order.OrderProductBody{}
 //			orderProduct.OrderID = newOrder.OrderId
-//			orderProduct.State = global.OrderState(newOrder.OrderStatus)
+//			orderProduct.State = Global.OrderState(newOrder.OrderStatus)
 //
 //			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
 //
@@ -857,7 +886,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 //
 //			orderProduct := Order.OrderProductBody{}
 //			orderProduct.OrderID = newOrder.OrderId
-//			orderProduct.State = global.OrderState(newOrder.OrderStatus)
+//			orderProduct.State = Global.OrderState(newOrder.OrderStatus)
 //
 //			orderChangeReq.Body, err = proto.Marshal(&orderProduct)
 //

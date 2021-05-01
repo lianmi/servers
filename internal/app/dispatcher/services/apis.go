@@ -237,6 +237,9 @@ type LianmiApisService interface {
 	GetUserType(username string) (int, error)
 	UpdateOrderStatusByWechatCallback(orderid string) error
 	GetStoreOpkByBusiness(businessId string) (string, error)
+
+	//从redis里获取订单当前最新的数据及状态
+	GetOrderInfo(orderID string) (*models.OrderInfo, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -275,7 +278,6 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 		zap.Int("UserType", fUserData.UserType),
 		zap.Int("State", fUserData.State),
 	)
-	// 有幺蛾子
 	if fUserData.Avatar != "" {
 		if strings.HasPrefix(fUserData.Avatar, "https") {
 			avatar = fUserData.Avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
@@ -285,7 +287,6 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 		}
 
 	}
-	s.logger.Debug("GetUser 有幺蛾子", zap.String("Avatar", avatar))
 
 	return &Auth.UserRsp{
 		User: &User.User{
@@ -931,12 +932,18 @@ func (s *DefaultLianmiApisService) GetUserType(username string) (int, error) {
 	return s.Repository.GetUserType(username)
 }
 
-func (s *DefaultLianmiApisService) UpdateOrderStatusByWechatCallback(orderid string)  error{
+func (s *DefaultLianmiApisService) UpdateOrderStatusByWechatCallback(orderid string) error {
 	return s.Repository.UpdateOrderStatusByWechatCallback(orderid)
 }
 
 func (s *DefaultLianmiApisService) GetStoreOpkByBusiness(businessId string) (string, error) {
 	//panic("implement me")
 	return s.Repository.GetStoreOpkByBusiness(businessId)
+
+}
+
+//从redis里获取订单当前最新的数据及状态
+func (s *DefaultLianmiApisService) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
+	return s.Repository.GetOrderInfo(orderID)
 
 }
