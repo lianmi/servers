@@ -272,74 +272,85 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 //修改通用商品
 func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 401, "你不是管理员, 无权访问这个接口")
 		return
 	}
 
-	var og Order.GeneralProduct
+	//var og Order.GeneralProduct
+	var og models.GeneralProductInfo
 	if c.BindJSON(&og) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
+		return
 	} else {
 		//修改
 		if og.ProductId == "" {
 			pc.logger.Warn("ProductId is empty")
 			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductId 不能为空")
+			return
 		}
 
-		if len(og.ProductPics) == 0 {
-			pc.logger.Warn("ProductPics length is 0")
-			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductPics length is 0")
-		}
-		var productPic1Large, productPic2Large, productPic3Large string
-		if len(og.ProductPics) >= 1 {
-			productPic1Large = og.ProductPics[0].Large
-		}
-		if len(og.ProductPics) >= 2 {
-			productPic2Large = og.ProductPics[1].Large
-		}
-		if len(og.ProductPics) >= 3 {
-			productPic3Large = og.ProductPics[2].Large
-		}
+		//if len(og.ProductPics) == 0 {
+		//	pc.logger.Warn("ProductPics length is 0")
+		//	RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductPics length is 0")
+		//	return
+		//}
+		//var productPic1Large, productPic2Large, productPic3Large string
+		//if len(og.ProductPics) >= 1 {
+		//	productPic1Large = og.ProductPics[0].Large
+		//}
+		//if len(og.ProductPics) >= 2 {
+		//	productPic2Large = og.ProductPics[1].Large
+		//}
+		//if len(og.ProductPics) >= 3 {
+		//	productPic3Large = og.ProductPics[2].Large
+		//}
 
-		generalProductInfo := &models.GeneralProductInfo{
-			ProductId:        uuid.NewV4().String(), //商品ID
-			ProductName:      og.ProductName,        //商品名称
-			ProductType:      int(og.ProductType),   //商品种类枚举
-			ProductDesc:      og.ProductDesc,        //商品详细介绍
-			ProductPic1Large: productPic1Large,      //商品图片1-大图
-			ProductPic2Large: productPic2Large,      //商品图片2-大图
-			ProductPic3Large: productPic3Large,      //商品图片3-大图
-			ShortVideo:       og.ShortVideo,         //商品短视频
-			// AllowCancel:      *og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
+		//generalProductInfo := &models.GeneralProductInfo{
+		//	ProductId:        uuid.NewV4().String(), //商品ID
+		//	ProductName:      og.ProductName,        //商品名称
+		//	ProductType:      int(og.ProductType),   //商品种类枚举
+		//	ProductDesc:      og.ProductDesc,        //商品详细介绍
+		//	ProductPic1Large: productPic1Large,      //商品图片1-大图
+		//	ProductPic2Large: productPic2Large,      //商品图片2-大图
+		//	ProductPic3Large: productPic3Large,      //商品图片3-大图
+		//	ShortVideo:       og.ShortVideo,         //商品短视频
+		//	// AllowCancel:      *og.AllowCancel,        //是否允许撤单， 默认是可以，彩票类的不可以
+		//
+		//}
+		//
+		//if len(og.DescPics) >= 1 {
+		//	generalProductInfo.DescPic1 = og.DescPics[0]
+		//}
+		//if len(og.DescPics) >= 2 {
+		//	generalProductInfo.DescPic2 = og.DescPics[1]
+		//}
+		//if len(og.DescPics) >= 3 {
+		//	generalProductInfo.DescPic3 = og.DescPics[2]
+		//}
+		//if len(og.DescPics) >= 4 {
+		//	generalProductInfo.DescPic4 = og.DescPics[3]
+		//}
+		//if len(og.DescPics) >= 5 {
+		//	generalProductInfo.DescPic5 = og.DescPics[4]
+		//}
+		//if len(og.DescPics) >= 6 {
+		//	generalProductInfo.DescPic6 = og.DescPics[5]
+		//}
 
-		}
-
-		if len(og.DescPics) >= 1 {
-			generalProductInfo.DescPic1 = og.DescPics[0]
-		}
-		if len(og.DescPics) >= 2 {
-			generalProductInfo.DescPic2 = og.DescPics[1]
-		}
-		if len(og.DescPics) >= 3 {
-			generalProductInfo.DescPic3 = og.DescPics[2]
-		}
-		if len(og.DescPics) >= 4 {
-			generalProductInfo.DescPic4 = og.DescPics[3]
-		}
-		if len(og.DescPics) >= 5 {
-			generalProductInfo.DescPic5 = og.DescPics[4]
-		}
-		if len(og.DescPics) >= 6 {
-			generalProductInfo.DescPic6 = og.DescPics[5]
-		}
-
-		if err := pc.service.UpdateGeneralProduct(generalProductInfo); err == nil {
+		if err := pc.service.UpdateGeneralProduct(&og); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
 			RespOk(c, http.StatusOK, 200)
+
+			delete(pc.cacheMap, "CacheGetGeneralProjectIDs")
+			delete(pc.cacheMap, "CacheGetGeneralProjectLists")
+
+			return
 		} else {
 			pc.logger.Warn("AddGeneralProduct  run FAILD")
 			RespData(c, http.StatusOK, 400, "修改通用商品失败")
 
+			return
 		}
 
 	}
