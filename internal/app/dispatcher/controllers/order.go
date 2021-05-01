@@ -504,12 +504,15 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 
 		// 推送订单状态变更到商户和用户
 		orderBodyData, _ := proto.Marshal(&Order.OrderProductBody{
-			OrderID:      orderid,
-			OrderType:    Global.OrderType_ORT_Normal, //订单类型
-			ProductID:    orderInfo.ProductID,
-			BuyUser:      orderInfo.BuyerUsername,
-			BusinessUser: orderInfo.BusinessUsername,
-			State:        Global.OrderState_OS_IsPayed,
+			OrderID:         orderid,
+			OrderType:       Global.OrderType_ORT_Normal, //订单类型
+			ProductID:       orderInfo.ProductID,
+			BuyUser:         orderInfo.BuyerUsername,
+			OpkBuyUser:      orderInfo.OpkBuyUser,
+			BusinessUser:    orderInfo.BusinessUsername,
+			OpkBusinessUser: orderInfo.OpkBusinessUser,
+			Attach:          orderInfo.Attach,
+			State:           Global.OrderState_OS_IsPayed, //已支付
 		})
 
 		orderChangeReq := &Msg.RecvMsgEventRsp{

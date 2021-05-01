@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
 
@@ -28,7 +29,8 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	var bodyType int
 	var productID string
 	var buyUser, businessUser string
-	var attachHash string
+	var attach, attachHash string
+	var opkBuyUser, opkBusinessUser string
 	var bodyObjFile string
 	var orderImageFile string
 	var orderTotalAmount float64 //订单金额
@@ -48,22 +50,28 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	buyUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BuyUser"))
 	businessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BusinessUser"))
 	orderTotalAmount, _ = redis.Float64(redisConn.Do("HGET", orderIDKey, "OrderTotalAmount"))
+	attach, _ = redis.String(redisConn.Do("HGET", orderIDKey, "attacch"))
 	attachHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "AttachHash"))
 	bodyType, _ = redis.Int(redisConn.Do("HGET", orderIDKey, "BodyType"))
 	bodyObjFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BodyObjFile"))
 	orderImageFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OrderImageFile"))
 	blockNumber, _ = redis.Uint64(redisConn.Do("HGET", orderIDKey, "BlockNumber"))
 	txHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "TxHash"))
+	opkBuyUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OpkBuyUser"))
+	opkBusinessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OpkBusinessUser"))
 
 	return &models.OrderInfo{
 		OrderID:          orderID,
 		ProductID:        productID,
+		Attach:           attach,
 		AttachHash:       attachHash,
 		BodyType:         bodyType,
 		BodyObjFile:      bodyObjFile,
 		OrderImageFile:   orderImageFile,
 		BuyerUsername:    buyUser,
+		OpkBuyUser:       opkBuyUser,
 		BusinessUsername: businessUser,
+		OpkBusinessUser:  opkBusinessUser,
 		Cost:             orderTotalAmount,
 		State:            curState,
 		IsPayed:          isPayed,
@@ -250,11 +258,14 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		fmt.Sprintf("Order:%s", item.OrderId),
 		"OrderType", int(Global.OrderType_ORT_Normal), //订单类型是普通订单
 		"BuyUser", item.UserId, //发起订单的用户id
+		"OpkBuyUser", item.PublicKey,
 		"BusinessUser", item.StoreId, //商户的用户id
+		"OpkBusinessUser", item.StorePublicKey,
 		"OrderID", item.OrderId, //订单id
 		"ProductID", item.ProductId, //商品id
 		// "Type", req.OrderType, //订单类型
 		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
+		"Attach", item.Body, //订单内容
 		"AttachHash", "", //订单内容attach的哈希值， 默认为空
 		"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
 		"IsUrge", LMCommon.REDISFALSE, //催单

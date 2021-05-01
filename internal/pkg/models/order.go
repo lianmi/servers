@@ -11,9 +11,12 @@ import (
 type OrderInfo struct {
 	OrderID          string  `json:"order_id"`                              //订单ID
 	ProductID        string  `json:"product_id"`                            //商品ID
+	Attach           string  `json:"attach"`                                //订单内容密文
 	AttachHash       string  `json:"attach_hash"`                           //订单内容哈希
 	BuyerUsername    string  `json:"buyer_username" validate:"required"`    //买家注册号
+	OpkBuyUser       string  `json:"opk_buyeruser" validate:"required"`     //买家公钥
 	BusinessUsername string  `json:"business_username" validate:"required"` //商户注册号
+	OpkBusinessUser  string  `json:"opk_businessuser" validate:"required"`  //商户公钥
 	Cost             float64 `json:"cost" validate:"required"`              //本订单的总金额
 	State            int     `json:"state"`                                 //订单类型
 	IsPayed          bool    `json:"is_payed"`                              //此订单支付状态， true- 支付完成，false-未支付
