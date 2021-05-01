@@ -341,6 +341,10 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		if err := pc.service.UpdateGeneralProduct(&og); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
 			RespOk(c, http.StatusOK, 200)
+
+			delete(pc.cacheMap, "CacheGetGeneralProjectIDs")
+			delete(pc.cacheMap, "CacheGetGeneralProjectLists")
+
 			return
 		} else {
 			pc.logger.Warn("AddGeneralProduct  run FAILD")
