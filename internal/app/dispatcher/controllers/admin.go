@@ -272,6 +272,7 @@ func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 //修改通用商品
 func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 401, "你不是管理员, 无权访问这个接口")
 		return
 	}
 
@@ -279,16 +280,19 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 	if c.BindJSON(&og) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
+		return
 	} else {
 		//修改
 		if og.ProductId == "" {
 			pc.logger.Warn("ProductId is empty")
 			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductId 不能为空")
+			return
 		}
 
 		if len(og.ProductPics) == 0 {
 			pc.logger.Warn("ProductPics length is 0")
 			RespData(c, http.StatusOK, 400, "修改通用商品失败, ProductPics length is 0")
+			return
 		}
 		var productPic1Large, productPic2Large, productPic3Large string
 		if len(og.ProductPics) >= 1 {
@@ -336,10 +340,12 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 		if err := pc.service.UpdateGeneralProduct(generalProductInfo); err == nil {
 			pc.logger.Debug("AddGeneralProduct  run ok")
 			RespOk(c, http.StatusOK, 200)
+			return
 		} else {
 			pc.logger.Warn("AddGeneralProduct  run FAILD")
 			RespData(c, http.StatusOK, 400, "修改通用商品失败")
 
+			return
 		}
 
 	}
