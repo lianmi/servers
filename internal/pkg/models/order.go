@@ -10,6 +10,7 @@ import (
 //redis里订单数据
 type OrderInfo struct {
 	OrderID          string  `json:"order_id"`                              //订单ID
+	TicketCode       uint64  `json:"ticket_code"`                           //出票码, redis里递增
 	ProductID        string  `json:"product_id"`                            //商品ID
 	Attach           string  `json:"attach"`                                //订单内容密文
 	AttachHash       string  `json:"attach_hash"`                           //订单内容哈希
@@ -86,6 +87,7 @@ type OrderItems struct {
 	Fee            float64        `json:"fee"`
 	CouponID       string         `json:"coupon_id"`
 	ImageHash      string         `json:"image_hash"`
+	TicketCode     int64          `json:"ticket_code"` //出票码, redis里递增
 	//StoreInfo    User           `json:"-" gorm:"foreignKey:StoreId;references:Username" `
 	//UserInfo     User           `json:"-" gorm:"foreignKey:UserId;references:Username" `
 }

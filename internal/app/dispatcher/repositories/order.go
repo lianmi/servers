@@ -36,6 +36,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	var orderTotalAmount float64 //订单金额
 	var isPayed bool
 	var blockNumber uint64
+	var ticketCode uint64
 	var txHash string
 
 	redisConn := s.redisPool.Get()
@@ -44,6 +45,7 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	//订单详情
 	orderIDKey := fmt.Sprintf("Order:%s", orderID)
 	//获取订单的具体信息
+	ticketCode, _ = redis.Uint64(redisConn.Do("HGET", orderIDKey, "TicketCode"))
 	curState, _ = redis.Int(redisConn.Do("HGET", orderIDKey, "State"))
 	isPayed, _ = redis.Bool(redisConn.Do("HGET", orderIDKey, "IsPayed"))
 	productID, _ = redis.String(redisConn.Do("HGET", orderIDKey, "ProductID"))
@@ -56,12 +58,14 @@ func (s *MysqlLianmiRepository) GetOrderInfo(orderID string) (*models.OrderInfo,
 	bodyObjFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "BodyObjFile"))
 	orderImageFile, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OrderImageFile"))
 	blockNumber, _ = redis.Uint64(redisConn.Do("HGET", orderIDKey, "BlockNumber"))
+
 	txHash, _ = redis.String(redisConn.Do("HGET", orderIDKey, "TxHash"))
 	opkBuyUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OpkBuyUser"))
 	opkBusinessUser, _ = redis.String(redisConn.Do("HGET", orderIDKey, "OpkBusinessUser"))
 
 	return &models.OrderInfo{
 		OrderID:          orderID,
+		TicketCode:       ticketCode,
 		ProductID:        productID,
 		Attach:           attach,
 		AttachHash:       attachHash,
@@ -243,6 +247,7 @@ func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.Downl
 func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error {
 	//panic("implement me")
 	var err error
+	var ticketCode uint64
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
@@ -251,6 +256,13 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 	//将订单ID保存到商户的订单有序集合orders:{username}，订单详情是 orderInfo:{订单ID}
 	if _, err := redisConn.Do("ZADD", fmt.Sprintf("orders:%s", item.UserId), item.CreatedAt, item.OrderId); err != nil {
 		s.logger.Error("ZADD Error", zap.Error(err))
+		return err
+	}
+
+	if ticketCode, err = redis.Uint64(redisConn.Do("INCR", "TicketCode")); err != nil {
+		s.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+
+		return err
 	}
 
 	//订单详情
@@ -262,6 +274,7 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		"BusinessUser", item.StoreId, //商户的用户id
 		"OpkBusinessUser", item.StorePublicKey,
 		"OrderID", item.OrderId, //订单id
+		"TicketCode", ticketCode, //出票码
 		"ProductID", item.ProductId, //商品id
 		// "Type", req.OrderType, //订单类型
 		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
@@ -276,6 +289,7 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		return err
 	}
 
+	item.TicketCode = int64(ticketCode) //出票码
 	err = s.db.Create(item).Error
 	return err
 }
