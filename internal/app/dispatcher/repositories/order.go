@@ -259,8 +259,9 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		return err
 	}
 
-	if ticketCode, err = redis.Uint64(redisConn.Do("INCR", "TicketCode")); err != nil {
-		s.logger.Error("redisConn INCR userSeq Error", zap.Error(err))
+	//每个商户都有自己的出票码并递增
+	if ticketCode, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("TicketCode:%s", item.StoreId))); err != nil {
+		s.logger.Error("redisConn INCR TicketCode Error", zap.Error(err))
 
 		return err
 	}
