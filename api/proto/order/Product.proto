@@ -133,6 +133,9 @@ message OrderProductBody {
     //是否必须-是
     fixed64 ticketCode = 14;
 
+    // 中奖金额
+    double prize = 15 ;
+
 }
 
 
