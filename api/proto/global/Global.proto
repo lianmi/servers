@@ -197,13 +197,14 @@ enum OrderState {
     OS_Confirm      = 8;     /**< 确认收货*/
     OS_ApplyCancel  = 9;     /**< 申请撤单 */
     OS_AttachChange = 10;    /**< 订单内容发生更改*/
-    OS_Paying       = 11;    /**< 支付中*/
+    OS_Paying       = 11;    /**< 支付中 */
     OS_Overdue      = 12;    /**< 已逾期*/
     OS_Refuse       = 13;    /**< 已拒单， 跟已接单是相反的操作*/
     OS_IsPayed      = 14;    /**< 已支付， 支付成功*/
     OS_Urge         = 15;    /**< 买家催单, 商户可以回复7*/
     OS_Expedited    = 16;    /**< 加急订单, 排在首位*/
     OS_UpChained    = 17;    /**< 订单上链成功*/
+    OS_Prizeed      = 18;     /**< 已兑奖 商户端发起 */
 }
 
 enum StoreType {

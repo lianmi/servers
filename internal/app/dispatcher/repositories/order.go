@@ -278,7 +278,7 @@ func (s *MysqlLianmiRepository) SavaOrderItemToDB(item *models.OrderItems) error
 		"TicketCode", ticketCode, //出票码
 		"ProductID", item.ProductId, //商品id
 		// "Type", req.OrderType, //订单类型
-		"State", int(Global.OrderState_OS_SendOK), //订单状态,初始为 发送订单
+		"State", item.OrderStatus, //订单状态,
 		"Attach", item.Body, //订单内容
 		"AttachHash", "", //订单内容attach的哈希值， 默认为空
 		"IsPayed", LMCommon.REDISFALSE, //此订单支付状态， true- 支付完成，false-未支付
@@ -452,6 +452,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatus(userid string, storeID string,
 	return
 }
 
+//根据微信支付回调更改订单状态
 func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string) error {
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -467,7 +468,8 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 		return fmt.Errorf("订单信息异常")
 	}
 
-	if currentOrderStatus != int(global.OrderState_OS_SendOK) {
+	//如果当前状态不是支付中，则不允许修改
+	if currentOrderStatus != int(global.OrderState_OS_Paying) {
 		return fmt.Errorf("可更换状态错误")
 	}
 
@@ -495,7 +497,7 @@ func (s *MysqlLianmiRepository) UpdateOrderStatusByWechatCallback(orderid string
 	// 更新状态
 	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderid}).Updates(&models.OrderItems{OrderStatus: int(global.OrderState_OS_IsPayed)}).Error
 
-	return nil
+	return err
 
 }
 

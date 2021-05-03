@@ -295,7 +295,6 @@ func (s *MysqlLianmiRepository) GetStoreProductLists(req *Order.ProductsListReq)
 func (s *MysqlLianmiRepository) AddStoreProductItem(item *models.StoreProductItems) error {
 	// 先判断 商品是否存在
 
-	//s.GetGeneralProductByID(item.ProductId)
 	p := new(models.GeneralProduct)
 	if err := s.db.Model(p).Where(&models.GeneralProduct{
 		GeneralProductInfo: models.GeneralProductInfo{

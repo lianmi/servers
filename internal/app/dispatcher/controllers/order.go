@@ -131,6 +131,7 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	}
 }
 
+//  向商家支付，返回微信支付码，并将订单状态改为支付中
 func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	username, _, isok := pc.CheckIsUser(context)
 
@@ -247,7 +248,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	orderItem.UserId = username
 	orderItem.Body = req.Body
 	orderItem.PublicKey = req.Publickey
-	orderItem.OrderStatus = int(Global.OrderState_OS_SendOK) // 设置成 发送
+	orderItem.OrderStatus = int(Global.OrderState_OS_Paying) // 设置成支付中, 微信支付回调之后改为已支付
 	orderItem.Amounts = req.TotalAmount
 	orderItem.Fee = req.Fee
 	orderItem.StorePublicKey = req.StorePublickey
@@ -284,9 +285,12 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	resp.OrderTime = orderItem.CreatedAt
 	resp.ProductType = getProductInfo.ProductType
 	RespData(context, http.StatusOK, codes.SUCCESS, resp)
+
+	pc.logger.Debug("订单创建成功", zap.Any("orderItem", orderItem))
 	return
 }
 
+//获取商户的OPK及手续费
 func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 	_ = deviceid
@@ -361,6 +365,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	return
 }
 
+//获取用户的订单列表
 func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 	_ = deviceid
@@ -395,6 +400,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 }
 
+//微信支付的回调,  需更改订单的状态为已支付
 func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context) {
 	//req := wechat.NotifyResponse{}
 	// TODO 目前只做订单状态处理 具体校验 暂缓
@@ -616,8 +622,6 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	// TODO 发送 支付完成通知
 
 	// TODO 上链 ???
-
-	//pc.service.
 
 	delete(pc.cacheMap, cacheKey)
 
