@@ -657,6 +657,7 @@ func (pc *LianmiApisController) OrderGetOrderInfoByID(context *gin.Context) {
 
 }
 
+//http接口，更新订单状态
 func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context) {
 	username, deviceid, isok := pc.CheckIsUser(context)
 
