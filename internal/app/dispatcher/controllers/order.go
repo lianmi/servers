@@ -292,9 +292,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 //获取商户的OPK及手续费
 func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
-	username, deviceid, isok := pc.CheckIsUser(context)
-	_ = deviceid
-	_ = username
+	_, _, isok := pc.CheckIsUser(context)
 	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return

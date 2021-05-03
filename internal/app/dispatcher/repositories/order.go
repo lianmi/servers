@@ -510,6 +510,7 @@ func (s *MysqlLianmiRepository) GetStoreOpkByBusiness(id string) (string, error)
 	if opk == "" {
 		return "", fmt.Errorf("商户opk找不到")
 	} else {
+		s.logger.Debug("GetStoreOpkByBusiness", zap.String("商户id", id), zap.String("商户协商公钥", opk))
 		return opk, nil
 	}
 }
