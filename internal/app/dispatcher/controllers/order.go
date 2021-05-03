@@ -486,7 +486,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		return
 	}
 
-	if orderitem.OrderStatus != int(Global.OrderState_OS_SendOK) {
+	if orderitem.OrderStatus != int(Global.OrderState_OS_Paying) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
