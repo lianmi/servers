@@ -266,6 +266,8 @@ type LianmiRepository interface {
 
 	//获取商户的opk
 	GetStoreOpkByBusiness(id string) (string, error)
+	// 处理订单兑奖业务 username 当前token 的用户 orderID 处理的订单 . prize 兑奖的金额 , 并返回购买的用户id
+	OrderPushPrize(username string, orderID string, prize float64) (string, error)
 }
 
 type MysqlLianmiRepository struct {

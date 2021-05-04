@@ -499,15 +499,16 @@ func CreateInitControllersFn(
 			orderGroup.POST("/get_order_rate", pc.OrderCalcPrice)
 			// 翻页获取订单列表
 			orderGroup.GET("/lists", pc.OrderGetLists)
+			// 通过订单id 获取订单信息接口
 			orderGroup.GET("/info/:id", pc.OrderGetOrderInfoByID)
-			//
-			//orderGroup.POST("/update_status", pc.OrderUpdateStatus)
+			// 通过订单id 修改订单状态
 			orderGroup.POST("/update_status", pc.OrderUpdateStatusByOrderID)
 			// 微信支付回调接口
-			// r.GET("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
 			r.POST("/callback/wechat/notify", pc.OrderWechatCallbackRelease)
+			// TODO 模拟设置微信支付回调的接口
 			orderPubGroup.POST("/callback/wechat_test", pc.OrderWechatCallback)
-
+			// 推送兑奖金额
+			orderGroup.POST("/push_prize", pc.OrderPushPrize)
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 

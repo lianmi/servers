@@ -225,21 +225,33 @@ type LianmiApisService interface {
 
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error
-
+	// 获取指定商户的商品列表
 	GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error)
+	// 向商户添加商品信息
 	AddStoreProductItem(item *models.StoreProductItems) error
+	// 从数据库获取通用商品信息
 	GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error)
+	// 保存订单项目到数据库
 	SavaOrderItemToDB(item *models.OrderItems) error
+	// 通过用户id 获取他的订单列表
 	GetOrderListByUser(username string, limit int, offset, status int) (*[]models.OrderItems, error)
+	// 通过订单id 获取订单信息
 	GetOrderListByID(orderID string) (*models.OrderItems, error)
+	// 通过订单id 修改订单状态到指定的状态
 	SetOrderStatusByOrderID(orderID string, status int) error
+	// 更新特定的订单状态 , 并返回这个最新的订单状态信息
 	UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error)
+	// 通过用户名获取用户的类型
 	GetUserType(username string) (int, error)
+	// 在微信回调中修改订单状态 , 这里只能修改成 支付完成
 	UpdateOrderStatusByWechatCallback(orderid string) error
+	// 获取指定商户id 的opk 公钥
 	GetStoreOpkByBusiness(businessId string) (string, error)
 
 	//从redis里获取订单当前最新的数据及状态
 	GetOrderInfo(orderID string) (*models.OrderInfo, error)
+	// 处理订单兑奖业务 username 当前token 的用户 orderID 处理的订单 . prize 兑奖的金额 , 并返回购买的用户id
+	OrderPushPrize(username string, orderID string, prize float64) (string, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -946,4 +958,9 @@ func (s *DefaultLianmiApisService) GetStoreOpkByBusiness(businessId string) (str
 func (s *DefaultLianmiApisService) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
 	return s.Repository.GetOrderInfo(orderID)
 
+}
+
+func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID string, prize float64) (string, error) {
+	// 更新数据库
+	return s.Repository.OrderPushPrize(username, orderID, prize)
 }

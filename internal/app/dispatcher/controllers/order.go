@@ -597,7 +597,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 		return
 	}
 
-	if orderitem.OrderStatus != int(Global.OrderState_OS_SendOK) {
+	if orderitem.OrderStatus != int(Global.OrderState_OS_Paying) {
 		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
@@ -783,4 +783,77 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	}()
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 	return
+}
+
+// 推送兑奖信息
+func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
+	//
+	type ReqPushPrizeData struct {
+		OrderID string  `json:"order_id"   binding:"required" `
+		Prize   float64 `json:"prize"  binding:"required"  `
+	}
+
+	username, _, isok := pc.CheckIsUser(context)
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	// 读取数据
+	req := ReqPushPrizeData{}
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		return
+	}
+
+	//
+	userType, err := pc.service.GetUserType(username)
+	if err != nil {
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "用户类型未知")
+		return
+	}
+
+	if userType != int(User.UserType_Ut_Business) {
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "用户类型不支持的操作")
+		return
+	}
+
+	buyUser, err := pc.service.OrderPushPrize(username, req.OrderID, req.Prize)
+
+	if err != nil {
+		pc.logger.Error("OrderPushPrize fail ", zap.Error(err))
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "操作失败")
+		return
+	}
+
+	// 更新成功 , 向用户推送更新事件
+
+	go func() {
+		// 推送订单状态变更到商户和用户
+		orderChangeReq := new(Msg.RecvMsgEventRsp)
+		orderChangeReq.Type = Msg.MessageType_MsgType_Order
+		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
+
+		orderProduct := Order.OrderProductBody{}
+		orderProduct.OrderID = req.OrderID
+		orderProduct.State = Global.OrderState_OS_Prizeed
+
+		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
+
+		if err != nil {
+			pc.logger.Error("序列化protobuf order 失败")
+			return
+		}
+
+		//orderChangeReq.Time
+
+		// 系统到用户
+		err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, buyUser)
+		if err1 != nil {
+			pc.logger.Error("推送订单变更事件到用户失败")
+		}
+
+	}()
+	RespOk(context, http.StatusOK, codes.SUCCESS)
+
 }
