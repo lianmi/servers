@@ -191,6 +191,9 @@ type LianmiApisService interface {
 	//批量增加网点
 	BatchAddStores(req *models.LotteryStoreReq) error
 
+	//批量网点opk
+	AdminDefaultOPK() error
+
 	//将店铺通过审核
 	AuditStore(req *Auth.AuditStoreReq) error
 
@@ -675,8 +678,13 @@ func (s *DefaultLianmiApisService) GetLotteryStores(req *models.LotteryStoreReq)
 }
 
 //批量增加网点
-func (s *DefaultLianmiApisService)BatchAddStores(req *models.LotteryStoreReq) error {
+func (s *DefaultLianmiApisService) BatchAddStores(req *models.LotteryStoreReq) error {
 	return s.Repository.BatchAddStores(req)
+}
+
+//批量网点opk
+func (s *DefaultLianmiApisService) AdminDefaultOPK() error {
+	return s.Repository.AdminDefaultOPK()
 }
 
 //获取某个商户的所有商品列表

@@ -209,6 +209,8 @@ type LianmiRepository interface {
 	//批量增加网点
 	BatchAddStores(req *models.LotteryStoreReq) error
 
+	AdminDefaultOPK() error
+
 	//后台管理员将店铺审核通过
 	AuditStore(req *Auth.AuditStoreReq) error
 

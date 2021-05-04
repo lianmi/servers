@@ -674,3 +674,19 @@ func (pc *LianmiApisController) BatchAddStores(c *gin.Context) {
 	RespOk(c, http.StatusOK, code)
 
 }
+
+//批量网点opk
+func (pc *LianmiApisController) AdminDefaultOPK(c *gin.Context) {
+	code := codes.InvalidParams
+
+	err := pc.service.AdminDefaultOPK()
+	if err != nil {
+		RespFail(c, http.StatusOK, codes.InvalidParams, "未找到网点信息")
+		return
+	}
+
+	pc.logger.Debug("BatchAddStores ok")
+	code = codes.SUCCESS
+	RespOk(c, http.StatusOK, code)
+
+}

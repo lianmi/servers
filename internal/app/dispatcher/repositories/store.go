@@ -762,6 +762,53 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	return nil
 }
 
+//设置网点商户默认OPK
+func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
+	var err error
+	// var opk string
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	var stores []*User.Store
+
+	err = s.db.Model(&models.Store{}).Where(" id> ?  ", 10).Find(stores).Error
+	if err != nil {
+		s.logger.Error("查询失败", zap.Error(err))
+		return err
+	}
+
+	for _, store := range stores {
+		s.logger.Debug("store info", zap.String("BusinessUsername", store.BusinessUsername))
+	}
+	// _, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", username), opk)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// //更新MySQL stores表
+	// result := s.db.Model(&models.Store{}).Where(&models.Store{
+	// 	BusinessUsername: username,
+	// }).Update("default_opk", opk)
+
+	// //updated records count
+	// s.logger.Debug("修改 stores表 result: ",
+	// 	zap.Int64("RowsAffected", result.RowsAffected),
+	// 	zap.Error(result.Error))
+
+	// if result.Error != nil {
+	// 	s.logger.Error("Update Store default_opk 失败", zap.Error(result.Error))
+	// 	return result.Error
+	// } else {
+	// 	s.logger.Debug("Update Store default_opk  成功")
+	// }
+
+	// s.logger.Debug("SetDefaultOPK end")
+
+	return nil
+
+}
+
 /*
 
 用户对所有店铺的点赞数列表
