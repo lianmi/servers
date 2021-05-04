@@ -213,7 +213,7 @@ message QueryStoresNearbyReq {
     string city                = 7; 
 
     //区, 可选
-    string county              = 8; 
+    string area              = 8; 
 
     //地址, 模糊查询
     string address = 9;           

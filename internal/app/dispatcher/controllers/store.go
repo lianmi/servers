@@ -136,7 +136,7 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
-		// if req.Province == "" || req.County == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
+		// if req.Province == "" || req.Area == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
 		// 	RespData(c, http.StatusOK, code, "商户地址信息必填")
 		// 	return
 		// }

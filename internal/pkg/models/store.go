@@ -27,7 +27,7 @@ type Store struct {
 	OpeningHours          string `form:"opening_hours" json:"opening_hours,omitempty"`                          //营业时间
 	Province              string `form:"province" json:"province,omitempty" `                                   //省份, 如广东省
 	City                  string `form:"city" json:"city,omitempty" `                                           //城市，如广州市
-	County                string `form:"county" json:"county,omitempty" `                                       //区，如天河区
+	Area                  string `form:"area" json:"area,omitempty" `                                           //区，如天河区
 	Street                string `form:"street" json:"street,omitempty" `                                       //街道
 	Address               string `form:"address" json:"address,omitempty" `                                     //地址
 	LegalPerson           string `form:"legal_person" json:"legal_person,omitempty" `                           //法人姓名

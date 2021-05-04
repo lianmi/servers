@@ -22,7 +22,7 @@ message SyncUpdateProfileEventRsp{
   //AllowType(8) - 添加好友验证方式
   //Province(9) - 省份
   //City (10) - 城市 
-  //County (11) - 区
+  //Area (11) - 区
   //Street (12) - 街道
   //Address (13) - 地址
   //IdentityCard (14) - 身份证

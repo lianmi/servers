@@ -10,7 +10,7 @@ type LotteryStore struct {
 	MapID     string `gorm:"primarykey" form:"map_id" json:"map_id" ` //高德地图的id
 	Province  string `form:"province" json:"province,omitempty" `     //省份, 如广东省
 	City      string `form:"city" json:"city,omitempty" `             //城市，如广州市
-	County    string `form:"county" json:"county,omitempty" `         //区，如天河区
+	Area      string `form:"area" json:"area,omitempty" `             //区，如天河区
 	Address   string `form:"address" json:"address,omitempty" `       //地址
 	StoreName string `form:"store_name" json:"store_name,omitempty" ` //店铺名称
 	Longitude string `form:"longitude" json:"longitude,omitempty" `   //商户地址的经度
@@ -26,7 +26,7 @@ type LotteryStoreReq struct {
 	Keyword  string `form:"keyword"`
 	Province string `form:"province"`
 	City     string `form:"city"`
-	County   string `form:"county"`
+	Area     string `form:"area"`
 	Address  string `form:"address"` //模糊查找
 
 	Limit  int `form:"limit"`

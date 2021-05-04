@@ -75,7 +75,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 				Introductory:          req.Introductory,          //商店简介 Text文本类型
 				Province:              req.Province,              //省份, 如广东省
 				City:                  req.City,                  //城市，如广州市
-				County:                req.County,                //区，如天河区
+				Area:                  req.Area,                  //区，如天河区
 				Street:                req.Street,                //街道
 				Address:               req.Address,               //地址
 				Branchesname:          req.Branchesname,          //网点名称
@@ -127,7 +127,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 			Introductory:          req.Introductory,          //商店简介 Text文本类型
 			Province:              req.Province,              //省份, 如广东省
 			City:                  req.City,                  //城市，如广州市
-			County:                req.County,                //区，如天河区
+			Area:                  req.Area,                  //区，如天河区
 			Street:                req.Street,                //街道
 			Address:               req.Address,               //地址
 			Branchesname:          req.Branchesname,          //网点名称
@@ -234,7 +234,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		Introductory:          p.Introductory,                //商店简介 Text文本类型
 		Province:              p.Province,                    //省份, 如广东省
 		City:                  p.City,                        //城市，如广州市
-		County:                p.County,                      //区，如天河区
+		Area:                  p.Area,                        //区，如天河区
 		Street:                p.Street,                      //街道
 		Address:               p.Address,                     //地址
 		Branchesname:          p.Branchesname,                //网点名称
@@ -289,8 +289,8 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	if req.City != "" {
 		wheres = append(wheres, []interface{}{"city", "=", req.City})
 	}
-	if req.County != "" {
-		wheres = append(wheres, []interface{}{"county", "=", req.County})
+	if req.Area != "" {
+		wheres = append(wheres, []interface{}{"area", "=", req.Area})
 	}
 	if req.Address != "" {
 		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})
@@ -370,7 +370,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			Introductory:       store.Introductory,                //商店简介 Text文本类型
 			Province:           store.Province,                    //省份, 如广东省
 			City:               store.City,                        //城市，如广州市
-			County:             store.County,                      //区，如天河区
+			Area:               store.Area,                        //区，如天河区
 			Street:             store.Street,                      //街道
 			Address:            store.Address,                     //地址
 			Branchesname:       store.Branchesname,                //网点名称
@@ -503,8 +503,8 @@ func (s *MysqlLianmiRepository) GetLotteryStores(req *models.LotteryStoreReq) ([
 	if req.City != "" {
 		wheres = append(wheres, []interface{}{"city", "=", req.City})
 	}
-	if req.County != "" {
-		wheres = append(wheres, []interface{}{"county", "=", req.County})
+	if req.Area != "" {
+		wheres = append(wheres, []interface{}{"area", "=", req.Area})
 	}
 	if req.Address != "" {
 		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})

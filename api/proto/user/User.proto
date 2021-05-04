@@ -71,7 +71,7 @@ enum UserFeild {
   UserFeild_City =10;
 
   ///  区 
-  UserFeild_County =11;
+  UserFeild_Area =11;
 
   ///  街道 
   UserFeild_Street =12;
@@ -113,7 +113,7 @@ message User {
     string identityCard           = 16;  //身份证号码
     string province               = 17;  //省份, 如广东省
     string city                   = 18;  //城市，如广州市
-    string county                 = 19;  //区，如天河区
+    string area                 = 19;  //区，如天河区
     string street                 = 20;  //街道
     string address                = 21;  //地址
     string referrer_username      = 22;  //推荐人

@@ -536,7 +536,7 @@ func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 			MapID:     row[1],    //高德地图的id
 			Province:  row[2],    //省份, 如广东省
 			City:      row[3],    //城市，如广州市
-			County:    row[4],    //区，如天河区
+			Area:      row[4],    //区，如天河区
 			Address:   row[5],    //地址
 			StoreName: storeName, //店铺名称
 			Longitude: row[7],    //商户地址的经度
@@ -577,7 +577,7 @@ func (pc *LianmiApisController) GetLotteryStores(c *gin.Context) {
 		zap.String("Keyword", req.Keyword),
 		zap.String("Province", req.Province),
 		zap.String("City", req.City),
-		zap.String("County", req.County),
+		zap.String("Area", req.Area),
 		zap.String("Address", req.Address), //模糊查找
 	)
 

@@ -188,7 +188,7 @@ func (s *MysqlLianmiRepository) QueryUsers(req *User.QueryUsersReq) (*User.Query
 			// IdentityCard: userData.IdentityCard,
 			// Province:     userData.Province,
 			// City:         userData.City,
-			// County:       userData.County,
+			// Area:       userData.Area,
 			// Street:       userData.Street,
 			// Address:      userData.Address,
 		})

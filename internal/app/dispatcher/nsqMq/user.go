@@ -119,7 +119,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				userBaseData.TrueName = pUser.TrueName
 				userBaseData.Province = pUser.Province
 				userBaseData.City = pUser.City
-				userBaseData.County = pUser.County
+				userBaseData.Area = pUser.Area
 				userBaseData.Street = pUser.Street
 				userBaseData.Address = pUser.Address
 				userBaseData.State = pUser.State
@@ -153,7 +153,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				// TrueName: userBaseData.TrueName,
 				// Province: userBaseData.Province,
 				// City:     userBaseData.City,
-				// County:   userBaseData.County,
+				// Area:   userBaseData.Area,
 				// Street:   userBaseData.Street,
 				// Address:  userBaseData.Address,
 			}
@@ -328,10 +328,10 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[10] not value")
 		}
 
-		if county, ok := req.Fields[int32(User.UserFeild_UserFeild_County)]; ok {
-			//修改 county
-			pUser.UserBase.County = county
-			nc.logger.Debug("req.Fields[11]", zap.String("County", county))
+		if area, ok := req.Fields[int32(User.UserFeild_UserFeild_Area)]; ok {
+			//修改 area
+			pUser.UserBase.Area = area
+			nc.logger.Debug("req.Fields[11]", zap.String("Area", area))
 		} else {
 			nc.logger.Warn("req.Fields[11] not value")
 		}

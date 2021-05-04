@@ -15,7 +15,7 @@ message Store {
     string introductory          = 6;  //商店简介 Text文本类型
     string province              = 7;  //省份, 如广东省
     string city                  = 8;  //城市，如广州市
-    string county                = 9;  //区，如天河区
+    string area                  = 9;  //区，如天河区
     string street                = 10;  //街道
     string address               = 11; //地址
     string branchesname          = 12; //店铺名称

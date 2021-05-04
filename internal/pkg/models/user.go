@@ -45,7 +45,7 @@ type UserBase struct {
 	IdentityCard       string `form:"identity_card" json:"identity_card" binding:"required"`       //身份证
 	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
 	City               string `form:"city" json:"city,omitempty" `                                 //城市，如广州市
-	County             string `form:"county" json:"county,omitempty" `                             //区，如天河区
+	Area               string `form:"area" json:"area,omitempty" `                                 //区，如天河区
 	Street             string `form:"street" json:"street,omitempty" `                             //街道
 	Address            string `form:"address" json:"address,omitempty" `                           //地址
 	ReferrerUsername   string `form:"referrer_username" json:"referrer_username,omitempty" `       //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
