@@ -740,13 +740,13 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
 			redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
 
-			time.Sleep(1000 * time.Millisecond)
-			if err := s.ApproveTeam(pTeam.TeamID); err != nil {
-				s.logger.Error("注册商户失败", zap.Error(err))
-				break
-			} else {
-				s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
-			}
+			// time.Sleep(1000 * time.Millisecond)
+			// if err := s.ApproveTeam(pTeam.TeamID); err != nil {
+			// 	s.logger.Error("注册商户失败", zap.Error(err))
+			// 	break
+			// } else {
+			// 	s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
+			// }
 
 			index++
 			if index > 2 {
