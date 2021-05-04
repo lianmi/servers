@@ -398,6 +398,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			OpeningHours:       store.OpeningHours,   //营业时间
 		})
 	}
+	s.logger.Debug("多条件查询店铺列表 ok")
 	return resp, nil
 }
 
