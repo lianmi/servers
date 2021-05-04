@@ -528,7 +528,7 @@ func (s *MysqlLianmiRepository) GetLotteryStores(req *models.LotteryStoreReq) ([
 	return lotteryStores, nil
 }
 
-//批量增加网点
+// 批量增加网点
 func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) error {
 	var err error
 	var newIndex uint64
@@ -596,20 +596,24 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 		//创建一个商户
 		user := models.User{
 			UserBase: models.UserBase{
-				Username: fmt.Sprintf("id%d", newIndex),         //用户注册号，自动生成，字母 + 数字
-				Password: "C33367701511B4F6020EC61DED352059",    //用户密码，md5加密
-				Nick:     lotteryStore.StoreName,                //用户呢称，必填
-				Gender:   1,                                     //性别
-				Avatar:   avatar,                                //头像url
-				Label:    label,                                 //签名标签
-				Mobile:   fmt.Sprintf("%d", mobileNum+newIndex), //注册手机
-				// Email:            userReq.Email,            //密保邮件，需要发送校验邮件确认
-				AllowType:        3,                      //用户加好友枚举，默认是3
-				UserType:         2,                      //用户类型 1-普通，2-商户
-				State:            0,                      //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-				TrueName:         lotteryStore.StoreName, //实名
-				ReferrerUsername: "id98",                 //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
+				Username:         fmt.Sprintf("id%d", newIndex),                 //用户注册号，自动生成，字母 + 数字
+				Password:         "C33367701511B4F6020EC61DED352059",            //用户密码，md5加密
+				Nick:             lotteryStore.StoreName,                        //用户呢称，必填
+				Gender:           1,                                             //性别
+				Avatar:           avatar,                                        //头像url
+				Label:            label,                                         //签名标签
+				Mobile:           fmt.Sprintf("%d", mobileNum+newIndex),         //注册手机
+				Email:            fmt.Sprintf("%d@139.com", mobileNum+newIndex), //密保邮件，需要发送校验邮件确认
+				AllowType:        3,                                             //用户加好友枚举，默认是3
+				UserType:         2,                                             //用户类型 1-普通，2-商户
+				State:            0,                                             //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+				TrueName:         lotteryStore.StoreName,                        //实名
+				ReferrerUsername: "id98",                                        //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 			},
+		}
+		if err := s.base.Create(&user); err != nil {
+			s.logger.Error("db写入错误，注册用户失败")
+			return err
 		}
 
 		//创建店铺
@@ -681,11 +685,6 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 		userKey := fmt.Sprintf("userData:%s", user.Username)
 		if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
 			s.logger.Error("错误：HMSET", zap.Error(err))
-		}
-
-		if err := s.base.Create(user); err != nil {
-			s.logger.Error("db写入错误，注册用户失败")
-			return err
 		}
 
 		//创建redis的sync:{用户账号} myInfoAt 时间戳

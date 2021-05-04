@@ -632,6 +632,7 @@ func CreateInitControllersFn(
 			adminGroup.GET("/lotterystores", pc.GetLotteryStores)
 
 			adminGroup.POST("/addstore", pc.AdminAddStore)
+			
 			//批量增加网点
 			adminGroup.POST("/batchaddstores", pc.BatchAddStores)
 
