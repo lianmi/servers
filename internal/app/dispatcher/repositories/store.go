@@ -749,8 +749,8 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			// }
 
 			index++
-			if index > 2 {
-				s.logger.Debug("index > 2, 批量增加网点 ok")
+			if index > 10 {
+				s.logger.Debug("index >10, 批量增加网点 ok")
 
 				break //只录2条记录
 			}
