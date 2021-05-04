@@ -194,6 +194,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 	//用户类型 1-普通，2-商户
 	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", businessUsername), "UserType"))
 	if userType != int(User.UserType_Ut_Business) {
+		s.logger.Error("HGET UserType error")
 		return nil, errors.Wrap(err, "此用户非商户类型")
 	}
 	p := new(models.Store)
@@ -547,11 +548,6 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
-	if newIndex, err = redis.Uint64(redisConn.Do("INCR", "usernameindex")); err != nil {
-		s.logger.Error("redisConn GET usernameindex Error", zap.Error(err))
-		return err
-	}
-
 	var lotteryStores []*models.LotteryStore
 	wheres := make([]interface{}, 0)
 
@@ -595,6 +591,15 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	go func() {
 
 		for _, lotteryStore := range lotteryStores {
+
+			s.db.Model(&models.LotteryStore{}).Where(&models.LotteryStore{
+				MapID: lotteryStore.MapID,
+			}).Update("status", 1)
+
+			if newIndex, err = redis.Uint64(redisConn.Do("INCR", "usernameindex")); err != nil {
+				s.logger.Error("redisConn GET usernameindex Error", zap.Error(err))
+				break
+			}
 
 			if strings.Contains(lotteryStore.Keyword, "福彩") {
 				avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
@@ -648,9 +653,16 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 					ReferrerUsername: "id98",                                        //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 				},
 			}
+			//将用户信息缓存到redis里
+			userKey := fmt.Sprintf("userData:%s", user.Username)
+			if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
+				s.logger.Error("错误：HMSET", zap.Error(err))
+				break
+			}
+
 			if err := s.base.Create(user); err != nil {
 				s.logger.Error("db写入错误，注册用户失败")
-				continue
+				break
 			}
 
 			//创建店铺
@@ -683,7 +695,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			//如果没有记录，则增加
 			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
 				s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
-				continue
+				break
 			} else {
 				s.logger.Debug("AddStore, upsert stores succeed")
 			}
@@ -692,7 +704,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			var newTeamIndex uint64
 			if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
 				s.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
-				continue
+				break
 			}
 			pTeam := new(models.Team)
 			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
@@ -713,15 +725,9 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			//创建群数据 增加记录
 			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
 				s.logger.Error("Register, failed to upsert team", zap.Error(err))
-				continue
+				break
 			} else {
 				s.logger.Debug("CreateTeam, upsert team succeed")
-			}
-
-			//将用户信息缓存到redis里
-			userKey := fmt.Sprintf("userData:%s", user.Username)
-			if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
-				s.logger.Error("错误：HMSET", zap.Error(err))
 			}
 
 			//创建redis的sync:{用户账号} myInfoAt 时间戳
@@ -738,10 +744,6 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			s.ApproveTeam(pTeam.TeamID)
 
 			s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
-
-			s.db.Model(&models.LotteryStore{}).Where(&models.LotteryStore{
-				MapID: lotteryStore.MapID,
-			}).Update("status", 1)
 
 			index++
 			if index > 2 {
