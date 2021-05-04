@@ -745,7 +745,8 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
 
 			index++
-			if index > 2 {
+			if index > 10 {
+				s.logger.Debug("index > 10, 批量增加网点 ok")
 
 				break //只录2条记录
 			}
