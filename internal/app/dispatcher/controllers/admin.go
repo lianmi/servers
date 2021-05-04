@@ -508,13 +508,13 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 	}
 }
 
-//将店铺审核通过
+//上传网点excel文件并导入到数据库里
 func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
 		return
 	}
 
-	f, err := excelize.OpenFile("1619884694.xlsx")
+	f, err := excelize.OpenFile("/tmp/upload/1619884694.xlsx")
 	if err != nil {
 		pc.logger.Error("OpenFile error ", zap.Error(err))
 		return

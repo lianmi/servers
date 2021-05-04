@@ -29,6 +29,7 @@ services:
       # - ${LOG_DIR}/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/logs/dispatcher.log:/tmp/dispatcher.log
       - /root/developments/lianmi/work/basic/mosquitto/ca:/etc/ca
+      - /root/developments/lianmi/work/basic/upload:/tmp/upload
       
 networks:
   default:
