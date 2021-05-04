@@ -593,7 +593,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 
 			rand.Seed(time.Now().UnixNano())
 			number := rand.Intn(10)
-			if number == 10 {
+			if number == 10 || number == 0 {
 				imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli010.jpg"
 			} else {
 				imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli00%d.jpg", number)
