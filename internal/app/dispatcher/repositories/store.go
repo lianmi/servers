@@ -772,7 +772,7 @@ func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 
 	var stores []*models.Store
 
-	err = s.db.Model(&models.Store{}).Where("id> 10 ").Find(stores).Error
+	err = s.db.Model(&models.Store{}).Where("id > ?", 10).Find(stores).Error
 	if err != nil {
 		s.logger.Error("查询失败", zap.Error(err))
 		return err
