@@ -522,42 +522,40 @@ func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 	}
 	rows, err := f.GetRows("Sheet1")
 	for _, row := range rows {
-		// for _, colCell := range row {
-		// fmt.Print(colCell, "\t")
-		storeType := 1
-		keyword := row[0]
-		storeName := row[6]
-		if strings.Contains(keyword, "福彩") || strings.Contains(storeName, "福利") {
-			storeType = 1
-		} else {
-			storeType = 2
-		}
-		lotteryStore := &models.LotteryStore{
-			Keyword:   keyword,   //关键字 体彩 福彩
-			MapID:     row[1],    //高德地图的id
-			Province:  row[2],    //省份, 如广东省
-			City:      row[3],    //城市，如广州市
-			Area:      row[4],    //区，如天河区
-			Address:   row[5],    //地址
-			StoreName: storeName, //店铺名称
-			Latitude:  row[8],    //商户地址的纬度
-			Longitude: row[9],    //商户地址的经度
-			Phones:    row[14],   //联系手机或电话, 以半角逗号隔开
-			Photos:    row[15],   //店铺外景照片, 以半角逗号隔开
-			StoreType: storeType, //店铺类型, 1-福彩 2-体彩
-			Status:    0,         //状态，0-预，1-已提交
-		}
-		err := pc.service.SaveExcelToDb(lotteryStore)
+		if len(row) >= 16 {
+			storeType := 1
+			keyword := row[0]
+			storeName := row[6]
+			if strings.Contains(keyword, "福彩") || strings.Contains(storeName, "福利") {
+				storeType = 1
+			} else {
+				storeType = 2
+			}
+			lotteryStore := &models.LotteryStore{
+				Keyword:   keyword,   //关键字 体彩 福彩
+				MapID:     row[1],    //高德地图的id
+				Province:  row[2],    //省份, 如广东省
+				City:      row[3],    //城市，如广州市
+				Area:      row[4],    //区，如天河区
+				Address:   row[5],    //地址
+				StoreName: storeName, //店铺名称
+				Latitude:  row[8],    //商户地址的纬度
+				Longitude: row[9],    //商户地址的经度
+				Phones:    row[13],   //联系手机或电话, 以半角逗号隔开
+				Photos:    row[15],   //店铺外景照片, 以半角逗号隔开
+				StoreType: storeType, //店铺类型, 1-福彩 2-体彩
+				Status:    0,         //状态，0-预，1-已提交
+			}
+			err := pc.service.SaveExcelToDb(lotteryStore)
 
-		if err != nil {
-			// RespData(c, http.StatusOK, 400, "SaveExcelToDb failed")
-			pc.logger.Error("SaveExcelToDb error ", zap.Error(err))
-		} else {
-			// RespOk(c, http.StatusOK, 200)
-			pc.logger.Debug("SaveExcelToDb ok ", zap.String("keyword", keyword), zap.String("storeName", storeName))
+			if err != nil {
+				// RespData(c, http.StatusOK, 400, "SaveExcelToDb failed")
+				pc.logger.Error("SaveExcelToDb error ", zap.Error(err))
+			} else {
+				// RespOk(c, http.StatusOK, 200)
+				pc.logger.Debug("SaveExcelToDb ok ", zap.String("keyword", keyword), zap.String("storeName", storeName))
+			}
 		}
-		// }
-		// fmt.Println()
 	}
 
 	RespOk(c, http.StatusOK, 200)
