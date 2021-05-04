@@ -540,10 +540,10 @@ func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 			Area:      row[4],    //区，如天河区
 			Address:   row[5],    //地址
 			StoreName: storeName, //店铺名称
-			Longitude: row[7],    //商户地址的经度
 			Latitude:  row[8],    //商户地址的纬度
-			Phones:    row[9],    //联系手机或电话, 以半角逗号隔开
-			Photos:    row[10],   //店铺外景照片, 以半角逗号隔开
+			Longitude: row[9],    //商户地址的经度
+			Phones:    row[14],   //联系手机或电话, 以半角逗号隔开
+			Photos:    row[15],   //店铺外景照片, 以半角逗号隔开
 			StoreType: storeType, //店铺类型, 1-福彩 2-体彩
 			Status:    0,         //状态，0-预，1-已提交
 		}
