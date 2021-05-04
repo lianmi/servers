@@ -631,6 +631,8 @@ func CreateInitControllersFn(
 			//查询广东省彩票网点记录
 			adminGroup.GET("/lotterystores", pc.GetLotteryStores)
 
+			adminGroup.POST("/addstore", pc.AdminAddStore)
+
 		}
 	}
 }

@@ -14,6 +14,7 @@ import (
 	// Global "github.com/lianmi/servers/api/proto/global"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
+	User "github.com/lianmi/servers/api/proto/user"
 
 	// User "github.com/lianmi/servers/api/proto/user"
 
@@ -589,6 +590,63 @@ func (pc *LianmiApisController) GetLotteryStores(c *gin.Context) {
 	}
 
 	RespData(c, http.StatusOK, codes.SUCCESS, list)
+}
+
+//管理员增加网点
+func (pc *LianmiApisController) AdminAddStore(c *gin.Context) {
+	if !pc.CheckIsAdmin(c) {
+		return
+	}
+	code := codes.InvalidParams
+
+	var req User.Store
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+	} else {
+		// if req.Province == "" || req.Area == "" || req.City == "" || req.Street == "" || req.LegalPerson == "" || req.LegalIdentityCard == "" {
+		// 	RespData(c, http.StatusOK, code, "商户地址信息必填")
+		// 	return
+		// }
+		if req.BusinessUsername == "" {
+			RespData(c, http.StatusOK, code, "商户注册账号id必填")
+			return
+		}
+
+		if req.Branchesname == "" {
+			RespData(c, http.StatusOK, code, "商户店铺名称必填")
+			return
+		}
+		if req.ContactMobile == "" {
+			RespData(c, http.StatusOK, code, "联系手机必填")
+			return
+		}
+		if req.ImageUrl == "" {
+			RespData(c, http.StatusOK, code, "商户店铺外景图片必填")
+			return
+		}
+
+		// if req.BusinessLicenseUrl == "" {
+		// 	RespData(c, http.StatusOK, code, "营业执照url必填")
+		// 	return
+		// }
+		// if req.Wechat == "" {
+		// 	RespData(c, http.StatusOK, code, "微信必填")
+		// 	return
+		// }
+
+		//保存或增加
+		if err := pc.service.AddStore(&req); err != nil {
+			pc.logger.Error("pc.service.AddStore error ", zap.Error(err))
+			code = codes.ERROR
+			RespData(c, http.StatusOK, code, err.Error())
+		} else {
+			pc.logger.Debug("pc.service.AddStore ok")
+			code = codes.SUCCESS
+			RespOk(c, http.StatusOK, code)
+		}
+
+	}
 }
 
 /*
