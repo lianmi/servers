@@ -269,7 +269,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	}
 
 	columns := []string{"*"}
-	orderBy := "id desc"
+	orderBy := "updated_at desc"
 
 	var list []*User.Store
 	var mod User.Store
@@ -277,8 +277,26 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	if req.StoreType > 0 {
 		wheres = append(wheres, []interface{}{"store_type", "=", int(req.StoreType)})
 	}
+
+	//审核状态
 	if req.State > 0 {
-		wheres = append(wheres, []interface{}{"state", "=", int(req.State)})
+		wheres = append(wheres, []interface{}{"audit_state", "=", int(req.State)})
+	}
+
+	if req.Province != "" {
+		wheres = append(wheres, []interface{}{"province", "=", req.Province})
+	}
+	if req.City != "" {
+		wheres = append(wheres, []interface{}{"city", "=", req.City})
+	}
+	if req.County != "" {
+		wheres = append(wheres, []interface{}{"county", "=", req.County})
+	}
+	if req.Address != "" {
+		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})
+	}
+	if req.Keys != "" {
+		wheres = append(wheres, []interface{}{"keys", "like", "%" + req.Keys + "%"})
 	}
 
 	db2 := s.db

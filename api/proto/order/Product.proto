@@ -215,8 +215,8 @@ message QueryStoresNearbyReq {
     //区, 可选
     string county              = 8; 
 
-    //街道, 可选
-    string street              = 9; 
+    //地址, 模糊查询
+    string address = 9;           
  
     //页数,第几页
     //默认1
