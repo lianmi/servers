@@ -352,7 +352,11 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 		}
 
 		if store.ImageUrl != "" {
-			imageUrl = LMCommon.OSSUploadPicPrefix + store.ImageUrl
+			if strings.HasPrefix(store.ImageUrl, "http") || strings.HasPrefix(store.ImageUrl, "https") {
+				imageUrl = store.ImageUrl
+			} else {
+				imageUrl = LMCommon.OSSUploadPicPrefix + store.ImageUrl
+			}
 		}
 
 		if store.BusinessLicenseUrl != "" {
