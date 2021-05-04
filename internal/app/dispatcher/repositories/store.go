@@ -253,7 +253,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 
 }
 
-//根据gps位置获取一定范围内的店铺列表
+//多条件查询店铺列表
 func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error) {
 
 	var err error
@@ -293,14 +293,15 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 		wheres = append(wheres, []interface{}{"area", "=", req.Area})
 	}
 
-	if req.Keys != "" && req.Address != "" {
-		// wheres = append(wheres, []interface{}{"keys", "like", "%" + req.Keys + "%"})
-		wheres = append(wheres, []interface{}{"address like ? or keys like ?", "%" + req.Address + "%", "%" + req.Keys + "%"})
-	} else if req.Keys == "" && req.Address != "" {
-		wheres = append(wheres, []interface{}{"address like ? ", "%" + req.Address + "%"})
-	} else if req.Keys != "" && req.Address == "" {
-		wheres = append(wheres, []interface{}{"keys like ? ", "%" + req.Keys + "%"})
+	if req.Address != "" {
+		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})
 	}
+	// 	wheres = append(wheres, []interface{}{"address like ? or keys like ?", "%" + req.Address + "%", "%" + req.Keys + "%"})
+	// } else if req.Keys == "" && req.Address != "" {
+	// 	wheres = append(wheres, []interface{}{"address like ? ", "%" + req.Address + "%"})
+	// } else if req.Keys != "" && req.Address == "" {
+	// 	wheres = append(wheres, []interface{}{"keys like ? ", "%" + req.Keys + "%"})
+	// }
 
 	db2 := s.db
 	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, pageIndex, pageSize)
