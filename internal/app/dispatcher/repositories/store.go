@@ -653,7 +653,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 		store := models.Store{
 			StoreUUID:             uuid.NewV4().String(), //店铺的uuid
 			StoreType:             storeType,             //店铺类型,对应Global.proto里的StoreType枚举
-			ImageURL:              avatar,
+			ImageURL:              imageUrl,
 			BusinessUsername:      user.Username,          //商户注册号
 			Introductory:          label,                  //商店简介 Text文本类型
 			Province:              lotteryStore.Province,  //省份, 如广东省
