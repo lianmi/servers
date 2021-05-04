@@ -590,162 +590,166 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 
 	imageUrl := ""
 	index := 0
-	for _, lotteryStore := range lotteryStores {
+	go func() {
 
-		if strings.Contains(lotteryStore.Keyword, "福彩") {
-			avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
-			label = "扶老 助残 救孤 济困"
+		for _, lotteryStore := range lotteryStores {
 
-			rand.Seed(time.Now().UnixNano())
-			number := rand.Intn(10)
-			if number == 10 || number == 0 {
-				imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli010.jpg"
+			if strings.Contains(lotteryStore.Keyword, "福彩") {
+				avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
+				label = "扶老 助残 救孤 济困"
+
+				rand.Seed(time.Now().UnixNano())
+				number := rand.Intn(10)
+				if number == 10 || number == 0 {
+					imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli010.jpg"
+				} else {
+					imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli00%d.jpg", number)
+				}
+
 			} else {
-				imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli00%d.jpg", number)
+				avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu_aavatar.jpg"
+				label = "公益 快乐 健康 希望"
+				storeType = 2
+
+				rand.Seed(time.Now().UnixNano())
+				number := rand.Intn(10)
+				if number == 10 {
+					imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu010.jpg"
+				} else {
+					imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu00%d.jpg", number)
+				}
 			}
 
-		} else {
-			avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu_aavatar.jpg"
-			label = "公益 快乐 健康 希望"
-			storeType = 2
+			s.logger.Debug("变量输出",
+				zap.String("avatar", avatar),
+				zap.String("label", label),
+				zap.String("imageUrl", imageUrl),
+				zap.Int("storeType", storeType),
+				zap.Any("lotteryStore", lotteryStore),
+			)
 
-			rand.Seed(time.Now().UnixNano())
-			number := rand.Intn(10)
-			if number == 10 {
-				imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu010.jpg"
-			} else {
-				imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu00%d.jpg", number)
+			//创建一个商户
+			user := &models.User{
+				UserBase: models.UserBase{
+					Username:         fmt.Sprintf("id%d", newIndex),                 //用户注册号，自动生成，字母 + 数字
+					Password:         "C33367701511B4F6020EC61DED352059",            //用户密码，md5加密
+					Nick:             lotteryStore.StoreName,                        //用户呢称，必填
+					Gender:           1,                                             //性别
+					Avatar:           avatar,                                        //头像url
+					Label:            label,                                         //签名标签
+					Mobile:           fmt.Sprintf("%d", mobileNum+newIndex),         //注册手机
+					Email:            fmt.Sprintf("%d@139.com", mobileNum+newIndex), //密保邮件，需要发送校验邮件确认
+					AllowType:        3,                                             //用户加好友枚举，默认是3
+					UserType:         2,                                             //用户类型 1-普通，2-商户
+					State:            0,                                             //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+					TrueName:         lotteryStore.StoreName,                        //实名
+					ReferrerUsername: "id98",                                        //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
+				},
 			}
+			if err := s.base.Create(user); err != nil {
+				s.logger.Error("db写入错误，注册用户失败")
+				continue
+			}
+
+			//创建店铺
+
+			store := models.Store{
+				StoreUUID:             uuid.NewV4().String(), //店铺的uuid
+				StoreType:             storeType,             //店铺类型,对应Global.proto里的StoreType枚举
+				ImageURL:              imageUrl,
+				BusinessUsername:      user.Username,          //商户注册号
+				Introductory:          label,                  //商店简介 Text文本类型
+				Province:              lotteryStore.Province,  //省份, 如广东省
+				City:                  lotteryStore.City,      //城市，如广州市
+				Area:                  lotteryStore.Area,      //区，如天河区
+				Address:               lotteryStore.Address,   //地址
+				Branchesname:          lotteryStore.StoreName, //网点名称
+				LegalPerson:           "xxx",                  //法人姓名
+				LegalIdentityCard:     "xxxxxxxx",             //法人身份证
+				Longitude:             lotteryStore.Longitude, //商户地址的经度
+				Latitude:              lotteryStore.Latitude,  //商户地址的纬度
+				ContactMobile:         user.Mobile,            //联系手机
+				WeChat:                user.Mobile,            //商户联系人微信号
+				Keys:                  "",                     //商户经营范围搜索关键字
+				LicenseURL:            "xxxx",                 //商户营业执照阿里云url
+				BusinessCode:          "21313223",             //网点编码
+				NotaryServiceUsername: "id119",                //网点的公证注册id
+				AuditState:            1,                      //初始值
+				OpeningHours:          "10:00-22:00",          //营业时间
+			}
+
+			//如果没有记录，则增加
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
+				s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
+				continue
+			} else {
+				s.logger.Debug("AddStore, upsert stores succeed")
+			}
+
+			//网点商户自动建群
+			var newTeamIndex uint64
+			if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
+				s.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
+				continue
+			}
+			pTeam := new(models.Team)
+			pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
+			pTeam.Teamname = fmt.Sprintf("team%d", newTeamIndex)
+			pTeam.Nick = fmt.Sprintf("%s的群", user.Nick)
+			pTeam.Owner = user.Username
+			pTeam.Type = 1
+			pTeam.VerifyType = 1
+			pTeam.InviteMode = 1
+
+			//默认的设置
+			pTeam.Status = 1 //Init(1) - 初始状态,审核中 Normal(2) - 正常状态 Blocked(3) - 封禁状态
+			pTeam.MemberLimit = LMCommon.PerTeamMembersLimit
+			pTeam.MemberNum = 1  //刚刚建群是只有群主1人
+			pTeam.MuteType = 1   //None(1) - 所有人可发言
+			pTeam.InviteMode = 1 //邀请模式,初始为1
+
+			//创建群数据 增加记录
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
+				s.logger.Error("Register, failed to upsert team", zap.Error(err))
+				continue
+			} else {
+				s.logger.Debug("CreateTeam, upsert team succeed")
+			}
+
+			//将用户信息缓存到redis里
+			userKey := fmt.Sprintf("userData:%s", user.Username)
+			if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
+				s.logger.Error("错误：HMSET", zap.Error(err))
+			}
+
+			//创建redis的sync:{用户账号} myInfoAt 时间戳
+			//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, productAt
+
+			syncKey := fmt.Sprintf("sync:%s", user.Username)
+			redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
+			redisConn.Do("HSET", syncKey, "friendsAt", time.Now().UnixNano()/1e6)
+			redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
+			redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
+			redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
+			redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
+
+			s.ApproveTeam(pTeam.TeamID)
+
+			s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
+
+			s.db.Model(&models.LotteryStore{}).Where(&models.LotteryStore{
+				MapID: lotteryStore.MapID,
+			}).Update("status", 1)
+
+			index++
+			if index > 2 {
+
+				break //只录2条记录
+			}
+
 		}
+	}()
 
-		s.logger.Debug("变量输出",
-			zap.String("avatar", avatar),
-			zap.String("label", label),
-			zap.String("imageUrl", imageUrl),
-			zap.Int("storeType", storeType),
-			zap.Any("lotteryStore", lotteryStore),
-		)
-
-		//创建一个商户
-		user := &models.User{
-			UserBase: models.UserBase{
-				Username:         fmt.Sprintf("id%d", newIndex),                 //用户注册号，自动生成，字母 + 数字
-				Password:         "C33367701511B4F6020EC61DED352059",            //用户密码，md5加密
-				Nick:             lotteryStore.StoreName,                        //用户呢称，必填
-				Gender:           1,                                             //性别
-				Avatar:           avatar,                                        //头像url
-				Label:            label,                                         //签名标签
-				Mobile:           fmt.Sprintf("%d", mobileNum+newIndex),         //注册手机
-				Email:            fmt.Sprintf("%d@139.com", mobileNum+newIndex), //密保邮件，需要发送校验邮件确认
-				AllowType:        3,                                             //用户加好友枚举，默认是3
-				UserType:         2,                                             //用户类型 1-普通，2-商户
-				State:            0,                                             //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-				TrueName:         lotteryStore.StoreName,                        //实名
-				ReferrerUsername: "id98",                                        //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
-			},
-		}
-		if err := s.base.Create(user); err != nil {
-			s.logger.Error("db写入错误，注册用户失败")
-			return err
-		}
-
-		//创建店铺
-
-		store := models.Store{
-			StoreUUID:             uuid.NewV4().String(), //店铺的uuid
-			StoreType:             storeType,             //店铺类型,对应Global.proto里的StoreType枚举
-			ImageURL:              imageUrl,
-			BusinessUsername:      user.Username,          //商户注册号
-			Introductory:          label,                  //商店简介 Text文本类型
-			Province:              lotteryStore.Province,  //省份, 如广东省
-			City:                  lotteryStore.City,      //城市，如广州市
-			Area:                  lotteryStore.Area,      //区，如天河区
-			Address:               lotteryStore.Address,   //地址
-			Branchesname:          lotteryStore.StoreName, //网点名称
-			LegalPerson:           "xxx",                  //法人姓名
-			LegalIdentityCard:     "xxxxxxxx",             //法人身份证
-			Longitude:             lotteryStore.Longitude, //商户地址的经度
-			Latitude:              lotteryStore.Latitude,  //商户地址的纬度
-			ContactMobile:         user.Mobile,            //联系手机
-			WeChat:                user.Mobile,            //商户联系人微信号
-			Keys:                  "",                     //商户经营范围搜索关键字
-			LicenseURL:            "xxxx",                 //商户营业执照阿里云url
-			BusinessCode:          "21313223",             //网点编码
-			NotaryServiceUsername: "id119",                //网点的公证注册id
-			AuditState:            1,                      //初始值
-			OpeningHours:          "10:00-22:00",          //营业时间
-		}
-
-		//如果没有记录，则增加
-		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&store).Error; err != nil {
-			s.logger.Error("AddStore, failed to upsert stores", zap.Error(err))
-			return err
-		} else {
-			s.logger.Debug("AddStore, upsert stores succeed")
-		}
-
-		//网点商户自动建群
-		var newTeamIndex uint64
-		if newTeamIndex, err = redis.Uint64(redisConn.Do("INCR", "TeamIndex")); err != nil {
-			s.logger.Error("redisConn GET TeamIndex Error", zap.Error(err))
-			return err
-		}
-		pTeam := new(models.Team)
-		pTeam.TeamID = fmt.Sprintf("team%d", newTeamIndex) //群id， 自动生成
-		pTeam.Teamname = fmt.Sprintf("team%d", newTeamIndex)
-		pTeam.Nick = fmt.Sprintf("%s的群", user.Nick)
-		pTeam.Owner = user.Username
-		pTeam.Type = 1
-		pTeam.VerifyType = 1
-		pTeam.InviteMode = 1
-
-		//默认的设置
-		pTeam.Status = 1 //Init(1) - 初始状态,审核中 Normal(2) - 正常状态 Blocked(3) - 封禁状态
-		pTeam.MemberLimit = LMCommon.PerTeamMembersLimit
-		pTeam.MemberNum = 1  //刚刚建群是只有群主1人
-		pTeam.MuteType = 1   //None(1) - 所有人可发言
-		pTeam.InviteMode = 1 //邀请模式,初始为1
-
-		//创建群数据 增加记录
-		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&pTeam).Error; err != nil {
-			s.logger.Error("Register, failed to upsert team", zap.Error(err))
-			return err
-		} else {
-			s.logger.Debug("CreateTeam, upsert team succeed")
-		}
-
-		//将用户信息缓存到redis里
-		userKey := fmt.Sprintf("userData:%s", user.Username)
-		if _, err := redisConn.Do("HMSET", redis.Args{}.Add(userKey).AddFlat(user.UserBase)...); err != nil {
-			s.logger.Error("错误：HMSET", zap.Error(err))
-		}
-
-		//创建redis的sync:{用户账号} myInfoAt 时间戳
-		//myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, productAt
-
-		syncKey := fmt.Sprintf("sync:%s", user.Username)
-		redisConn.Do("HSET", syncKey, "myInfoAt", time.Now().UnixNano()/1e6)
-		redisConn.Do("HSET", syncKey, "friendsAt", time.Now().UnixNano()/1e6)
-		redisConn.Do("HSET", syncKey, "friendUsersAt", time.Now().UnixNano()/1e6)
-		redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
-		redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
-		redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
-
-		s.ApproveTeam(pTeam.TeamID)
-
-		s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
-
-		s.db.Model(&models.LotteryStore{}).Where(&models.LotteryStore{
-			MapID: lotteryStore.MapID,
-		}).Update("status", 1)
-
-		index++
-		if index > 2 {
-
-			break //只录2条记录
-		}
-
-	}
 	return nil
 }
 
