@@ -722,7 +722,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 		break //只录入一条记录
 
 	}
-
+	_ = newIndex
 	return nil
 }
 
