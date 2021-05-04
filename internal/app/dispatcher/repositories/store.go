@@ -111,10 +111,10 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 
 		s.logger.Debug("记录存在", zap.Int("AuditState", store.AuditState))
 
-		if store.AuditState == 1 {
-			s.logger.Debug("已经审核通过的不能修改资料", zap.Int("AuditState", store.AuditState))
-			return errors.New("已经审核通过的不能修改资料")
-		}
+		// if store.AuditState == 1 {
+		// 	s.logger.Debug("已经审核通过的不能修改资料", zap.Int("AuditState", store.AuditState))
+		// 	return errors.New("已经审核通过的不能修改资料")
+		// }
 
 		where2 := models.Store{
 			StoreUUID: store.StoreUUID,
