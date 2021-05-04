@@ -647,19 +647,30 @@ func (pc *LianmiApisController) AdminAddStore(c *gin.Context) {
 	}
 }
 
-/*
-
-func (s *ApiAdapter) SearchPreference(keyword string, page int, pageSize int) (p *[]models.PreferenceItem, err error) {
-	// panic("implement me")
-	p = new([]models.PreferenceItem)
-	keywordStr := fmt.Sprintf("%%%s%%", keyword)
-	offset := page*pageSize - pageSize
-	currenDB := s.db.Model(&models.PreferenceItem{}).Not(&models.PreferenceItem{Type: 1})
-	if keyword != "" {
-		currenDB = currenDB.Where("preference_id LIKE ? ", keywordStr)
+//批量增加网点
+func (pc *LianmiApisController) BatchAddStores(c *gin.Context) {
+	code := codes.InvalidParams
+	req := models.LotteryStoreReq{}
+	if err := c.BindQuery(&req); err != nil {
+		req.Offset = 0
+		req.Limit = 20
 	}
-	err = currenDB.Limit(pageSize).Offset(offset).Find(p).Error
-	return
-}
+	pc.logger.Debug("GetLotteryStores",
+		zap.String("Keyword", req.Keyword),
+		zap.String("Province", req.Province),
+		zap.String("City", req.City),
+		zap.String("Area", req.Area),
+		zap.String("Address", req.Address), //模糊查找
+	)
 
-*/
+	err := pc.service.BatchAddStores(&req)
+	if err != nil {
+		RespFail(c, http.StatusOK, codes.InvalidParams, "未找到网点信息")
+		return
+	}
+
+	pc.logger.Debug("BatchAddStores ok")
+	code = codes.SUCCESS
+	RespOk(c, http.StatusOK, code)
+
+}

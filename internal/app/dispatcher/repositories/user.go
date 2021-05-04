@@ -393,7 +393,6 @@ func (s *MysqlLianmiRepository) Register(user *models.User) (err error) {
 	redisConn.Do("HSET", syncKey, "teamsAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
 	redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
-	redisConn.Do("HSET", syncKey, "productAt", time.Now().UnixNano()/1e6)
 
 	s.logger.Debug("注册用户成功", zap.String("Username", user.Username))
 	return nil

@@ -188,6 +188,9 @@ type LianmiApisService interface {
 	//查询并分页获取采集的网点
 	GetLotteryStores(req *models.LotteryStoreReq) ([]*models.LotteryStore, error)
 
+	//批量增加网点
+	BatchAddStores(req *models.LotteryStoreReq) error
+
 	//将店铺通过审核
 	AuditStore(req *Auth.AuditStoreReq) error
 
@@ -324,7 +327,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			IdentityCard:       fUserData.IdentityCard,
 			Province:           fUserData.Province,
 			City:               fUserData.City,
-			Area:             fUserData.Area,
+			Area:               fUserData.Area,
 			Street:             fUserData.Street,
 			Address:            fUserData.Address,
 			ReferrerUsername:   fUserData.ReferrerUsername,
@@ -669,6 +672,11 @@ func (s *DefaultLianmiApisService) SaveExcelToDb(lotteryStore *models.LotterySto
 //查询并分页获取采集的网点
 func (s *DefaultLianmiApisService) GetLotteryStores(req *models.LotteryStoreReq) ([]*models.LotteryStore, error) {
 	return s.Repository.GetLotteryStores(req)
+}
+
+//批量增加网点
+func (s *DefaultLianmiApisService)BatchAddStores(req *models.LotteryStoreReq) error {
+	return s.Repository.BatchAddStores(req)
 }
 
 //获取某个商户的所有商品列表
