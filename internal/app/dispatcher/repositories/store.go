@@ -772,14 +772,17 @@ func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 
 	var stores []*models.Store
 
-	err = s.db.Model(&models.Store{}).Where("id > ?", 10).Find(stores).Error
+	err = s.db.Model(&models.Store{}).Find(stores).Error
 	if err != nil {
 		s.logger.Error("查询失败", zap.Error(err))
 		return err
 	}
 
 	for _, store := range stores {
-		s.logger.Debug("store info", zap.String("BusinessUsername", store.BusinessUsername))
+		s.logger.Debug("store info",
+			zap.Uint("id", store.ID),
+			zap.String("BusinessUsername", store.BusinessUsername),
+		)
 	}
 	// _, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", username), opk)
 	// if err != nil {
