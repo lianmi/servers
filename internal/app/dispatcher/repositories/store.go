@@ -489,7 +489,7 @@ func (s *MysqlLianmiRepository) GetLotteryStores(req *models.LotteryStoreReq) ([
 		wheres = append(wheres, []interface{}{"county", "=", req.County})
 	}
 	if req.Address != "" {
-		wheres = append(wheres, []interface{}{"address", "like", "'%" + req.Address + "%'"})
+		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})
 	}
 
 	db2 := s.db
