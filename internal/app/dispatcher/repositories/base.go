@@ -203,6 +203,9 @@ type LianmiRepository interface {
 	//保存excel某一行的网点
 	SaveExcelToDb(lotteryStore *models.LotteryStore) error
 
+	//查询并分页获取采集的网点
+	GetLotteryStores(req *models.LotteryStoreReq)([]*models.LotteryStore, error)
+
 	//后台管理员将店铺审核通过
 	AuditStore(req *Auth.AuditStoreReq) error
 

@@ -185,6 +185,9 @@ type LianmiApisService interface {
 	//保存excel某一行的网点
 	SaveExcelToDb(lotteryStore *models.LotteryStore) error
 
+	//查询并分页获取采集的网点
+	GetLotteryStores(req *models.LotteryStoreReq) ([]*models.LotteryStore, error)
+
 	//将店铺通过审核
 	AuditStore(req *Auth.AuditStoreReq) error
 
@@ -661,6 +664,11 @@ func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
 //保存excel某一行的网点
 func (s *DefaultLianmiApisService) SaveExcelToDb(lotteryStore *models.LotteryStore) error {
 	return s.Repository.SaveExcelToDb(lotteryStore)
+}
+
+//查询并分页获取采集的网点
+func (s *DefaultLianmiApisService) GetLotteryStores(req *models.LotteryStoreReq) ([]*models.LotteryStore, error) {
+	return s.Repository.GetLotteryStores(req)
 }
 
 //获取某个商户的所有商品列表

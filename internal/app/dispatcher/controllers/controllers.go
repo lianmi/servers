@@ -628,6 +628,9 @@ func CreateInitControllersFn(
 			//导入广东省彩票网点excel文件
 			adminGroup.POST("/loadexcel", pc.LoadExcel)
 
+			//查询广东省彩票网点记录
+			adminGroup.GET("/lotterystores", pc.GetLotteryStores)
+
 		}
 	}
 }

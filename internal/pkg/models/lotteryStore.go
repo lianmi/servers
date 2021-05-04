@@ -20,3 +20,16 @@ type LotteryStore struct {
 	StoreType int    `form:"store_type" json:"store_type"`            //店铺类型, 1-福彩 2-体彩
 	Status    int    `form:"status" json:"status"`                    //状态，0-预，1-已提交
 }
+
+//用于查找
+type LotteryStoreReq struct {
+	Keyword  string `form:"keyword"`
+	Province string `form:"province"`
+	City     string `form:"city"`
+	County   string `form:"county"`
+	Address  string `form:"address"` //模糊查找
+
+	Limit  int `form:"limit"`
+	Offset int `form:"offset"`
+	// Status int `form:"status"`
+}

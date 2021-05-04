@@ -562,6 +562,35 @@ func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 	RespOk(c, http.StatusOK, 200)
 }
 
+//查询并分页获取采集的网点
+func (pc *LianmiApisController) GetLotteryStores(c *gin.Context) {
+	if !pc.CheckIsAdmin(c) {
+		return
+	}
+
+	req := models.LotteryStoreReq{}
+	if err := c.BindQuery(&req); err != nil {
+		req.Offset = 0
+		req.Limit = 20
+	}
+	pc.logger.Debug("GetLotteryStores",
+		zap.String("Keyword", req.Keyword),
+		zap.String("Province", req.Province),
+		zap.String("City", req.City),
+		zap.String("County", req.County),
+		zap.String("Address", req.Address), //模糊查找
+	)
+
+	//
+	list, err := pc.service.GetLotteryStores(&req)
+	if err != nil {
+		RespFail(c, http.StatusOK, codes.InvalidParams, "未找到网点信息")
+		return
+	}
+
+	RespData(c, http.StatusOK, codes.SUCCESS, list)
+}
+
 /*
 
 func (s *ApiAdapter) SearchPreference(keyword string, page int, pageSize int) (p *[]models.PreferenceItem, err error) {

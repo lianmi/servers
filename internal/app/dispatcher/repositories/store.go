@@ -461,6 +461,52 @@ func (s *MysqlLianmiRepository) SaveExcelToDb(lotteryStore *models.LotteryStore)
 
 }
 
+//查询并分页获取采集的网点
+func (s *MysqlLianmiRepository) GetLotteryStores(req *models.LotteryStoreReq) ([]*models.LotteryStore, error) {
+	var err error
+	pageIndex := int(req.Offset)
+	pageSize := int(req.Limit)
+
+	columns := []string{"*"}
+	orderBy := "id"
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	var lotteryStores []*models.LotteryStore
+	wheres := make([]interface{}, 0)
+
+	if req.Keyword != "" {
+		wheres = append(wheres, []interface{}{"keyword", "=", req.Keyword})
+	}
+	if req.Province != "" {
+		wheres = append(wheres, []interface{}{"province", "=", req.Province})
+	}
+	if req.City != "" {
+		wheres = append(wheres, []interface{}{"city", "=", req.City})
+	}
+	if req.County != "" {
+		wheres = append(wheres, []interface{}{"county", "=", req.County})
+	}
+	if req.Address != "" {
+		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%'"})
+	}
+
+	db2 := s.db
+	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, pageIndex, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	err = db2.Find(&lotteryStores).Error
+
+	if err != nil {
+		s.logger.Error("Find错误", zap.Error(err))
+		return nil, err
+	}
+
+	return lotteryStores, nil
+}
+
 /*
 
 用户对所有店铺的点赞数列表
