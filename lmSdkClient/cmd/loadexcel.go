@@ -5,9 +5,12 @@ package cmd
 
 import (
 	// "fmt"
+
+	"fmt"
 	"log"
+
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
-	"github.com/lianmi/servers/internal/pkg/models"
+
 	"github.com/spf13/cobra"
 )
 
@@ -15,10 +18,22 @@ import (
 var loadexcelCmd = &cobra.Command{
 	Use:   "loadexcel",
 	Short: "",
-	Long: ``,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("loadexcel called")
 		log.Println("导入当前目录的excel文件")
+		f, err := excelize.OpenFile("1619884694.xlsx")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		rows, err := f.GetRows("Sheet1")
+		for _, row := range rows {
+			for _, colCell := range row {
+				fmt.Print(colCell, "\t")
+			}
+			fmt.Println()
+		}
 
 	},
 }

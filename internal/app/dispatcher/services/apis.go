@@ -182,6 +182,10 @@ type LianmiApisService interface {
 
 	GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error)
 
+	//保存excel某一行的网点
+	SaveExcelToDb(lotteryStore *models.LotteryStore) error
+
+	//将店铺通过审核
 	AuditStore(req *Auth.AuditStoreReq) error
 
 	//获取某个商户的所有商品列表
@@ -640,6 +644,11 @@ func (s *DefaultLianmiApisService) GetStores(req *Order.QueryStoresNearbyReq) (*
 
 func (s *DefaultLianmiApisService) AuditStore(req *Auth.AuditStoreReq) error {
 	return s.Repository.AuditStore(req)
+}
+
+//保存excel某一行的网点
+func (s *DefaultLianmiApisService) SaveExcelToDb(lotteryStore *models.LotteryStore) error {
+	return s.Repository.SaveExcelToDb(lotteryStore)
 }
 
 //获取某个商户的所有商品列表

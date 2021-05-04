@@ -3,6 +3,7 @@ module github.com/lianmi/servers
 go 1.14
 
 require (
+	github.com/360EntSecGroup-Skylar/excelize/v2 v2.3.2
 	github.com/AlecAivazis/survey/v2 v2.1.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/allegro/bigcache v1.2.1 // indirect
@@ -82,12 +83,9 @@ require (
 	github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b // indirect
 	go.opencensus.io v0.22.5 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/mod v0.4.1 // indirect
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
-	golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b // indirect
-	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/tools v0.1.0 // indirect
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0

@@ -447,6 +447,20 @@ func (s *MysqlLianmiRepository) AuditStore(req *Auth.AuditStoreReq) error {
 	return nil
 }
 
+//保存excel某一行的网点
+func (s *MysqlLianmiRepository) SaveExcelToDb(lotteryStore *models.LotteryStore) error {
+	var err error
+	if err = s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(lotteryStore).Error; err != nil {
+		s.logger.Error("SaveExcelToDb error ", zap.Error(err))
+		return err
+	} else {
+		s.logger.Debug("SaveExcelToDb succeed")
+	}
+
+	return nil
+
+}
+
 /*
 
 用户对所有店铺的点赞数列表

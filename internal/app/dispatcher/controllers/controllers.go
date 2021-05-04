@@ -620,8 +620,12 @@ func CreateInitControllersFn(
 
 			// 查看缓存的key 的内容
 			adminGroup.GET("/cachevalue/:key", pc.AdminGetCacheKeyValue)
+
 			// 删除指定的缓存key
 			adminGroup.DELETE("/cachevalue/:key", pc.AdminDelCacheKeyValue)
+
+			//导入广东省彩票网点excel文件
+			adminGroup.POST("/loadexcel", pc.LoadExcel)
 
 		}
 	}

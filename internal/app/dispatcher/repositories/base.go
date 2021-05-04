@@ -200,6 +200,9 @@ type LianmiRepository interface {
 	//根据gps位置获取一定范围内的店铺列表
 	GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error)
 
+	//保存excel某一行的网点
+	SaveExcelToDb(lotteryStore *models.LotteryStore) error
+
 	//后台管理员将店铺审核通过
 	AuditStore(req *Auth.AuditStoreReq) error
 
