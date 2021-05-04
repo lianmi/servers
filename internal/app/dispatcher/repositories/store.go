@@ -578,33 +578,49 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 		return err
 	}
 
-	// storeType := 1 //福彩
+	storeType := 1 //福彩
 
-	// avatar := ""
-	// label := ""
-	// mobileNum := uint64(18977012300)
+	avatar := ""
+	label := ""
+	mobileNum := uint64(18977012300)
+
+	imageUrl := ""
 	for _, lotteryStore := range lotteryStores {
-		s.logger.Debug("lotteryStore",
-			zap.String("MapID", lotteryStore.MapID),
-			zap.String("StoreName", lotteryStore.StoreName),
-			zap.String("Province", lotteryStore.Province),
-			zap.String("City", lotteryStore.City),
-			zap.String("Area", lotteryStore.Area),
-			zap.String("Address", lotteryStore.Address),
-			zap.String("Longitude", lotteryStore.Longitude),
-			zap.String("Latitude", lotteryStore.Latitude),
-		)
-		/*
-			if strings.Contains(lotteryStore.Keyword, "福彩") {
-				avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
-				label = "扶老 助残 救孤 济困"
+
+		if strings.Contains(lotteryStore.Keyword, "福彩") {
+			avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
+			label = "扶老 助残 救孤 济困"
+
+			rand.Seed(time.Now().UnixNano())
+			number := rand.Intn(10)
+			if number == 10 {
+				imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli010.jpg"
 			} else {
-				avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu_aavatar.jpg"
-				label = "公益 快乐 健康 希望"
-				storeType = 2
+				imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli00%d.jpg", number)
 			}
 
+		} else {
+			avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu_aavatar.jpg"
+			label = "公益 快乐 健康 希望"
+			storeType = 2
 
+			rand.Seed(time.Now().UnixNano())
+			number := rand.Intn(10)
+			if number == 10 {
+				imageUrl = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu010.jpg"
+			} else {
+				imageUrl = fmt.Sprintf("http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/tiyu00%d.jpg", number)
+			}
+		}
+
+		s.logger.Debug("变量输出",
+			zap.String("avatar", avatar),
+			zap.String("label", label),
+			zap.String("imageUrl", imageUrl),
+			zap.Int("storeType", storeType),
+			zap.Any("lotteryStore", lotteryStore),
+		)
+		/*
 			//创建一个商户
 			user := &models.User{
 				UserBase: models.UserBase{
