@@ -771,13 +771,21 @@ func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 	defer redisConn.Close()
 
 	var stores []*models.Store
+	columns := []string{"*"}
+	orderBy := "id"
+	wheres := make([]interface{}, 0)
 
-	err = s.db.Model(&models.Store{}).Find(stores).Error
+	wheres = append(wheres, []interface{}{"id", ">=", 10})
+
+	db2 := s.db
+	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, 0, 100000)
 	if err != nil {
-		s.logger.Error("查询失败", zap.Error(err))
 		return err
 	}
-
+	err = db2.Find(&stores).Error
+	if err != nil {
+		return err
+	}
 	for _, store := range stores {
 		s.logger.Debug("store info",
 			zap.Uint("id", store.ID),
