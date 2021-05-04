@@ -765,7 +765,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 //设置网点商户默认OPK
 func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 	var err error
-	// var opk string
+	var opk string
 
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
@@ -775,7 +775,7 @@ func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 	orderBy := "id"
 	wheres := make([]interface{}, 0)
 
-	wheres = append(wheres, []interface{}{"id", ">=", 10})
+	wheres = append(wheres, []interface{}{"id", ">=", 4})
 
 	db2 := s.db
 	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, 0, 100000)
@@ -786,35 +786,38 @@ func (s *MysqlLianmiRepository) AdminDefaultOPK() error {
 	if err != nil {
 		return err
 	}
+
+	opk = "7FE6C7FBB19EA0B4ECE3C692932D46271781F2063C05FFE516AFEDD99C3C887E"
 	for _, store := range stores {
 		s.logger.Debug("store info",
 			zap.Uint("id", store.ID),
 			zap.String("BusinessUsername", store.BusinessUsername),
 		)
+		_, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", store.BusinessUsername), opk)
+		if err != nil {
+			s.logger.Error("SET失败", zap.Error(err))
+			return err
+		}
+
+		// //更新MySQL stores表
+		// result := s.db.Model(&models.Store{}).Where(&models.Store{
+		// 	BusinessUsername: username,
+		// }).Update("default_opk", opk)
+
+		// //updated records count
+		// s.logger.Debug("修改 stores表 result: ",
+		// 	zap.Int64("RowsAffected", result.RowsAffected),
+		// 	zap.Error(result.Error))
+
+		// if result.Error != nil {
+		// 	s.logger.Error("Update Store default_opk 失败", zap.Error(result.Error))
+		// 	return result.Error
+		// } else {
+		// 	s.logger.Debug("Update Store default_opk  成功")
+		// }
+
+		// s.logger.Debug("SetDefaultOPK end")
 	}
-	// _, err = redisConn.Do("SET", fmt.Sprintf("DefaultOPK:%s", username), opk)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// //更新MySQL stores表
-	// result := s.db.Model(&models.Store{}).Where(&models.Store{
-	// 	BusinessUsername: username,
-	// }).Update("default_opk", opk)
-
-	// //updated records count
-	// s.logger.Debug("修改 stores表 result: ",
-	// 	zap.Int64("RowsAffected", result.RowsAffected),
-	// 	zap.Error(result.Error))
-
-	// if result.Error != nil {
-	// 	s.logger.Error("Update Store default_opk 失败", zap.Error(result.Error))
-	// 	return result.Error
-	// } else {
-	// 	s.logger.Debug("Update Store default_opk  成功")
-	// }
-
-	// s.logger.Debug("SetDefaultOPK end")
 
 	return nil
 
