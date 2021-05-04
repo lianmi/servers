@@ -739,6 +739,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 
 	}
 	_ = newIndex
+	_ = mobileNum
 	return nil
 }
 
