@@ -589,7 +589,8 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	mobileNum := uint64(18977012300)
 
 	imageUrl := ""
-	for _, lotteryStore := range lotteryStores {
+
+	for index, lotteryStore := range lotteryStores {
 
 		if strings.Contains(lotteryStore.Keyword, "福彩") {
 			avatar = "http://git.geejoan.cn/wujehy/lianmi_images/-/raw/lianmi/fuli_avatar.jpg"
@@ -738,7 +739,10 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			MapID: lotteryStore.MapID,
 		}).Update("status", 1)
 
-		break //只录入一条记录
+		if index > 10 {
+
+			break //只录10条记录
+		}
 
 	}
 	// _ = newIndex
