@@ -545,9 +545,6 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	columns := []string{"*"}
 	orderBy := "id"
 
-	redisConn := s.redisPool.Get()
-	defer redisConn.Close()
-
 	var lotteryStores []*models.LotteryStore
 	wheres := make([]interface{}, 0)
 
@@ -589,6 +586,8 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	imageUrl := ""
 	index := 0
 	go func() {
+		redisConn := s.redisPool.Get()
+		defer redisConn.Close()
 
 		for _, lotteryStore := range lotteryStores {
 
