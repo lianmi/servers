@@ -651,7 +651,7 @@ func (pc *LianmiApisController) AdminAddStore(c *gin.Context) {
 func (pc *LianmiApisController) BatchAddStores(c *gin.Context) {
 	code := codes.InvalidParams
 	req := models.LotteryStoreReq{}
-	if err := c.BindQuery(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
 		req.Offset = 0
 		req.Limit = 20
 	}
