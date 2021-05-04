@@ -292,11 +292,14 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	if req.Area != "" {
 		wheres = append(wheres, []interface{}{"area", "=", req.Area})
 	}
-	if req.Address != "" {
-		wheres = append(wheres, []interface{}{"address", "like", "%" + req.Address + "%"})
-	}
-	if req.Keys != "" {
-		wheres = append(wheres, []interface{}{"keys", "like", "%" + req.Keys + "%"})
+
+	if req.Keys != "" && req.Address != "" {
+		// wheres = append(wheres, []interface{}{"keys", "like", "%" + req.Keys + "%"})
+		wheres = append(wheres, []interface{}{"address like ? or keys like ?", "%" + req.Address + "%", "%" + req.Keys + "%"})
+	} else if req.Keys == "" && req.Address != "" {
+		wheres = append(wheres, []interface{}{"address like ? ", "%" + req.Address + "%"})
+	} else if req.Keys != "" && req.Address == "" {
+		wheres = append(wheres, []interface{}{"keys like ? ", "%" + req.Keys + "%"})
 	}
 
 	db2 := s.db
