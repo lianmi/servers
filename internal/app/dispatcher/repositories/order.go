@@ -551,6 +551,13 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 		return "", fmt.Errorf("当前订单的商户不是当前操作的商户", zap.String("订单的商户", currentOrderStoreID), zap.String("操作的商户", username))
 	}
 
+	currentOrderBuyUserID, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("Order:%s", orderID), "BuyUser"))
+	if err != nil {
+		// 订单信息异常
+		s.logger.Error("订单信息异常", zap.Error(err))
+		return "", fmt.Errorf("订单信息异常")
+	}
+
 	// 更新 订单信息
 
 	_, err = redisConn.Do("HMSET",
@@ -565,18 +572,11 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 	}
 
 	// 更新数据库
-	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username, OrderStatus: int(global.OrderState_OS_Confirm)}).Updates(&models.OrderItems{Prize: prize}).Error
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username, OrderStatus: int(global.OrderState_OS_Prizeed)}).Updates(&models.OrderItems{Prize: prize}).Error
 
-	currentOrderBuyUserID, err := redis.String(redisConn.Do("HGET", fmt.Sprintf("Order:%s", orderID), "BuyUser"))
-	if err != nil {
-		// 订单信息异常
-		s.logger.Error("订单信息异常", zap.Error(err))
-		return "", fmt.Errorf("订单信息异常")
-	}
 
-	if currentOrderStoreID != username {
-		return "", fmt.Errorf("当前订单的商户不是当前操作的商户", zap.String("订单的商户", currentOrderStoreID), zap.String("操作的商户", username))
-	}
+
+
 
 	return currentOrderBuyUserID, err
 }

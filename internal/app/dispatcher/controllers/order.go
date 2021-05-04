@@ -829,7 +829,7 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 	// 更新成功 , 向用户推送更新事件
 
 	go func() {
-		// 推送订单状态变更到商户和用户
+		// 推送订单状态变更到用户
 		orderChangeReq := new(Msg.RecvMsgEventRsp)
 		orderChangeReq.Type = Msg.MessageType_MsgType_Order
 		orderChangeReq.Scene = Msg.MessageScene_MsgScene_S2C
@@ -837,6 +837,7 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 		orderProduct := Order.OrderProductBody{}
 		orderProduct.OrderID = req.OrderID
 		orderProduct.State = Global.OrderState_OS_Prizeed
+		orderProduct.Prize = req.Prize //中奖金额
 
 		orderChangeReq.Body, err = proto.Marshal(&orderProduct)
 
