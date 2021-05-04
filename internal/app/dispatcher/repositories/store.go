@@ -584,11 +584,11 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 	mobileNum := uint64(18977012300)
 
 	imageUrl := ""
-	index := 0
+
 	go func() {
 		redisConn := s.redisPool.Get()
 		defer redisConn.Close()
-
+		index := 0
 		for _, lotteryStore := range lotteryStores {
 
 			s.db.Model(&models.LotteryStore{}).Where(&models.LotteryStore{
@@ -740,9 +740,12 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			redisConn.Do("HSET", syncKey, "tagsAt", time.Now().UnixNano()/1e6)
 			redisConn.Do("HSET", syncKey, "watchAt", time.Now().UnixNano()/1e6)
 
-			s.ApproveTeam(pTeam.TeamID)
-
-			s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
+			if err := s.ApproveTeam(pTeam.TeamID); err != nil {
+				s.logger.Error("注册商户失败", zap.Error(err))
+				break
+			} else {
+				s.logger.Debug("注册商户成功", zap.String("Username", user.Username))
+			}
 
 			index++
 			if index > 10 {
@@ -752,6 +755,7 @@ func (s *MysqlLianmiRepository) BatchAddStores(req *models.LotteryStoreReq) erro
 			}
 
 		}
+		s.logger.Debug("exit go")
 	}()
 
 	return nil
