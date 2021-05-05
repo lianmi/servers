@@ -584,22 +584,15 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 业务子号： subtype - 1, 3
 */
 func (nc *NsqClient) BroadcastSystemMsgToLotteryCenter(data []byte, businessType, subtype int) error {
-	// toUser := "lottety-center-guangdong"
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
 
 	targetMsg := &models.Message{}
-	// curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-	// curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-	// nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
 
 	targetMsg.UpdateID()
 	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-	targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
+	targetMsg.BuildRouter("Order", "", "Order.Frontend")
 
-	targetMsg.SetJwtToken("")
-	targetMsg.SetUserName("dispatcher")
+	targetMsg.SetJwtToken("")           // 不需要jwt令牌
+	targetMsg.SetUserName("dispatcher") //发送者
 	targetMsg.SetDeviceID("")
 	// kickMsg.SetTaskID(uint32(taskId))
 	targetMsg.SetBusinessTypeName("Order")
