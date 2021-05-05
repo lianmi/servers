@@ -20,6 +20,7 @@ type OrderService interface {
 
 	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
 
+	//获取彩票公证处的rsa公钥数据, 预先保存在redis里的
 	GetNotaryServicePublickey(businessUsername string) (string, error)
 }
 
@@ -64,6 +65,7 @@ func (s *DefaultApisService) SaveChargeHistory(chargeHistory *models.ChargeHisto
 	return s.Repository.SaveChargeHistory(chargeHistory)
 }
 
+//获取彩票公证处的rsa公钥数据, 预先保存在redis里的
 func (s *DefaultApisService) GetNotaryServicePublickey(businessUsername string) (string, error) {
 	return s.Repository.GetNotaryServicePublickey(businessUsername)
 }

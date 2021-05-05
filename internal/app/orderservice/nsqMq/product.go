@@ -2492,7 +2492,8 @@ func (nc *NsqClient) HandleGetNotaryServicePublickey(msg *models.Message) error 
 			errorCode = LMCError.PreKeyGetCountError
 			goto COMPLETE
 		}
-
+		
+		//获取彩票公证处的rsa公钥数据, 预先保存在redis里的
 		notaryServicePublickey, err = nc.service.GetNotaryServicePublickey(req.BusinessUsername)
 		if err != nil {
 			nc.logger.Error("查询第三方公证公钥错误", zap.Error(err))

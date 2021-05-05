@@ -44,9 +44,6 @@ type OrderImagesHistory struct {
 	//订单图片在商户的oss objectID
 	BusinessOssImage string `json:"business_image" validate:"required"`
 
-	//订单body类型 ，也就是彩票类型
-	BodyType int ` json:"body_type"`
-
 	//订单body加密阿里云obj
 	BodyObjFile string ` json:"body_objfile"`
 
@@ -116,4 +113,31 @@ type PayOrderLogItem struct {
 	Money         float64 `json:"money"`          // 操作的金额
 	MoneyFrom     string  `json:"money_from"`     // 金额 来源流向
 	MoneyTo       string  `json:"money_to"`       // 金额流向
+}
+
+/*
+message UploadOrderBodyReq {
+    //订单ID
+    string orderID =1;
+    //彩票类型 1-福彩 2-体彩
+    int32 body_type =2;
+    //订单附件里的body加密数据文件，已经上传到了aliyunoss
+    string bodyObjFile =3;
+
+}
+
+message UploadOrderBodyResp  {
+    //时间
+    fixed64 time=4;
+}
+*/
+
+//仅在商户端: 将订单body经过RSA加密后提交阿里云后，服务端会缓存在redis里
+type UploadOrderBodyReq struct {
+
+	//订单ID
+	OrderID string `json:"orderID,omitempty"`
+
+	//订单附件里的body加密数据文件，已经上传到了aliyunoss
+	BodyObjFile string `json:"bodyObjFile,omitempty"`
 }

@@ -17,6 +17,8 @@ type OrderRepository interface {
 	DeleteProduct(productID, username string) error
 	GetVipUserPrice(payType int) (*models.VipPrice, error)
 	SaveChargeHistory(chargeHistory *models.ChargeHistory) error
+
+	//获取彩票公证处的rsa公钥数据, 预先保存在redis里的
 	GetNotaryServicePublickey(businessUsername string) (string, error)
 }
 
@@ -113,6 +115,7 @@ func (m *MysqlOrderRepository) SaveChargeHistory(chargeHistory *models.ChargeHis
 
 }
 
+//获取彩票公证处的rsa公钥数据, 预先保存在redis里的
 func (m *MysqlOrderRepository) GetNotaryServicePublickey(businessUsername string) (string, error) {
 	redisConn := m.redisPool.Get()
 	defer redisConn.Close()

@@ -131,16 +131,14 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 
 }
 
-/*
 //修改订单的body类型及body加密阿里云文件上链历史表
-func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) error {
+func (s *MysqlLianmiRepository) SaveOrderBody(req *models.UploadOrderBodyReq) error {
 	var err error
 	redisConn := s.redisPool.Get()
 	defer redisConn.Close()
 
 	//保存到redis里
 	orderIDKey := fmt.Sprintf("Order:%s", req.OrderID)
-	_, err = redisConn.Do("HSET", orderIDKey, "BodyType", int(req.BodyType))
 	_, err = redisConn.Do("HSET", orderIDKey, "BodyObjFile", req.BodyObjFile)
 
 	where := models.OrderImagesHistory{
@@ -149,7 +147,6 @@ func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) err
 
 	// 同时更新多个字段
 	result := s.db.Model(&models.OrderImagesHistory{}).Where(&where).Updates(&models.OrderImagesHistory{
-		BodyType:    int(req.BodyType),
 		BodyObjFile: req.BodyObjFile,
 	})
 
@@ -167,7 +164,6 @@ func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) err
 	_ = err
 	return nil
 }
-*/
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
 func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {

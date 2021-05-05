@@ -487,8 +487,8 @@ func CreateInitControllersFn(
 			//商户端: 将完成订单拍照所有图片上链
 			orderGroup.POST("/uploadorderimage", pc.UploadOrderImages)
 
-			//用户端: 买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
-			// orderGroup.POST("/uploadorderbody", pc.UploadOrderBody)
+			//商户端: 将订单body经过RSA加密后提交到服务端
+			orderGroup.POST("/uploadorderbody", pc.UploadOrderBody)
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
 			orderGroup.GET("/orderimage/:orderid", pc.DownloadOrderImage)

@@ -100,8 +100,8 @@ type LianmiApisService interface {
 	//商户端: 将完成订单拍照所有图片上链
 	UploadOrderImages(ctx context.Context, req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
 
-	//买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
-	// UploadOrderBody(ctx context.Context, req *Order.UploadOrderBodyReq) (*Order.UploadOrderBodyResp, *Order.UploadOrderBodyEventRsp, error)
+	//将订单body经过RSA加密后提交到服务端
+	UploadOrderBody(ctx context.Context, req *models.UploadOrderBodyReq) error
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
@@ -791,9 +791,8 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 	return resp, nil
 }
 
-/*
 //买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
-func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Order.UploadOrderBodyReq) (*Order.UploadOrderBodyResp, *Order.UploadOrderBodyEventRsp, error) {
+func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *models.UploadOrderBodyReq) error {
 
 	//根据订单ID获取详细信息
 	orderInfo, err := s.Repository.GetOrderInfo(req.OrderID)
@@ -804,17 +803,17 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 	if orderInfo.ProductID == "" {
 		s.logger.Error("ProductID is empty")
 
-		return nil, nil, errors.Wrapf(err, "ProductID is empty[OrderID=%s]", req.OrderID)
+		return errors.Wrapf(err, "ProductID is empty[OrderID=%s]", req.OrderID)
 	}
 
 	if orderInfo.BuyerUsername == "" {
 		s.logger.Error("BuyeerUsername is empty")
-		return nil, nil, errors.Wrapf(err, "BuyerUsername is empty[OrderID=%s]", req.OrderID)
+		return errors.Wrapf(err, "BuyerUsername is empty[OrderID=%s]", req.OrderID)
 	}
 
 	if orderInfo.BusinessUsername == "" {
 		s.logger.Error("BusinessUsername is empty")
-		return nil, nil, errors.Wrapf(err, "BusinessUsername is empty[OrderID=%s]", req.OrderID)
+		return errors.Wrapf(err, "BusinessUsername is empty[OrderID=%s]", req.OrderID)
 	}
 
 	s.logger.Debug("UploadOrderBody",
@@ -825,7 +824,6 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 		zap.String("BusinessUser", orderInfo.BusinessUsername),
 		zap.String("AttachHash", orderInfo.AttachHash), //订单内容hash
 		zap.Float64("OrderTotalAmount", orderInfo.Cost),
-		zap.Int32("BodyType", req.BodyType),
 		zap.String("BodyObjFile", req.BodyObjFile),
 	)
 
@@ -833,78 +831,11 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 	err = s.Repository.SaveOrderBody(req)
 
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	resp := &Order.UploadOrderBodyResp{
-		Time: uint64(time.Now().UnixNano() / 1e6),
-	}
-
-	//根据订单ID获取详细信息
-	orderInfo, err = s.Repository.GetOrderInfo(req.OrderID)
-	if err != nil {
-		s.logger.Error("从Redis里取出此Order数据 Error")
-	}
-
-	// TODO
-	user, err := s.Repository.GetUser(orderInfo.BuyerUsername)
-	if err != nil {
-		return nil, nil, err
-	}
-	store, err := s.Repository.GetStore(orderInfo.BusinessUsername)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//根据notaryServiceUsername获取到公证处设备id
-	var notaryServiceUsername, notaryServiceDeviceID string
-	notaryServiceUsername = store.NotaryServiceUsername
-	if notaryServiceUsername != "" {
-
-		notaryServiceDeviceID, err = s.Repository.GetDeviceFromRedis(notaryServiceUsername)
-		if err != nil {
-			return nil, nil, err
-		}
-		s.logger.Debug("公证处", zap.String("notaryServiceUsername", notaryServiceUsername), zap.String("notaryServiceDeviceID", notaryServiceDeviceID))
-
-		rsp := &Order.UploadOrderBodyEventRsp{
-			//订单ID
-			OrderID: req.OrderID,
-			//商品ID
-			ProductID: orderInfo.ProductID,
-			//买家注册号
-			BuyUsername: orderInfo.BuyerUsername,
-			//买家真实姓名
-			BuyerTrueName: user.TrueName,
-			//买家联系手机
-			BuyerMobile: user.Mobile,
-			//商户注册号
-			BusinessUsername: orderInfo.BusinessUsername,
-			//商户店铺名称
-			Branchesname: store.Branchesname,
-			//商户网点编码， 例如彩票店有自己的编码
-			BusinessCode: store.BusinessCode,
-			//商户法人
-			LegalPerson: store.LegalPerson,
-			//拍照图片的上链区块高度
-			BlockNumber: orderInfo.BlockNumber,
-			//上链哈希hex
-			Hash: orderInfo.TxHash,
-			///公证处注册号
-			NotaryServiceUsername: notaryServiceUsername,
-			//公证处设备ID
-			NotaryServiceDeviceID: notaryServiceDeviceID,
-			//时间
-			Time: uint64(time.Now().UnixNano() / 1e6),
-		}
-		return resp, rsp, nil
-	} else {
-		s.logger.Debug("公证处注册号为空")
-	}
-
-	return resp, nil, nil
+	return nil
 }
-*/
 
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
