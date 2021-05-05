@@ -745,6 +745,8 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	// TODO 如果是 完成 则需要推送到 见证中心
 	if req.Status == int(Global.OrderState_OS_Confirm) {
 		// TODO 推送消息 到 见证中心
+
+		
 	}
 
 	go func() {

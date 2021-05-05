@@ -271,7 +271,7 @@ mqtt broker auth 插件初始化
 func (nc *NsqClient) MqttBrokerRedisAuth() {
 
 	nc.logger.Info("MqttBrokerRedisAuth start...")
-	
+
 	setdb := redis.DialDatabase(6) //固定为6
 	setPasswd := redis.DialPassword("")
 
@@ -502,6 +502,89 @@ func (nc *NsqClient) Multichannel() {
 func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, toUser string, exceptDeviceIDs ...string) error {
 
 	data, _ := proto.Marshal(rsp)
+
+	redisConn := nc.redisPool.Get()
+	defer redisConn.Close()
+
+	/*
+		//删除7天前的缓存系统消息
+		nTime := time.Now()
+		yesTime := nTime.AddDate(0, 0, -7).Unix()
+		offLineMsgListKey := fmt.Sprintf("offLineMsgList:%s", toUser)
+
+		_, err := redisConn.Do("ZREMRANGEBYSCORE", offLineMsgListKey, "-inf", yesTime)
+
+		//Redis里缓存此系统消息,目的是6-1同步接口里的 systemmsgAt, 然后同步给用户
+		systemMsgAt := time.Now().UnixNano() / 1e6
+		if _, err := redisConn.Do("ZADD", offLineMsgListKey, systemMsgAt, rsp.GetServerMsgId()); err != nil {
+			nc.logger.Error("ZADD Error", zap.Error(err))
+		}
+
+		//系统消息具体内容
+		systemMsgKey := fmt.Sprintf("systemMsg:%s:%s", toUser, rsp.GetServerMsgId())
+
+		_, err = redisConn.Do("HMSET",
+			systemMsgKey,
+			"Username", toUser,
+			"SystemMsgAt", systemMsgAt,
+			"Seq", rsp.Seq,
+			"Data", data,
+		)
+
+		_, err = redisConn.Do("EXPIRE", systemMsgKey, 7*24*3600) //设置有效期为7天
+	*/
+	//向toUser所有端发送
+	deviceListKey := fmt.Sprintf("devices:%s", toUser)
+	eDeviceID, _ := redis.String(redisConn.Do("GET", deviceListKey))
+
+	targetMsg := &models.Message{}
+	curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
+	curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
+	nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
+
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
+
+	targetMsg.SetJwtToken(curJwtToken)
+	targetMsg.SetUserName(toUser)
+	targetMsg.SetDeviceID(eDeviceID)
+	// kickMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("Msg")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))           //消息模块
+	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_RecvMsgEvent)) //接收消息事件
+
+	targetMsg.BuildHeader("ChatService", time.Now().UnixNano()/1e6)
+
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	targetMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Msg.Frontend"
+	rawData, _ := json.Marshal(targetMsg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+	}
+
+	nc.logger.Info("Broadcast Msg To AllDevices Succeed",
+		zap.String("Username:", toUser),
+		zap.String("DeviceID:", curDeviceKey),
+		zap.Int64("Now", time.Now().UnixNano()/1e6))
+
+	return nil
+}
+
+/*
+向彩票中心推送
+业务号： businessType -12
+业务子号： subtype - 1, 3
+*/
+func (nc *NsqClient) BroadcastSystemMsgToLotteryCenter(data []byte, businessType, subtype int) error {
+
+	// data, _ := proto.Marshal(rsp)
 
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
