@@ -114,33 +114,6 @@ message DeleteGeneralProductRsp {
 
 }
 
-
-message LotterySaleTime {
-    int32 lotteryType =1;
-    string lotteryName =2;
-    repeated string saleEndWeeks  =3;
-    int32 saleEndHour  =4;
-    int32 saleEndMinute  =5;
-    repeated string holidays  =6;
-
-}
-
-//获取各种彩票的开售及停售时刻
-message QueryLotterySaleTimesRsp {
-    repeated LotterySaleTime lotterySaleTimes =1;
-}   
-
-
-//获取当前商户的所有OPK
-message GetAllOPKSRsp {
-    repeated string opks =1;
-}
-
-//删除当前商户的指定OPK
-message EraseOPKSReq {
-    repeated string opks =1;
-}
-
 //设置当前商户的默认OPK， 当OPK池为空，则需要用到此OPK
 message DefaultOPKReq{
  string opk =1;

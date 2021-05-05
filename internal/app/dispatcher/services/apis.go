@@ -101,7 +101,7 @@ type LianmiApisService interface {
 	UploadOrderImages(ctx context.Context, req *Order.UploadOrderImagesReq) (*Order.UploadOrderImagesResp, error)
 
 	//买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
-	UploadOrderBody(ctx context.Context, req *Order.UploadOrderBodyReq) (*Order.UploadOrderBodyResp, *Order.UploadOrderBodyEventRsp, error)
+	// UploadOrderBody(ctx context.Context, req *Order.UploadOrderBodyReq) (*Order.UploadOrderBodyResp, *Order.UploadOrderBodyEventRsp, error)
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
@@ -232,9 +232,6 @@ type LianmiApisService interface {
 
 	//微信预支付
 	// PreWXpay(ctx context.Context, req *Wallet.PreWXpayReq) (*Wallet.PreWXpayResp, error)
-
-	//获取各种彩票的开售及停售时刻
-	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error
@@ -794,6 +791,7 @@ func (s *DefaultLianmiApisService) UploadOrderImages(ctx context.Context, req *O
 	return resp, nil
 }
 
+/*
 //买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
 func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Order.UploadOrderBodyReq) (*Order.UploadOrderBodyResp, *Order.UploadOrderBodyEventRsp, error) {
 
@@ -906,6 +904,7 @@ func (s *DefaultLianmiApisService) UploadOrderBody(ctx context.Context, req *Ord
 
 	return resp, nil, nil
 }
+*/
 
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {
@@ -915,11 +914,6 @@ func (s *DefaultLianmiApisService) DownloadOrderImage(orderID string) (*Order.Do
 //查询VIP会员价格表
 func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error) {
 	return s.Repository.GetVipPriceList(payType)
-}
-
-//获取各种彩票的开售及停售时刻
-func (s *DefaultLianmiApisService) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
-	return s.Repository.QueryLotterySaleTimes()
 }
 
 //设置当前商户默认OPK

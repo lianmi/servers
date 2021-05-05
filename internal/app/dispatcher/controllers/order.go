@@ -59,6 +59,7 @@ func (pc *LianmiApisController) UploadOrderImages(c *gin.Context) {
 	}
 }
 
+/*
 //用户端: 买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
 func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 	code := codes.InvalidParams
@@ -112,7 +113,7 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 
 	}
 }
-
+*/
 //用户端: 根据 OrderID 获取所有订单拍照图片
 func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	code := codes.InvalidParams

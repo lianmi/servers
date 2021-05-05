@@ -136,8 +136,7 @@ dart:
 							   api/proto/order/SyncProductsEvent.proto \
 							   api/proto/order/SyncWatchEvent.proto \
 							   api/proto/order/UpdateProduct.proto \
-							   api/proto/order/UpdateProductEvent.proto \
-							   api/proto/order/UploadOrderBodyEvent.proto
+							   api/proto/order/UpdateProductEvent.proto
 
 
 	rm -f dart_out/api/proto/syn/*.dart

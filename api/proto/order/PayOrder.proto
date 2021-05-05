@@ -18,7 +18,7 @@ message PayOrderRsp{
      //订单ID
     string orderID =1;
 
-      // 区块高度 
+    // 区块高度 
     fixed64 blockNumber=2;
 
     // 交易哈希hex

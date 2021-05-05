@@ -183,6 +183,7 @@ enum WitnessSubType {
     UpChain                     =  1;     /**< 12-1 dispatcher通知彩票中心订单数据上链*/
     UpChainDone                 =  2;     /**< 12-2 彩票中心将订单上链完成*/
     ClaimPrize                  =  3;     /**< 12-3 商户端完成兑奖，并将奖金金额上链 */
+    ClaimPrizeDone              =  4;     /**< 12-4 彩票中心将奖金金额上链完成 */
 }
 
 //订单状态枚举：
@@ -210,37 +211,16 @@ enum OrderState {
 
 enum StoreType {
     ST_Undefined         = 0;     //proto3必须从0开始
-    ST_FreshProduct  = 1;     /**< 生鲜*/
-    ST_Meat          = 2;     /**< 肉类*/
-    ST_Fruits        = 3;     /**< 水果蔬菜类*/
-    ST_GrainOil      = 4;     /**< 粮油类*/
-    ST_Delicatessen  = 5;     /**< 熟食类*/
-    ST_Bakery        = 6;     /**< 面包糕点类*/
-    ST_GroceryStore  = 7;     /**< 生活五金用品类*/
-    ST_HouseKeeping  = 8;     /**< 家政*/
-    ST_Lottery       = 9;     /**< 彩票*/
-    ST_Carry         = 10;    /**< 搬运*/
-    ST_Maintenance   = 11;     /**< 维修*/
-    ST_Services      = 12;     /**< 服务行业*/
-    ST_Others        = 13;     /**<其它*/
+    ST_Fuli              = 1;     /**< 福彩网点*/
+    ST_Tiyu              = 2;     /**< 体彩网点*/
 }
 
 //商品类型
 enum ProductType {
     OT_Undefined     = 0;     //proto3必须从0开始
-    OT_FreshProduct  = 1;     /**< 生鲜产品*/
-    OT_Meat          = 2;     /**< 肉类*/
-    OT_Fruits        = 3;     /**< 水果蔬菜类*/
-    OT_GrainOil      = 4;     /**< 粮油类*/
-    OT_Delicatessen  = 5;     /**< 熟食类*/
-    OT_Bakery        = 6;     /**< 面包糕饼类*/
-    OT_GroceryStore  = 7;     /**< 生活清洁用品类*/
-    OT_HouseKeeping  = 8;     /**< 家政*/
-    OT_Lottery       = 9;     /**< 彩票*/
-    OT_Carry         = 10;    /**< 搬运*/
-    OT_Maintenance   = 11;    /**< 维修*/
-    OT_Services      = 12;    /**< 服务行业*/
-    OT_Others        = 13;    /**<其它*/
+    OT_FuliLottery   = 1;     /**< 福彩彩种 */
+    OT_TiyuLottery    = 2;     /**< 体育彩种 */
+
 }
 
  //商品子类型的彩票枚举 1- 双色球  2- 大乐透,  3- 福彩3d

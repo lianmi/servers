@@ -1,0 +1,72 @@
+syntax = "proto3"; 
+
+
+package cloud.lianmi.im.order;
+option go_package = "github.com/lianmi/servers/api/proto/order";
+
+// 12-1 存证上链
+message PoeDataResp {
+    //订单ID
+    string orderID =1;
+
+    //用户ID
+    string userId = 2;
+
+    //商户ID
+    string storeId = 3;
+
+    //附加数据, 订单详细内容, 当商户出票完成之后，需要提交RSA加密的选号数据（公钥由公证处颁发）,
+
+    bytes attach = 4;
+
+    //时间
+    fixed64 time=5;
+
+}
+
+// 12-2 存证上链完成
+message PoeUpChainReq {
+    //订单ID
+    string orderID =1;
+
+    //存证上链的 区块高度
+    fixed64 blockNumber = 2;
+
+    //交易哈希hex
+    string hash=3;
+
+    //时间
+    fixed64 time=4;
+
+}
+
+// 12-3 兑奖事件
+message PoeOrderPrizeResp {
+    //订单ID
+    string orderID =1;
+
+    //中奖金额
+    fixed64 prizeAmount = 2;
+    
+    //时间
+    fixed64 time = 3;
+
+}
+
+// 12-4 兑奖更新完成
+message PoeOrderPrizeDoneReq {
+    //订单ID
+    string orderID =1;
+
+    //存证上链的 区块高度
+    fixed64 blockNumber = 2;
+
+    //交易哈希hex
+    string hash=3;
+
+    //时间
+    fixed64 time=4;
+
+}
+
+

@@ -361,21 +361,6 @@ func (pc *LianmiApisController) GetIsLike(c *gin.Context) {
 
 }
 
-//获取各种彩票的开售及停售时刻
-func (pc *LianmiApisController) QueryLotterySaleTimes(c *gin.Context) {
-	code := codes.InvalidParams
-
-	lotterySaleTimesRsp, err := pc.service.QueryLotterySaleTimes()
-	if err != nil {
-		RespData(c, http.StatusOK, 500, err.Error())
-		return
-	}
-
-	code = codes.SUCCESS
-	RespData(c, http.StatusOK, code, lotterySaleTimesRsp)
-
-}
-
 //设置当前商户的默认OPK
 func (pc *LianmiApisController) DefaultOPK(c *gin.Context) {
 	code := codes.InvalidParams

@@ -1731,41 +1731,36 @@ func (nc *NsqClient) HandleOrderMsg(msg *models.Message) error {
 
 				} else { // 订单下单
 
-					//彩票类型的订单
-					if Global.ProductType(productInfo.ProductType) == Global.ProductType_OT_Lottery {
+					orderProductBody.State = Global.OrderState_OS_RecvOK
 
-						orderProductBody.State = Global.OrderState_OS_RecvOK
+					orderProductBodyData, _ = proto.Marshal(orderProductBody)
 
-						orderProductBodyData, _ = proto.Marshal(orderProductBody)
+					//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
+					nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
 
-						//TODO  根据Vip及订单内容生成服务费的支付数据, 并发送给买家
-						nc.SendChargeOrderIDToBuyer(req.Uuid, isVip, orderProductBody)
-
-						//将接单转发到买家
-						if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
-							eRsp := &Msg.RecvMsgEventRsp{
-								Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
-								Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
-								Body:         orderProductBodyData,          //订单载体 OrderProductBody
-								From:         username,                      //谁发的
-								FromDeviceId: deviceID,                      //哪个设备发的
-								Recv:         req.To,                        //商户账户id
-								ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
-								Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
-								Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
-								Time:         uint64(time.Now().UnixNano() / 1e6),
-							}
-
-							go func() {
-								time.Sleep(200 * time.Millisecond)
-								nc.logger.Debug("延时150ms向买家发送彩票类型的订单, 5-2",
-									zap.String("to", orderProductBody.BuyUser),
-									zap.Int("State", int(orderProductBody.State)),
-								)
-								nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
-							}()
-
+					//将接单转发到买家
+					if newSeq, err = redis.Uint64(redisConn.Do("INCR", fmt.Sprintf("userSeq:%s", orderProductBody.BuyUser))); err == nil {
+						eRsp := &Msg.RecvMsgEventRsp{
+							Scene:        Msg.MessageScene_MsgScene_S2C, //系统消息
+							Type:         Msg.MessageType_MsgType_Order, //类型-订单消息
+							Body:         orderProductBodyData,          //订单载体 OrderProductBody
+							From:         username,                      //谁发的
+							FromDeviceId: deviceID,                      //哪个设备发的
+							Recv:         req.To,                        //商户账户id
+							ServerMsgId:  msg.GetID(),                   //服务器分配的消息ID
+							Seq:          newSeq,                        //消息序号，单个会话内自然递增, 这里是对targetUsername这个用户的通知序号
+							Uuid:         req.Uuid,                      //客户端分配的消息ID，SDK生成的消息id
+							Time:         uint64(time.Now().UnixNano() / 1e6),
 						}
+
+						go func() {
+							time.Sleep(200 * time.Millisecond)
+							nc.logger.Debug("延时150ms向买家发送彩票类型的订单, 5-2",
+								zap.String("to", orderProductBody.BuyUser),
+								zap.Int("State", int(orderProductBody.State)),
+							)
+							nc.BroadcastOrderMsgToAllDevices(eRsp, orderProductBody.BuyUser)
+						}()
 
 					}
 

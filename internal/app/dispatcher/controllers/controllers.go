@@ -443,7 +443,6 @@ func CreateInitControllersFn(
 			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞
 			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
 			storeGroup.GET("/islike/:id", pc.GetIsLike)                  //判断当前用户是否对某个店铺点过赞
-			storeGroup.GET("/lottersaletimes", pc.QueryLotterySaleTimes) //获取各种彩票的开售及停售时刻
 			storeGroup.POST("/defaultopk", pc.DefaultOPK)                //设置当前商户的默认OPK
 
 		}
@@ -489,7 +488,7 @@ func CreateInitControllersFn(
 			orderGroup.POST("/uploadorderimage", pc.UploadOrderImages)
 
 			//用户端: 买家将订单body经过RSA加密后提交到彩票中心或第三方公证, mqtt客户端来接收
-			orderGroup.POST("/uploadorderbody", pc.UploadOrderBody)
+			// orderGroup.POST("/uploadorderbody", pc.UploadOrderBody)
 
 			//用户端: 根据 OrderID 获取所有订单拍照图片
 			orderGroup.GET("/orderimage/:orderid", pc.DownloadOrderImage)

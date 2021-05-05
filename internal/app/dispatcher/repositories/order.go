@@ -131,6 +131,7 @@ func (s *MysqlLianmiRepository) SaveOrderImagesBlockchain(req *Order.UploadOrder
 
 }
 
+/*
 //修改订单的body类型及body加密阿里云文件上链历史表
 func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) error {
 	var err error
@@ -166,6 +167,7 @@ func (s *MysqlLianmiRepository) SaveOrderBody(req *Order.UploadOrderBodyReq) err
 	_ = err
 	return nil
 }
+*/
 
 //用户端: 根据 OrderID 获取OrderImages表对应的所有订单拍照图片
 func (s *MysqlLianmiRepository) DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error) {

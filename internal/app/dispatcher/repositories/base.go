@@ -246,7 +246,7 @@ type LianmiRepository interface {
 	SaveOrderImagesBlockchain(req *Order.UploadOrderImagesReq, orderTotalAmount float64, blcokNumber uint64, buyUser, businessUser, hash string) error
 
 	//修改订单的body类型及body加密阿里云文件上链历史表
-	SaveOrderBody(req *Order.UploadOrderBodyReq) error
+	// SaveOrderBody(req *Order.UploadOrderBodyReq) error
 
 	//用户端: 根据 OrderID 获取所有订单拍照图片
 	DownloadOrderImage(orderID string) (*Order.DownloadOrderImagesResp, error)
@@ -256,9 +256,6 @@ type LianmiRepository interface {
 
 	//查询VIP会员价格表
 	GetVipPriceList(payType int) (*Auth.GetVipPriceResp, error)
-
-	//获取各种彩票的开售及停售时刻
-	QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error)
 
 	//设置当前商户默认OPK
 	SetDefaultOPK(username, opk string) error

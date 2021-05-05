@@ -1080,46 +1080,6 @@ func (s *MysqlLianmiRepository) AddStoreLike(businessUsername, user string) erro
 	return nil
 }
 
-//获取各种彩票的开售及停售时刻
-func (s *MysqlLianmiRepository) QueryLotterySaleTimes() (*Order.QueryLotterySaleTimesRsp, error) {
-	var err error
-
-	lotterySaleTimesRsp := &Order.QueryLotterySaleTimesRsp{}
-
-	var lotterySaleTimes []*models.LotterySaleTime
-
-	where := models.LotterySaleTime{
-		IsActive: true,
-	}
-
-	db2 := s.db
-	db2, err = s.base.BuildWhere(db2, where)
-	if err != nil {
-		s.logger.Error("BuildWhere错误", zap.Error(err))
-		return nil, err
-	}
-
-	db2.Find(&lotterySaleTimes)
-
-	for _, lotterySaleTime := range lotterySaleTimes {
-
-		orderLotterySaleTime := &Order.LotterySaleTime{
-			LotteryType:   int32(lotterySaleTime.LotteryType),
-			LotteryName:   lotterySaleTime.LotteryName,
-			SaleEndHour:   int32(lotterySaleTime.SaleEndHour),
-			SaleEndMinute: int32(lotterySaleTime.SaleEndMinute),
-		}
-		orderLotterySaleTime.SaleEndWeeks = strings.Split(lotterySaleTime.SaleEndWeek, ",")
-		orderLotterySaleTime.Holidays = strings.Split(lotterySaleTime.Holidays, ",")
-
-		lotterySaleTimesRsp.LotterySaleTimes = append(lotterySaleTimesRsp.LotterySaleTimes, orderLotterySaleTime)
-
-	}
-
-	return lotterySaleTimesRsp, nil
-
-}
-
 //设置当前商户默认OPK
 func (s *MysqlLianmiRepository) SetDefaultOPK(username, opk string) error {
 	var err error
