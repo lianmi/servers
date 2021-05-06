@@ -438,12 +438,12 @@ func CreateInitControllersFn(
 			storeGroup.POST("/list", pc.QueryStoresNearby)       // 不定条件查询店铺列表
 			storeGroup.POST("/productslist", pc.GetProductsList) //获取某个商户的所有商品列表
 			storeGroup.POST("/productlists", pc.GetStoreProductLists)
-			storeGroup.GET("/likes/:id", pc.StoreLikes)                  //获取店铺的所有点赞用户列表
-			storeGroup.GET("/likescount/:id", pc.StoreLikesCount)        //获取店铺的点赞总数
-			storeGroup.POST("/like/:id", pc.ClickLike)                   //对某个店铺进行点赞
-			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)           //取消对某个店铺点赞
-			storeGroup.GET("/islike/:id", pc.GetIsLike)                  //判断当前用户是否对某个店铺点过赞
-			storeGroup.POST("/defaultopk", pc.DefaultOPK)                //设置当前商户的默认OPK
+			storeGroup.GET("/likes/:id", pc.StoreLikes)           //获取店铺的所有点赞用户列表
+			storeGroup.GET("/likescount/:id", pc.StoreLikesCount) //获取店铺的点赞总数
+			storeGroup.POST("/like/:id", pc.ClickLike)            //对某个店铺进行点赞
+			storeGroup.DELETE("/like/:id", pc.DeleteClickLike)    //取消对某个店铺点赞
+			storeGroup.GET("/islike/:id", pc.GetIsLike)           //判断当前用户是否对某个店铺点过赞
+			storeGroup.POST("/defaultopk", pc.DefaultOPK)         //设置当前商户的默认OPK
 
 		}
 
@@ -508,6 +508,8 @@ func CreateInitControllersFn(
 			orderPubGroup.POST("/callback/wechat_test", pc.OrderWechatCallback)
 			// 推送兑奖金额
 			orderGroup.POST("/push_prize", pc.OrderPushPrize)
+			// 通过订单id 查找微信的交易信息
+			orderGroup.GET("/wechat_transactions/:orderid", pc.OrderFindWechatTransactions)
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 
