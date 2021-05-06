@@ -591,7 +591,7 @@ func (nc *NsqClient) SendDataToLotteryCenter(topic string, data []byte, business
 			zap.String("Target:", "lottety-center-guangdong"),
 			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	} else {
-		nc.logger.Error("Failed to send message to Loterry Center", zap.Error(err))
+		nc.logger.Error("Failed to send messag	e to Loterry Center", zap.Error(err))
 	}
 
 	return nil

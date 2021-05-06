@@ -738,7 +738,6 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 			productType = productInfo.(models.GeneralProductInfo).ProductType
 		} else {
 			result, err := pc.service.GetGeneralProductByID(getOrderInfo.ProductId)
-
 			if err != nil {
 				pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
 				return
