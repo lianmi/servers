@@ -779,17 +779,20 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		}
 
 		//orderChangeReq.Time
-
 		// 系统到商户
-		err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.StoreId)
-		if err1 != nil {
-			pc.logger.Error("推送订单变更事件到用户失败")
+		if req.Status == int(Global.OrderState_OS_Confirm) {
+			err1 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.StoreId)
+			if err1 != nil {
+				pc.logger.Error("推送订单变更事件到用户失败")
+			}
 		}
-		err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.UserId)
-		if err2 != nil {
-			pc.logger.Error("推送订单变更事件到商户失败")
+		if req.Status == int(Global.OrderState_OS_Done) {
+			err2 := pc.nsqClient.BroadcastSystemMsgToAllDevices(orderChangeReq, getOrderInfo.UserId)
+			if err2 != nil {
+				pc.logger.Error("推送订单变更事件到商户失败")
+			}
+		}
 
-		}
 	}()
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 	return
