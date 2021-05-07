@@ -913,6 +913,7 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 		return
 	}
 
+	pc.logger.Debug("Response data ", zap.Any("Response", wxRsp.Response))
 	RespData(context, http.StatusOK, codes.SUCCESS, wxRsp.Response)
 	return
 }
