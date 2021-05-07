@@ -509,7 +509,7 @@ func CreateInitControllersFn(
 			// 推送兑奖金额
 			orderGroup.POST("/push_prize", pc.OrderPushPrize)
 			// 通过订单id 查找微信的交易信息
-			// orderGroup.GET("/wechat_transactions/:orderid", pc.OrderFindWechatTransactions)
+			orderGroup.GET("/wechat_transactions/:orderid", pc.OrderFindWechatTransactions)
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
 
