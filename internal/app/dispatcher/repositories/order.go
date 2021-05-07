@@ -596,7 +596,7 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 	}
 
 	// 更新数据库
-	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username, OrderStatus: int(global.OrderState_OS_Prizeed)}).Updates(&models.OrderItems{Prize: prize}).Error
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username}).Updates(&models.OrderItems{Prize: prize, OrderStatus: int(global.OrderState_OS_Prizeed)}).Error
 
 	return currentOrderBuyUserID, err
 }
