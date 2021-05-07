@@ -728,8 +728,6 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		return
 	}
 
-	//
-
 	//// 修改订单状态接口
 	//// 仅能处理 拒单,接单,确认收获这三种状态
 	//// 其他状态均不可以想这个接口处理
@@ -745,8 +743,8 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	// TODO 如果是 完成 则需要推送到 见证中心
 	if req.Status == int(Global.OrderState_OS_Confirm) {
 		// TODO 推送消息 到 见证中心
+		// 使用 - 推送到见证服务器
 
-		
 	}
 
 	go func() {
@@ -855,4 +853,53 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 	}()
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 
+}
+
+func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context) {
+
+	username, _, isok := pc.CheckIsUser(context)
+
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	orderid := context.Param("orderid")
+	// 查询订单的支付状态
+
+	// 查找订单信息
+
+	orderinfo, err := pc.service.GetOrderListByID(orderid)
+
+	if err != nil {
+		// 订单不存在
+		pc.logger.Error("订单不存在", zap.Error(err))
+		RespFail(context, http.StatusNotFound, codes.NONEREGISTER, "未找到订单信息")
+		return
+	}
+
+	if orderinfo.StoreId == username || orderinfo.UserId == username {
+
+	} else {
+		pc.logger.Error("无权访问订单信息")
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "无权访问订单信息")
+		return
+	}
+
+	// TODO 通过商户id 查找 子商户信息 , 目前就只有一个子商户
+	sub_mchid := "1608737479"
+
+	// 订单id 转化
+	OutTradeNo := orderinfo.OrderId
+	orderNo := fmt.Sprintf("%s-%s-%s-%s-%s", OutTradeNo[0:8], OutTradeNo[8:12], OutTradeNo[12:16], OutTradeNo[16:20], OutTradeNo[20:32])
+
+	wxRsp, err := pc.payWechat.V3PartnerQueryOrder(wechat.OutTradeNo, sub_mchid, orderNo)
+	if err != nil {
+		pc.logger.Error("找不到微信订单信息", zap.Error(err))
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "找不到微信订单信息")
+		return
+	}
+
+	RespData(context, http.StatusOK, codes.SUCCESS, wxRsp.Response)
+	return
 }
