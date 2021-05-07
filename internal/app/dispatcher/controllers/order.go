@@ -903,8 +903,8 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 	sub_mchid := "1608737479"
 
 	// 订单id 转化
-	OutTradeNo := orderinfo.OrderId
-	orderNo := fmt.Sprintf("%s-%s-%s-%s-%s", OutTradeNo[0:8], OutTradeNo[8:12], OutTradeNo[12:16], OutTradeNo[16:20], OutTradeNo[20:32])
+
+	orderNo := fmt.Sprintf("%s%s%s%s%s", orderinfo.OrderId[0:8], orderinfo.OrderId[9:13], orderinfo.OrderId[14:18], orderinfo.OrderId[19:23], orderinfo.OrderId[24:36])
 
 	wxRsp, err := pc.payWechat.V3PartnerQueryOrder(wechat.OutTradeNo, sub_mchid, orderNo)
 	if err != nil {
