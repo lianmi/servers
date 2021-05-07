@@ -726,37 +726,38 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	if req.Status == int(Global.OrderState_OS_Confirm) {
 		// TODO 推送消息 到 见证中心
 		// 使用 - 推送到见证服务器
+		go func() {
+			cacheKey := fmt.Sprintf("CacheGetGeneralProductByID:%s", getOrderInfo.ProductId)
 
-		cacheKey := fmt.Sprintf("CacheGetGeneralProductByID:%s", getOrderInfo.ProductId)
+			productInfo, ok := pc.cacheMap[cacheKey]
 
-		productInfo, ok := pc.cacheMap[cacheKey]
+			topic := ""
+			productType := 1
+			if ok {
+				productType = productInfo.(models.GeneralProductInfo).ProductType
+			} else {
+				result, err := pc.service.GetGeneralProductByID(getOrderInfo.ProductId)
+				if err != nil {
+					pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
+					return
+				}
+				productType = result.ProductType
+			}
 
-		topic := ""
-		productType := 1
-		if ok {
-			productType = productInfo.(models.GeneralProductInfo).ProductType
-		} else {
-			result, err := pc.service.GetGeneralProductByID(getOrderInfo.ProductId)
-			if err != nil {
-				pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
+			if productType == 1 {
+				topic = common.Fucai_Topic
+			} else {
+				topic = common.Tiyu_Topic
+			}
+
+			var data []byte
+
+			//TODO  封data
+			if err := pc.nsqClient.SendDataToLotteryCenter(topic, data, 12, 1); err != nil {
+				pc.logger.Error("SendDataToLotteryCenter error", zap.Error(err))
 				return
 			}
-			productType = result.ProductType
-		}
-
-		if productType == 1 {
-			topic = common.Fucai_Topic
-		} else {
-			topic = common.Tiyu_Topic
-		}
-
-		var data []byte
-
-		//TODO  封data
-		if err := pc.nsqClient.SendDataToLotteryCenter(topic, data, 12, 1); err != nil {
-			pc.logger.Error("SendDataToLotteryCenter error", zap.Error(err))
-			return
-		}
+		}()
 
 	}
 
