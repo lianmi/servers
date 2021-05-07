@@ -580,51 +580,19 @@ func (nc *NsqClient) BroadcastSystemMsgToAllDevices(rsp *Msg.RecvMsgEventRsp, to
 
 /*
 向彩票中心推送
+topic: 如果是福彩类型的彩票，则用Common.Fucai_Topic, 如果是体育类型，则用 Common.Tiyu_Topic
 业务号： businessType -12
 业务子号： subtype - 1, 3
 */
-func (nc *NsqClient) BroadcastSystemMsgToLotteryCenter(data []byte, businessType, subtype int) error {
-	// toUser := "lottety-center-guangdong"
-
-	redisConn := nc.redisPool.Get()
-	defer redisConn.Close()
-
-	targetMsg := &models.Message{}
-	// curDeviceKey := fmt.Sprintf("DeviceJwtToken:%s", eDeviceID)
-	// curJwtToken, _ := redis.String(redisConn.Do("GET", curDeviceKey))
-	// nc.logger.Debug("Redis GET ", zap.String("curDeviceKey", curDeviceKey), zap.String("curJwtToken", curJwtToken))
-
-	targetMsg.UpdateID()
-	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-	targetMsg.BuildRouter("Msg", "", "Msg.Frontend")
-
-	targetMsg.SetJwtToken("")
-	targetMsg.SetUserName("dispatcher")
-	targetMsg.SetDeviceID("")
-	// kickMsg.SetTaskID(uint32(taskId))
-	targetMsg.SetBusinessTypeName("Order")
-	targetMsg.SetBusinessType(uint32(businessType)) //12
-	targetMsg.SetBusinessSubType(uint32(subtype))   //1, 3
-
-	targetMsg.BuildHeader("OrderService", time.Now().UnixNano()/1e6)
-
-	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-	targetMsg.SetCode(200) //成功的状态码
-
-	//构建数据完成，向彩票中心推送
-	topic := "lianmi/cloud/lottety-center-guangdong"
-	rawData, _ := json.Marshal(targetMsg)
-	if err := nc.Producer.Public(topic, rawData); err == nil {
-		nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
+func (nc *NsqClient) SendDataToLotteryCenter(topic string, data []byte, businessType, subtype int) error {
+	if err := nc.Producer.Public(topic, data); err == nil {
+		nc.logger.Info("Send Loterry UpChain Msg To Loterry Center Succeed",
+			zap.String("topic", topic),
+			zap.String("Target:", "lottety-center-guangdong"),
+			zap.Int64("Now", time.Now().UnixNano()/1e6))
 	} else {
-		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+		nc.logger.Error("Failed to send messag	e to Loterry Center", zap.Error(err))
 	}
-
-	nc.logger.Info("Broadcast Loterry UpChain Msg To Loterry Center Succeed",
-		zap.String("ToUsername:", "lottety-center-guangdong"),
-		zap.String("DeviceID:", ""),
-		zap.Int64("Now", time.Now().UnixNano()/1e6))
 
 	return nil
 }
