@@ -752,6 +752,25 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 
 			var data []byte
 
+			poeData := Order.PoeDataResp{}
+			// 通过 订单id 获取订单信息
+
+			orderinfo, err := pc.service.GetOrderListByID(req.OrderID)
+			if err != nil {
+				pc.logger.Error("上联数据拼接是失败,获取不到订单信息", zap.Error(err))
+			}
+			poeData.OrderID = orderinfo.OrderId
+			poeData.UserId = orderinfo.UserId
+			poeData.StoreId = orderinfo.StoreId
+			poeData.Attach = []byte(orderinfo.Body)
+			poeData.Time = uint64(time.Now().UnixNano() / 1e6)
+
+			data, err = proto.Marshal(&poeData)
+			if err != nil {
+				pc.logger.Error("序列化失败", zap.Error(err))
+				return
+			}
+
 			//TODO  封data
 			if err := pc.nsqClient.SendDataToLotteryCenter(topic, data, 12, 1); err != nil {
 				pc.logger.Error("SendDataToLotteryCenter error", zap.Error(err))
@@ -868,6 +887,56 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 			pc.logger.Error("推送订单变更事件到用户失败")
 		}
 
+	}()
+
+	// 上链
+	go func() {
+
+		var data []byte
+
+		poeData := Order.PoeOrderPrizeResp{}
+		// 通过 订单id 获取订单信息
+
+		orderinfo, err := pc.service.GetOrderListByID(req.OrderID)
+		if err != nil {
+			pc.logger.Error("上联数据拼接是失败,获取不到订单信息", zap.Error(err))
+		}
+		poeData.OrderID = orderinfo.OrderId
+		poeData.PrizeAmount = uint64(req.Prize)
+		poeData.Time = uint64(time.Now().UnixNano() / 1e6)
+
+		data, err = proto.Marshal(&poeData)
+		if err != nil {
+			pc.logger.Error("序列化失败", zap.Error(err))
+			return
+		}
+		cacheKey := fmt.Sprintf("CacheGetGeneralProductByID:%s", orderinfo.ProductId)
+
+		productInfo, ok := pc.cacheMap[cacheKey]
+
+		topic := ""
+		productType := 1
+		if ok {
+			productType = productInfo.(models.GeneralProductInfo).ProductType
+		} else {
+			result, err := pc.service.GetGeneralProductByID(orderinfo.ProductId)
+			if err != nil {
+				pc.logger.Error("get GeneralProduct by productId error", zap.Error(err))
+				return
+			}
+			productType = result.ProductType
+		}
+
+		if productType == 1 {
+			topic = common.Fucai_Topic
+		} else {
+			topic = common.Tiyu_Topic
+		}
+		//TODO  封data
+		if err := pc.nsqClient.SendDataToLotteryCenter(topic, data, 12, 3); err != nil {
+			pc.logger.Error("SendDataToLotteryCenter error", zap.Error(err))
+			return
+		}
 	}()
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 
