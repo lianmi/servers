@@ -802,8 +802,9 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 	//
 	type ReqPushPrizeData struct {
-		OrderID string  `json:"order_id"   binding:"required" `
-		Prize   float64 `json:"prize"  binding:"required"  `
+		OrderID     string  `json:"order_id"   binding:"required" `
+		Prize       float64 `json:"prize"  binding:"required"  `
+		PrizedPhoto string  `json:"prized_photo"  binding:"required"  `
 	}
 
 	username, _, isok := pc.CheckIsUser(context)
@@ -831,7 +832,7 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 		return
 	}
 
-	buyUser, err := pc.service.OrderPushPrize(username, req.OrderID, req.Prize)
+	buyUser, err := pc.service.OrderPushPrize(username, req.OrderID, req.Prize, req.PrizedPhoto)
 
 	if err != nil {
 		pc.logger.Error("OrderPushPrize fail ", zap.Error(err))

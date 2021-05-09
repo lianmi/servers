@@ -261,7 +261,7 @@ type LianmiApisService interface {
 	//从redis里获取订单当前最新的数据及状态
 	GetOrderInfo(orderID string) (*models.OrderInfo, error)
 	// 处理订单兑奖业务 username 当前token 的用户 orderID 处理的订单 . prize 兑奖的金额 , 并返回购买的用户id
-	OrderPushPrize(username string, orderID string, prize float64) (string, error)
+	OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -918,7 +918,7 @@ func (s *DefaultLianmiApisService) GetOrderInfo(orderID string) (*models.OrderIn
 
 }
 
-func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID string, prize float64) (string, error) {
+func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error) {
 	// 更新数据库
-	return s.Repository.OrderPushPrize(username, orderID, prize)
+	return s.Repository.OrderPushPrize(username, orderID, prize, prizedPhoto)
 }

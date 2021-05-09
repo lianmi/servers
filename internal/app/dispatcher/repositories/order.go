@@ -540,7 +540,7 @@ func (s *MysqlLianmiRepository) GetStoreOpkByBusiness(id string) (string, error)
 	}
 }
 
-func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, prize float64) (string, error) {
+func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error) {
 	//panic("implement me")
 	// 获取订单信息
 	//BusinessUser
@@ -589,6 +589,7 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 		// "Type", req.OrderType, //订单类型
 		"State", int(Global.OrderState_OS_Prizeed), //订单状态,初始为 发送订单
 		"Prize", prize, // 兑奖的金额
+		"PrizedPhoto", prizedPhoto, // 兑奖的objid
 	)
 	if err != nil {
 		s.logger.Error("HMSET Error", zap.Error(err))
@@ -596,7 +597,7 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 	}
 
 	// 更新数据库
-	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username}).Updates(&models.OrderItems{Prize: prize, OrderStatus: int(global.OrderState_OS_Prizeed)}).Error
+	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username}).Updates(&models.OrderItems{Prize: prize, OrderStatus: int(global.OrderState_OS_Prizeed), PrizedPhoto: prizedPhoto}).Error
 
 	return currentOrderBuyUserID, err
 }

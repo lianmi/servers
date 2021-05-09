@@ -84,8 +84,9 @@ type OrderItems struct {
 	Fee            float64        `json:"fee"`
 	CouponID       string         `json:"coupon_id"`
 	ImageHash      string         `json:"image_hash"`
-	TicketCode     int64          `json:"ticket_code"` //出票码, redis里递增
-	Prize          float64        `json:"prize"`       //中奖金额
+	TicketCode     int64          `json:"ticket_code"`  //出票码, redis里递增
+	Prize          float64        `json:"prize"`        //中奖金额
+	PrizedPhoto    string         `json:"prized_photo"` // 兑奖的图片
 	//StoreInfo    User           `json:"-" gorm:"foreignKey:StoreId;references:Username" `
 	//UserInfo     User           `json:"-" gorm:"foreignKey:UserId;references:Username" `
 }
