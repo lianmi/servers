@@ -54,7 +54,7 @@ func main() {
 	bm := make(gopay.BodyMap)
 	bm.Set("nonce_str", util.GetRandomString(32)).
 		Set("transaction_id", "4200001000202104297029667273").
-		// Set("sub_mch_id", WechatPay_SUBmchId). 不需要
+		Set("sub_mch_id", WechatPay_SUBmchId).
 		// Set("sub_appid", WechatPay_SUBAppid). 不需要
 		// Set("appid", WechatPay_appID). 不需要
 		// Set("mch_id", WechatPay_mchId). 不需要

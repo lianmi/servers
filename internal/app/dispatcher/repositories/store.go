@@ -257,6 +257,8 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 //多条件查询店铺列表
 func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Order.QueryStoresNearbyResp, error) {
 
+	s.logger.Debug("多条件查询店铺列表 GetStores", zap.Any("传参 Order.QueryStoresNearbyReq", req))
+
 	var err error
 
 	redisConn := s.redisPool.Get()
