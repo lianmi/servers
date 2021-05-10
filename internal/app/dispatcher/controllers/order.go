@@ -399,7 +399,6 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	// 参数处理成功
 
 	notifyReq, err := wechat.V3ParseNotify(context.Request)
-	//noti, err := wxpay.GetTradeNotification(context.Request, common.WechatPay_apiKey)
 
 	if err != nil {
 		pc.logger.Debug("无法解析微信支付回调的信息", zap.Error(err))
@@ -409,7 +408,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	//dataBody, _ := context.GetRawData()
 
 	pc.logger.Debug("wx callbakc log ", zap.Any("req", notifyReq))
-	result, err := notifyReq.DecryptCipherText(common.WechatPay_apiKey)
+	result, err := notifyReq.DecryptCipherText(common.WechatPay_apiV3Key)
 
 	if err != nil {
 		pc.logger.Debug("无法解析微信支付回调的信息 2 ", zap.Error(err))
