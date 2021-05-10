@@ -67,7 +67,12 @@ func CreateInitControllersFn(
 ) httpImpl.InitControllers {
 
 	var errPay error
-	pc.payWechat, errPay = wechat.NewClientV3(common.WechatPay_appID, common.WechatPay_mchId, common.WechatPay_serierNo, common.WechatPay_apiKey, common.Wechat_apiV3Key)
+	pc.payWechat, errPay = wechat.NewClientV3(
+		common.WechatPay_appID,
+		common.WechatPay_mchId,
+		common.WechatPay_serierNo,
+		common.WechatPay_apiV3Key,
+		common.Wechat_pkContent)
 
 	if errPay != nil {
 		pc.logger.Warn("微信支付初始化失败")
