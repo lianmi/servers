@@ -309,6 +309,9 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 	if req.Address != "" {
 		wheres = append(wheres, []interface{}{"address like ? ", "%" + req.Address + "%"})
 	}
+	if req.Keys != "" {
+		wheres = append(wheres, []interface{}{"keys like ? ", "%" + req.Keys + "%"})
+	}
 
 	db2 := s.db
 	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, pageIndex, pageSize)
