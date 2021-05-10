@@ -307,9 +307,11 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 		}*/
 
 	if req.Address != "" {
+		s.logger.Debug(req.Address)
 		wheres = append(wheres, []interface{}{"address like ? ", "%" + req.Address + "%"})
 	}
 	if req.Keys != "" {
+		s.logger.Debug(req.Keys)
 		wheres = append(wheres, []interface{}{"keys like ? ", "%" + req.Keys + "%"})
 	}
 
