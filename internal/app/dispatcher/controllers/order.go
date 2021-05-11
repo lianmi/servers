@@ -1006,6 +1006,7 @@ func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
 	if err != nil {
 		pc.logger.Error("删除失败", zap.Error(err))
 		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
+		return
 	}
 
 	RespOk(context, http.StatusOK, codes.SUCCESS)
