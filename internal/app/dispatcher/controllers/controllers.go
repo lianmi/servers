@@ -518,7 +518,7 @@ func CreateInitControllersFn(
 			//当前用户删除自己的订单
 			orderGroup.POST("/delete/:id", pc.OrderDeleteByUserIDAndOrderID)
 			// 删除当前用户的所有订单
-			orderGroup.POST("/delete", pc.OrderDeleteByUserID)
+			orderGroup.POST("/clearall", pc.OrderDeleteByUserID)
 			//
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}
