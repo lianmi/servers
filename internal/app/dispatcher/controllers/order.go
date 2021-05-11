@@ -990,3 +990,24 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 	RespData(context, http.StatusOK, codes.SUCCESS, wxRsp.Response)
 	return
 }
+
+func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
+	username, _, isok := pc.CheckIsUser(context)
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+	// 删除自己的订单
+	orderid := context.Param("id")
+
+	// 删除用户的订单
+	err := pc.service.OrderDeleteByUserAndOrderid(username, orderid)
+
+	if err != nil {
+		pc.logger.Error("删除失败", zap.Error(err))
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
+	}
+
+	RespOk(context, http.StatusOK, codes.SUCCESS)
+	return
+}

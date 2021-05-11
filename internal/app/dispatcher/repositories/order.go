@@ -611,3 +611,9 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 
 	return currentOrderBuyUserID, err
 }
+
+func (s *MysqlLianmiRepository) OrderDeleteByUserAndOrderid(username string, orderid string) error {
+	//panic("implement me")
+	err := s.db.Model(&models.OrderItems{UserId: username, OrderId: orderid}).Delete(&models.OrderItems{}).Error
+	return err
+}

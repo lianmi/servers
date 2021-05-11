@@ -262,6 +262,8 @@ type LianmiApisService interface {
 	GetOrderInfo(orderID string) (*models.OrderInfo, error)
 	// 处理订单兑奖业务 username 当前token 的用户 orderID 处理的订单 . prize 兑奖的金额 , 并返回购买的用户id
 	OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error)
+	// 通过用户名和订单id 删除这条订单
+	OrderDeleteByUserAndOrderid(username string, orderid string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -921,4 +923,10 @@ func (s *DefaultLianmiApisService) GetOrderInfo(orderID string) (*models.OrderIn
 func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error) {
 	// 更新数据库
 	return s.Repository.OrderPushPrize(username, orderID, prize, prizedPhoto)
+}
+
+func (s *DefaultLianmiApisService) OrderDeleteByUserAndOrderid(username string, orderid string) error {
+	//panic("implement me")
+	return s.Repository.OrderDeleteByUserAndOrderid(username, orderid)
+
 }
