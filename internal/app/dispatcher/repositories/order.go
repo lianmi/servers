@@ -617,3 +617,8 @@ func (s *MysqlLianmiRepository) OrderDeleteByUserAndOrderid(username string, ord
 	err := s.db.Model(&models.OrderItems{}).Delete(&models.OrderItems{UserId: username, OrderId: orderid}).Error
 	return err
 }
+
+func (s *MysqlLianmiRepository) DeleteUserOrdersByUserID(username string) error {
+	err := s.db.Model(&models.OrderItems{}).Delete(&models.OrderItems{UserId: username}).Error
+	return err
+}

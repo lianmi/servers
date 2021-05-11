@@ -516,7 +516,9 @@ func CreateInitControllersFn(
 			// 通过订单id 查找微信的交易信息
 			orderGroup.GET("/wechat_transactions/:orderid", pc.OrderFindWechatTransactions)
 			//当前用户删除自己的订单
-			orderGroup.POST("/delete/:id", pc.OrderDeleteByUserID)
+			orderGroup.POST("/delete/:id", pc.OrderDeleteByUserIDAndOrderID)
+			// 删除当前用户的所有订单
+			orderGroup.POST("/delete", pc.OrderDeleteByUserID)
 			//
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)
 		}

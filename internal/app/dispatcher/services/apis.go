@@ -264,6 +264,8 @@ type LianmiApisService interface {
 	OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error)
 	// 通过用户名和订单id 删除这条订单
 	OrderDeleteByUserAndOrderid(username string, orderid string) error
+	// 删除该用户名的所有订单
+	DeleteUserOrdersByUserID(username string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -929,4 +931,8 @@ func (s *DefaultLianmiApisService) OrderDeleteByUserAndOrderid(username string, 
 	//panic("implement me")
 	return s.Repository.OrderDeleteByUserAndOrderid(username, orderid)
 
+}
+
+func (s *DefaultLianmiApisService) DeleteUserOrdersByUserID(username string) error {
+	return s.Repository.DeleteUserOrdersByUserID(username)
 }

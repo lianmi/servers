@@ -991,7 +991,7 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 	return
 }
 
-func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
+func (pc *LianmiApisController) OrderDeleteByUserIDAndOrderID(context *gin.Context) {
 	username, _, isok := pc.CheckIsUser(context)
 	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
@@ -1000,15 +1000,35 @@ func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
 	// 删除自己的订单
 	orderid := context.Param("id")
 
-	// 删除用户的订单
+	if orderid == "" {
+		// 删除所有的
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		return
+	}
+	// 删除单个用户的订单
 	err := pc.service.OrderDeleteByUserAndOrderid(username, orderid)
-
 	if err != nil {
 		pc.logger.Error("删除失败", zap.Error(err))
 		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
 		return
 	}
+	RespOk(context, http.StatusOK, codes.SUCCESS)
+	return
+}
 
+func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
+	username, _, isok := pc.CheckIsUser(context)
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	err := pc.service.DeleteUserOrdersByUserID(username)
+	if err != nil {
+		pc.logger.Error("删除失败", zap.Error(err))
+		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
+		return
+	}
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 	return
 }
