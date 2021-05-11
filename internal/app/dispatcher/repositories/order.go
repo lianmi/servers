@@ -324,9 +324,9 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 		//err = db2.Find(p).Error
 
 		err = s.db.Model(&models.OrderItems{}).
-			Where("user_id = ? or store_id = ? ", username, username).
+			Where("user_id = ? or store_id = ? and order_status != ? ", username, username, int(global.OrderState_OS_Paying)).
 			Where(&models.OrderItems{OrderStatus: status}).
-			Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
+			//Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
 			Order(orderBy).
 			Limit(limit).
 			Offset(offset).
