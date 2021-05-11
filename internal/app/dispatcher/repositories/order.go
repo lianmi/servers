@@ -298,7 +298,7 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	//panic("implement me")
 	p = new([]models.OrderItems)
 	if status == 0 {
-		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Or(&models.OrderItems{StoreId: username}).Limit(limit).Offset(offset).Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Or(&models.OrderItems{StoreId: username}).Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).Limit(limit).Offset(offset).Find(p).Error
 	} else {
 		// err = s.db.Model(&models.OrderItems{}).Where(" ( user_id = ? or store_id = ? ) and order_status = ?  ", username, username, status).Limit(limit).Offset(offset).Find(p).Error
 
@@ -324,7 +324,7 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 		//err = db2.Find(p).Error
 
 		err = s.db.Model(&models.OrderItems{}).
-			Where("user_id = ? or store_id = ? and order_status != ? ", username, username, int(global.OrderState_OS_Paying)).
+			Where("user_id = ? or store_id = ? ", username, username).
 			Where(&models.OrderItems{OrderStatus: status}).
 			//Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
 			Order(orderBy).
