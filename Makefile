@@ -243,4 +243,4 @@ all: lint cover docker
 
 .PHONY: docker-clean
 docker-clean:
-	-docker rmi $(shell docker images --filter "dangling=true" -q --no-trunc)
+	docker rmi $(shell docker images --filter "dangling=true" -q --no-trunc)
