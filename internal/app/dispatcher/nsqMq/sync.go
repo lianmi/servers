@@ -200,7 +200,9 @@ func (nc *NsqClient) SyncFriendsAt(username, token, deviceID string, req Sync.Sy
 			if err != nil {
 				nc.logger.Error("HGET Avatar error", zap.Error(err))
 			}
-			if (avatar != "") && !strings.HasPrefix(avatar, "http") {
+			if strings.HasPrefix(avatar, "http") || strings.HasPrefix(avatar, "https") {
+				//
+			} else {
 
 				avatar = LMCommon.OSSUploadPicPrefix + avatar + "?x-oss-process=image/resize,w_50/quality,q_50"
 			}

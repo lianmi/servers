@@ -212,7 +212,9 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		return nil, errors.Wrapf(err, "Query error[BusinessUsername=%s]", businessUsername)
 	}
 	//智能判断一下，是否是带 http(s) 前缀
-	if !strings.HasPrefix(avatar, "http") {
+	if strings.HasPrefix(avatar, "http") || strings.HasPrefix(avatar, "https") {
+		//
+	} else {
 
 		avatar = LMCommon.OSSUploadPicPrefix + avatar //拼接URL
 
@@ -220,7 +222,14 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 
 	var imageURL, licenseURL string
 	if p.ImageURL != "" {
-		imageURL = LMCommon.OSSUploadPicPrefix + p.ImageURL
+		if strings.HasPrefix(p.ImageURL, "http") || strings.HasPrefix(p.ImageURL, "https") {
+			imageURL = p.ImageURL
+		} else {
+
+			imageURL = LMCommon.OSSUploadPicPrefix + p.ImageURL //拼接URL
+
+		}
+
 	}
 
 	if p.LicenseURL != "" {
