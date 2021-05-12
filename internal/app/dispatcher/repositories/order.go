@@ -298,29 +298,39 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	//panic("implement me")
 	p = new([]models.OrderItems)
 	if status == 0 {
-		err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Or(&models.OrderItems{StoreId: username}).Limit(limit).Offset(offset).Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ? ", username, username, int(global.OrderState_OS_Paying)).Limit(limit).Offset(offset).Find(p).Error
 	} else {
 		// err = s.db.Model(&models.OrderItems{}).Where(" ( user_id = ? or store_id = ? ) and order_status = ?  ", username, username, status).Limit(limit).Offset(offset).Find(p).Error
 
-		columns := []string{"*"}
+		//columns := []string{"*"}
 		orderBy := "updated_at desc"
 
 		redisConn := s.redisPool.Get()
 		defer redisConn.Close()
 
-		wheres := make([]interface{}, 0)
-		wheres = append(wheres, []interface{}{"order_status", status})
+		// 读取我的用户是不是商户
+		//wheres := make([]interface{}, 0)
+		//wheres = append(wheres, []interface{}{"order_status", status})
+		//
+		//if username != "" {
+		//	wheres = append(wheres, []interface{}{"user_id = ? or store_id = ?", username, username})
+		//}
+		//
+		//db2 := s.db
+		//db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, offset, limit)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//err = db2.Find(p).Error
 
-		if username != "" {
-			wheres = append(wheres, []interface{}{"user_id = ? or store_id = ?", username, username})
-		}
-
-		db2 := s.db
-		db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, offset, limit)
-		if err != nil {
-			return nil, err
-		}
-		err = db2.Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).
+			Where("user_id = ? or store_id = ? ", username, username).
+			Where(&models.OrderItems{OrderStatus: status}).
+			//Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
+			Order(orderBy).
+			Limit(limit).
+			Offset(offset).
+			Find(p).Error
 
 		if err != nil {
 			s.logger.Error("Find错误", zap.Error(err))
@@ -600,4 +610,15 @@ func (s *MysqlLianmiRepository) OrderPushPrize(username string, orderID string, 
 	err = s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{OrderId: orderID, StoreId: username}).Updates(&models.OrderItems{Prize: prize, OrderStatus: int(global.OrderState_OS_Prizeed), PrizedPhoto: prizedPhoto}).Error
 
 	return currentOrderBuyUserID, err
+}
+
+func (s *MysqlLianmiRepository) OrderDeleteByUserAndOrderid(username string, orderid string) error {
+	//panic("implement me")
+	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username, OrderId: orderid}).Delete(&models.OrderItems{}).Error
+	return err
+}
+
+func (s *MysqlLianmiRepository) DeleteUserOrdersByUserID(username string) error {
+	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Delete(&models.OrderItems{}).Error
+	return err
 }
