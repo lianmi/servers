@@ -302,35 +302,35 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	} else {
 		// err = s.db.Model(&models.OrderItems{}).Where(" ( user_id = ? or store_id = ? ) and order_status = ?  ", username, username, status).Limit(limit).Offset(offset).Find(p).Error
 
-		//columns := []string{"*"}
+		columns := []string{"*"}
 		orderBy := "updated_at desc"
 
 		redisConn := s.redisPool.Get()
 		defer redisConn.Close()
 
-		// 读取我的用户是不是商户
-		//wheres := make([]interface{}, 0)
-		//wheres = append(wheres, []interface{}{"order_status", status})
-		//
-		//if username != "" {
-		//	wheres = append(wheres, []interface{}{"user_id = ? or store_id = ?", username, username})
-		//}
-		//
-		//db2 := s.db
-		//db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, offset, limit)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//err = db2.Find(p).Error
+		//读取我的用户是不是商户
+		wheres := make([]interface{}, 0)
+		wheres = append(wheres, []interface{}{"order_status", status})
 
-		err = s.db.Model(&models.OrderItems{}).
-			Where("user_id = ? or store_id = ? ", username, username).
-			Where(&models.OrderItems{OrderStatus: status}).
-			//Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
-			Order(orderBy).
-			Limit(limit).
-			Offset(offset).
-			Find(p).Error
+		if username != "" {
+			wheres = append(wheres, []interface{}{"user_id = ? or store_id = ?", username, username})
+		}
+
+		db2 := s.db
+		db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, offset, limit)
+		if err != nil {
+			return nil, err
+		}
+		err = db2.Find(p).Error
+
+		//err = s.db.Model(&models.OrderItems{}).
+		//	Where("user_id = ? or store_id = ? ", username, username).
+		//	Where(&models.OrderItems{OrderStatus: status}).
+		//	//Not(&models.OrderItems{OrderStatus: int(global.OrderState_OS_Paying)}).
+		//	Order(orderBy).
+		//	Limit(limit).
+		//	Offset(offset).
+		//	Find(p).Error
 
 		if err != nil {
 			s.logger.Error("Find错误", zap.Error(err))
