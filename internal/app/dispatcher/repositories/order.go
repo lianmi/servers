@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"fmt"
+	"strconv"
+	"unicode"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
@@ -629,8 +631,47 @@ func (s *MysqlLianmiRepository) DeleteUserOrdersByUserID(username string) error 
 
 func (s *MysqlLianmiRepository) OrderSerachByKeyWord(username string, word string, status int, limit int, offset int, startTime int64, endTime int64) (p *[]models.OrderItems, err error) {
 	//panic("implement me")
+
 	p = new([]models.OrderItems)
 	currentDB := s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ?", username, username, int(global.OrderState_OS_Paying))
+	exactness := false
+	if word != "" {
+		// 不为空 则是 精确查找
+		exactness = true
+	}
+	// 判断是不是出票码
+	var isDigit bool = false
+	if exactness {
+		s.logger.Debug("OrderSerachByKeyWord db 精确查找", zap.String("word", word))
+		for _, r := range word {
+			isDigit = unicode.IsNumber(r)
+			if !isDigit {
+				break
+			}
+		}
+		//
+		if isDigit {
+			// 如果是纯数字就是出票码 直接搜索这个出票码
+			// 转化成数字
+			s.logger.Debug("通过 出票码 查找")
+			ticketCode, err := strconv.ParseInt(word, 10, 64)
+			if err != nil {
+				s.logger.Error("OrderSerachByKeyWord db ", zap.Error(err))
+				return nil, fmt.Errorf("关键子有误")
+			}
+
+			err = currentDB.Where(&models.OrderItems{TicketCode: ticketCode}).Find(p).Error
+			return p, err
+		} else {
+			// 通过订单查找
+			s.logger.Debug("通过 订单id 查找")
+			err = currentDB.Where(&models.OrderItems{OrderId: word}).Find(p).Error
+			return p, err
+		}
+	} else {
+		// 模糊查找
+		s.logger.Debug("OrderSerachByKeyWord db 模糊查找")
+	}
 
 	if status != 0 {
 		currentDB = currentDB.Where(&models.OrderItems{OrderStatus: status})
