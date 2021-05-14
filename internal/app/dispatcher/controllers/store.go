@@ -4,11 +4,11 @@
 package controllers
 
 import (
+	"github.com/lianmi/servers/internal/pkg/models"
 	"net/http"
 	// "time"
 
 	Order "github.com/lianmi/servers/api/proto/order"
-	User "github.com/lianmi/servers/api/proto/user"
 	"go.uber.org/zap"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -131,7 +131,7 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		return
 	}
 
-	var req User.Store
+	var req models.Store
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
 		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
@@ -157,7 +157,7 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 			RespData(c, http.StatusOK, code, "联系手机必填")
 			return
 		}
-		if req.ImageUrl == "" {
+		if req.ImageURL == "" {
 			RespData(c, http.StatusOK, code, "商户店铺外景图片必填")
 			return
 		}

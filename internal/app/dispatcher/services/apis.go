@@ -176,7 +176,7 @@ type LianmiApisService interface {
 	DeleteFriend(userID, friendUserID uint64) error
 
 	// 增加或修改店铺资料
-	AddStore(req *User.Store) error
+	AddStore(req *models.Store) error
 
 	GetStore(businessUsername string) (*User.Store, error)
 
@@ -654,7 +654,7 @@ func (s *DefaultLianmiApisService) AddTag(tag *models.Tag) error {
 }
 
 //修改或增加店铺资料
-func (s *DefaultLianmiApisService) AddStore(req *User.Store) error {
+func (s *DefaultLianmiApisService) AddStore(req *models.Store) error {
 	return s.Repository.AddStore(req)
 }
 

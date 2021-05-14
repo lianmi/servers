@@ -15,30 +15,37 @@ import (
 type Store struct {
 	global.LMC_Model
 
-	StoreUUID             string `gorm:"primarykey" form:"store_uuid" json:"store_uuid" `                       //店铺的uuid
-	StoreType             int    `form:"store_type" json:"store_type"`                                          //店铺类型,对应Global.proto里的StoreType枚举
-	ImageURL              string `form:"image_url" json:"image_url" `                                           //店铺外景照片或产品图片
-	BusinessUsername      string `form:"business_username" json:"business_username" `                           //商户注册号
-	Introductory          string `gorm:"type:longtext;null" form:"introductory" json:"introductory,omitempty" ` //商店简介 Text文本类型
-	Keys                  string `form:"keys" json:"keys,omitempty" `                                           //商户经营范围搜索关键字
-	ContactMobile         string `form:"contact_mobile" json:"contact_mobile,omitempty" `                       //联系电话
-	WeChat                string `form:"wechat" json:"wechat,omitempty" `                                       //商户联系人微信号
-	Branchesname          string `form:"branches_name" json:"branches_name,omitempty" `                         //网点名称
-	OpeningHours          string `form:"opening_hours" json:"opening_hours,omitempty"`                          //营业时间
-	Province              string `form:"province" json:"province,omitempty" `                                   //省份, 如广东省
-	City                  string `form:"city" json:"city,omitempty" `                                           //城市，如广州市
-	Area                  string `form:"area" json:"area,omitempty" `                                           //区，如天河区
-	Street                string `form:"street" json:"street,omitempty" `                                       //街道
-	Address               string `form:"address" json:"address,omitempty" `                                     //地址
-	LegalPerson           string `form:"legal_person" json:"legal_person,omitempty" `                           //法人姓名
-	LegalIdentityCard     string `form:"legal_identity_card" json:"legal_identity_card,omitempty" `             //法人身份证
-	Longitude             string `form:"longitude" json:"longitude,omitempty" `                                 //商户地址的经度
-	Latitude              string `form:"latitude" json:"latitude,omitempty" `                                   //商户地址的纬度
-	LicenseURL            string `form:"license_url" json:"license_url" `                                       //商户营业执照阿里云url
-	AuditState            int    `form:"audit_state" json:"audit_state"`                                        //审核状态，0-预审核，1-审核通过, 2-占位
-	DefaultOPK            string `form:"default_opk" json:"default_opk,omitempty"`                              //商户的默认OPK
-	BusinessCode          string `form:"business_code" json:"business_code,omitempty"`                          //商户的网点编码，适合彩票店或连锁网点
-	NotaryServiceUsername string `form:"notary_service_username" json:"notary_service_username,omitempty"`      //商户对应的公证处注册id
+	StoreUUID             string `gorm:"primarykey" form:"store_uuid" json:"store_uuid" `             //店铺的uuid
+	StoreType             int    `form:"store_type" json:"storeType"`                                 //店铺类型,对应Global.proto里的StoreType枚举
+	ImageURL              string `form:"image_url" json:"imageUrl" `                                  //店铺外景照片或产品图片
+	BusinessUsername      string `form:"business_username" json:"business_username" `                 //商户注册号
+	Introductory          string `gorm:"type:longtext;null" form:"introductory" json:"introductory" ` //商店简介 Text文本类型
+	Keys                  string `form:"keys" json:"keys" `                                           //商户经营范围搜索关键字
+	ContactMobile         string `form:"contact_mobile" json:"contactMobile" `                        //联系电话
+	WeChat                string `form:"wechat" json:"wechat" `                                       //商户联系人微信号
+	Branchesname          string `form:"branches_name" json:"branches_name" `                         //网点名称
+	OpeningHours          string `form:"opening_hours" json:"openingHours"`                           //营业时间
+	Province              string `form:"province" json:"province" `                                   //省份, 如广东省
+	City                  string `form:"city" json:"city" `                                           //城市，如广州市
+	Area                  string `form:"area" json:"area" `                                           //区，如天河区
+	Street                string `form:"street" json:"street" `                                       //街道
+	Address               string `form:"address" json:"address" `                                     //地址
+	LegalPerson           string `form:"legal_person" json:"legalPerson" `                            //法人姓名
+	LegalIdentityCard     string `form:"legal_identity_card" json:"legalIdentityCard" `               //法人身份证
+	Longitude             string `form:"longitude" json:"longitude" `                                 //商户地址的经度
+	Latitude              string `form:"latitude" json:"latitude" `                                   //商户地址的纬度
+	LicenseURL            string `form:"license_url" json:"businessLicenseUrl" `                      //商户营业执照阿里云url
+	AuditState            int    `form:"audit_state" json:"audit_state"`                              //审核状态，0-预审核，1-审核通过, 2-占位
+	DefaultOPK            string `form:"default_opk" json:"default_opk"`                              //商户的默认OPK
+	BusinessCode          string `form:"business_code" json:"businessCode"`                           //商户的网点编码，适合彩票店或连锁网点
+	NotaryServiceUsername string `form:"notary_service_username" json:"notary_service_username"`      //商户对应的公证处注册id
+	// 新增
+	IdCardFrontPhoto string `json:"idCardFrontPhoto"` // 身份证 正面
+	IdCardBackPhoto  string `json:"idCardBackPhoto"`  // 身份证 背面
+	CardOwner        string `json:"cardOwner"`        // 银行卡持有者姓名
+	BankName         string `json:"bankName"`         // 银行名称
+	BankBranch       string `json:"bankBranch"`       // 银行支行
+	CardNumber       string `json:"cardNumber"`       // 银行卡号
 }
 
 //BeforeCreate CreatedAt赋值
