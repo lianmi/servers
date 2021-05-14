@@ -1032,3 +1032,39 @@ func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
 	RespOk(context, http.StatusOK, codes.SUCCESS)
 	return
 }
+
+func (pc *LianmiApisController) OrderSerachByKeyWord(context *gin.Context) {
+	username, _, isok := pc.CheckIsUser(context)
+	if !isok {
+		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type ReqKeyWordDataType struct {
+		KeyWord   string `json:"key_word"  binding:"required"  `
+		Limit     int    `json:"limit"`
+		Offset    int    `json:"offset"`
+		StartTime int64  `json:"start_time"`
+		EndTime   int64  `json:"end_time"`
+		Status    int    `json:"status"`
+	}
+
+	var req ReqKeyWordDataType
+	if err := context.BindJSON(&req); err != nil {
+		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		return
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+
+	orderList, err := pc.service.OrderSerachByKeyWord(username, req.KeyWord, req.Status, req.Limit, req.Offset, req.StartTime, req.EndTime)
+
+	if err != nil {
+		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
+		return
+	}
+
+	RespData(context, http.StatusOK, codes.SUCCESS, orderList)
+}

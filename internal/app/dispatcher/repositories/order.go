@@ -298,7 +298,11 @@ func (s *MysqlLianmiRepository) GetOrderListByUser(username string, limit int, o
 	//panic("implement me")
 	p = new([]models.OrderItems)
 	if status == 0 {
-		err = s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ? ", username, username, int(global.OrderState_OS_Paying)).Limit(limit).Offset(offset).Find(p).Error
+		err = s.db.Model(&models.OrderItems{}).
+			Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ? ", username, username, int(global.OrderState_OS_Paying)).
+			Limit(limit).
+			Offset(offset).
+			Find(p).Error
 	} else {
 		// err = s.db.Model(&models.OrderItems{}).Where(" ( user_id = ? or store_id = ? ) and order_status = ?  ", username, username, status).Limit(limit).Offset(offset).Find(p).Error
 
@@ -621,4 +625,24 @@ func (s *MysqlLianmiRepository) OrderDeleteByUserAndOrderid(username string, ord
 func (s *MysqlLianmiRepository) DeleteUserOrdersByUserID(username string) error {
 	err := s.db.Model(&models.OrderItems{}).Where(&models.OrderItems{UserId: username}).Delete(&models.OrderItems{}).Error
 	return err
+}
+
+func (s *MysqlLianmiRepository) OrderSerachByKeyWord(username string, word string, status int, limit int, offset int, startTime int64, endTime int64) (p *[]models.OrderItems, err error) {
+	//panic("implement me")
+	p = new([]models.OrderItems)
+	currentDB := s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ?", username, username, int(global.OrderState_OS_Paying))
+
+	if status != 0 {
+		currentDB = currentDB.Where(&models.OrderItems{OrderStatus: status})
+	}
+
+	if startTime == 0 || endTime == 0 {
+		// 其中一个时间 不填都不能查询范围
+	} else {
+		// 查询范围
+		currentDB = currentDB.Where(" created_at > ? and created_at < ? ", startTime, endTime)
+	}
+
+	err = currentDB.Limit(limit).Offset(offset).Find(p).Error
+	return
 }
