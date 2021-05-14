@@ -267,7 +267,7 @@ type LianmiApisService interface {
 	// 删除该用户名的所有订单
 	DeleteUserOrdersByUserID(username string) error
 	// 通过关键字查询订单
-	OrderSerachByKeyWord(username string, keyWord string, status int, limit int, offset int, startTime int64, endTime int64) (*[]models.OrderItems, error)
+	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
 }
 
 type DefaultLianmiApisService struct {
@@ -939,7 +939,7 @@ func (s *DefaultLianmiApisService) DeleteUserOrdersByUserID(username string) err
 	return s.Repository.DeleteUserOrdersByUserID(username)
 }
 
-func (s *DefaultLianmiApisService) OrderSerachByKeyWord(username string, keyWord string, status int, limit int, offset int, startTime int64, endTime int64) (*[]models.OrderItems, error) {
+func (s *DefaultLianmiApisService) OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error) {
 	// panic("implement me")
-	return s.Repository.OrderSerachByKeyWord(username, keyWord, status, limit, offset, startTime, endTime)
+	return s.Repository.OrderSerachByKeyWord(username, req)
 }

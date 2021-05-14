@@ -2,8 +2,6 @@ package repositories
 
 import (
 	"fmt"
-	"strconv"
-	"unicode"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/gomodule/redigo/redis"
@@ -14,6 +12,7 @@ import (
 	"github.com/lianmi/servers/api/proto/global"
 	Global "github.com/lianmi/servers/api/proto/global"
 	Order "github.com/lianmi/servers/api/proto/order"
+	User "github.com/lianmi/servers/api/proto/user"
 
 	"github.com/lianmi/servers/internal/pkg/models"
 
@@ -629,61 +628,109 @@ func (s *MysqlLianmiRepository) DeleteUserOrdersByUserID(username string) error 
 	return err
 }
 
-func (s *MysqlLianmiRepository) OrderSerachByKeyWord(username string, word string, status int, limit int, offset int, startTime int64, endTime int64) (p *[]models.OrderItems, err error) {
-	//panic("implement me")
+//不定多条件查询用户订单列表
+func (s *MysqlLianmiRepository) OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (orderItems *[]models.OrderItems, err error) {
+	/*
 
-	p = new([]models.OrderItems)
-	currentDB := s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ?", username, username, int(global.OrderState_OS_Paying))
-	exactness := false
-	if word != "" {
-		// 不为空 则是 精确查找
-		exactness = true
-	}
-	// 判断是不是出票码
-	var isDigit bool = false
-	if exactness {
-		s.logger.Debug("OrderSerachByKeyWord db 精确查找", zap.String("word", word))
-		for _, r := range word {
-			isDigit = unicode.IsNumber(r)
-			if !isDigit {
-				break
-			}
+		p = new([]models.OrderItems)
+		currentDB := s.db.Model(&models.OrderItems{}).Where(" ( `user_id` = ? OR `store_id` = ? ) AND  `order_status` <> ?", username, username, int(global.OrderState_OS_Paying))
+
+
+		if req.TicketCode != 0 {
+			s.logger.Debug("通过 出票码 查找", zap.Uint64("TicketCode", req.TicketCode))
+			currentDB = currentDB.Where(&models.OrderItems{TicketCode: int64(req.TicketCode)})
 		}
-		//
-		if isDigit {
-			// 如果是纯数字就是出票码 直接搜索这个出票码
-			// 转化成数字
-			s.logger.Debug("通过 出票码 查找")
-			ticketCode, err := strconv.ParseInt(word, 10, 64)
-			if err != nil {
-				s.logger.Error("OrderSerachByKeyWord db ", zap.Error(err))
-				return nil, fmt.Errorf("关键子有误")
-			}
 
-			err = currentDB.Where(&models.OrderItems{TicketCode: ticketCode}).Find(p).Error
-			return p, err
+		if req.OrderId != 0 {
+			s.logger.Debug("通过 订单id  查找", zap.String("OrderID", req.OrderID))
+			currentDB = currentDB.Where(&models.OrderItems{OrderId: req.OrderID})
+		}
+
+		if req.Status != 0 {
+			currentDB = currentDB.Where(&models.OrderItems{OrderStatus: req.Status})
+		}
+
+		if req.StartTime == 0 || req.EndTime == 0 {
+			// 其中一个时间 不填都不能查询范围
 		} else {
-			// 通过订单查找
-			s.logger.Debug("通过 订单id 查找")
-			err = currentDB.Where(&models.OrderItems{OrderId: word}).Find(p).Error
-			return p, err
+			// 查询范围
+			currentDB = currentDB.Where(" created_at >= ? and created_at < ? ", req.StartTime, req.EndTime)
 		}
-	} else {
-		// 模糊查找
-		s.logger.Debug("OrderSerachByKeyWord db 模糊查找")
+
+		err = currentDB.Limit(req.Limit).Offset(req.Offset).Find(p).Error
+		return
+
+	*/
+
+	s.logger.Debug("不定多条件查询用户订单列表 OrderSerachByKeyWord", zap.Any("ReqKeyWordDataType", req))
+
+	redisConn := s.redisPool.Get()
+	defer redisConn.Close()
+
+	//用户类型 1-普通，2-商户
+	userType, _ := redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
+
+	pageIndex := int(req.Offset)
+	pageSize := int(req.Limit)
+	if pageSize == 0 {
+		pageSize = 20
 	}
 
-	if status != 0 {
-		currentDB = currentDB.Where(&models.OrderItems{OrderStatus: status})
+	columns := []string{"*"}
+	orderBy := "updated_at desc"
+
+	orderItems = new([]models.OrderItems)
+
+	wheres := make([]interface{}, 0)
+
+	if userType == int(User.UserType_Ut_Business) {
+		//当前用户是商户类型
+		wheres = append(wheres, []interface{}{"store_id", "=", username})
+
+	} else if userType == int(User.UserType_Ut_Normal) {
+		//当前用户是普通用户类型
+		wheres = append(wheres, []interface{}{"user_id", "=", username})
+
 	}
 
-	if startTime == 0 || endTime == 0 {
+	//订单状态必须不是支付中, 否则一堆废订单
+	wheres = append(wheres, []interface{}{"order_status", "<>", int(global.OrderState_OS_Paying)})
+
+	if req.TicketCode != 0 {
+		s.logger.Debug("通过 出票码 精确匹配查找", zap.Uint64("TicketCode", req.TicketCode))
+		wheres = append(wheres, []interface{}{"ticket_code", "=", req.TicketCode})
+	}
+
+	if req.OrderID != "" {
+		s.logger.Debug("通过 订单id  模糊查找", zap.String("OrderID", req.OrderID))
+		wheres = append(wheres, []interface{}{"order_id like ? ", "%" + req.OrderID + "%"})
+	}
+
+	if req.Status != 0 {
+		s.logger.Debug("通过 订单状态  精确匹配查找", zap.Int("Status", req.Status))
+		wheres = append(wheres, []interface{}{"status", "=", req.Status})
+	}
+
+	if req.StartTime == 0 || req.EndTime == 0 {
 		// 其中一个时间 不填都不能查询范围
 	} else {
 		// 查询范围
-		currentDB = currentDB.Where(" created_at > ? and created_at < ? ", startTime, endTime)
+		wheres = append(wheres, []interface{}{"created_at", ">=", req.StartTime})
+		wheres = append(wheres, []interface{}{"created_at", "<", req.EndTime})
 	}
 
-	err = currentDB.Limit(limit).Offset(offset).Find(p).Error
+	db2 := s.db
+	db2, err = s.base.BuildQueryList(db2, wheres, columns, orderBy, pageIndex, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	err = db2.Find(&orderItems).Error
+
+	if err != nil {
+		s.logger.Error("Find错误", zap.Error(err))
+		return nil, err
+	}
+
 	return
+
 }

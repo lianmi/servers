@@ -520,7 +520,7 @@ func CreateInitControllersFn(
 			// 删除当前用户的所有订单
 			orderGroup.POST("/clearall", pc.OrderDeleteByUserID)
 			// 通过关键字搜索订单
-			orderGroup.POST("/serach", pc.OrderSerachByKeyWord)
+			orderGroup.POST("/search", pc.OrderSerachByKeyWord)
 
 			//
 			//orderPubGroup.POST("/wechat/callback", pc.OrderWechatCallback)

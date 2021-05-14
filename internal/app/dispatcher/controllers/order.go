@@ -66,23 +66,23 @@ func (pc *LianmiApisController) UploadOrderBody(c *gin.Context) {
 	var req models.UploadOrderBodyReq
 	if c.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error")
-		RespFail(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.OrderID == "" {
 			pc.logger.Error("OrderID is empty")
-			RespFail(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少orderID字段")
 			return
 		}
 
 		if req.BodyObjFile == "" {
 			pc.logger.Error("BodyObjFile is empty")
-			RespFail(c, http.StatusOK, code, "参数错误, 缺少BodyObjFile字段 ")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少BodyObjFile字段 ")
 			return
 		}
 
 		err := pc.service.UploadOrderBody(c, &req)
 		if err != nil {
-			RespFail(c, http.StatusOK, code, "买家将订单body经过RSA加密后提交到彩票中心或第三方公证时发生错误")
+			RespData(c, http.StatusOK, code, "买家将订单body经过RSA加密后提交到彩票中心或第三方公证时发生错误")
 			return
 		}
 
@@ -96,13 +96,13 @@ func (pc *LianmiApisController) DownloadOrderImage(c *gin.Context) {
 	code := codes.InvalidParams
 	orderID := c.Param("orderid")
 	if orderID == "" {
-		RespFail(c, http.StatusOK, 400, "orderid is empty")
+		RespData(c, http.StatusOK, 400, "orderid is empty")
 		return
 
 	} else {
 		resp, err := pc.service.DownloadOrderImage(orderID)
 		if err != nil {
-			RespFail(c, http.StatusOK, code, "获取所有订单拍照图片时发生错误")
+			RespData(c, http.StatusOK, code, "获取所有订单拍照图片时发生错误")
 			return
 		}
 		RespData(c, http.StatusOK, 200, resp)
@@ -132,32 +132,32 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	req := SendOrderDataTypeReq{}
 
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	// 查找商品是否存在
 	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
 	if err != nil {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		RespData(context, http.StatusOK, codes.InvalidParams, "商品未找到")
 		return
 	}
 
 	// 判断商户状态
 	getStoreInfo, err := pc.service.GetStore(req.BusinessId)
 	if err != nil {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户信息未找到")
+		RespData(context, http.StatusOK, codes.InvalidParams, "商户信息未找到")
 		return
 	}
 
 	if getStoreInfo.GetStoreType() == Global.StoreType_ST_Undefined {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户信息未定义商店类型")
+		RespData(context, http.StatusOK, codes.InvalidParams, "商户信息未定义商店类型")
 		return
 	}
 
 	//pc.logger.Debug("发起订单支付", zap.Int("StoreType", int(getStoreInfo.StoreType)), zap.Int("productType", getProductInfo.ProductType))
 	if int(getStoreInfo.GetStoreType()) != getProductInfo.ProductType {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商户不支持的商品类型")
+		RespData(context, http.StatusOK, codes.InvalidParams, "商户不支持的商品类型")
 		return
 	}
 
@@ -200,7 +200,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	if err != nil {
 		pc.logger.Error("生成微信支付失败", zap.Error(err))
-		RespFail(context, http.StatusOK, codes.ERROR, "生成订单失败, 请重试")
+		RespData(context, http.StatusOK, codes.ERROR, "生成订单失败, 请重试")
 		return
 	} else {
 		pc.logger.Debug("生成微信预支付成功", zap.String("preid", wxRsp.Response.PrepayId))
@@ -214,7 +214,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 	pc.payWechat.Appid = common.WechatPay_appID // 重置回来
 	if err != nil {
 		pc.logger.Error("生成微信支付码失败", zap.Error(err))
-		RespFail(context, http.StatusOK, codes.ERROR, "生成支付信息失败,请重试")
+		RespData(context, http.StatusOK, codes.ERROR, "生成支付信息失败,请重试")
 		return
 	}
 
@@ -236,7 +236,7 @@ func (pc *LianmiApisController) OrderPayToBusiness(context *gin.Context) {
 
 	if err != nil {
 		pc.logger.Error("订单保存错误", zap.Error(err))
-		RespFail(context, http.StatusOK, codes.ERROR, "订单保存错误 , 请重试")
+		RespData(context, http.StatusOK, codes.ERROR, "订单保存错误 , 请重试")
 		return
 	}
 
@@ -286,14 +286,14 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	req := SendOrderDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	// 查找商品是否存在
 	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
 	if err != nil {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "商品未找到")
+		RespData(context, http.StatusOK, codes.InvalidParams, "商品未找到")
 		return
 	}
 
@@ -368,7 +368,7 @@ func (pc *LianmiApisController) OrderGetLists(context *gin.Context) {
 
 	orderList, err := pc.service.GetOrderListByUser(username, req.Limit, req.Offset, req.Status)
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
+		RespData(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
 		return
 	}
 
@@ -448,7 +448,7 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 		// 有数据
 		orderStatusInt := orderStatus.(int)
 		if orderStatusInt != 0 {
-			RespFail(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
+			RespData(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
 			return
 		}
 	}
@@ -457,12 +457,12 @@ func (pc *LianmiApisController) OrderWechatCallbackRelease(context *gin.Context)
 	orderitem, err := pc.service.GetOrderListByID(orderid)
 
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.ERROR, "订单信息错误")
+		RespData(context, http.StatusOK, codes.ERROR, "订单信息错误")
 		return
 	}
 
 	if orderitem.OrderStatus != int(Global.OrderState_OS_Paying) {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
+		RespData(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
 	// 缓存
@@ -545,12 +545,12 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 
 	req := OrderCallbackDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	if req.Token != "lianmi" {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "token fail")
+		RespData(context, http.StatusOK, codes.InvalidParams, "token fail")
 		return
 	}
 
@@ -561,7 +561,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 		// 有数据
 		orderStatusInt := orderStatus.(int)
 		if orderStatusInt != 0 {
-			RespFail(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
+			RespData(context, http.StatusOK, codes.InvalidParams, "订单已在处理中...")
 			return
 		}
 	}
@@ -570,12 +570,12 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	orderitem, err := pc.service.GetOrderListByID(req.OrderID)
 
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.ERROR, "订单信息错误")
+		RespData(context, http.StatusOK, codes.ERROR, "订单信息错误")
 		return
 	}
 
 	if orderitem.OrderStatus != int(Global.OrderState_OS_Paying) {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "订单已处理")
+		RespData(context, http.StatusOK, codes.InvalidParams, "订单已处理")
 		return
 	}
 	// 缓存
@@ -590,7 +590,7 @@ func (pc *LianmiApisController) OrderWechatCallback(context *gin.Context) {
 	if err != nil {
 		//设置订单
 		pc.logger.Error("订单设置支付失败", zap.Error(err))
-		RespFail(context, http.StatusOK, codes.InvalidParams, "订单处理失败")
+		RespData(context, http.StatusOK, codes.InvalidParams, "订单处理失败")
 		return
 	}
 
@@ -616,14 +616,14 @@ func (pc *LianmiApisController) OrderGetOrderInfoByID(context *gin.Context) {
 	orderid := context.Param("id")
 	getOrderInfo, err := pc.service.GetOrderListByID(orderid)
 	if err != nil {
-		RespFail(context, http.StatusNotFound, 404, "未找到数据")
+		RespData(context, http.StatusOK, 404, "未找到数据")
 		return
 	}
 
 	if getOrderInfo.UserId == username || getOrderInfo.StoreId == username {
 
 	} else {
-		RespFail(context, http.StatusNotFound, 404, "未找到数据")
+		RespData(context, http.StatusOK, 404, "未找到数据")
 		return
 	}
 
@@ -650,13 +650,13 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 
 	req := OrderCallbackDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
 	// 直接过滤 修改成支付完成状态
 	if req.Status == int(Global.OrderState_OS_IsPayed) {
-		RespFail(context, http.StatusOK, codes.ERROR, "无权修改这个状态")
+		RespData(context, http.StatusOK, codes.ERROR, "无权修改这个状态")
 		return
 	}
 	// 查询订单
@@ -665,7 +665,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	//
 	userType, err := pc.service.GetUserType(username)
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.ErrAuth, "用户类型检测异常")
+		RespData(context, http.StatusOK, codes.ErrAuth, "用户类型检测异常")
 		return
 	}
 
@@ -676,7 +676,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 			req.Status == int(Global.OrderState_OS_Refuse) {
 			// 校验通过
 		} else {
-			RespFail(context, http.StatusOK, codes.ErrAuth, "商户无权修改当前的状态")
+			RespData(context, http.StatusOK, codes.ErrAuth, "商户无权修改当前的状态")
 			return
 		}
 	} else if userType == int(User.UserType_Ut_Normal) {
@@ -684,7 +684,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 		if req.Status == int(Global.OrderState_OS_Confirm) {
 			// 校验通过
 		} else {
-			RespFail(context, http.StatusOK, codes.ErrAuth, "用户无权修改当前的状态")
+			RespData(context, http.StatusOK, codes.ErrAuth, "用户无权修改当前的状态")
 			return
 		}
 	} else if userType == int(User.UserType_Ut_Operator) {
@@ -692,20 +692,20 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	} else {
 		//
 		pc.logger.Error("用户类型检测失败 ", zap.String("userid", username), zap.Int("userTyoe ", userType))
-		RespFail(context, http.StatusOK, codes.ErrAuth, "用户类型错误")
+		RespData(context, http.StatusOK, codes.ErrAuth, "用户类型错误")
 		return
 	}
 
 	getOrderInfo, err := pc.service.GetOrderListByID(req.OrderID)
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "订单不存在")
+		RespData(context, http.StatusOK, codes.InvalidParams, "订单不存在")
 		return
 	}
 
 	if getOrderInfo.UserId == username || getOrderInfo.StoreId == username {
 
 	} else {
-		RespFail(context, http.StatusOK, codes.ERROR, "无权操作这个订单")
+		RespData(context, http.StatusOK, codes.ERROR, "无权操作这个订单")
 		return
 	}
 
@@ -715,7 +715,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	newOrder, err := pc.service.UpdateOrderStatus(getOrderInfo.UserId, getOrderInfo.StoreId, req.OrderID, req.Status)
 	_ = newOrder
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
+		RespData(context, http.StatusOK, codes.ERROR, "订单状态修改失败")
 		return
 	}
 
@@ -834,19 +834,19 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 	// 读取数据
 	req := ReqPushPrizeData{}
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		RespData(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
 		return
 	}
 
 	//
 	userType, err := pc.service.GetUserType(username)
 	if err != nil {
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "用户类型未知")
+		RespData(context, http.StatusOK, codes.ERROR, "用户类型未知")
 		return
 	}
 
 	if userType != int(User.UserType_Ut_Business) {
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "用户类型不支持的操作")
+		RespData(context, http.StatusOK, codes.ERROR, "用户类型不支持的操作")
 		return
 	}
 
@@ -854,7 +854,7 @@ func (pc *LianmiApisController) OrderPushPrize(context *gin.Context) {
 
 	if err != nil {
 		pc.logger.Error("OrderPushPrize fail ", zap.Error(err))
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "操作失败")
+		RespData(context, http.StatusOK, codes.ERROR, "操作失败")
 		return
 	}
 
@@ -960,7 +960,7 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 	if err != nil {
 		// 订单不存在
 		pc.logger.Error("订单不存在", zap.Error(err))
-		RespFail(context, http.StatusNotFound, codes.NONEREGISTER, "未找到订单信息")
+		RespData(context, http.StatusOK, codes.NONEREGISTER, "未找到订单信息")
 		return
 	}
 
@@ -968,7 +968,7 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 
 	} else {
 		pc.logger.Error("无权访问订单信息")
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "无权访问订单信息")
+		RespData(context, http.StatusOK, codes.ERROR, "无权访问订单信息")
 		return
 	}
 
@@ -982,7 +982,7 @@ func (pc *LianmiApisController) OrderFindWechatTransactions(context *gin.Context
 	wxRsp, err := pc.payWechat.V3PartnerQueryOrder(wechat.OutTradeNo, sub_mchid, orderNo)
 	if err != nil {
 		pc.logger.Error("找不到微信订单信息", zap.Error(err))
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "找不到微信订单信息")
+		RespData(context, http.StatusOK, codes.ERROR, "找不到微信订单信息")
 		return
 	}
 
@@ -1001,15 +1001,14 @@ func (pc *LianmiApisController) OrderDeleteByUserIDAndOrderID(context *gin.Conte
 	orderid := context.Param("id")
 
 	if orderid == "" {
-		// 删除所有的
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "参数错误")
 		return
 	}
 	// 删除单个用户的订单
 	err := pc.service.OrderDeleteByUserAndOrderid(username, orderid)
 	if err != nil {
 		pc.logger.Error("删除失败", zap.Error(err))
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
+		RespData(context, http.StatusOK, codes.ERROR, "删除失败")
 		return
 	}
 	RespOk(context, http.StatusOK, codes.SUCCESS)
@@ -1026,7 +1025,7 @@ func (pc *LianmiApisController) OrderDeleteByUserID(context *gin.Context) {
 	err := pc.service.DeleteUserOrdersByUserID(username)
 	if err != nil {
 		pc.logger.Error("删除失败", zap.Error(err))
-		RespFail(context, http.StatusInternalServerError, codes.ERROR, "删除失败")
+		RespData(context, http.StatusOK, codes.ERROR, "删除失败")
 		return
 	}
 	RespOk(context, http.StatusOK, codes.SUCCESS)
@@ -1040,18 +1039,9 @@ func (pc *LianmiApisController) OrderSerachByKeyWord(context *gin.Context) {
 		return
 	}
 
-	type ReqKeyWordDataType struct {
-		KeyWord   string `json:"keyword"  `
-		Limit     int    `json:"limit"`
-		Offset    int    `json:"offset"`
-		StartTime int64  `json:"start_time"`
-		EndTime   int64  `json:"end_time"`
-		Status    int    `json:"status"`
-	}
-
-	var req ReqKeyWordDataType
+	var req models.ReqKeyWordDataType
 	if err := context.BindJSON(&req); err != nil {
-		RespFail(context, http.StatusNotFound, codes.InvalidParams, "参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "参数错误")
 		return
 	}
 
@@ -1059,10 +1049,10 @@ func (pc *LianmiApisController) OrderSerachByKeyWord(context *gin.Context) {
 		req.Limit = 10
 	}
 
-	orderList, err := pc.service.OrderSerachByKeyWord(username, req.KeyWord, req.Status, req.Limit, req.Offset, req.StartTime, req.EndTime)
+	orderList, err := pc.service.OrderSerachByKeyWord(username, &req)
 
 	if err != nil {
-		RespFail(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
+		RespData(context, http.StatusOK, codes.InvalidParams, "未找到订单信息")
 		return
 	}
 

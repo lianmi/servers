@@ -142,3 +142,23 @@ type UploadOrderBodyReq struct {
 	//订单附件里的body加密数据文件，已经上传到了aliyunoss
 	BodyObjFile string `json:"bodyObjFile,omitempty"`
 }
+
+//用于不定多条件查询订单
+type ReqKeyWordDataType struct {
+	TicketCode uint64 `json:"ticket_code"` //出票码, 精确匹配
+	OrderID    string `json:"order_id"`    //订单ID, 模糊查询 
+	Limit      int    `json:"limit"`       //每页记录数
+	Offset     int    `json:"offset"`      //分页
+	StartTime  int64  `json:"start_time"`  //开始时间   不能为0
+	EndTime    int64  `json:"end_time"`    //结束时间   不能为0
+	Status     int    `json:"status"`      //订单状态
+}
+
+/*
+
+{
+	"ticket_code": 1,
+	"order_id": "a1", 
+}
+
+*/

@@ -281,7 +281,7 @@ type LianmiRepository interface {
 	// 删除该用户名的所有订单
 	DeleteUserOrdersByUserID(username string) error
 	// 通过关键字查询订单
-	OrderSerachByKeyWord(username string, word string, status int, limit int, offset int, startTime int64, endTime int64) (*[]models.OrderItems, error)
+	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
 }
 
 type MysqlLianmiRepository struct {
