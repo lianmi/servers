@@ -1041,7 +1041,7 @@ func (pc *LianmiApisController) OrderSerachByKeyWord(context *gin.Context) {
 	}
 
 	type ReqKeyWordDataType struct {
-		KeyWord   string `json:"key_word"  binding:"required"  `
+		KeyWord   string `json:"keyword"  `
 		Limit     int    `json:"limit"`
 		Offset    int    `json:"offset"`
 		StartTime int64  `json:"start_time"`
