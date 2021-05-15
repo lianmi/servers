@@ -192,7 +192,7 @@ type LianmiRepository interface {
 	DeleteFriend(userID, friendUserID uint64) error
 
 	//修改或增加店铺资料
-	AddStore(req *User.Store) error
+	AddStore(req *models.Store) error
 
 	//根据商户账号id获取店铺资料
 	GetStore(businessUsername string) (*User.Store, error)

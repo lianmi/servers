@@ -25,7 +25,7 @@ import (
 )
 
 //修改或增加店铺资料
-func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
+func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 	var err error
 
 	store := new(models.Store)
@@ -70,7 +70,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 			store := models.Store{
 				StoreUUID:             uuid.NewV4().String(), //店铺的uuid
 				StoreType:             int(req.StoreType),    //店铺类型,对应Global.proto里的StoreType枚举
-				ImageURL:              req.ImageUrl,
+				ImageURL:              req.ImageURL,
 				BusinessUsername:      req.BusinessUsername,      //商户注册号
 				Introductory:          req.Introductory,          //商店简介 Text文本类型
 				Province:              req.Province,              //省份, 如广东省
@@ -84,9 +84,9 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 				Longitude:             req.Longitude,             //商户地址的经度
 				Latitude:              req.Latitude,              //商户地址的纬度
 				ContactMobile:         req.ContactMobile,         //联系手机
-				WeChat:                req.Wechat,                //商户联系人微信号
+				WeChat:                req.WeChat,                //商户联系人微信号
 				Keys:                  req.Keys,                  //商户经营范围搜索关键字
-				LicenseURL:            req.BusinessLicenseUrl,    //商户营业执照阿里云url
+				LicenseURL:            req.LicenseURL,            //商户营业执照阿里云url
 				BusinessCode:          req.BusinessCode,          //网点编码
 				NotaryServiceUsername: req.NotaryServiceUsername, //网点的公证注册id
 				AuditState:            0,                         //初始值
@@ -122,7 +122,7 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 		// 同时更新多个字段
 		result := s.db.Model(&models.Store{}).Where(&where2).Updates(models.Store{
 			StoreType:             int(req.StoreType),        //店铺类型,对应Global.proto里的StoreType枚举
-			ImageURL:              req.ImageUrl,              //店铺外景照片或形象图片
+			ImageURL:              req.ImageURL,              //店铺外景照片或形象图片
 			BusinessUsername:      req.BusinessUsername,      //商户注册号
 			Introductory:          req.Introductory,          //商店简介 Text文本类型
 			Province:              req.Province,              //省份, 如广东省
@@ -135,9 +135,9 @@ func (s *MysqlLianmiRepository) AddStore(req *User.Store) error {
 			LegalIdentityCard:     req.LegalIdentityCard,     //法人身份证
 			Longitude:             req.Longitude,             //商户地址的经度
 			Latitude:              req.Latitude,              //商户地址的纬度
-			WeChat:                req.Wechat,                //商户联系人微信号
+			WeChat:                req.WeChat,                //商户联系人微信号
 			Keys:                  req.Keys,                  //商户经营范围搜索关键字
-			LicenseURL:            req.BusinessLicenseUrl,    //商户营业执照阿里云url
+			LicenseURL:            req.LicenseURL,            //商户营业执照阿里云url
 			OpeningHours:          req.OpeningHours,          //营业时间
 			ContactMobile:         req.ContactMobile,         //联系电话
 			BusinessCode:          req.BusinessCode,          //商户的网点编码，适合彩票店或连锁网点
