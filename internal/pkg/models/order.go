@@ -146,7 +146,7 @@ type UploadOrderBodyReq struct {
 //用于不定多条件查询订单
 type ReqKeyWordDataType struct {
 	TicketCode uint64 `json:"ticket_code"` //出票码, 精确匹配
-	OrderID    string `json:"order_id"`    //订单ID, 模糊查询 
+	OrderID    string `json:"order_id"`    //订单ID, 模糊查询
 	Limit      int    `json:"limit"`       //每页记录数
 	Offset     int    `json:"offset"`      //分页
 	StartTime  int64  `json:"start_time"`  //开始时间   不能为0
@@ -157,8 +157,13 @@ type ReqKeyWordDataType struct {
 /*
 
 {
-	"ticket_code": 1,
-	"order_id": "a1", 
+	"ticket_code": 1, //出票码, 精确匹配
+	"order_id": "a1",  //订单ID, 模糊查询
+	"limit" : 20,  //每页记录数
+	"offset" : 0,  //页数
+	"start_time" : 162097313112,  //开始时间  如果非零，则结束时间也必须非零。如果是0，则忽略
+	"end_time" : 163235533666,  //结束时间  如果非零，则开始时间也必须非零。如果是0，则忽略
+	"status" : 17  //订单状态
 }
 
 */
