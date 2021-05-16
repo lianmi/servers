@@ -46,10 +46,10 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 		}
 	}
 	// 判断是否是商户类型
-	if userData.UserType != int(User.UserType_Ut_Business) {
-		s.logger.Error("错误：此注册账号id不是商户类型")
-		return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
-	}
+	// if userData.UserType != int(User.UserType_Ut_Business) {
+	// 	s.logger.Error("错误：此注册账号id不是商户类型")
+	// 	return errors.Wrapf(err, "此注册账号id不是商户类型[Businessusername=%s]", req.BusinessUsername)
+	// }
 
 	//判断是否被封禁
 	if userData.State == LMCommon.UserBlocked {
@@ -76,7 +76,6 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 				Province:              req.Province,              //省份, 如广东省
 				City:                  req.City,                  //城市，如广州市
 				Area:                  req.Area,                  //区，如天河区
-				// Street:                req.Street,                //街道
 				Address:               req.Address,               //地址
 				Branchesname:          req.Branchesname,          //网点名称
 				LegalPerson:           req.LegalPerson,           //法人姓名
@@ -91,6 +90,13 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 				NotaryServiceUsername: req.NotaryServiceUsername, //网点的公证注册id
 				AuditState:            0,                         //初始值
 				OpeningHours:          req.OpeningHours,          //营业时间
+				// 新增
+				IdCardFrontPhoto: req.IdCardFrontPhoto, // 身份证 正面
+				IdCardBackPhoto:  req.IdCardBackPhoto,  // 身份证 背面
+				CardOwner:        req.CardOwner,        // 银行卡持有者姓名
+				BankName:         req.BankName,         // 银行名称
+				BankBranch:       req.BankBranch,       // 银行支行
+				CardNumber:       req.CardNumber,       // 银行卡号
 			}
 
 			//如果没有记录，则增加
@@ -128,7 +134,6 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 			Province:              req.Province,              //省份, 如广东省
 			City:                  req.City,                  //城市，如广州市
 			Area:                  req.Area,                  //区，如天河区
-			// Street:                req.Street,                //街道
 			Address:               req.Address,               //地址
 			Branchesname:          req.Branchesname,          //网点名称
 			LegalPerson:           req.LegalPerson,           //法人姓名
@@ -142,6 +147,13 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 			ContactMobile:         req.ContactMobile,         //联系电话
 			BusinessCode:          req.BusinessCode,          //商户的网点编码，适合彩票店或连锁网点
 			NotaryServiceUsername: req.NotaryServiceUsername, //商户对应的公证处注册id
+			// 新增
+			IdCardFrontPhoto: req.IdCardFrontPhoto, // 身份证 正面
+			IdCardBackPhoto:  req.IdCardBackPhoto,  // 身份证 背面
+			CardOwner:        req.CardOwner,        // 银行卡持有者姓名
+			BankName:         req.BankName,         // 银行名称
+			BankBranch:       req.BankBranch,       // 银行支行
+			CardNumber:       req.CardNumber,       // 银行卡号
 		})
 
 		//updated records count
@@ -236,27 +248,27 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		licenseURL = LMCommon.OSSUploadPicPrefix + p.LicenseURL
 	}
 	return &User.Store{
-		StoreUUID:             p.StoreUUID,                   //店铺的uuid
-		StoreType:             Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-		BusinessUsername:      p.BusinessUsername,            //商户注册号
-		Avatar:                avatar,                        //头像
-		ImageUrl:              imageURL,                      //店铺形象图片
-		Introductory:          p.Introductory,                //商店简介 Text文本类型
-		Province:              p.Province,                    //省份, 如广东省
-		City:                  p.City,                        //城市，如广州市
-		Area:                  p.Area,                        //区，如天河区
+		StoreUUID:        p.StoreUUID,                   //店铺的uuid
+		StoreType:        Global.StoreType(p.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
+		BusinessUsername: p.BusinessUsername,            //商户注册号
+		Avatar:           avatar,                        //头像
+		ImageUrl:         imageURL,                      //店铺形象图片
+		Introductory:     p.Introductory,                //商店简介 Text文本类型
+		Province:         p.Province,                    //省份, 如广东省
+		City:             p.City,                        //城市，如广州市
+		Area:             p.Area,                        //区，如天河区
 		// Street:                p.Street,                      //街道
-		Address:               p.Address,                     //地址
-		Branchesname:          p.Branchesname,                //网点名称
-		LegalPerson:           p.LegalPerson,                 //法人姓名
-		LegalIdentityCard:     p.LegalIdentityCard,           //法人身份证
-		Longitude:             p.Longitude,                   //商户地址的经度
-		Latitude:              p.Latitude,                    //商户地址的纬度
-		Wechat:                p.WeChat,                      //商户联系人微信号
-		Keys:                  p.Keys,                        //商户经营范围搜索关键字
-		BusinessLicenseUrl:    licenseURL,                    //商户营业执照阿里云url
-		AuditState:            int32(p.AuditState),           //审核状态，0-预审核，1-审核通过, 2-占位
-		OpeningHours:          p.OpeningHours,                //营业时间
+		Address:               p.Address,           //地址
+		Branchesname:          p.Branchesname,      //网点名称
+		LegalPerson:           p.LegalPerson,       //法人姓名
+		LegalIdentityCard:     p.LegalIdentityCard, //法人身份证
+		Longitude:             p.Longitude,         //商户地址的经度
+		Latitude:              p.Latitude,          //商户地址的纬度
+		Wechat:                p.WeChat,            //商户联系人微信号
+		Keys:                  p.Keys,              //商户经营范围搜索关键字
+		BusinessLicenseUrl:    licenseURL,          //商户营业执照阿里云url
+		AuditState:            int32(p.AuditState), //审核状态，0-预审核，1-审核通过, 2-占位
+		OpeningHours:          p.OpeningHours,      //营业时间
 		BusinessCode:          p.BusinessCode,
 		NotaryServiceUsername: p.NotaryServiceUsername, //第三方公证
 	}, nil
@@ -390,25 +402,25 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 		commentcount := rand.Intn(400)
 
 		resp.Stores = append(resp.Stores, &User.Store{
-			StoreUUID:          store.StoreUUID,                   //店铺的uuid
-			StoreType:          Global.StoreType(store.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
-			BusinessUsername:   store.BusinessUsername,            //商户注册号
-			Avatar:             avatar,                            //头像
-			ImageUrl:           imageUrl,                          //头像
-			Introductory:       store.Introductory,                //商店简介 Text文本类型
-			Province:           store.Province,                    //省份, 如广东省
-			City:               store.City,                        //城市，如广州市
-			Area:               store.Area,                        //区，如天河区
+			StoreUUID:        store.StoreUUID,                   //店铺的uuid
+			StoreType:        Global.StoreType(store.StoreType), //店铺类型,对应Global.proto里的StoreType枚举
+			BusinessUsername: store.BusinessUsername,            //商户注册号
+			Avatar:           avatar,                            //头像
+			ImageUrl:         imageUrl,                          //头像
+			Introductory:     store.Introductory,                //商店简介 Text文本类型
+			Province:         store.Province,                    //省份, 如广东省
+			City:             store.City,                        //城市，如广州市
+			Area:             store.Area,                        //区，如天河区
 			// Street:             store.Street,                      //街道
-			Address:            store.Address,                     //地址
-			Branchesname:       store.Branchesname,                //网点名称
-			LegalPerson:        store.LegalPerson,                 //法人姓名
-			LegalIdentityCard:  store.LegalIdentityCard,           //法人身份证
-			Longitude:          store.Longitude,                   //商户地址的经度
-			Latitude:           store.Latitude,                    //商户地址的纬度
-			Wechat:             store.Wechat,                      //商户联系人微信号
-			Keys:               store.Keys,                        //商户经营范围搜索关键字
-			BusinessLicenseUrl: businessLicenseUrl,                //商户营业执照阿里云url
+			Address:            store.Address,           //地址
+			Branchesname:       store.Branchesname,      //网点名称
+			LegalPerson:        store.LegalPerson,       //法人姓名
+			LegalIdentityCard:  store.LegalIdentityCard, //法人身份证
+			Longitude:          store.Longitude,         //商户地址的经度
+			Latitude:           store.Latitude,          //商户地址的纬度
+			Wechat:             store.Wechat,            //商户联系人微信号
+			Keys:               store.Keys,              //商户经营范围搜索关键字
+			BusinessLicenseUrl: businessLicenseUrl,      //商户营业执照阿里云url
 			BusinessCode:       store.BusinessCode,
 			AuditState:         store.AuditState, //审核状态，0-预审核，1-审核通过, 2-占位
 			CreatedAt:          uint64(store.CreatedAt),
