@@ -159,9 +159,9 @@ var subCmd = &cobra.Command{
 						// ContactPerson: userBaseData.ContactPerson,
 						Province: "广东省",
 						City:     "广州市",
-						Area:   "天河区",
-						Street:   "体育西路",
-						Address:  "建和中心21楼 ",
+						Area:     "天河区",
+						// Street:   "体育西路",
+						Address: "建和中心21楼 ",
 					}
 
 					rsp.Users = append(rsp.Users, user)

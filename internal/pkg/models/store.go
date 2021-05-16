@@ -28,7 +28,7 @@ type Store struct {
 	Province              string `form:"province" json:"province" `                                   //省份, 如广东省
 	City                  string `form:"city" json:"city" `                                           //城市，如广州市
 	Area                  string `form:"area" json:"area" `                                           //区，如天河区
-	Street                string `form:"street" json:"street" `                                       //街道
+	// Street                string `form:"street" json:"street" `                                       //街道
 	Address               string `form:"address" json:"address" `                                     //地址
 	LegalPerson           string `form:"legal_person" json:"legalPerson" `                            //法人姓名
 	LegalIdentityCard     string `form:"legal_identity_card" json:"legalIdentityCard" `               //法人身份证

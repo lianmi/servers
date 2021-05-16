@@ -76,7 +76,7 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 				Province:              req.Province,              //省份, 如广东省
 				City:                  req.City,                  //城市，如广州市
 				Area:                  req.Area,                  //区，如天河区
-				Street:                req.Street,                //街道
+				// Street:                req.Street,                //街道
 				Address:               req.Address,               //地址
 				Branchesname:          req.Branchesname,          //网点名称
 				LegalPerson:           req.LegalPerson,           //法人姓名
@@ -128,7 +128,7 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 			Province:              req.Province,              //省份, 如广东省
 			City:                  req.City,                  //城市，如广州市
 			Area:                  req.Area,                  //区，如天河区
-			Street:                req.Street,                //街道
+			// Street:                req.Street,                //街道
 			Address:               req.Address,               //地址
 			Branchesname:          req.Branchesname,          //网点名称
 			LegalPerson:           req.LegalPerson,           //法人姓名
@@ -245,7 +245,7 @@ func (s *MysqlLianmiRepository) GetStore(businessUsername string) (*User.Store, 
 		Province:              p.Province,                    //省份, 如广东省
 		City:                  p.City,                        //城市，如广州市
 		Area:                  p.Area,                        //区，如天河区
-		Street:                p.Street,                      //街道
+		// Street:                p.Street,                      //街道
 		Address:               p.Address,                     //地址
 		Branchesname:          p.Branchesname,                //网点名称
 		LegalPerson:           p.LegalPerson,                 //法人姓名
@@ -399,7 +399,7 @@ func (s *MysqlLianmiRepository) GetStores(req *Order.QueryStoresNearbyReq) (*Ord
 			Province:           store.Province,                    //省份, 如广东省
 			City:               store.City,                        //城市，如广州市
 			Area:               store.Area,                        //区，如天河区
-			Street:             store.Street,                      //街道
+			// Street:             store.Street,                      //街道
 			Address:            store.Address,                     //地址
 			Branchesname:       store.Branchesname,                //网点名称
 			LegalPerson:        store.LegalPerson,                 //法人姓名

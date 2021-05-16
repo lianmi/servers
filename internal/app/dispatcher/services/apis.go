@@ -334,7 +334,7 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			Province:           fUserData.Province,
 			City:               fUserData.City,
 			Area:               fUserData.Area,
-			Street:             fUserData.Street,
+			// Street:             fUserData.Street,
 			Address:            fUserData.Address,
 			ReferrerUsername:   fUserData.ReferrerUsername,
 			BelongBusinessUser: fUserData.BelongBusinessUser,

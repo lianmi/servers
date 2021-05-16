@@ -46,7 +46,7 @@ type UserBase struct {
 	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
 	City               string `form:"city" json:"city,omitempty" `                                 //城市，如广州市
 	Area               string `form:"area" json:"area,omitempty" `                                 //区，如天河区
-	Street             string `form:"street" json:"street,omitempty" `                             //街道
+	// Street             string `form:"street" json:"street,omitempty" `                             //街道
 	Address            string `form:"address" json:"address,omitempty" `                           //地址
 	ReferrerUsername   string `form:"referrer_username" json:"referrer_username,omitempty" `       //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
 	BelongBusinessUser string `form:"belong_business_user" json:"belong_business_user,omitempty" ` //归属哪个商户，如果种子用户是商户的话，则一直都是这个商户

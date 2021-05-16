@@ -120,7 +120,7 @@ func (nc *NsqClient) HandleGetUsers(msg *models.Message) error {
 				userBaseData.Province = pUser.Province
 				userBaseData.City = pUser.City
 				userBaseData.Area = pUser.Area
-				userBaseData.Street = pUser.Street
+				// userBaseData.Street = pUser.Street
 				userBaseData.Address = pUser.Address
 				userBaseData.State = pUser.State
 				userBaseData.Extend = pUser.Extend
@@ -336,13 +336,13 @@ func (nc *NsqClient) HandleUpdateUserProfile(msg *models.Message) error {
 			nc.logger.Warn("req.Fields[11] not value")
 		}
 
-		if street, ok := req.Fields[int32(User.UserFeild_UserFeild_Street)]; ok {
-			//修改 street
-			pUser.UserBase.Street = street
-			nc.logger.Debug("req.Fields[12]", zap.String("Street", street))
-		} else {
-			nc.logger.Warn("req.Fields[12] not value")
-		}
+		// if street, ok := req.Fields[int32(User.UserFeild_UserFeild_Street)]; ok {
+		// 	//修改 street
+		// 	pUser.UserBase.Street = street
+		// 	nc.logger.Debug("req.Fields[12]", zap.String("Street", street))
+		// } else {
+		// 	nc.logger.Warn("req.Fields[12] not value")
+		// }
 
 		if address, ok := req.Fields[int32(User.UserFeild_UserFeild_Address)]; ok {
 			//修改 address
