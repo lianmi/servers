@@ -4,8 +4,10 @@
 package controllers
 
 import (
-	"github.com/lianmi/servers/internal/pkg/models"
 	"net/http"
+
+	"github.com/lianmi/servers/internal/pkg/models"
+
 	// "time"
 
 	Order "github.com/lianmi/servers/api/proto/order"
@@ -140,14 +142,16 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		// 	RespData(c, http.StatusOK, code, "商户地址信息必填")
 		// 	return
 		// }
+		pc.logger.Debug("AddStore", zap.Any("req", req))
+
 		if req.BusinessUsername == "" {
 			RespData(c, http.StatusOK, code, "商户注册账号id必填")
 			return
-		} else {
-			if req.BusinessUsername != username {
-				RespData(c, http.StatusOK, code, "商户注册账号非当前登录账号")
-				return
-			}
+			// } else {
+			// 	if req.BusinessUsername != username {
+			// 		RespData(c, http.StatusOK, code, "商户注册账号非当前登录账号")
+			// 		return
+			// 	}
 		}
 		if req.Branchesname == "" {
 			RespData(c, http.StatusOK, code, "商户店铺名称必填")
