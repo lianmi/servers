@@ -636,9 +636,8 @@ func (pc *LianmiApisController) OrderGetOrderInfoByID(context *gin.Context) {
 
 //http接口，更新订单状态
 func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context) {
-	username, deviceid, isok := pc.CheckIsUser(context)
+	username, _, isok := pc.CheckIsUser(context)
 
-	_ = deviceid
 	if !isok {
 		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
 		return
@@ -659,13 +658,13 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	}
 
 	if req.OrderID == "" {
-		pc.logger.Error("请求参数错误, OrderID不能为空 ")
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		pc.logger.Error("请求参数错误, OrderID不能为空")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误, OrderID不能为空")
 		return
 	}
 	if req.Status == 0 {
 		pc.logger.Error("请求参数错误,Status不能为0")
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误, Status不能为0")
 		return
 	}
 
