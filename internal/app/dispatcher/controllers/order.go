@@ -654,7 +654,7 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 
 	req := OrderCallbackDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		RespFail(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
 
