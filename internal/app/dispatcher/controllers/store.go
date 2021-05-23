@@ -183,7 +183,7 @@ func (pc *LianmiApisController) AddStore(c *gin.Context) {
 		} else {
 			pc.logger.Debug("pc.service.AddStore ok")
 			code = codes.SUCCESS
-			RespOk(c, http.StatusOK, code)
+			RespData(c, http.StatusOK, code, username)
 		}
 
 	}
