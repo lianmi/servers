@@ -394,7 +394,7 @@ func (pc *LianmiApisController) DefaultOPK(c *gin.Context) {
 			return
 		}
 		code = codes.SUCCESS
-		RespOk(c, http.StatusOK, code)
+		RespData(c, http.StatusOK, code, "设置当前商户的默认协商公钥成功")
 	}
 
 }
