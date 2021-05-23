@@ -286,6 +286,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 
 	req := SendOrderDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
+		pc.logger.Error("请求参数错误")
 		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
@@ -293,6 +294,7 @@ func (pc *LianmiApisController) OrderCalcPrice(context *gin.Context) {
 	// 查找商品是否存在
 	getProductInfo, err := pc.service.GetGeneralProductByID(req.ProductId)
 	if err != nil {
+		pc.logger.Warn("商品未找到")
 		RespData(context, http.StatusOK, codes.InvalidParams, "商品未找到")
 		return
 	}
