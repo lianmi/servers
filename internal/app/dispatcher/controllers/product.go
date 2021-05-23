@@ -145,20 +145,20 @@ func (pc *LianmiApisController) AdminAddStoreProductItem(context *gin.Context) {
 
 	if context.BindJSON(&req) != nil {
 		pc.logger.Error("binding JSON error ")
-		RespFail(context, http.StatusOK, code, "参数错误, 缺少必填字段")
+		RespData(context, http.StatusOK, code, "参数错误, 缺少必填字段")
 	} else {
 		if req.ProductId == "" {
-			RespFail(context, http.StatusOK, code, "商品ID不能为空")
+			RespData(context, http.StatusOK, code, "商品ID不能为空")
 			return
 		}
 		if req.StoreUUID == "" {
-			RespFail(context, http.StatusOK, code, "商户ID不能为空")
+			RespData(context, http.StatusOK, code, "商户ID不能为空")
 			return
 		}
 
 		err := pc.service.AddStoreProductItem(&req)
 		if err != nil {
-			RespFail(context, http.StatusOK, code, "设置商户商品失败")
+			RespData(context, http.StatusOK, code, "设置商户商品失败")
 			return
 		}
 
@@ -186,7 +186,7 @@ func (pc *LianmiApisController) GetGeneralProjectIDs(context *gin.Context) {
 	req.Page = 1
 	genProductList, err := pc.service.GetGeneralProductFromDB(&req)
 	if err != nil {
-		RespFail(context, http.StatusUnauthorized, code, "数据查找错误")
+		RespData(context, http.StatusUnauthorized, code, "数据查找错误")
 		return
 	}
 
@@ -258,7 +258,7 @@ func (pc *LianmiApisController) AdminGetCacheKeyValue(context *gin.Context) {
 
 	value, ok := pc.cacheMap[key]
 	if !ok {
-		RespFail(context, http.StatusNotFound, 404, "数据未找到")
+		RespData(context, http.StatusNotFound, 404, "数据未找到")
 		return
 	}
 
@@ -276,7 +276,7 @@ func (pc *LianmiApisController) AdminDelCacheKeyValue(context *gin.Context) {
 
 	_, ok := pc.cacheMap[key]
 	if !ok {
-		RespFail(context, http.StatusOK, 404, "数据未找到,不需要删除")
+		RespData(context, http.StatusOK, 404, "数据未找到,不需要删除")
 		return
 	}
 	//删除
