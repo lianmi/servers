@@ -646,12 +646,23 @@ func (pc *LianmiApisController) OrderUpdateStatusByOrderID(context *gin.Context)
 	// 更新订单状态
 	// 设置可以设置的状态
 	type OrderCallbackDataTypeReq struct {
-		OrderID string `json:"order_id" binding:"required" `
-		Status  int    `json:"status" binding:"required"`
+		OrderID string `json:"order_id" ` //必填
+		// OrderID string `json:"order_id" binding:"required" ` //必填
+		// Status  int    `json:"status" binding:"required"`
+		Status int `json:"status"`
 	}
 
 	req := OrderCallbackDataTypeReq{}
 	if err := context.BindJSON(&req); err != nil {
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+
+	if req.OrderID == "" {
+		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
+		return
+	}
+	if req.Status == 0 {
 		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
 		return
 	}
