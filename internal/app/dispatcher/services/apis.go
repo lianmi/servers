@@ -268,6 +268,10 @@ type LianmiApisService interface {
 	DeleteUserOrdersByUserID(username string) error
 	// 通过关键字查询订单
 	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
+	// 通过 微信 open id 获取userid
+	GetUserByWechatOpenid(openid string) (string, error)
+	// 绑定微信openid
+	UpdateUserWxOpenID(username string, openid string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -318,22 +322,22 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 
 	return &Auth.UserRsp{
 		User: &User.User{
-			Username:           fUserData.Username,
-			Gender:             User.Gender(fUserData.Gender),
-			Nick:               fUserData.Nick,
-			Avatar:             avatar,
-			Label:              fUserData.Label,
-			Mobile:             fUserData.Mobile,
-			Email:              fUserData.Email,
-			Extend:             fUserData.Extend,
-			AllowType:          pb.AllowType(fUserData.AllowType),
-			UserType:           User.UserType(fUserData.UserType),
-			State:              User.UserState(fUserData.State),
-			TrueName:           fUserData.TrueName,
-			IdentityCard:       fUserData.IdentityCard,
-			Province:           fUserData.Province,
-			City:               fUserData.City,
-			Area:               fUserData.Area,
+			Username:     fUserData.Username,
+			Gender:       User.Gender(fUserData.Gender),
+			Nick:         fUserData.Nick,
+			Avatar:       avatar,
+			Label:        fUserData.Label,
+			Mobile:       fUserData.Mobile,
+			Email:        fUserData.Email,
+			Extend:       fUserData.Extend,
+			AllowType:    pb.AllowType(fUserData.AllowType),
+			UserType:     User.UserType(fUserData.UserType),
+			State:        User.UserState(fUserData.State),
+			TrueName:     fUserData.TrueName,
+			IdentityCard: fUserData.IdentityCard,
+			Province:     fUserData.Province,
+			City:         fUserData.City,
+			Area:         fUserData.Area,
 			// Street:             fUserData.Street,
 			Address:            fUserData.Address,
 			ReferrerUsername:   fUserData.ReferrerUsername,
@@ -942,4 +946,12 @@ func (s *DefaultLianmiApisService) DeleteUserOrdersByUserID(username string) err
 func (s *DefaultLianmiApisService) OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error) {
 	// panic("implement me")
 	return s.Repository.OrderSerachByKeyWord(username, req)
+}
+
+func (s *DefaultLianmiApisService) GetUserByWechatOpenid(openid string) (string, error) {
+	return s.Repository.GetUserByWechatOpenid(openid)
+}
+
+func (s *DefaultLianmiApisService) UpdateUserWxOpenID(username string, openid string) error {
+	return s.Repository.UpdateUserWxOpenID(username, openid)
 }

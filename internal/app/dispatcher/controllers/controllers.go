@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -42,6 +43,7 @@ type Login struct {
 	ProtocolVersion string `form:"protocolversion" json:"protocolversion"`      //非必填，协议版本
 	SdkVersion      string `form:"sdkversion" json:"sdkversion"`                //非必填，sdk版本
 	IsMaster        bool   `form:"ismaster" json:"ismaster"`                    //由于golang对false处理不对，所以不能设为必填
+	TokenCode       string `json:"token_code"`                                  //微信返回的了临时uuid
 }
 
 type LoginResp struct {
@@ -93,7 +95,7 @@ func CreateInitControllersFn(
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode)                 //根据手机生成短信注册码
 		r.POST("/validatecode", pc.ValidateCode)                      //验证码验证接口
 		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
-
+		r.POST("/account_wechat", pc.UserAuthWechatTokenCode)
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "gin",
 			Key:         []byte(common.SecretKey),
@@ -159,6 +161,7 @@ func CreateInitControllersFn(
 				username := strings.TrimSpace(loginVals.Username)
 				password := strings.TrimSpace(loginVals.Password)
 				deviceID := strings.TrimSpace(loginVals.DeviceID)
+				wxUUid := strings.TrimSpace(loginVals.TokenCode)
 				userType := loginVals.UserType //1-普通用户 2-商户
 				os := strings.TrimSpace(loginVals.Os)
 
@@ -286,6 +289,21 @@ func CreateInitControllersFn(
 						pc.logger.Warn("Authenticator , CheckUser .... false")
 					}
 
+				} else if wxUUid != "" {
+					// 存在uuid
+					// 校验 是否 缓存
+					cacheUserWxOpenID := fmt.Sprintf("WXToken:%s", wxUUid)
+					useridByCahce, isok := pc.cacheMap[cacheUserWxOpenID]
+					if !isok {
+						pc.logger.Error("临时令牌不存在 , 无法使用第三方登陆")
+						return nil, gin_jwt_v2.ErrFailedAuthentication
+					}
+					delete(pc.cacheMap, cacheUserWxOpenID)
+					useridByCahceStr := useridByCahce.(string)
+					return &models.UserRole{
+						UserName: useridByCahceStr,
+						DeviceID: deviceID,
+					}, nil
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication
@@ -430,6 +448,7 @@ func CreateInitControllersFn(
 			userGroup.POST("/list", pc.QueryUsers)     //多条件不定参数批量分页获取用户列表
 			userGroup.GET("/likes", pc.UserLikes)      //获取当前用户对所有店铺点赞情况
 			userGroup.POST("/getuserdb", pc.GetUserDb) //根据用户注册号获取用户数据库
+			userGroup.POST("/bingwechat", pc.UserBindWechat)
 
 		}
 

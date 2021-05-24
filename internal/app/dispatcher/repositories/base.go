@@ -282,6 +282,10 @@ type LianmiRepository interface {
 	DeleteUserOrdersByUserID(username string) error
 	// 通过关键字查询订单
 	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
+	// 通过 微信 openid 获取 用户id
+	GetUserByWechatOpenid(openid string) (string, error)
+	// 绑定微信openid
+	UpdateUserWxOpenID(username string, openid string) error
 }
 
 type MysqlLianmiRepository struct {
