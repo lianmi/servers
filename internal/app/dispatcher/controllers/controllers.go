@@ -402,6 +402,9 @@ func CreateInitControllersFn(
 		// github的OAuth授权登录回调uri
 		r.GET("/login-github", pc.GitHubOAuth)
 
+		// 获取App下载的链接url
+		r.GET("/getdownloadurl", pc.GetDownloadURL)
+
 		r.POST("/login", authMiddleware.LoginHandler)
 
 		r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {

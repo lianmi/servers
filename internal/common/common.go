@@ -217,3 +217,8 @@ const (
 	Fucai_Topic = "lianmi/cloud/lottety-center-guangdong" //福彩中心
 	Tiyu_Topic  = "lianmi/cloud/lottety-center-guangdong" //体育彩票中心
 )
+
+//App下载地址
+const (
+	AppDownloadURL = "https://www.lianmi.cloud/download"
+)

@@ -6,8 +6,12 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/lianmi/servers/internal/common/codes"
 	"go.uber.org/zap"
+	LMCommon "github.com/lianmi/servers/internal/common"
 )
 
 //see: https://studygolang.com/articles/20408
@@ -25,4 +29,9 @@ func (pc *LianmiApisController) GitHubOAuth(c *gin.Context) {
 	//TODO 根据获得的code，以及注册号的client_id, client_secret，用POST方法提交到GitHub获取令牌
 	//https://api.lianmi.cloud/login-github?error=redirect_uri_mismatch&error_description=The+redirect_uri+MUST+match+the+registered+callback+URL+for+this+application.&error_uri=https%3A%2F%2Fdocs.github.com%2Fapps%2Fmanaging-oauth-apps%2Ftroubleshooting-authorization-request-errors%2F%23redirect-uri-mismatch&state=app
 
+}
+
+func (pc *LianmiApisController) GetDownloadURL(c *gin.Context) {
+	code := codes.SUCCESS
+	RespData(c, http.StatusOK, code, LMCommon.AppDownloadURL)
 }

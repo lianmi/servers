@@ -2,7 +2,7 @@ package models
 
 //Role 身份信息结构体
 type Role struct {
-	ID       int    `gorm:"primarykey" json:"id"`
+	ID       int    `gorm:"id" json:"id"`
 	UserID   uint   `json:"user_id"`
 	UserName string `json:"user_name"`
 	Value    string `json:"value"`
