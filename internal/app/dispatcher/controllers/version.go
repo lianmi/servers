@@ -12,6 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+//获取服务条款，需要token
+func (pc *LianmiApisController) GetFuwutiaokuan(c *gin.Context) {
+	code := codes.SUCCESS
+	RespData(c, http.StatusOK, code, LMCommon.Fuwutiaokuan) //服务条款
+}
+
 //GET 获取app最新版本
 func (pc *LianmiApisController) GetAppVersion(c *gin.Context) {
 	code := codes.SUCCESS
