@@ -21,6 +21,8 @@ import (
 )
 
 type LianmiApisService interface {
+	GetAppVersion(oldVersion string) (string, error)
+	
 	BlockUser(username string) error
 	DisBlockUser(username string) error
 	Register(user *models.User) (string, error)
@@ -268,6 +270,9 @@ type LianmiApisService interface {
 	DeleteUserOrdersByUserID(username string) error
 	// 通过关键字查询订单
 	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
+
+	//管理员修改app版本号
+	ManagerSetVersionLast(req *models.VersionInfo) error
 }
 
 type DefaultLianmiApisService struct {
@@ -318,22 +323,22 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 
 	return &Auth.UserRsp{
 		User: &User.User{
-			Username:           fUserData.Username,
-			Gender:             User.Gender(fUserData.Gender),
-			Nick:               fUserData.Nick,
-			Avatar:             avatar,
-			Label:              fUserData.Label,
-			Mobile:             fUserData.Mobile,
-			Email:              fUserData.Email,
-			Extend:             fUserData.Extend,
-			AllowType:          pb.AllowType(fUserData.AllowType),
-			UserType:           User.UserType(fUserData.UserType),
-			State:              User.UserState(fUserData.State),
-			TrueName:           fUserData.TrueName,
-			IdentityCard:       fUserData.IdentityCard,
-			Province:           fUserData.Province,
-			City:               fUserData.City,
-			Area:               fUserData.Area,
+			Username:     fUserData.Username,
+			Gender:       User.Gender(fUserData.Gender),
+			Nick:         fUserData.Nick,
+			Avatar:       avatar,
+			Label:        fUserData.Label,
+			Mobile:       fUserData.Mobile,
+			Email:        fUserData.Email,
+			Extend:       fUserData.Extend,
+			AllowType:    pb.AllowType(fUserData.AllowType),
+			UserType:     User.UserType(fUserData.UserType),
+			State:        User.UserState(fUserData.State),
+			TrueName:     fUserData.TrueName,
+			IdentityCard: fUserData.IdentityCard,
+			Province:     fUserData.Province,
+			City:         fUserData.City,
+			Area:         fUserData.Area,
 			// Street:             fUserData.Street,
 			Address:            fUserData.Address,
 			ReferrerUsername:   fUserData.ReferrerUsername,
@@ -343,6 +348,10 @@ func (s *DefaultLianmiApisService) GetUser(username string) (*Auth.UserRsp, erro
 			UpdatedAt:          uint64(fUserData.UpdatedAt),
 		},
 	}, nil
+}
+
+func (s *DefaultLianmiApisService) GetAppVersion(oldVersion string) (string, error) {
+	return s.Repository.GetAppVersion(oldVersion)
 }
 
 func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
@@ -940,6 +949,10 @@ func (s *DefaultLianmiApisService) DeleteUserOrdersByUserID(username string) err
 }
 
 func (s *DefaultLianmiApisService) OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error) {
-	// panic("implement me")
 	return s.Repository.OrderSerachByKeyWord(username, req)
+}
+
+//管理员修改app版本号
+func (s *DefaultLianmiApisService) ManagerSetVersionLast(req *models.VersionInfo) error {
+	return s.Repository.ManagerSetVersionLast(req)
 }

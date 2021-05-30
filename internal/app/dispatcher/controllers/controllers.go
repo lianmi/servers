@@ -399,12 +399,6 @@ func CreateInitControllersFn(
 			log.Fatal("JWT Error:" + err.Error())
 		}
 
-		// github的OAuth授权登录回调uri
-		r.GET("/login-github", pc.GitHubOAuth)
-
-		// 获取App下载的链接url
-		r.GET("/getdownloadurl", pc.GetDownloadURL)
-
 		r.POST("/login", authMiddleware.LoginHandler)
 
 		r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
@@ -420,8 +414,9 @@ func CreateInitControllersFn(
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
 
-			auth.GET("/devices", pc.GetAllDevices) //获取当前用户的登录设备
-			auth.GET("/signout", pc.SignOut)       //登出
+			auth.GET("/devices", pc.GetAllDevices)    //获取当前用户的登录设备
+			auth.GET("/signout", pc.SignOut)          //登出
+			auth.GET("/appversion", pc.GetAppVersion) //获取版本号，需要token
 
 		}
 
@@ -633,6 +628,7 @@ func CreateInitControllersFn(
 
 			// 增加商户支持的彩种
 			adminGroup.POST("/addstoreproduct", pc.AdminAddStoreProductItem)
+
 			// 查看现有缓存的key
 			adminGroup.GET("/allcachekey", pc.AdminFindAllCacheLKey)
 
@@ -655,6 +651,9 @@ func CreateInitControllersFn(
 
 			//批量设置网点opk
 			adminGroup.POST("/admindefaultopk", pc.AdminDefaultOPK)
+
+			//管理员设置连米App版本号
+			adminGroup.POST("/set_version_last", pc.ManagerSetVersionLast)
 
 		}
 	}

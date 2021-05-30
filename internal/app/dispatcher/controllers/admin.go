@@ -14,6 +14,7 @@ import (
 	// Global "github.com/lianmi/servers/api/proto/global"
 	Auth "github.com/lianmi/servers/api/proto/auth"
 	Order "github.com/lianmi/servers/api/proto/order"
+
 	// User "github.com/lianmi/servers/api/proto/user"
 
 	jwt_v2 "github.com/appleboy/gin-jwt/v2"
@@ -33,8 +34,6 @@ import (
 func (pc *LianmiApisController) CheckIsAdmin(c *gin.Context) bool {
 	claims := jwt_v2.ExtractClaims(c)
 	userName := claims[common.IdentityKey].(string)
-	// deviceID := claims["deviceID"].(string)
-	// token := jwt_v2.GetToken(c)
 
 	// 用户是以admin开头的账号是后台管理账号
 	if strings.HasPrefix(userName, "admin") {
@@ -60,6 +59,7 @@ func (pc *LianmiApisController) CheckIsUser(c *gin.Context) (username, deviceid 
 //封号
 func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 	pc.logger.Debug("BlockUser start ...")
@@ -83,6 +83,7 @@ func (pc *LianmiApisController) BlockUser(c *gin.Context) {
 //解封
 func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -106,6 +107,7 @@ func (pc *LianmiApisController) DisBlockUser(c *gin.Context) {
 //后台: 授权新创建的群组
 func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -139,6 +141,7 @@ func (pc *LianmiApisController) ApproveTeam(c *gin.Context) {
 //封禁群组
 func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -162,6 +165,7 @@ func (pc *LianmiApisController) BlockTeam(c *gin.Context) {
 //解封群组
 func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -185,6 +189,7 @@ func (pc *LianmiApisController) DisBlockTeam(c *gin.Context) {
 
 func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 	code := codes.InvalidParams
@@ -207,6 +212,7 @@ func (pc *LianmiApisController) GetGeneralProductPage(c *gin.Context) {
 //增加通用商品
 func (pc *LianmiApisController) AddGeneralProduct(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -363,6 +369,7 @@ func (pc *LianmiApisController) UpdateGeneralProduct(c *gin.Context) {
 //删除通用商品
 func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -383,6 +390,7 @@ func (pc *LianmiApisController) DeleteGeneralProduct(c *gin.Context) {
 //增加在线客服id
 func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -422,6 +430,7 @@ func (pc *LianmiApisController) AddCustomerService(c *gin.Context) {
 //删除在线客服id
 func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -447,6 +456,7 @@ func (pc *LianmiApisController) DeleteCustomerService(c *gin.Context) {
 //修改在线客服资料
 func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -485,6 +495,7 @@ func (pc *LianmiApisController) UpdateCustomerService(c *gin.Context) {
 //将店铺审核通过
 func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 	var req Auth.AuditStoreReq
@@ -510,6 +521,7 @@ func (pc *LianmiApisController) AuditStore(c *gin.Context) {
 //上传网点excel文件并导入到数据库里
 func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -562,6 +574,7 @@ func (pc *LianmiApisController) LoadExcel(c *gin.Context) {
 //查询并分页获取采集的网点
 func (pc *LianmiApisController) GetLotteryStores(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 
@@ -591,6 +604,7 @@ func (pc *LianmiApisController) GetLotteryStores(c *gin.Context) {
 //管理员增加网点
 func (pc *LianmiApisController) AdminAddStore(c *gin.Context) {
 	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
 		return
 	}
 	code := codes.InvalidParams
@@ -686,5 +700,40 @@ func (pc *LianmiApisController) AdminDefaultOPK(c *gin.Context) {
 	pc.logger.Debug("BatchAddStores ok")
 	code = codes.SUCCESS
 	RespOk(c, http.StatusOK, code)
+
+}
+
+//POST 方法 管理员设置App最新版本号
+func (pc *LianmiApisController) ManagerSetVersionLast(c *gin.Context) {
+	code := codes.InvalidParams
+	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
+		return
+	}
+
+	var req models.VersionInfo
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+	} else {
+		if req.Version == "" {
+			pc.logger.Error("Version参数错误, 缺少必填字段")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Version")
+		}
+		if req.Details == "" {
+			pc.logger.Error("Details参数错误, 缺少必填字段")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Details")
+		}
+
+		err := pc.service.ManagerSetVersionLast(&req)
+		if err != nil {
+			RespFail(c, http.StatusOK, codes.ERROR, "管理员设置版本号时发生错误")
+			return
+		}
+
+		pc.logger.Debug("ManagerSetVersionLast ok")
+		code = codes.SUCCESS
+		RespOk(c, http.StatusOK, code)
+	}
 
 }

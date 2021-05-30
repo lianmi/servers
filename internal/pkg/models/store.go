@@ -39,7 +39,6 @@ type Store struct {
 	DefaultOPK            string `form:"default_opk" json:"default_opk"`                              //商户的默认OPK
 	BusinessCode          string `form:"business_code" json:"businessCode"`                           //商户的网点编码，适合彩票店或连锁网点
 	NotaryServiceUsername string `form:"notary_service_username" json:"notary_service_username"`      //商户对应的公证处注册id
-	// 新增
 	IdCardFrontPhoto string `json:"idCardFrontPhoto"` // 身份证 正面
 	IdCardBackPhoto  string `json:"idCardBackPhoto"`  // 身份证 背面
 	CardOwner        string `json:"cardOwner"`        // 银行卡持有者姓名

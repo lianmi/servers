@@ -220,5 +220,9 @@ const (
 
 //App下载地址
 const (
-	AppDownloadURL = "https://www.lianmi.cloud/download"
+	//安卓
+	ApkDownloadURL = "https://lianmi-ipfs.oss-cn-hangzhou.aliyuncs.com/msgs/app-release.apk"
+
+	//苹果app store
+	AppStoreURL = "https://appstore.apple.com/xxxxxx"
 )
