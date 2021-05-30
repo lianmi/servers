@@ -414,9 +414,9 @@ func CreateInitControllersFn(
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
 
-			auth.GET("/devices", pc.GetAllDevices)    //获取当前用户的登录设备
-			auth.GET("/signout", pc.SignOut)          //登出
-			auth.GET("/appversion", pc.GetAppVersion) //获取版本号，需要token
+			auth.GET("/devices", pc.GetAllDevices)     //获取当前用户的登录设备
+			auth.GET("/signout", pc.SignOut)           //登出
+			auth.GET("/checkupdate", pc.GetAppVersion) //获取版本号，需要token
 
 		}
 
