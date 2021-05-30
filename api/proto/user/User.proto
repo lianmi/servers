@@ -73,14 +73,11 @@ enum UserFeild {
   ///  区 
   UserFeild_Area =11;
 
-  ///  街道 
-  UserFeild_Street =12;
-
   ///  地址 
-  UserFeild_Address =13;
+  UserFeild_Address =12;
 
   /// 身份证
-  UserFeild_IdentityCard =14;
+  UserFeild_IdentityCard =13;
 
 }
 
