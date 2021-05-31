@@ -17,9 +17,8 @@ import (
 )
 
 type LianmiRepository interface {
+	GetAppVersion(oldVersion string) (string, error)
 
-	GetAppVersion(oldVersion string) (string, error) 
-	
 	//根据注册用户id获取用户的资料
 	GetUser(username string) (p *models.User, err error)
 
@@ -287,6 +286,10 @@ type LianmiRepository interface {
 
 	//管理员修改App版本号及功能详情
 	ManagerSetVersionLast(req *models.VersionInfo) error
+	// 通过 微信 openid 获取 用户id
+	GetUserByWechatOpenid(openid string) (string, error)
+	// 绑定微信openid
+	UpdateUserWxOpenID(username string, openid string) error
 }
 
 type MysqlLianmiRepository struct {

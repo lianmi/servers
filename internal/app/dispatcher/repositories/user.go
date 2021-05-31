@@ -1050,3 +1050,33 @@ func (s *MysqlLianmiRepository) GetUserType(username string) (int, error) {
 	return redis.Int(redisConn.Do("HGET", fmt.Sprintf("userData:%s", username), "UserType"))
 
 }
+
+func (s *MysqlLianmiRepository) GetUserByWechatOpenid(openid string) (string, error) {
+	user := new(models.User)
+
+	if err := s.db.Model(user).Where(&models.User{
+		UserBase: models.UserBase{
+			WXOpenID: openid,
+		},
+	}).First(user).Error; err != nil {
+		//记录找不到也会触发错误
+		return "", errors.Wrapf(err, "Get user error[openid=%s]", openid)
+	}
+	s.logger.Debug("GetUserByWechatOpenid run...",
+		zap.String("Username", user.Username),
+		zap.String("Avatar", user.Avatar),
+		zap.Int("Gender", int(user.Gender)),
+	)
+	return user.Username, nil
+}
+
+func (s *MysqlLianmiRepository) UpdateUserWxOpenID(username string, openid string) error {
+
+	whereUser := models.User{}
+	whereUser.Username = username
+
+	updateUser := models.User{}
+	updateUser.WXOpenID = openid
+	err := s.db.Model(&models.User{}).Where(&whereUser).Updates(&updateUser).Error
+	return err
+}

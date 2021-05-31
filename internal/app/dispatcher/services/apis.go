@@ -22,7 +22,7 @@ import (
 
 type LianmiApisService interface {
 	GetAppVersion(oldVersion string) (string, error)
-	
+
 	BlockUser(username string) error
 	DisBlockUser(username string) error
 	Register(user *models.User) (string, error)
@@ -273,6 +273,11 @@ type LianmiApisService interface {
 
 	//管理员修改app版本号
 	ManagerSetVersionLast(req *models.VersionInfo) error
+
+	// 通过 微信 open id 获取userid
+	GetUserByWechatOpenid(openid string) (string, error)
+	// 绑定微信openid
+	UpdateUserWxOpenID(username string, openid string) error
 }
 
 type DefaultLianmiApisService struct {
@@ -955,4 +960,12 @@ func (s *DefaultLianmiApisService) OrderSerachByKeyWord(username string, req *mo
 //管理员修改app版本号
 func (s *DefaultLianmiApisService) ManagerSetVersionLast(req *models.VersionInfo) error {
 	return s.Repository.ManagerSetVersionLast(req)
+}
+
+func (s *DefaultLianmiApisService) GetUserByWechatOpenid(openid string) (string, error) {
+	return s.Repository.GetUserByWechatOpenid(openid)
+}
+
+func (s *DefaultLianmiApisService) UpdateUserWxOpenID(username string, openid string) error {
+	return s.Repository.UpdateUserWxOpenID(username, openid)
 }
