@@ -293,27 +293,18 @@ func CreateInitControllersFn(
 					}
 
 				} else if wechat_code != "" {
-					/*
-						// 存在uuid
-						// 校验 是否 缓存
-						cacheUserWxOpenID := fmt.Sprintf("WXToken:%s", wxUUid)
-						useridByCahce, isok := pc.cacheMap[cacheUserWxOpenID]
-						if !isok {
-							pc.logger.Error("临时令牌不存在 , 无法使用第三方登陆")
-							return nil, gin_jwt_v2.ErrFailedAuthentication
-						}
-						delete(pc.cacheMap, cacheUserWxOpenID)
-						useridByCahceStr := useridByCahce.(string)
-						return &models.UserRole{
-							UserName: useridByCahceStr,
-							DeviceID: deviceID,
-						}, nil
 
-					*/
-
-					//TODO
 					//根据微信code获取到用户唯一id及其它信息
-							
+					username, err = pc.UserBindWechat(wechat_code)
+					if err != nil {
+						pc.logger.Warn("GetMobileByUsername error")
+						return "", gin_jwt_v2.ErrMissingLoginValues
+					}
+					
+					return &models.UserRole{
+						UserName: username,
+						DeviceID: deviceID,
+					}, nil
 
 				}
 
