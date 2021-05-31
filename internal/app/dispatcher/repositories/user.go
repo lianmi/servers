@@ -1071,8 +1071,12 @@ func (s *MysqlLianmiRepository) GetUserByWechatOpenid(openid string) (string, er
 }
 
 func (s *MysqlLianmiRepository) UpdateUserWxOpenID(username string, openid string) error {
-	err := s.db.Model(&models.User{}).Where(&models.User{
-		nil, models.UserBase{Username: username},
-	}).Updates(&models.User{nil, models.UserBase{WXOpenID: openid}}).Error
+
+	whereUser := models.User{}
+	whereUser.Username = username
+
+	updateUser := models.User{}
+	updateUser.WXOpenID = openid
+	err := s.db.Model(&models.User{}).Where(&whereUser).Updates(&updateUser).Error
 	return err
 }
