@@ -401,6 +401,9 @@ func CreateInitControllersFn(
 
 		r.POST("/login", authMiddleware.LoginHandler)
 
+		//用户扫码对方的二维码，动态给一个页面
+		r.GET("/qrcodeurl", pc.QrcodeDownloadURL)
+
 		r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
 			// claims := gin_jwt_v2.ExtractClaims(c)
 			// log.Printf("NoRoute claims: %#v\n", claims)
@@ -414,9 +417,9 @@ func CreateInitControllersFn(
 		auth.Use(authMiddleware.MiddlewareFunc())
 		{
 
-			auth.GET("/devices", pc.GetAllDevices)     //获取当前用户的登录设备
-			auth.GET("/signout", pc.SignOut)           //登出
-			auth.GET("/checkupdate", pc.GetAppVersion) //获取版本号，需要token
+			auth.GET("/devices", pc.GetAllDevices)        //获取当前用户的登录设备
+			auth.GET("/signout", pc.SignOut)              //登出
+			auth.GET("/checkupdate", pc.GetAppVersion)    //获取版本号，需要token
 			auth.GET("/fuwutiaokuan", pc.GetFuwutiaokuan) //获取服务条款，需要token
 
 		}
