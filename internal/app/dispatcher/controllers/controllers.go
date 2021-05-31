@@ -297,7 +297,7 @@ func CreateInitControllersFn(
 					//根据微信code获取到用户唯一id及其它信息
 					username, err = pc.UserBindWechat(wechat_code)
 					if err != nil {
-						pc.logger.Warn("UserBindWechat error")
+						pc.logger.Warn("UserBindWechat error", zap.Error(err))
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
 
