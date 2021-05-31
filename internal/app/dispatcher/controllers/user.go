@@ -6,11 +6,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/gomodule/redigo/redis"
 	Auth "github.com/lianmi/servers/api/proto/auth"
@@ -561,7 +562,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 		return
 	}
 	//if err := json.Unmarshal(data, &datainfo); err != nil {
-	//	RespFail(context, http.StatusNotFound, codes.InvalidParams, "code is empty ")
+	//	RespData(context, http.StatusOK, codes.InvalidParams, "code is empty ")
 	//	return
 	//}
 
@@ -576,7 +577,6 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 	}
 	// 添加自定义请求头
 	req.Header.Add("Content-Type", "application/json")
-	//
 
 	// 其它请求头配置
 	client := &http.Client{
@@ -586,7 +586,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 	if err != nil {
 		pc.logger.Error("UserAuthWechatTokenCode client ", zap.Error(err))
 		//
-		RespFail(context, http.StatusNotFound, codes.ERROR, "wechat client request fail ")
+		RespData(context, http.StatusOK, codes.ERROR, "wechat client request fail ")
 		return
 	}
 
@@ -601,6 +601,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 		Scope        string `json:"scope"`
 		Unionid      string `json:"unionid"`
 	}
+
 	if resp.StatusCode == http.StatusOK {
 		// 成功
 		body, err := ioutil.ReadAll(resp.Body)
@@ -619,7 +620,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 		if err != nil {
 
 			pc.logger.Error("wechat client deserial fail ")
-			RespFail(context, http.StatusNotFound, codes.ERROR, "wechat register fail ")
+			RespData(context, http.StatusOK, codes.ERROR, "wechat register fail ")
 
 			return
 
@@ -630,14 +631,14 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 
 		if respMap.Openid == "" {
 			pc.logger.Error("wechat client not found openid ")
-			RespFail(context, http.StatusNotFound, codes.ERROR, "wechat client not found openid ")
+			RespData(context, http.StatusOK, codes.ERROR, "wechat client not found openid ")
 			return
 		}
 		// 通过openid 判断 是否存在用户
 		username, err := pc.service.GetUserByWechatOpenid(respMap.Openid)
 		if err != nil {
 			pc.logger.Error("用户为注册")
-			RespFail(context, http.StatusNotFound, codes.ERROR, "用户未绑定微信")
+			RespData(context, http.StatusOK, codes.ERROR, "用户未绑定微信")
 			return
 		}
 
@@ -649,35 +650,19 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 		RespData(context, http.StatusOK, 200, uuidCache)
 
 	} else {
-		pc.logger.Error("用户为注册")
-		RespFail(context, http.StatusNotFound, codes.ERROR, "鉴权错误")
+		pc.logger.Error("鉴权错误")
+		RespData(context, http.StatusOK, codes.ERROR, "鉴权错误")
 		return
 	}
 
 }
-func (pc *LianmiApisController) UserBindWechat(context *gin.Context) {
-	username, _, isok := pc.CheckIsUser(context)
 
-	if !isok {
-		RespFail(context, http.StatusUnauthorized, 401, "token is fail")
-		return
-	}
+//根据微信code获取用户唯一id及信息
+func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error) {
+	var err error
+	var username string
 
-	type DataBodyInfo struct {
-		WeChatCode string `json:"wechat_code"`
-	}
-
-	var datainfo DataBodyInfo
-	if err := context.BindJSON(&datainfo); err != nil {
-		RespData(context, http.StatusOK, codes.InvalidParams, "请求参数错误")
-		return
-	}
-	//if err := json.Unmarshal(data, &datainfo); err != nil {
-	//	RespFail(context, http.StatusNotFound, codes.InvalidParams, "code is empty ")
-	//	return
-	//}
-
-	wxAuthUrl := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", LMCommon.WechatLoginAppid, LMCommon.WechatLoginSecret, datainfo.WeChatCode) //  common.BASE_IMSDK_URL
+	wxAuthUrl := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", LMCommon.WechatLoginAppid, LMCommon.WechatLoginSecret, weChatCode) //  common.BASE_IMSDK_URL
 
 	//useridMd5 := Md5String(&userid)
 	inBodyMap := make(map[string]interface{})
@@ -697,9 +682,8 @@ func (pc *LianmiApisController) UserBindWechat(context *gin.Context) {
 	resp, err := client.Do(req)
 	if err != nil {
 		pc.logger.Error("UserAuthWechatTokenCode client ", zap.Error(err))
-		//
-		RespFail(context, http.StatusNotFound, codes.ERROR, "wechat client request fail ")
-		return
+
+		return "", err
 	}
 
 	defer resp.Body.Close()
@@ -731,9 +715,7 @@ func (pc *LianmiApisController) UserBindWechat(context *gin.Context) {
 		if err != nil {
 
 			pc.logger.Error("wechat client deserial fail ")
-			RespFail(context, http.StatusNotFound, codes.ERROR, "wechat register fail ")
-
-			return
+			return "", err
 
 		}
 
@@ -742,35 +724,52 @@ func (pc *LianmiApisController) UserBindWechat(context *gin.Context) {
 
 		if respMap.Openid == "" {
 			pc.logger.Error("wechat client not found openid ")
-			RespFail(context, http.StatusNotFound, codes.ERROR, "wechat client not found openid ")
-			return
+			return "", err
 		}
+
 		// 通过openid 判断 是否存在用户
-		_, err = pc.service.GetUserByWechatOpenid(respMap.Openid)
+		username, err = pc.service.GetUserByWechatOpenid(respMap.Openid)
 		if err != nil {
 			// 可以绑定
+			//将用户注册
+			user := models.User{
+				UserBase: models.UserBase{
+					Mobile:    "",             //注册手机
+					AllowType: 3,              //用户加好友枚举，默认是3
+					UserType:  1,              //用户类型 1-普通，2-商户
+					State:     0,              //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+					WXOpenID:  respMap.Openid, //微信用户唯一id
+				},
+			}
 
+			if username, err = pc.service.Register(&user); err == nil {
+				pc.logger.Debug("Register user success", zap.String("username", username))
+
+			} else {
+				pc.logger.Error("Register user error", zap.Error(err))
+			}
+			return username, nil
 		} else {
 			// 已经绑定过
-			pc.logger.Error("open id 已被使用", zap.String("openid", respMap.Openid))
-			RespFail(context, http.StatusNotFound, codes.ERROR, "该账户已被绑定")
-			return
+			pc.logger.Debug("Register open id 已经绑定过",
+				zap.String("openid", respMap.Openid),
+				zap.String("username", username),
+			)
+			return username, nil
 		}
 
-		errBind := pc.service.UpdateUserWxOpenID(username, respMap.Openid)
+		// errBind := pc.service.UpdateUserWxOpenID(username, respMap.Openid)
 
-		if errBind != nil {
-			pc.logger.Error("绑定失败 ", zap.Error(err))
-			RespFail(context, http.StatusNotFound, codes.ERROR, "绑定失败")
-			return
-		} else {
-			RespData(context, http.StatusOK, 200, "绑定成功")
-			return
-		}
+		// if errBind != nil {
+		// 	pc.logger.Error("绑定失败 ", zap.Error(err))
+		// 	return "", err
+		// } else {
+		// 	return username, nil
+		// }
 
 	} else {
-		pc.logger.Error("用户为注册")
-		RespFail(context, http.StatusNotFound, codes.ERROR, "鉴权错误")
-		return
+		pc.logger.Error("鉴权错误")
+		return "", err
 	}
+
 }

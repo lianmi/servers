@@ -93,7 +93,8 @@ func CreateInitControllersFn(
 		r.GET("/smscode/:mobile", pc.GenerateSmsCode)                 //根据手机生成短信注册码
 		r.POST("/validatecode", pc.ValidateCode)                      //验证码验证接口
 		r.GET("/getusernamebymobile/:mobile", pc.GetUsernameByMobile) //根据手机号获取注册账号id
-		r.POST("/account_wechat", pc.UserAuthWechatTokenCode)
+		// r.POST("/account_wechat", pc.UserAuthWechatTokenCode) //不需要
+
 		authMiddleware, err := gin_jwt_v2.New(&gin_jwt_v2.GinJWTMiddleware{
 			Realm:       "gin",
 			Key:         []byte(common.SecretKey),
@@ -174,118 +175,121 @@ func CreateInitControllersFn(
 					zap.String("os", os),
 				)
 
-				if mobile == "" && username == "" {
-					pc.logger.Error("Mobile and Username are both empty")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				} else if mobile != "" && smscode == "" {
-					pc.logger.Error("SmsCode is empty")
-					return "", gin_jwt_v2.ErrMissingLoginValues
-				} else if mobile != "" && username == "" {
-					//不是手机
-					if len(mobile) != 11 {
-						pc.logger.Warn("Mobile error", zap.Int("len", len(mobile)))
+				if wechat_code == "" {
 
+					if mobile == "" && username == "" {
+						pc.logger.Error("Mobile and Username are both empty")
 						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-
-					//不是全数字
-					if !conv.IsDigit(mobile) {
-						pc.logger.Warn("Mobile Is not Digit")
+					} else if mobile != "" && smscode == "" {
+						pc.logger.Error("SmsCode is empty")
 						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-					//检测校验码是否正确
-					if !pc.service.CheckSmsCode(mobile, smscode) {
-						pc.logger.Error("CheckSmsCode error, SmsCode is wrong")
+					} else if mobile != "" && username == "" {
+						//不是手机
+						if len(mobile) != 11 {
+							pc.logger.Warn("Mobile error", zap.Int("len", len(mobile)))
 
-						errMsg := LMCError.ErrorMsg(LMCError.SmsCodeCheckError)
-						return "", errors.New(errMsg)
-					}
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
 
-					//根据手机号获取用户id ???
-					username, err = pc.service.GetUsernameByMobile(mobile)
-					if err != nil {
-						if errors.Is(err, gorm.ErrRecordNotFound) {
-							pc.logger.Warn("mobile is not registered")
+						//不是全数字
+						if !conv.IsDigit(mobile) {
+							pc.logger.Warn("Mobile Is not Digit")
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
+						//检测校验码是否正确
+						if !pc.service.CheckSmsCode(mobile, smscode) {
+							pc.logger.Error("CheckSmsCode error, SmsCode is wrong")
 
-							//将用户注册
-							// return "", gin_jwt_v2.ErrMissingLoginValues
-							user := models.User{
-								UserBase: models.UserBase{
-									Mobile:    mobile,   //注册手机
-									AllowType: 3,        //用户加好友枚举，默认是3
-									UserType:  userType, //用户类型 1-普通，2-商户
-									State:     0,        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
-								},
-							}
+							errMsg := LMCError.ErrorMsg(LMCError.SmsCodeCheckError)
+							return "", errors.New(errMsg)
+						}
 
-							if username, err = pc.service.Register(&user); err == nil {
-								pc.logger.Debug("Register user success", zap.String("username", username))
-								// 检测用户是否可以登录, true-可以允许登录
-								if pc.CheckUser(true, username, password, deviceID, os, userType) {
-									pc.logger.Debug("Authenticator , CheckUser .... true")
+						//根据手机号获取用户id ???
+						username, err = pc.service.GetUsernameByMobile(mobile)
+						if err != nil {
+							if errors.Is(err, gorm.ErrRecordNotFound) {
+								pc.logger.Warn("mobile is not registered")
 
-									return &models.UserRole{
-										UserName: username,
-										DeviceID: deviceID,
-									}, nil
-
-								} else {
-									pc.logger.Warn("Authenticator , CheckUser .... false")
-									return "", gin_jwt_v2.ErrMissingLoginValues
+								//将用户注册
+								// return "", gin_jwt_v2.ErrMissingLoginValues
+								user := models.User{
+									UserBase: models.UserBase{
+										Mobile:    mobile,   //注册手机
+										AllowType: 3,        //用户加好友枚举，默认是3
+										UserType:  userType, //用户类型 1-普通，2-商户
+										State:     0,        //状态 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
+									},
 								}
 
+								if username, err = pc.service.Register(&user); err == nil {
+									pc.logger.Debug("Register user success", zap.String("username", username))
+									// 检测用户是否可以登录, true-可以允许登录
+									if pc.CheckUser(true, username, password, deviceID, os, userType) {
+										pc.logger.Debug("Authenticator , CheckUser .... true")
+
+										return &models.UserRole{
+											UserName: username,
+											DeviceID: deviceID,
+										}, nil
+
+									} else {
+										pc.logger.Warn("Authenticator , CheckUser .... false")
+										return "", gin_jwt_v2.ErrMissingLoginValues
+									}
+
+								} else {
+									pc.logger.Error("Register user error", zap.Error(err))
+									pc.logger.Warn("Authenticator , CheckUser .... false")
+								}
+							}
+							pc.logger.Warn("GetUsernameByMobile error")
+							errMsg := LMCError.ErrorMsg(LMCError.MobileNotRegisterError)
+							return "", errors.Wrap(err, errMsg)
+						}
+
+						//如果最终username为空则未注册
+						if username != "" {
+
+							//检测校验码是否正确
+							if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, userType) {
+								pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
+
+								return &models.UserRole{
+									UserName: username,
+									DeviceID: deviceID,
+								}, nil
 							} else {
-								pc.logger.Error("Register user error", zap.Error(err))
-								pc.logger.Warn("Authenticator , CheckUser .... false")
+								pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
 							}
 						}
-						pc.logger.Warn("GetUsernameByMobile error")
-						errMsg := LMCError.ErrorMsg(LMCError.MobileNotRegisterError)
-						return "", errors.Wrap(err, errMsg)
-					}
 
-					//如果最终username为空则未注册
-					if username != "" {
+					} else if mobile == "" && username != "" {
+						if password == "" {
+							pc.logger.Error("password is empty")
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
+						mobile, err = pc.service.GetMobileByUsername(username)
+						if err != nil {
+							pc.logger.Warn("GetMobileByUsername error")
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
 
-						//检测校验码是否正确
-						if pc.LoginBySmscode(username, mobile, smscode, deviceID, os, userType) {
-							pc.logger.Debug("Authenticator , LoginBySmsCode .... true")
+						if mobile == "" {
+							pc.logger.Warn("mobile get error")
+							return "", gin_jwt_v2.ErrMissingLoginValues
+						}
+						// 检测用户是否可以登录, true-可以允许登录
+						if pc.CheckUser(isMaster, username, password, deviceID, os, userType) {
+							pc.logger.Debug("Authenticator , CheckUser .... true")
 
 							return &models.UserRole{
 								UserName: username,
 								DeviceID: deviceID,
 							}, nil
+
 						} else {
-							pc.logger.Warn("Authenticator , LoginBySmsCode .... false")
+							pc.logger.Warn("Authenticator , CheckUser .... false")
 						}
-					}
-
-				} else if mobile == "" && username != "" {
-					if password == "" {
-						pc.logger.Error("password is empty")
-						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-					mobile, err = pc.service.GetMobileByUsername(username)
-					if err != nil {
-						pc.logger.Warn("GetMobileByUsername error")
-						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-
-					if mobile == "" {
-						pc.logger.Warn("mobile get error")
-						return "", gin_jwt_v2.ErrMissingLoginValues
-					}
-					// 检测用户是否可以登录, true-可以允许登录
-					if pc.CheckUser(isMaster, username, password, deviceID, os, userType) {
-						pc.logger.Debug("Authenticator , CheckUser .... true")
-
-						return &models.UserRole{
-							UserName: username,
-							DeviceID: deviceID,
-						}, nil
-
-					} else {
-						pc.logger.Warn("Authenticator , CheckUser .... false")
 					}
 
 				} else if wechat_code != "" {
@@ -308,6 +312,9 @@ func CreateInitControllersFn(
 					*/
 
 					//TODO
+					//根据微信code获取到用户唯一id及其它信息
+							
+
 				}
 
 				return nil, gin_jwt_v2.ErrFailedAuthentication
@@ -450,11 +457,11 @@ func CreateInitControllersFn(
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser)        //根据用户注册号获取用户详细 信息,  如果是本身，则返回更加详尽的信息，包括到期时间
-			userGroup.POST("/list", pc.QueryUsers)           //多条件不定参数批量分页获取用户列表
-			userGroup.GET("/likes", pc.UserLikes)            //获取当前用户对所有店铺点赞情况
-			userGroup.POST("/getuserdb", pc.GetUserDb)       //根据用户注册号获取用户数据库
-			userGroup.POST("/bingwechat", pc.UserBindWechat) // 绑定微信
+			userGroup.GET("/getuser/:id", pc.GetUser)  //根据用户注册号获取用户详细 信息,  如果是本身，则返回更加详尽的信息，包括到期时间
+			userGroup.POST("/list", pc.QueryUsers)     //多条件不定参数批量分页获取用户列表
+			userGroup.GET("/likes", pc.UserLikes)      //获取当前用户对所有店铺点赞情况
+			userGroup.POST("/getuserdb", pc.GetUserDb) //根据用户注册号获取用户数据库
+			// userGroup.POST("/bingwechat", pc.UserBindWechat) // 绑定微信
 
 		}
 

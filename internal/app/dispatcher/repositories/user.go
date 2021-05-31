@@ -1051,6 +1051,7 @@ func (s *MysqlLianmiRepository) GetUserType(username string) (int, error) {
 
 }
 
+//根据微信唯一id查询出users表对应的username
 func (s *MysqlLianmiRepository) GetUserByWechatOpenid(openid string) (string, error) {
 	user := new(models.User)
 

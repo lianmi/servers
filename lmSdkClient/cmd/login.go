@@ -80,20 +80,20 @@ var loginCmd = &cobra.Command{
 		log.Println(deviceID)
 		log.Println(userType)
 		log.Println(os)
-		log.Println(protocolVersion)
+		// log.Println(protocolVersion)
 		log.Println(sdkVersion)
 		log.Println(isMaster)
 
 		login := &auth.Login{
-			Username:        username,
-			Password:        password,
-			SmsCode:         smscode,
-			DeviceID:        deviceID,
-			UserType:        userType,
-			Os:              os,
-			ProtocolVersion: protocolVersion,
-			SdkVersion:      sdkVersion,
-			IsMaster:        isMaster,
+			Username: username,
+			Password: password,
+			SmsCode:  smscode,
+			DeviceID: deviceID,
+			UserType: userType,
+			Os:       os,
+			// ProtocolVersion: protocolVersion,
+			SdkVersion: sdkVersion,
+			IsMaster:   isMaster,
 		}
 
 		client, err := auth.NewClient(common.SERVER_URL, "", false)
