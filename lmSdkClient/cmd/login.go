@@ -7,7 +7,7 @@ POST /login
     "deviceid" : "959bb0ae-1c12-4b60-8741-173361ceba8a",
     "clientype": 5,
     "os": "MacOSX",
-    "protocolversion": "2.0",
+    "wechat_code": "",
     "sdkversion" : "3.0",
     "ismaster" : true
 }
@@ -62,11 +62,7 @@ var loginCmd = &cobra.Command{
 			log.Println("os is empty")
 			return
 		}
-		protocolVersion, err := cmd.PersistentFlags().GetString("protocolversion")
-		if protocolVersion == "" {
-			log.Println("protocolVersion is empty")
-			return
-		}
+
 		sdkVersion, err := cmd.PersistentFlags().GetString("sdkversion")
 		if sdkVersion == "" {
 			log.Println("sdkversion is empty")
@@ -162,7 +158,6 @@ func init() {
 	loginCmd.PersistentFlags().StringP("deviceid", "d", "959bb0ae-1c12-4b60-8741-173361ceba8a", "deviceid, like: 959bb0ae-1c12-4b60-8741-173361ceba8a")
 	loginCmd.PersistentFlags().IntP("userType", "t", 1, "userType, like: 1")
 	loginCmd.PersistentFlags().StringP("os", "o", "MacOSX", "os, like: MacOSX")
-	loginCmd.PersistentFlags().StringP("protocolversion", "v", "2.0", "protocolversion, like: 2.0")
 	loginCmd.PersistentFlags().StringP("sdkversion", "k", "3.0", "sdkversion, like: 3.0")
 	loginCmd.PersistentFlags().BoolP("ismaster", "i", true, "ismaster, like: true/false")
 }

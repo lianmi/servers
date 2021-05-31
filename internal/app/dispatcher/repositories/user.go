@@ -566,7 +566,7 @@ ZRANGEBYSCORE devices:lsj001 4 4
 1) "11111111-2222-3333-3333-44444444444"
 
 #创建哈希表: devices:{username}:{设备id}
-HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS" protocolversion "2.0" sdkversion "3.0"
+HMSET devices:lsj001:11111111-2222-3333-3333-44444444444 deviceid "11111111-2222-3333-3333-44444444444" ismaster 0 usertype 1 clienttype 3 os "iOS"
 
 */
 func (s *MysqlLianmiRepository) CheckUser(isMaster bool, username, password, deviceID, os string, userType int) (bool, string) {

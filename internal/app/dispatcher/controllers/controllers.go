@@ -32,16 +32,16 @@ const (
 
 // Login form structure.
 type Login struct {
-	Mobile          string `form:"mobile" json:"mobile"`                        // 11位手机号 选填
-	Username        string `form:"username" json:"username"`                    //注册号，当mobile非空的时候，选填
-	Password        string `form:"password" json:"password" `                   //密码 Username非空时必填
-	SmsCode         string `form:"smscode" json:"smscode" `                     //短信校验码，Mobile非空时必填
-	DeviceID        string `form:"deviceid" json:"deviceid" binding:"required"` //必填
-	UserType        int    `form:"usertype" json:"usertype" binding:"required"` //必填，用户类型，区分普通用户或商户
-	Os              string `form:"os" json:"os" `                               //非必填，客户端的操作系统
-	ProtocolVersion string `form:"protocolversion" json:"protocolversion"`      //非必填，协议版本
-	SdkVersion      string `form:"sdkversion" json:"sdkversion"`                //非必填，sdk版本
-	IsMaster        bool   `form:"ismaster" json:"ismaster"`                    //由于golang对false处理不对，所以不能设为必填
+	Mobile     string `form:"mobile" json:"mobile"`                        // 11位手机号 选填
+	Username   string `form:"username" json:"username"`                    //注册号，当mobile非空的时候，选填
+	Password   string `form:"password" json:"password" `                   //密码 Username非空时必填
+	SmsCode    string `form:"smscode" json:"smscode" `                     //短信校验码，Mobile非空时必填
+	DeviceID   string `form:"deviceid" json:"deviceid" binding:"required"` //必填
+	UserType   int    `form:"usertype" json:"usertype" binding:"required"` //必填，用户类型，区分普通用户或商户
+	Os         string `form:"os" json:"os" `                               //非必填，客户端的操作系统
+	WechatCode string `form:"wechat_code" json:"wechat_code"`              //UI利用微信登录时必填
+	SdkVersion string `form:"sdkversion" json:"sdkversion"`                //非必填，sdk版本
+	IsMaster   bool   `form:"ismaster" json:"ismaster"`                    //由于golang对false处理不对，所以不能设为必填
 }
 
 type LoginResp struct {
