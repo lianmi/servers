@@ -57,25 +57,16 @@ func NewRouter(o *Options, logger *zap.Logger, init InitControllers, tracer open
 
 	// 配置gin
 	gin.SetMode(o.Mode)
-	logger.Debug("====1")
 	r := gin.New()
-	logger.Debug("====2")
 
 	r.Use(gin.Recovery()) // panic之后自动恢复
-	logger.Debug("====3")
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
-	logger.Debug("====4")
 	r.Use(ginzap.RecoveryWithZap(logger, true))
-	logger.Debug("====5")
 	r.Use(ginprom.New(r).Middleware()) // 添加prometheus 监控
-	logger.Debug("====6")
 	r.Use(ginhttp.Middleware(tracer))
-	logger.Debug("====7")
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	logger.Debug("====8")
 	pprof.Register(r)
-	logger.Debug("====9")
 
 	init(r)
 	logger.Debug("NewRouter end")

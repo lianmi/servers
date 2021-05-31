@@ -90,7 +90,6 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 				NotaryServiceUsername: req.NotaryServiceUsername, //网点的公证注册id
 				AuditState:            0,                         //初始值
 				OpeningHours:          req.OpeningHours,          //营业时间
-				// 新增
 				IdCardFrontPhoto: req.IdCardFrontPhoto, // 身份证 正面
 				IdCardBackPhoto:  req.IdCardBackPhoto,  // 身份证 背面
 				CardOwner:        req.CardOwner,        // 银行卡持有者姓名
@@ -147,7 +146,6 @@ func (s *MysqlLianmiRepository) AddStore(req *models.Store) error {
 			ContactMobile:         req.ContactMobile,         //联系电话
 			BusinessCode:          req.BusinessCode,          //商户的网点编码，适合彩票店或连锁网点
 			NotaryServiceUsername: req.NotaryServiceUsername, //商户对应的公证处注册id
-			// 新增
 			IdCardFrontPhoto: req.IdCardFrontPhoto, // 身份证 正面
 			IdCardBackPhoto:  req.IdCardBackPhoto,  // 身份证 背面
 			CardOwner:        req.CardOwner,        // 银行卡持有者姓名

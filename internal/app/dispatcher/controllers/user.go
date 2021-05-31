@@ -26,6 +26,12 @@ import (
 	"go.uber.org/zap"
 )
 
+//其它用户扫描二维码
+func (pc *LianmiApisController) QrcodeDownloadURL(c *gin.Context) {
+	pc.logger.Debug("QrcodeDownloadURL..")
+	RespData(c, http.StatusOK, 200, LMCommon.QrcodeDownloadURL)
+}
+
 //根据用户注册id获取用户资料
 func (pc *LianmiApisController) GetUser(c *gin.Context) {
 	pc.logger.Debug("Get User start ...")
