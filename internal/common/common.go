@@ -274,3 +274,7 @@ const (
 
 	`
 )
+const (
+	WechatLoginAppid  = "wx239c33b9be7cd047"               // 微信登陆 appid
+	WechatLoginSecret = "431e4bec654f13edb7be0f018214244b" // 微信密钥
+)
