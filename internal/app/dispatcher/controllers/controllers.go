@@ -297,10 +297,10 @@ func CreateInitControllersFn(
 					//根据微信code获取到用户唯一id及其它信息
 					username, err = pc.UserBindWechat(wechat_code)
 					if err != nil {
-						pc.logger.Warn("GetMobileByUsername error")
+						pc.logger.Warn("UserBindWechat error")
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
-					
+
 					return &models.UserRole{
 						UserName: username,
 						DeviceID: deviceID,
