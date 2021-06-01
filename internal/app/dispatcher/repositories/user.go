@@ -72,6 +72,26 @@ func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err err
 	return
 }
 
+//给username解除绑定手机
+func (s *MysqlLianmiRepository) UnBindmobile(username string) (err error) {
+	result := s.db.Model(&models.User{}).Where(&models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}).Update("mobile", "")
+
+	//updated records count
+	s.logger.Debug("UnBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("绑定手机失败",
+			zap.String("username", username),
+			zap.Error(result.Error))
+		return result.Error
+	}
+	return
+}
+
 func (s *MysqlLianmiRepository) GetUserDb(objname string) (string, error) {
 	// 超级用户创建OSSClient实例。
 	client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)
@@ -1083,6 +1103,7 @@ func (s *MysqlLianmiRepository) GetUserByWechatOpenid(openid string) (string, er
 		return "", errors.Wrapf(err, "Get user error[openid=%s]", openid)
 	}
 	s.logger.Debug("GetUserByWechatOpenid run...",
+		zap.String("openid", openid),
 		zap.String("Username", user.Username),
 		zap.String("Avatar", user.Avatar),
 		zap.Int("Gender", int(user.Gender)),

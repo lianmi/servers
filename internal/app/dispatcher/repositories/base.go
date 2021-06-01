@@ -25,6 +25,9 @@ type LianmiRepository interface {
 	//给username绑定手机 
 	UserBindmobile(username, mobile string) (err error)
 
+	//给username解除绑定手机 
+	UnBindmobile(username string) (err error)
+
 	GetUserDb(objname string) (string, error)
 
 	//根据注册用户id获取redis里此用户的缓存

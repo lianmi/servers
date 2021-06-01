@@ -145,6 +145,28 @@ func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 
 }
 
+//GET  解除 绑定手机
+func (pc *LianmiApisController) UnBindmobile(c *gin.Context) {
+	pc.logger.Debug("UnBindWechat start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	err := pc.service.UnBindmobile(username)
+	if err != nil {
+		pc.logger.Error("UnBindmobile error", zap.Error(err))
+		RespData(c, http.StatusOK, 500, "UnBindmobile error")
+		return
+	}
+
+	RespOk(c, http.StatusOK, 200)
+
+}
+
 //多条件不定参数批量分页获取用户列表
 func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
 	code := codes.InvalidParams
@@ -733,7 +755,6 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 	}
 	// 添加自定义请求头
 	req.Header.Add("Content-Type", "application/json")
-	//
 
 	// 其它请求头配置
 	client := &http.Client{
@@ -809,7 +830,7 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 
 				pc.logger.Debug("wechatInfo",
 					zap.String("nick", wechatInfo.Usernick),
-					zap.String("nick", wechatInfo.Usernick),
+					zap.String("Avator", wechatInfo.Avator),
 					zap.Int("gender", wechatInfo.Sex),
 					zap.String("province", wechatInfo.Province),
 					zap.String("city", wechatInfo.City),
@@ -851,17 +872,9 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 				zap.String("openid", respMap.Openid),
 				zap.String("username", username),
 			)
+
 			return username, nil
 		}
-
-		// errBind := pc.service.UpdateUserWxOpenID(username, respMap.Openid)
-
-		// if errBind != nil {
-		// 	pc.logger.Error("绑定失败 ", zap.Error(err))
-		// 	return "", err
-		// } else {
-		// 	return username, nil
-		// }
 
 	} else {
 		pc.logger.Error("鉴权错误")
@@ -919,7 +932,6 @@ func (pc *LianmiApisController) GetUserinfoFromWechat(token, openid string) *mod
 	}
 	// 添加自定义请求头
 	req.Header.Add("Content-Type", "application/json")
-	//
 
 	// 其它请求头配置
 	client := &http.Client{
@@ -950,16 +962,10 @@ func (pc *LianmiApisController) GetUserinfoFromWechat(token, openid string) *mod
 			return nil
 		}
 
-		// if respMap.OpenID == openid {
-		// 	pc.logger.Error("GetUserinfoFromWechat client not found openid ")
-		// 	return nil
-		// }
-
 		return &respMap
 
 	} else {
 		// 失败
-		//fmt.Println("fail")
 		pc.logger.Error("GetUserinfoFromWechat fail ")
 		return nil
 	}
