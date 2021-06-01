@@ -53,6 +53,21 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 
 //给username绑定手机
 func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err error) {
+	var user models.User
+	if err = s.db.Model(&models.User{}).Where(&models.User{
+		UserBase: models.UserBase{
+			Mobile: mobile,
+		},
+	}).First(&user).Error; err != nil {
+		//记录不存在(RecordNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//
+		} else {
+
+			return errors.Wrapf(err, "手机已经被其它用户绑定过了[mobile=%s]", mobile)
+		}
+	}
+
 	result := s.db.Model(&models.User{}).Where(&models.User{
 		UserBase: models.UserBase{
 			Username: username,

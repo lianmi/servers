@@ -137,7 +137,7 @@ func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 	err := pc.service.UserBindmobile(username, req.Mobile)
 	if err != nil {
 		pc.logger.Error("UserBindmobile error", zap.Error(err))
-		RespData(c, http.StatusOK, 500, "UserBindmobile error")
+		RespData(c, http.StatusOK, 400, "已经绑定过，请使用手机号登录")
 		return
 	}
 
