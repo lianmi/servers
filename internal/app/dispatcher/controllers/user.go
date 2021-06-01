@@ -900,7 +900,7 @@ func (pc *LianmiApisController) DownloadWechatHeadImage(openid, avatorUrl string
 		pc.logger.Error("http.Get错误", zap.Error(err))
 		return "", err
 	}
-	f, err := os.Create("/tmp/" + filename + ".jpg")
+	f, err := os.Create("/tmp/upload/" + filename + ".jpg")
 	if err != nil {
 		pc.logger.Error("os.Create错误", zap.Error(err))
 		return "", err
@@ -908,7 +908,7 @@ func (pc *LianmiApisController) DownloadWechatHeadImage(openid, avatorUrl string
 	io.Copy(f, res.Body)
 
 	// TODO 上传到阿里云
-	objname, err := aliyunoss.UploadOssFile("avatars", openid, "/tmp/"+filename+".jpg")
+	objname, err := aliyunoss.UploadOssFile("avatars", openid, "/tmp/upload/"+filename+".jpg")
 	if err != nil {
 		pc.logger.Error("aliyunoss.UploadOssFile错误", zap.Error(err))
 		return "", err
