@@ -103,7 +103,8 @@ func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 	}
 
 	type Bindmobile struct {
-		Mobile string `json:"mobile" validate:"required"`
+		Mobile  string `json:"mobile" validate:"required"`
+		SmsCode string `json:"smscode" validate:"required"`
 	}
 	var req Bindmobile
 	if c.BindJSON(&req) != nil {
@@ -111,16 +112,29 @@ func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
 	}
 
-	// objname := c.Param("objname")
-
 	if req.Mobile == "" {
 		RespData(c, http.StatusOK, 500, "Mobile is empty")
 		return
-	} else {
-		pc.logger.Debug("UserBindmobile", zap.String("Mobile", req.Mobile))
+	}
+	if req.SmsCode == "" {
+		RespData(c, http.StatusOK, 500, "SmsCode is empty")
+		return
 	}
 
- err := pc.service.UserBindmobile(username, req.Mobile)
+	//检测SmsCode是否正确
+	if !pc.service.CheckSmsCode(req.Mobile, req.SmsCode) {
+		pc.logger.Error("CheckSmsCode error, SmsCode is wrong")
+
+		RespData(c, http.StatusOK, 500, "SmsCode is wrong")
+		return
+	}
+
+	pc.logger.Debug("UserBindmobile",
+		zap.String("Mobile", req.Mobile),
+		zap.String("SmsCode", req.SmsCode),
+	)
+
+	err := pc.service.UserBindmobile(username, req.Mobile)
 	if err != nil {
 		pc.logger.Error("UserBindmobile error", zap.Error(err))
 		RespData(c, http.StatusOK, 500, "UserBindmobile error")
