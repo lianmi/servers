@@ -742,6 +742,8 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 				},
 			}
 
+			//TODO 调用微信接口返回用户的呢称及头像
+
 			if username, err = pc.service.Register(&user); err == nil {
 				pc.logger.Debug("Register user success", zap.String("username", username))
 
