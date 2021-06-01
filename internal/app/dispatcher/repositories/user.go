@@ -78,7 +78,12 @@ func (s *MysqlLianmiRepository) UnBindmobile(username string) (err error) {
 		UserBase: models.UserBase{
 			Username: username,
 		},
-	}).Update("mobile", "")
+	}).Updates(&models.User{
+		UserBase: models.UserBase{
+			Mobile:   "",
+			WXOpenID: "",
+		},
+	})
 
 	//updated records count
 	s.logger.Debug("UnBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
