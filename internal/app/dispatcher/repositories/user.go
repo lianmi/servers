@@ -48,7 +48,7 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 	s.logger.Debug("GetUser run...",
 		zap.Any("user", user),
 	)
-	return
+	return user, nil
 }
 
 //给username绑定手机
@@ -87,8 +87,14 @@ func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err err
 			zap.String("mobile", mobile),
 			zap.Error(result.Error))
 		return result.Error
+	} else {
+		s.logger.Debug("绑定手机成功",
+			zap.String("username", username),
+			zap.String("mobile", mobile),
+		)
 	}
-	return
+
+	return nil
 }
 
 //给username解除绑定手机
@@ -115,7 +121,7 @@ func (s *MysqlLianmiRepository) UnBindmobile(username string) (err error) {
 			zap.Error(result.Error))
 		return result.Error
 	}
-	return
+	return nil
 }
 
 func (s *MysqlLianmiRepository) GetUserDb(objname string) (string, error) {
@@ -319,7 +325,7 @@ func (s *MysqlLianmiRepository) DisBlockUser(username string) (err error) {
 		return result.Error
 	}
 
-	return
+	return nil
 }
 
 //注册用户，username需要唯一
