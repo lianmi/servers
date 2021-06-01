@@ -950,10 +950,10 @@ func (pc *LianmiApisController) GetUserinfoFromWechat(token, openid string) *mod
 			return nil
 		}
 
-		if respMap.OpenID == openid {
-			pc.logger.Error("GetUserinfoFromWechat client not found openid ")
-			return nil
-		}
+		// if respMap.OpenID == openid {
+		// 	pc.logger.Error("GetUserinfoFromWechat client not found openid ")
+		// 	return nil
+		// }
 
 		return &respMap
 
