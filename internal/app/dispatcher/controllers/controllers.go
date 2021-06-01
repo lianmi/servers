@@ -46,6 +46,7 @@ type Login struct {
 
 type LoginResp struct {
 	Username    string `form:"username" json:"username"`         // 注册账号
+	Mobile      string `form:"mobile" json:"mobile"`             // 绑定的手机
 	UserType    int    `form:"user_type" json:"user_type"`       // 用户类型 1-普通，2-商户
 	State       int    `form:"state" json:"state"`               // 普通用户： 0-非VIP 1-付费用户(购买会员) 2-封号  商户：0-预审核, 1-审核通过, 2 -占位, 3-审核中
 	AuditResult string `form:"audit_result" json:"audit_result"` // 商户：  当state=3，此字段是审核的文字报告，如审核中，地址不符，照片模糊等
@@ -386,9 +387,10 @@ func CreateInitControllersFn(
 					zap.String("expire", t.Format(time.RFC3339)),
 				)
 
-				//向客户端回复注册号及生成的JWT令牌，  用户类型，用户状态，审核结果
+				//向客户端回复注册号、手机 及生成的JWT令牌，  用户类型，用户状态，审核结果
 				RespData(c, http.StatusOK, code, &LoginResp{
 					Username:    userName,
+					Mobile:      user.User.Mobile,
 					UserType:    int(user.User.UserType),
 					State:       int(user.User.State),
 					AuditResult: auditResult,

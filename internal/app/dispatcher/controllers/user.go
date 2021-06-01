@@ -6,8 +6,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -24,6 +28,7 @@ import (
 	LMCommon "github.com/lianmi/servers/internal/common"
 	"github.com/lianmi/servers/internal/common/codes"
 	"github.com/lianmi/servers/internal/pkg/models"
+	"github.com/lianmi/servers/util/aliyunoss"
 	"go.uber.org/zap"
 )
 
@@ -733,16 +738,44 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 		if err != nil {
 			// 可以绑定
 			// 获取用户微信信息
+			var nick string
+			var avatar string
+			var gender int
+			var province string
+			var city string
+
 			wechatInfo := pc.GetUserinfoFromWechat(respMap.AccessToken, respMap.Openid)
 			if wechatInfo == nil {
 				pc.logger.Warn("获取微信信息失败 , 但不影响流程")
+			} else {
+				nick = wechatInfo.Usernick
+				gender = wechatInfo.Sex
+				province = wechatInfo.Province
+				city = wechatInfo.City
+
+				pc.logger.Debug("wechatInfo",
+					zap.String("nick", wechatInfo.Usernick),
+					zap.String("nick", wechatInfo.Usernick),
+					zap.Int("gender", wechatInfo.Sex),
+					zap.String("province", wechatInfo.Province),
+					zap.String("city", wechatInfo.City),
+				)
+
+				//TODO 利用http下载此用户的头像文件，并上传到阿里云
+				avatar, err = pc.DownloadWechatHeadImage(respMap.Openid, wechatInfo.Avator)
+				if err != nil {
+					pc.logger.Warn("利用http下载此用户的头像文件，并上传到阿里云失败 , 但不影响流程")
+				}
 			}
-			// TODO
-			pc.logger.Debug("wechatInfo", zap.String("nick", wechatInfo.Usernick), zap.String("avator", wechatInfo.Avator))
 
 			//将用户注册
 			user := models.User{
 				UserBase: models.UserBase{
+					Nick:      nick, //呢称
+					Gender:    gender,
+					Avatar:    avatar, //头像
+					Province:  province,
+					City:      city,
 					Mobile:    "",             //注册手机
 					AllowType: 3,              //用户加好友枚举，默认是3
 					UserType:  1,              //用户类型 1-普通，2-商户
@@ -750,8 +783,6 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 					WXOpenID:  respMap.Openid, //微信用户唯一id
 				},
 			}
-
-			//TODO 调用微信接口返回用户的呢称及头像
 
 			if username, err = pc.service.Register(&user); err == nil {
 				pc.logger.Debug("Register user success", zap.String("username", username))
@@ -783,6 +814,41 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 		return "", err
 	}
 
+}
+
+//根据微信头像url下载并上传到阿里云oss
+func (pc *LianmiApisController) DownloadWechatHeadImage(openid, avatorUrl string) (string, error) {
+	//解析url
+	uri, err := url.ParseRequestURI(avatorUrl)
+	if err != nil {
+		pc.logger.Error("网址错误", zap.Error(err))
+		return "", err
+	}
+
+	filename := path.Base(uri.Path)
+	pc.logger.Debug("[*] Filename " + filename)
+
+	res, err := http.Get(avatorUrl)
+	if err != nil {
+		pc.logger.Error("http.Get错误", zap.Error(err))
+		return "", err
+	}
+	f, err := os.Create("/tmp/" + filename + ".jpg")
+	if err != nil {
+		pc.logger.Error("os.Create错误", zap.Error(err))
+		return "", err
+	}
+	io.Copy(f, res.Body)
+
+	// TODO 上传到阿里云
+	objname, err := aliyunoss.UploadOssFile("avatars", openid, "/tmp/"+filename+".jpg")
+	if err != nil {
+		pc.logger.Error("aliyunoss.UploadOssFile错误", zap.Error(err))
+		return "", err
+	}
+	pc.logger.Debug("上传到阿里云成功", zap.String("objname", objname))
+
+	return objname, nil
 }
 
 // 通过 token 和openid 获取 微信信息
