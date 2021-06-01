@@ -457,7 +457,6 @@ func CreateInitControllersFn(
 			userGroup.POST("/getuserdb", pc.GetUserDb)       //根据用户注册号获取用户数据库
 			userGroup.POST("/bindmobile", pc.UserBindmobile) //绑定手机
 			userGroup.GET("/unbindmobile", pc.UnBindmobile)  // 解除绑定微信的手机
-
 		}
 
 		//=======店铺模块==========/
