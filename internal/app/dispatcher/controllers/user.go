@@ -642,6 +642,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 			return
 		}
 
+		//
 		// 存在则生成一个 uuid 给用户 , 用于登陆获取上下文
 		uuidCache := uuid.NewV4().String()
 		cacheUserWxOpenID := fmt.Sprintf("WXToken:%s", uuidCache)
@@ -731,6 +732,14 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 		username, err = pc.service.GetUserByWechatOpenid(respMap.Openid)
 		if err != nil {
 			// 可以绑定
+			// 获取用户微信信息
+			wechatInfo := pc.GetUserinfoFromWechat(respMap.AccessToken, respMap.Openid)
+			if wechatInfo == nil {
+				pc.logger.Warn("获取微信信息失败 , 但不影响流程")
+			}
+			// TODO
+			pc.logger.Debug("wechatInfo", zap.String("nick", wechatInfo.Usernick), zap.String("avator", wechatInfo.Avator))
+
 			//将用户注册
 			user := models.User{
 				UserBase: models.UserBase{
@@ -774,4 +783,64 @@ func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error
 		return "", err
 	}
 
+}
+
+// 通过 token 和openid 获取 微信信息
+// 如果获取失败 当会 nil , 否则 有数据
+func (pc *LianmiApisController) GetUserinfoFromWechat(token, openid string) *models.WechatBaseInfoDataType {
+	wxAuthUrl := fmt.Sprintf("https://api.weixin.qq.com/sns/userinfo?access_token=%s&openid=%s", token, openid) //  common.BASE_IMSDK_URL
+	//useridMd5 := Md5String(&userid)
+	inBodyMap := make(map[string]interface{})
+	byteBody, _ := json.Marshal(inBodyMap)
+	req, err := http.NewRequest("GET", wxAuthUrl, strings.NewReader(string(byteBody)))
+	if err != nil {
+		pc.logger.Error("GetUserinfoFromWechat", zap.Error(err))
+		return nil
+	}
+	// 添加自定义请求头
+	req.Header.Add("Content-Type", "application/json")
+	//
+
+	// 其它请求头配置
+	client := &http.Client{
+		// 设置客户端属性
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		pc.logger.Error("GetUserinfoFromWechat client ", zap.Error(err))
+		return nil
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("success")
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			pc.logger.Error("GetUserinfoFromWechat read Http Body Fail", zap.Error(err))
+			return nil
+		}
+
+		respMap := models.WechatBaseInfoDataType{}
+
+		err = json.Unmarshal(body, &respMap)
+		if err != nil {
+
+			pc.logger.Error("GetUserinfoFromWechat client deserial fail ")
+			return nil
+		}
+
+		if respMap.OpenID == openid {
+			pc.logger.Error("GetUserinfoFromWechat client not found openid ")
+			return nil
+		}
+
+		return &respMap
+
+	} else {
+		// 失败
+		//fmt.Println("fail")
+		pc.logger.Error("GetUserinfoFromWechat fail ")
+		return nil
+	}
 }

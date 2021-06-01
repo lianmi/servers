@@ -40,12 +40,12 @@ type UserBase struct {
 
 	//状态 当用户类型为普通用户时: 0-普通用户，非VIP 1-付费用户(购买会员) 2-封号
 	//    当用户类型为商户时： 0-预注册 1-已审核 2-被封号
-	State              int    `form:"state" json:"state"`
-	TrueName           string `form:"true_name" json:"true_name,omitempty" `                       //用户实名
-	IdentityCard       string `form:"identity_card" json:"identity_card" binding:"required"`       //身份证
-	Province           string `form:"province" json:"province,omitempty" `                         //省份, 如广东省
-	City               string `form:"city" json:"city,omitempty" `                                 //城市，如广州市
-	Area               string `form:"area" json:"area,omitempty" `                                 //区，如天河区
+	State        int    `form:"state" json:"state"`
+	TrueName     string `form:"true_name" json:"true_name,omitempty" `                 //用户实名
+	IdentityCard string `form:"identity_card" json:"identity_card" binding:"required"` //身份证
+	Province     string `form:"province" json:"province,omitempty" `                   //省份, 如广东省
+	City         string `form:"city" json:"city,omitempty" `                           //城市，如广州市
+	Area         string `form:"area" json:"area,omitempty" `                           //区，如天河区
 	// Street             string `form:"street" json:"street,omitempty" `                             //街道
 	Address            string `form:"address" json:"address,omitempty" `                           //地址
 	ReferrerUsername   string `form:"referrer_username" json:"referrer_username,omitempty" `       //推荐人，上线；介绍人, 账号的数字部分，app的推荐码就是用户id的数字
@@ -91,4 +91,14 @@ func (user *UserBase) GetAllowType() PbUser.AllowType {
 
 func (user *UserBase) GetUserType() PbUser.UserType {
 	return PbUser.UserType(user.UserType)
+}
+
+type WechatBaseInfoDataType struct {
+	OpenID   string `json:"openid"`
+	Usernick string `json:"nickname"`
+	Avator   string `json:"headimgurl"`
+	Sex      int    `json:"sex"`
+	Province string `json:"province"`
+	City     string `json:"city"`
+	Country  string `json:"country"`
 }
