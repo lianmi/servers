@@ -46,9 +46,7 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 		return nil, errors.Wrapf(err, "Get user error[Username=%s]", username)
 	}
 	s.logger.Debug("GetUser run...",
-		zap.String("Username", user.Username),
-		zap.String("Avatar", user.Avatar),
-		zap.Int("Gender", int(user.Gender)),
+		zap.Any("user", user),
 	)
 	return
 }

@@ -380,6 +380,7 @@ func CreateInitControllersFn(
 					auditResult = "商户进驻已受理, 审核中..."
 				}
 				pc.logger.Debug("LoginResponse",
+					zap.String("mobile", user.User.Mobile),
 					zap.String("userName", userName),
 					zap.String("deviceID", deviceID),
 					zap.Int("UserType", int(user.User.UserType)),
