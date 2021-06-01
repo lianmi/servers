@@ -61,10 +61,14 @@ func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err err
 	}).First(&user).Error; err != nil {
 		//记录不存在(RecordNotFound)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			//
+			//do nothing
 		} else {
-
-			return errors.Wrapf(err, "手机已经被其它用户绑定过了[mobile=%s]", mobile)
+			if user.Username != username {
+				s.logger.Debug("手机已经被其它用户绑定过了", zap.String("user.Username", user.Username))
+				return errors.Wrapf(err, "手机已经被其它用户绑定过了[mobile=%s]", mobile)
+			} else {
+				return nil
+			}
 		}
 	}
 
