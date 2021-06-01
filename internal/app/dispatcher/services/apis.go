@@ -32,6 +32,8 @@ type LianmiApisService interface {
 	GetUser(username string) (*Auth.UserRsp, error)
 	GetUserDb(objname string) (string, error)
 
+	UserBindmobile(username, mobile string) error
+
 	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
@@ -362,6 +364,10 @@ func (s *DefaultLianmiApisService) GetAppVersion(oldVersion string) (string, err
 func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
 	return s.Repository.GetUserDb(objname)
 
+}
+
+func (s *DefaultLianmiApisService) UserBindmobile(username, mobile string) error {
+	return s.Repository.UserBindmobile(username, mobile)
 }
 
 //多条件不定参数批量分页获取用户列表

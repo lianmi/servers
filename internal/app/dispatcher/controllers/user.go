@@ -91,6 +91,46 @@ func (pc *LianmiApisController) GetUserDb(c *gin.Context) {
 
 }
 
+//绑定手机
+func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
+	pc.logger.Debug("UserBindmobile start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type Bindmobile struct {
+		Mobile string `json:"mobile" validate:"required"`
+	}
+	var req Bindmobile
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("UserBindmobile, binding JSON error ")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
+	}
+
+	// objname := c.Param("objname")
+
+	if req.Mobile == "" {
+		RespData(c, http.StatusOK, 500, "Mobile is empty")
+		return
+	} else {
+		pc.logger.Debug("UserBindmobile", zap.String("Mobile", req.Mobile))
+	}
+
+ err := pc.service.UserBindmobile(username, req.Mobile)
+	if err != nil {
+		pc.logger.Error("UserBindmobile error", zap.Error(err))
+		RespData(c, http.StatusOK, 500, "UserBindmobile error")
+		return
+	}
+
+	RespOk(c, http.StatusOK, 200)
+
+}
+
 //多条件不定参数批量分页获取用户列表
 func (pc *LianmiApisController) QueryUsers(c *gin.Context) {
 	code := codes.InvalidParams

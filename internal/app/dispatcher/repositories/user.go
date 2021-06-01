@@ -51,6 +51,27 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 	return
 }
 
+//给username绑定手机
+func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err error) {
+	result := s.db.Model(&models.User{}).Where(&models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}).Update("mobile", mobile)
+
+	//updated records count
+	s.logger.Debug("UserBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("绑定手机失败",
+			zap.String("username", username),
+			zap.String("mobile", mobile),
+			zap.Error(result.Error))
+		return result.Error
+	}
+	return
+}
+
 func (s *MysqlLianmiRepository) GetUserDb(objname string) (string, error) {
 	// 超级用户创建OSSClient实例。
 	client, err := oss.New(LMCommon.Endpoint, LMCommon.SuperAccessID, LMCommon.SuperAccessKeySecret)

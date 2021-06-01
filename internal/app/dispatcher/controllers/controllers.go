@@ -456,6 +456,7 @@ func CreateInitControllersFn(
 			userGroup.GET("/likes", pc.UserLikes)      //获取当前用户对所有店铺点赞情况
 			userGroup.POST("/getuserdb", pc.GetUserDb) //根据用户注册号获取用户数据库
 			// userGroup.POST("/bingwechat", pc.UserBindWechat) // 绑定微信
+			userGroup.POST("/bindmobile", pc.UserBindmobile) //绑定手机
 
 		}
 
