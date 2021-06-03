@@ -883,7 +883,7 @@ func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.
 		zap.String("username", username),
 	)
 
-COMPLETE:
+	// COMPLETE:
 	//完成
 	if errorCode == 200 {
 		//只需返回200
