@@ -296,9 +296,9 @@ func CreateInitControllersFn(
 				} else if wechat_code != "" {
 
 					//根据微信code获取到用户唯一id及其它信息
-					username, err = pc.UserBindWechat(wechat_code)
+					username, err = pc.BindWechatCode(wechat_code)
 					if err != nil {
-						pc.logger.Warn("UserBindWechat error", zap.Error(err))
+						pc.logger.Warn("BindWechatCode error", zap.Error(err))
 						return "", gin_jwt_v2.ErrMissingLoginValues
 					}
 
@@ -455,8 +455,10 @@ func CreateInitControllersFn(
 			userGroup.POST("/list", pc.QueryUsers)           //多条件不定参数批量分页获取用户列表
 			userGroup.GET("/likes", pc.UserLikes)            //获取当前用户对所有店铺点赞情况
 			userGroup.POST("/getuserdb", pc.GetUserDb)       //根据用户注册号获取用户数据库
-			userGroup.POST("/bindmobile", pc.UserBindmobile) //绑定手机
+			userGroup.POST("/bindmobile", pc.UserBindmobile) //微信登录之后绑定手机
+			userGroup.POST("/bindwechat", pc.UserBindWechat) //手机登录之后绑定微信
 			userGroup.GET("/unbindmobile", pc.UnBindmobile)  // 解除绑定微信的手机
+			userGroup.POST("/pushsetting", pc.PushSetting)   // 用户消息设置开关
 		}
 
 		//=======店铺模块==========/

@@ -91,7 +91,7 @@ func (pc *LianmiApisController) GetUserDb(c *gin.Context) {
 
 }
 
-//绑定手机
+//微信登录之后绑定手机
 func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 	pc.logger.Debug("UserBindmobile start ...")
 
@@ -138,6 +138,149 @@ func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 	if err != nil {
 		pc.logger.Error("UserBindmobile error", zap.Error(err))
 		RespData(c, http.StatusOK, 400, "已经绑定过，请使用手机号登录")
+		return
+	}
+
+	RespOk(c, http.StatusOK, 200)
+
+}
+
+//微信登录之后绑定手机
+func (pc *LianmiApisController) UserBindWechat(c *gin.Context) {
+	pc.logger.Debug("UserBindWechat start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type BindWechat struct {
+		WeChatCode string `json:"wechat_code" validate:"required"`
+	}
+	var bindWechat BindWechat
+	if c.BindJSON(&bindWechat) != nil {
+		pc.logger.Error("UserBindWechat, binding JSON error ")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
+	}
+
+	if bindWechat.WeChatCode == "" {
+		RespData(c, http.StatusOK, 500, "WeChatCode is empty")
+		return
+	}
+
+	wxAuthUrl := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", LMCommon.WechatLoginAppid, LMCommon.WechatLoginSecret, bindWechat.WeChatCode) //  common.BASE_IMSDK_URL
+
+	//useridMd5 := Md5String(&userid)
+	inBodyMap := make(map[string]interface{})
+	byteBody, _ := json.Marshal(inBodyMap)
+	req, err := http.NewRequest("GET", wxAuthUrl, strings.NewReader(string(byteBody)))
+	if err != nil {
+		pc.logger.Error("AuthLogin_3rd_Wechat", zap.Error(err))
+	}
+	// 添加自定义请求头
+	req.Header.Add("Content-Type", "application/json")
+
+	// 其它请求头配置
+	client := &http.Client{
+		// 设置客户端属性
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		pc.logger.Error("UserAuthWechatTokenCode client ", zap.Error(err))
+
+		RespData(c, http.StatusOK, 500, "绑定微信失败")
+		return
+	}
+
+	defer resp.Body.Close()
+
+	type ReapDate struct {
+		//Data map[string]interface{} `json:"data"`
+		Openid       string `json:"openid"`
+		AccessToken  string `json:"access_token"`
+		ExpiresIn    int    `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+		Scope        string `json:"scope"`
+		Unionid      string `json:"unionid"`
+	}
+
+	if resp.StatusCode != http.StatusOK {
+
+		RespData(c, http.StatusOK, 500, "绑定微信失败")
+		return
+
+	} else {
+		// 成功
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			pc.logger.Error("read Http Body Fail", zap.Error(err))
+			RespData(c, http.StatusOK, 500, "绑定微信失败")
+			return
+		}
+
+		pc.logger.Debug("Register IM user Success ", zap.String("body", string(body)))
+
+		respMap := ReapDate{}
+
+		err = json.Unmarshal(body, &respMap)
+
+		if err != nil {
+
+			pc.logger.Error("wechat client deserial fail ")
+			RespData(c, http.StatusOK, 500, "绑定微信失败")
+			return
+
+		}
+
+		pc.logger.Debug("resp data ", zap.Any("data Map ", respMap))
+
+		err = pc.service.UserBindWechat(username, respMap.Openid)
+		if err != nil {
+			pc.logger.Error("UserBindWechat error", zap.Error(err))
+			RespData(c, http.StatusOK, 500, "绑定微信失败")
+			return
+		}
+		wechatInfo := pc.GetUserinfoFromWechat(respMap.AccessToken, respMap.Openid)
+		if wechatInfo == nil {
+			pc.logger.Warn("获取微信信息失败 , 但不影响流程")
+			RespData(c, http.StatusOK, 500, "绑定微信失败")
+			return
+		} else {
+			RespData(c, http.StatusOK, 200, wechatInfo)
+		}
+	}
+}
+
+//POST  用户消息设置开关
+func (pc *LianmiApisController) PushSetting(c *gin.Context) {
+	pc.logger.Debug("PushSetting start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type PushSettingReq struct {
+		NewRemindSwitch bool `gorm:"new_remind_switch" json:"new_remind_switch" ` // 新消息提醒
+		DetailSwitch    bool `json:"detail_switch" json:"detail_switch"`          // 通知栏消息详情
+		TeamSwitch      bool `json:"team_switch" json:"team_switch"`              // 群聊消息提醒
+		SoundSwitch     bool `json:"sound_switch" json:"sound_switch"`            // 声音提醒
+	}
+
+	var req PushSettingReq
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("PushSetting, binding JSON error ")
+		RespData(c, http.StatusOK, 400, "参数错误, 缺少必填字段")
+	}
+	err := pc.service.SavePushSetting(username, req.NewRemindSwitch, req.DetailSwitch, req.TeamSwitch, req.SoundSwitch)
+	if err != nil {
+		pc.logger.Error("PushSetting error", zap.Error(err))
+		RespData(c, http.StatusOK, 500, "PushSetting error")
 		return
 	}
 
@@ -718,7 +861,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 		// 通过openid 判断 是否存在用户
 		username, err := pc.service.GetUserByWechatOpenid(respMap.Openid)
 		if err != nil {
-			pc.logger.Error("用户为注册")
+			pc.logger.Error("用户未注册")
 			RespData(context, http.StatusOK, codes.ERROR, "用户未绑定微信")
 			return
 		}
@@ -740,7 +883,7 @@ func (pc *LianmiApisController) UserAuthWechatTokenCode(context *gin.Context) {
 }
 
 //根据微信code获取用户唯一id及信息
-func (pc *LianmiApisController) UserBindWechat(weChatCode string) (string, error) {
+func (pc *LianmiApisController) BindWechatCode(weChatCode string) (string, error) {
 	var err error
 	var username string
 

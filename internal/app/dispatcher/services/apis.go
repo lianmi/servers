@@ -31,8 +31,14 @@ type LianmiApisService interface {
 	GetUserRoles(username string) []*models.Role
 	GetUser(username string) (*Auth.UserRsp, error)
 	GetUserDb(objname string) (string, error)
-
+	// 微信登录之后绑定手机
 	UserBindmobile(username, mobile string) error
+
+	// 手机登录之后绑定微信
+	UserBindWechat(username, openId string) error
+
+	//保存消息推送设置
+	SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error
 
 	UnBindmobile(username string) error
 
@@ -368,9 +374,19 @@ func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
 
 }
 
+//微信登录之后绑定手机
 func (s *DefaultLianmiApisService) UserBindmobile(username, mobile string) error {
 	return s.Repository.UserBindmobile(username, mobile)
 }
+
+func (s *DefaultLianmiApisService) UserBindWechat(username, openId string) error {
+	return s.Repository.UserBindWechat(username, openId)
+}
+
+func (s *DefaultLianmiApisService) SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error {
+	return s.Repository.SavePushSetting(username, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch)
+}
+
 func (s *DefaultLianmiApisService) UnBindmobile(username string) error {
 	return s.Repository.UnBindmobile(username)
 }

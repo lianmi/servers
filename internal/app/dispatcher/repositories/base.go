@@ -22,10 +22,15 @@ type LianmiRepository interface {
 	//根据注册用户id获取用户的资料
 	GetUser(username string) (p *models.User, err error)
 
-	//给username绑定手机 
+	//微信登录之后绑定手机
 	UserBindmobile(username, mobile string) (err error)
 
-	//给username解除绑定手机 
+	//手机登录之后绑定微信
+	UserBindWechat(username, openId string) error
+
+	SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error
+
+	//给username解除绑定手机
 	UnBindmobile(username string) (err error)
 
 	GetUserDb(objname string) (string, error)

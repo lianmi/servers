@@ -51,7 +51,7 @@ func (s *MysqlLianmiRepository) GetUser(username string) (user *models.User, err
 	return user, nil
 }
 
-//给username绑定手机
+//微信登录之后绑定手机
 func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err error) {
 	var user models.User
 	if err = s.db.Model(&models.User{}).Where(&models.User{
@@ -95,6 +95,77 @@ func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err err
 	}
 
 	return nil
+}
+
+//手机登录之后绑定微信
+func (s *MysqlLianmiRepository) UserBindWechat(username, openId string) error {
+
+	var err error
+	var user models.User
+	if err = s.db.Model(&models.User{}).Where(&models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}).First(&user).Error; err != nil {
+		//记录不存在(RecordNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("用户不存在", zap.String("username", username))
+			return errors.Wrapf(err, "用户不存在[username=%s]", username)
+		} else {
+			result := s.db.Model(&models.User{}).Where(&models.User{
+				UserBase: models.UserBase{
+					Username: username,
+				},
+			}).Update("wx_open_id", openId)
+
+			//updated records count
+			s.logger.Debug("UserBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+
+			if result.Error != nil {
+				s.logger.Error("绑定微信失败",
+					zap.String("username", username),
+					zap.String("WXOpenID", openId),
+					zap.Error(result.Error))
+				return result.Error
+			} else {
+				s.logger.Debug("绑定手机成功",
+					zap.String("username", username),
+					zap.String("WXOpenID", openId),
+				)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error {
+	// PushSetting
+	pushSetting := &models.PushSetting{
+		NewRemindSwitch: newRemindSwitch, // 新消息提醒
+		DetailSwitch:    detailSwitch,    // 通知栏消息详情
+		TeamSwitch:      teamSwitch,      // 群聊消息提醒
+		SoundSwitch:     soundSwitch,     // 声音提醒
+	}
+	where := models.PushSetting{
+		Username: username,
+	}
+	// 同时更新多个字段
+	result := s.db.Model(&models.PushSetting{}).Where(&where).Updates(pushSetting)
+
+	//updated records count
+	s.logger.Debug("SavePushSetting result: ",
+		zap.Int64("RowsAffected", result.RowsAffected),
+		zap.Error(result.Error))
+
+	if result.Error != nil {
+		s.logger.Error("SavePushSetting, 修改用户设置失败", zap.Error(result.Error))
+		return result.Error
+	} else {
+		s.logger.Error("SavePushSetting, 修改用户设置成功")
+	}
+	return nil
+
 }
 
 //给username解除绑定手机

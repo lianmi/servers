@@ -50,6 +50,7 @@ func New(o *Options) (*gorm.DB, error) {
 	//自动迁移仅仅会创建表，缺少列和索引，并且不会改变现有列的类型或删除未使用的列以保护数据
 	db.AutoMigrate(&models.AppVersionHistory{}) // app版本号历史表
 	db.AutoMigrate(&models.User{})              // 用户表
+	db.AutoMigrate(&models.PushSetting{})       // 用户推送设置表
 	db.AutoMigrate(&models.Token{})             // 令牌表
 	db.AutoMigrate(&models.BankCard{})          // 银行卡表
 	db.AutoMigrate(&models.Role{})              // 权限表
