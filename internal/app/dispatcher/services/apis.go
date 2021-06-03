@@ -47,6 +47,8 @@ type LianmiApisService interface {
 
 	UnBindmobile(username string) error
 
+	GetSystemMsgs(systemMsgAt uint64) (systemMsgs []*models.SystemMsg, err error)
+
 	//多条件不定参数批量分页获取用户列表
 	QueryUsers(req *User.QueryUsersReq) (*User.QueryUsersResp, error)
 
@@ -293,6 +295,10 @@ type LianmiApisService interface {
 	GetUserByWechatOpenid(openid string) (string, error)
 	// 绑定微信openid
 	UpdateUserWxOpenID(username string, openid string) error
+
+	ManagerAddSystemMsg(level int, title, content string) error
+
+	ManagerDeleteSystemMsg(id uint) error
 }
 
 type DefaultLianmiApisService struct {
@@ -403,6 +409,10 @@ func (s *DefaultLianmiApisService) GetPushSetting(username string) (*models.Push
 
 func (s *DefaultLianmiApisService) UnBindmobile(username string) error {
 	return s.Repository.UnBindmobile(username)
+}
+
+func (s *DefaultLianmiApisService) GetSystemMsgs(systemMsgAt uint64) (systemMsgs []*models.SystemMsg, err error) {
+	return s.Repository.GetSystemMsgs(systemMsgAt)
 }
 
 //多条件不定参数批量分页获取用户列表
@@ -1009,4 +1019,13 @@ func (s *DefaultLianmiApisService) GetUserByWechatOpenid(openid string) (string,
 
 func (s *DefaultLianmiApisService) UpdateUserWxOpenID(username string, openid string) error {
 	return s.Repository.UpdateUserWxOpenID(username, openid)
+}
+
+func (s *DefaultLianmiApisService) ManagerAddSystemMsg(level int, title, content string) error {
+	return s.Repository.ManagerAddSystemMsg(level, title, content)
+}
+
+func (s *DefaultLianmiApisService) ManagerDeleteSystemMsg(id uint) error {
+
+	return s.Repository.ManagerDeleteSystemMsg(id)
 }

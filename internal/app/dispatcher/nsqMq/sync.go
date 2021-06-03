@@ -26,6 +26,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	Friends "github.com/lianmi/servers/api/proto/friends"
 	Global "github.com/lianmi/servers/api/proto/global"
+	MSG "github.com/lianmi/servers/api/proto/msg"
 	Order "github.com/lianmi/servers/api/proto/order"
 	Sync "github.com/lianmi/servers/api/proto/syn"
 	Team "github.com/lianmi/servers/api/proto/team"
@@ -850,40 +851,69 @@ COMPLETE:
 	}
 }
 
-//处理SystemMsgAt 7-8 同步系统公告
+//处理SystemMsgAt 5-9 同步系统公告
 func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 
-	var cur_systemMsgAt uint64
-
-	// rsp := &Order.SyncProductsEventRsp{
-	// 	TimeTag:           uint64(time.Now().UnixNano() / 1e6),
-	// 	AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
-	// 	RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
-
-	// }
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
 	systemMsgAt := req.GetSysmtemMsgAt()
-	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_systemMsgAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "systemMsgAt"))
+	//构造数据
+	systemMsgs, err := nc.service.GetSystemMsgs(systemMsgAt)
 	if err != nil {
-		cur_systemMsgAt = uint64(time.Now().UnixNano() / 1e6)
-		redisConn.Do("HSET", syncKey, "productAt", cur_systemMsgAt)
+		nc.logger.Error(err.Error())
+		return err
+	}
+	rsp := &MSG.SyncSystemMsgRsp{
+		TimeTag: uint64(time.Now().UnixNano() / 1e6),
+	}
+	for _, systemMsg := range systemMsgs {
+		rsp.SystemMsgs = append(rsp.SystemMsgs, &MSG.SystemMsgBase{
+			Id:        uint64(systemMsg.ID),
+			Level:     int32(systemMsg.Level),
+			Title:     systemMsg.Title,
+			Content:   systemMsg.Content,
+			CreatedAt: uint64(systemMsg.CreatedAt),
+		})
 
 	}
 
-	nc.logger.Debug("SyncSystemMsgAt",
-		zap.Uint64("cur_systemMsgAt", cur_systemMsgAt),
-		zap.Uint64("systemMsgAt", systemMsgAt),
-		zap.String("username", username),
-	)
+	data, _ := proto.Marshal(rsp)
 
-	// COMPLETE:
+	//向客户端响应 SyncSystemMsgEvent 事件
+	targetMsg := &models.Message{}
+
+	targetMsg.UpdateID()
+	//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
+	targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
+
+	targetMsg.SetJwtToken(token)
+	targetMsg.SetUserName(username)
+	targetMsg.SetDeviceID(deviceID)
+	// kickMsg.SetTaskID(uint32(taskId))
+	targetMsg.SetBusinessTypeName("MSG")
+	targetMsg.SetBusinessType(uint32(Global.BusinessType_Msg))                 // 5
+	targetMsg.SetBusinessSubType(uint32(Global.MsgSubType_SyncSystemMsgEvent)) // 9
+
+	targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
+
+	targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
+
+	targetMsg.SetCode(200) //成功的状态码
+
+	//构建数据完成，向dispatcher发送
+	topic := "Auth.Frontend"
+	rawData, _ := json.Marshal(targetMsg)
+	if err := nc.Producer.Public(topic, rawData); err == nil {
+		nc.logger.Info("Message succeed send to ProduceChannel", zap.String("topic", topic))
+	} else {
+		nc.logger.Error("Failed to send message to ProduceChannel", zap.Error(err))
+	}
+
 	//完成
 	if errorCode == 200 {
 		//只需返回200
@@ -994,7 +1024,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Debug("SyncWatchAt is done")
 			}
 
-			//系统公告
+			//同步系统公告
 			if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
 				nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
 			} else {

@@ -687,6 +687,12 @@ func CreateInitControllersFn(
 			//管理员设置连米App版本号
 			adminGroup.POST("/set_version_last", pc.ManagerSetVersionLast)
 
+			//管理员增加系统公告
+			adminGroup.POST("/systemmsg", pc.ManagerAddSystemMsg)
+
+			//管理员删除系统公告
+			adminGroup.DELETE("/systemmsg", pc.ManagerDeleteSystemMsg)
+
 		}
 	}
 }

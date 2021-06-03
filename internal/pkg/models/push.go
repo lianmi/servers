@@ -1,6 +1,11 @@
 package models
 
-import "github.com/lianmi/servers/internal/pkg/models/global"
+import (
+	"time"
+
+	"github.com/lianmi/servers/internal/pkg/models/global"
+	"gorm.io/gorm"
+)
 
 //定义用户app的推送设置开关
 type PushSetting struct {
@@ -11,4 +16,16 @@ type PushSetting struct {
 	TeamSwitch      bool   `json:"team_switch" json:"team_switch"`               // 群聊消息提醒
 	SoundSwitch     bool   `json:"sound_switch" json:"sound_switch"`             // 声音提醒
 
+}
+
+//BeforeCreate CreatedAt赋值
+func (l *PushSetting) BeforeCreate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("CreatedAt", time.Now().UnixNano()/1e6)
+	return nil
+}
+
+//BeforeUpdate UpdatedAt赋值
+func (l *PushSetting) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now().UnixNano()/1e6)
+	return nil
 }

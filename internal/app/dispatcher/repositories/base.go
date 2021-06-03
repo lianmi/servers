@@ -25,7 +25,7 @@ type LianmiRepository interface {
 	//微信登录之后绑定手机
 	UserBindmobile(username, mobile string) (err error)
 
-	GetIsBindWechat(username string) (bool, error) 
+	GetIsBindWechat(username string) (bool, error)
 
 	//手机登录之后绑定微信
 	UserBindWechat(username, openId string) error
@@ -38,6 +38,8 @@ type LianmiRepository interface {
 
 	//给username解除绑定手机
 	UnBindmobile(username string) (err error)
+
+	GetSystemMsgs(systemMsgAt uint64) (systemMsgs []*models.SystemMsg, err error)
 
 	GetUserDb(objname string) (string, error)
 
@@ -307,6 +309,10 @@ type LianmiRepository interface {
 	GetUserByWechatOpenid(openid string) (string, error)
 	// 绑定微信openid
 	UpdateUserWxOpenID(username string, openid string) error
+
+	ManagerAddSystemMsg(level int, title, content string) error
+
+	ManagerDeleteSystemMsg(id uint) error
 }
 
 type MysqlLianmiRepository struct {

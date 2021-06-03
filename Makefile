@@ -117,6 +117,7 @@ dart:
 							   api/proto/msg/SyncOfflineSysMsgsEvent.proto \
 							   api/proto/msg/SyncSendCancelMsgEvent.proto \
 							   api/proto/msg/SyncSendMsgEvent.proto \
+							   api/proto/msg/SyncSystemMsg.proto \
 							   api/proto/msg/Grpc.proto
 
 	rm -f ../lianmiui/wujehy/linkme_flutter_sdk/lib/api/proto/order/*.dart

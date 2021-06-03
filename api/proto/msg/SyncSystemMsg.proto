@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+// 用户主从设备之间的消息同步事件
+package cloud.lianmi.im.msg;
+option go_package = "github.com/lianmi/servers/api/proto/msg";
+
+message SystemMsgBase {
+// id
+    fixed64 id = 1;
+
+    // 公告等级 
+    int32 level = 2;
+
+    // 标题 
+    string title = 3;
+
+    //  内容 
+    string content = 4;
+
+    //Unix时间戳
+    fixed64 createdAt = 5;
+}
+
+// 同步 系统公告  事件
+message SyncSystemMsgRsp {
+    //系统公告列表
+    repeated SystemMsgBase systemMsgs=1;
+
+    //Unix时间戳
+    fixed64  timeTag =2;
+} 

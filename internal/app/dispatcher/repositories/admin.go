@@ -71,3 +71,50 @@ func (s *MysqlLianmiRepository) ManagerSetVersionLast(req *models.VersionInfo) e
 
 	}
 }
+
+func (s *MysqlLianmiRepository) ManagerAddSystemMsg(level int, title, content string) error {
+	systemMsg := new(models.SystemMsg)
+	where := models.SystemMsg{
+		Title: title,
+	}
+
+	if err := s.db.Model(&models.SystemMsg{}).Where(&where).First(systemMsg).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&models.SystemMsg{
+				Level:   level,
+				Title:   title,
+				Content: content,
+				Active:  true,
+			}).Error; err != nil {
+				s.logger.Error("ManagerAddSystemMsg, failed to upsert SystemMsg", zap.Error(err))
+				return err
+			} else {
+				s.logger.Debug("ManagerAddSystemMsg, upsert SystemMsg  succeed")
+			}
+			return nil
+
+		} else {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func (s *MysqlLianmiRepository) ManagerDeleteSystemMsg(id uint) error {
+	//采用事务同时删除
+	var (
+		gpWhere   = models.SystemMsg{}
+		systemMsg models.SystemMsg
+	)
+	gpWhere.ID = id
+	tx := s.base.GetTransaction()
+	if err := tx.Where(&gpWhere).Delete(&systemMsg).Error; err != nil {
+		s.logger.Error("删除系失败", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}

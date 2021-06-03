@@ -4,6 +4,7 @@
 package controllers
 
 import (
+	"strconv"
 	"strings"
 
 	// "fmt"
@@ -732,6 +733,81 @@ func (pc *LianmiApisController) ManagerSetVersionLast(c *gin.Context) {
 		}
 
 		pc.logger.Debug("ManagerSetVersionLast ok")
+		code = codes.SUCCESS
+		RespOk(c, http.StatusOK, code)
+	}
+
+}
+
+//POST 方法 管理员增加系统公告
+func (pc *LianmiApisController) ManagerAddSystemMsg(c *gin.Context) {
+	code := codes.InvalidParams
+	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
+		return
+
+	}
+
+	type SystemMsgData struct {
+		Level   int    `form:"level" json:"level"`     //公告等级
+		Title   string `form:"title" json:"title"`     //标题
+		Content string `form:"content" json:"content"` //内容
+	}
+
+	var req SystemMsgData
+	if c.BindJSON(&req) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段")
+	} else {
+		if req.Level == 0 {
+			req.Level = 1
+		}
+		if req.Title == "" {
+			pc.logger.Error("Title参数错误, 缺少必填字段")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Title")
+		}
+		if req.Content == "" {
+			pc.logger.Error("Content参数错误, 缺少必填字段")
+			RespData(c, http.StatusOK, code, "参数错误, 缺少必填字段:Content")
+		}
+
+		err := pc.service.ManagerAddSystemMsg(req.Level, req.Title, req.Content)
+		if err != nil {
+			RespFail(c, http.StatusOK, codes.ERROR, "管理员增加系统公告时发生错误")
+			return
+		}
+
+		pc.logger.Debug("ManagerAddSystemMsg ok")
+		code = codes.SUCCESS
+		RespOk(c, http.StatusOK, code)
+	}
+
+}
+
+//DELETE方法 管理员删除系统公告
+func (pc *LianmiApisController) ManagerDeleteSystemMsg(c *gin.Context) {
+
+	code := codes.InvalidParams
+	if !pc.CheckIsAdmin(c) {
+		RespData(c, http.StatusOK, 403, "User is not admin")
+		return
+
+	}
+
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		RespData(c, http.StatusOK, 500, "id is not integer")
+		return
+
+	} else {
+
+		err := pc.service.ManagerDeleteSystemMsg(uint(id))
+		if err != nil {
+			RespFail(c, http.StatusOK, codes.ERROR, "管理员删除系统公告时发生错误")
+			return
+		}
+
+		pc.logger.Debug("ManagerDeleteSystemMsg ok")
 		code = codes.SUCCESS
 		RespOk(c, http.StatusOK, code)
 	}

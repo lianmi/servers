@@ -108,7 +108,7 @@ enum MsgSubType {
     SendCancelMsg                = 6;    /**< 6.  发送撤销消息 */
     RecvCancelMsgEvent           = 7;    /**< 7.  接收撤销消息事件 */
     SyncSendCancelMsgEvent       = 8;    /**< 8. 主从设备同步发送撤销消息的事件 */
-    //SyncUpdateConversationEvent  = 10;   /**< 10. 同步更新会话 */
+    SyncSystemMsgEvent           = 9;   /**< 9. 同步系统公告 */
     UpdateConversation           = 11;   /**< 11. 更新会话 */
 }
 
