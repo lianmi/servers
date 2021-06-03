@@ -428,3 +428,11 @@ tail -f chatservice.log
 @Failure 请求失败后返回，参数同上
 @Router 该函数定义了请求路由并且包含路由的请求方式。
 ```
+
+
+### 推送
+
+/Users/mac/developments/goprojects/src/pushapi
+
+仓库 
+https://github.com/modood/pushapi

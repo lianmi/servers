@@ -451,15 +451,16 @@ func CreateInitControllersFn(
 		userGroup := r.Group("/v1/user") //带v1的路由都必须使用Bearer JWT 才能正常访问-普通用户及后台操作人员都能访问
 		userGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			userGroup.GET("/getuser/:id", pc.GetUser)        //根据用户注册号获取用户详细 信息,  如果是本身，则返回更加详尽的信息，包括到期时间
-			userGroup.POST("/list", pc.QueryUsers)           //多条件不定参数批量分页获取用户列表
-			userGroup.GET("/likes", pc.UserLikes)            //获取当前用户对所有店铺点赞情况
-			userGroup.POST("/getuserdb", pc.GetUserDb)       //根据用户注册号获取用户数据库
-			userGroup.POST("/bindmobile", pc.UserBindmobile) //微信登录之后绑定手机
-			userGroup.POST("/bindwechat", pc.UserBindWechat) //手机登录之后绑定微信
-			userGroup.GET("/unbindmobile", pc.UnBindmobile)  // 解除绑定微信的手机
-			userGroup.POST("/pushsetting", pc.PushSetting)   // 用户消息设置开关
-			userGroup.GET("/pushsetting", pc.GetPushSetting) // 查询用户消息设置
+			userGroup.GET("/getuser/:id", pc.GetUser)          //根据用户注册号获取用户详细 信息,  如果是本身，则返回更加详尽的信息，包括到期时间
+			userGroup.POST("/list", pc.QueryUsers)             //多条件不定参数批量分页获取用户列表
+			userGroup.GET("/likes", pc.UserLikes)              //获取当前用户对所有店铺点赞情况
+			userGroup.POST("/getuserdb", pc.GetUserDb)         //根据用户注册号获取用户数据库
+			userGroup.POST("/bindmobile", pc.UserBindmobile)   //微信登录之后绑定手机
+			userGroup.POST("/bindwechat", pc.UserBindWechat)   //手机登录之后绑定微信
+			userGroup.GET("/unbindmobile", pc.UnBindmobile)    // 解除绑定微信的手机
+			userGroup.POST("/pushsetting", pc.PushSetting)     // 用户消息设置开关
+			userGroup.GET("/pushsetting", pc.GetPushSetting)   // 查询用户消息设置
+			userGroup.GET("/isbindwechat", pc.GetIsBindWechat) // 查询用户是否绑定了微信
 		}
 
 		//=======店铺模块==========/

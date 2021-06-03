@@ -97,6 +97,25 @@ func (s *MysqlLianmiRepository) UserBindmobile(username, mobile string) (err err
 	return nil
 }
 
+func (s *MysqlLianmiRepository) GetIsBindWechat(username string) (bool, error) {
+	var err error
+	var user models.User
+	if err = s.db.Model(&models.User{}).Where(&models.User{
+		UserBase: models.UserBase{
+			Username: username,
+		},
+	}).First(&user).Error; err != nil {
+		//记录不存在(RecordNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("用户不存在", zap.String("username", username))
+			return false, errors.Wrapf(err, "用户不存在[username=%s]", username)
+		} else {
+			return false, err
+		}
+	}
+	return user.WXOpenID != "", nil
+}
+
 //手机登录之后绑定微信
 func (s *MysqlLianmiRepository) UserBindWechat(username, openId string) error {
 

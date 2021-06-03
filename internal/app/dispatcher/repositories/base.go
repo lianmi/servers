@@ -25,6 +25,8 @@ type LianmiRepository interface {
 	//微信登录之后绑定手机
 	UserBindmobile(username, mobile string) (err error)
 
+	GetIsBindWechat(username string) (bool, error) 
+
 	//手机登录之后绑定微信
 	UserBindWechat(username, openId string) error
 

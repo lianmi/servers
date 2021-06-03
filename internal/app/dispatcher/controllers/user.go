@@ -91,6 +91,27 @@ func (pc *LianmiApisController) GetUserDb(c *gin.Context) {
 
 }
 
+//查询用户是否绑定了微信
+func (pc *LianmiApisController) GetIsBindWechat(c *gin.Context) {
+	pc.logger.Debug("UserBindmobile start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	isBind, err := pc.service.GetIsBindWechat(username)
+	if err != nil {
+		pc.logger.Error("GetIsBindWechat error", zap.Error(err))
+		RespData(c, http.StatusOK, 400, "查询用户是否绑定了微信发生错误")
+		return
+	}
+
+	RespData(c, http.StatusOK, 200, isBind)
+}
+
 //微信登录之后绑定手机
 func (pc *LianmiApisController) UserBindmobile(c *gin.Context) {
 	pc.logger.Debug("UserBindmobile start ...")

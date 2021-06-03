@@ -34,6 +34,8 @@ type LianmiApisService interface {
 	// 微信登录之后绑定手机
 	UserBindmobile(username, mobile string) error
 
+	GetIsBindWechat(username string) (bool, error)
+
 	// 手机登录之后绑定微信
 	UserBindWechat(username, openId string) error
 
@@ -380,6 +382,10 @@ func (s *DefaultLianmiApisService) GetUserDb(objname string) (string, error) {
 //微信登录之后绑定手机
 func (s *DefaultLianmiApisService) UserBindmobile(username, mobile string) error {
 	return s.Repository.UserBindmobile(username, mobile)
+}
+
+func (s *DefaultLianmiApisService) GetIsBindWechat(username string) (bool, error) {
+	return s.Repository.GetIsBindWechat(username)
 }
 
 func (s *DefaultLianmiApisService) UserBindWechat(username, openId string) error {
