@@ -2,9 +2,8 @@
 本文件是处理业务号是同步模块，分别有
 6-1 发起同步请求
 	同步处理map，分别处理:
-	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt
-	取消systemMsgAt, productAt
-	取消 generalProductAt 让UI手动更新
+	myInfoAt, friendsAt, friendUsersAt, teamsAt, tagsAt, watchAt, systemMsgAt
+	取消 productAt
 
 6-2 同步请求完成
 
@@ -851,185 +850,38 @@ COMPLETE:
 	}
 }
 
-//处理productAt 7-8 同步商品列表
-/*
-func (nc *NsqClient) SyncProductAt(username, token, deviceID string, req Sync.SyncEventReq) error {
+//处理SystemMsgAt 7-8 同步系统公告
+func (nc *NsqClient) SyncSystemMsgAt(username, token, deviceID string, req Sync.SyncEventReq) error {
 	var err error
 	errorCode := 200
 
-	var cur_productAt uint64
+	var cur_systemMsgAt uint64
 
-	rsp := &Order.SyncProductsEventRsp{
-		TimeTag:           uint64(time.Now().UnixNano() / 1e6),
-		AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
-		RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
+	// rsp := &Order.SyncProductsEventRsp{
+	// 	TimeTag:           uint64(time.Now().UnixNano() / 1e6),
+	// 	AddProducts:       make([]*Order.Product, 0), //新上架或更新的商品列表
+	// 	RemovedProductIDs: make([]string, 0),         //下架的商品ID列表
 
-	}
+	// }
 	redisConn := nc.redisPool.Get()
 	defer redisConn.Close()
 
 	//req里的成员
-	productAt := req.GetProductAt()
+	systemMsgAt := req.GetSysmtemMsgAt()
 	syncKey := fmt.Sprintf("sync:%s", username)
 
-	cur_productAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "productAt"))
+	cur_systemMsgAt, err = redis.Uint64(redisConn.Do("HGET", syncKey, "systemMsgAt"))
 	if err != nil {
-		cur_productAt = uint64(time.Now().UnixNano() / 1e6)
-		redisConn.Do("HSET", syncKey, "productAt", cur_productAt)
+		cur_systemMsgAt = uint64(time.Now().UnixNano() / 1e6)
+		redisConn.Do("HSET", syncKey, "productAt", cur_systemMsgAt)
 
 	}
 
-	nc.logger.Debug("SyncProductAt",
-		zap.Uint64("cur_productAt", cur_productAt),
-		zap.Uint64("productAt", productAt),
+	nc.logger.Debug("SyncSystemMsgAt",
+		zap.Uint64("cur_systemMsgAt", cur_systemMsgAt),
+		zap.Uint64("systemMsgAt", systemMsgAt),
 		zap.String("username", username),
 	)
-
-	//服务端的时间戳大于客户端上报的时间戳
-	if cur_productAt > productAt {
-		//获取此用户关注的商户列表
-		watchingUsers, err := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Watching:%s", username), "-inf", "+inf"))
-		if err != nil {
-
-			nc.logger.Error("ZRANGEBYSCORE", zap.Error(err))
-			errorCode = LMCError.RedisError
-			goto COMPLETE
-		}
-
-		for _, watchingUser := range watchingUsers {
-			//商户 的商品列表
-			productIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("Products:%s", watchingUser), productAt, "+inf"))
-			for _, productID := range productIDs {
-				productInfo := new(models.ProductInfo)
-				if result, err := redis.Values(redisConn.Do("HGETALL", fmt.Sprintf("Product:%s", productID))); err == nil {
-					if err := redis.ScanStruct(result, productInfo); err != nil {
-						nc.logger.Error("错误: ScanStruct", zap.Error(err))
-						continue
-					}
-				}
-				var thumbnail string
-				if productInfo.ShortVideo != "" {
-
-					thumbnail = LMCommon.OSSUploadPicPrefix + productInfo.ShortVideo + "?x-oss-process=video/snapshot,t_500,f_jpg,w_800,h_600"
-				}
-
-				oProduct := &Order.Product{
-					ProductId:         productID,                                   //商品ID
-					Expire:            uint64(productInfo.Expire),                  //商品过期时间
-					ProductName:       productInfo.ProductName,                     //商品名称
-					ProductType:       Global.ProductType(productInfo.ProductType), //商品种类类型  枚举
-					SubType:           Global.LotteryType(productInfo.SubType),     //商品子类型
-					ProductDesc:       productInfo.ProductDesc,                     //商品详细介绍
-					ShortVideo:        productInfo.ShortVideo,                      //商品短视频
-					Thumbnail:         thumbnail,                                   //商品短视频缩略图
-					Price:             productInfo.Price,                           //价格
-					LeftCount:         productInfo.LeftCount,                       //库存数量
-					Discount:          productInfo.Discount,                        //折扣 实际数字，例如: 0.95, UI显示为九五折
-					DiscountDesc:      productInfo.DiscountDesc,                    //折扣说明
-					DiscountStartTime: uint64(productInfo.DiscountStartTime),       //折扣开始时间
-					DiscountEndTime:   uint64(productInfo.DiscountEndTime),         //折扣结束时间
-					AllowCancel:       productInfo.AllowCancel,                     //是否允许撤单， 默认是可以，彩票类的不可以
-				}
-				if productInfo.ProductPic1Large != "" {
-					// 动态拼接
-					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic1Large,
-					})
-
-				}
-
-				if productInfo.ProductPic2Large != "" {
-					// 动态拼接
-					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic2Large,
-					})
-				}
-
-				if productInfo.ProductPic3Large != "" {
-					// 动态拼接
-					oProduct.ProductPics = append(oProduct.ProductPics, &Order.ProductPic{
-						Small:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_50/quality,q_50",
-						Middle: LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large + "?x-oss-process=image/resize,w_100/quality,q_100",
-						Large:  LMCommon.OSSUploadPicPrefix + productInfo.ProductPic3Large,
-					})
-				}
-
-				if productInfo.DescPic1 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic1)
-				}
-
-				if productInfo.DescPic2 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic2)
-				}
-
-				if productInfo.DescPic3 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic3)
-				}
-
-				if productInfo.DescPic4 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic4)
-				}
-
-				if productInfo.DescPic5 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic5)
-				}
-
-				if productInfo.DescPic6 != "" {
-					oProduct.DescPics = append(oProduct.DescPics, LMCommon.OSSUploadPicPrefix+productInfo.DescPic6)
-
-				}
-
-				rsp.AddProducts = append(rsp.AddProducts, oProduct)
-			}
-
-			//获取商户的下架商品ID soldoutProducts
-			removeProductIDs, _ := redis.Strings(redisConn.Do("ZRANGEBYSCORE", fmt.Sprintf("SoldoutProducts:%s", watchingUser), productAt, "+inf"))
-			for _, removeProductID := range removeProductIDs {
-				rsp.RemovedProductIDs = append(rsp.RemovedProductIDs, removeProductID)
-			}
-		}
-
-		data, _ := proto.Marshal(rsp)
-
-		//向客户端响应 SyncFriendUsersEvent 事件
-		targetMsg := &models.Message{}
-
-		targetMsg.UpdateID()
-		//构建消息路由, 第一个参数是要处理的业务类型，后端服务器处理完成后，需要用此来拼接topic: {businessTypeName.Frontend}
-		targetMsg.BuildRouter("Auth", "", "Auth.Frontend")
-
-		targetMsg.SetJwtToken(token)
-		targetMsg.SetUserName(username)
-		targetMsg.SetDeviceID(deviceID)
-		// kickMsg.SetTaskID(uint32(taskId))
-		targetMsg.SetBusinessTypeName("Order")
-		targetMsg.SetBusinessType(uint32(Global.BusinessType_Product))               // 7
-		targetMsg.SetBusinessSubType(uint32(Global.ProductSubType_SyncProductEvent)) // 8
-
-		targetMsg.BuildHeader("Dispatcher", time.Now().UnixNano()/1e6)
-
-		targetMsg.FillBody(data) //网络包的body，承载真正的业务数据
-
-		targetMsg.SetCode(200) //成功的状态码
-
-		//构建数据完成，向dispatcher发送
-		topic := "Auth.Frontend"
-		rawData, _ := json.Marshal(targetMsg)
-		if err := nc.Producer.Public(topic, rawData); err == nil {
-			nc.logger.Info("message succeed send to ProduceChannel", zap.String("topic", topic))
-		} else {
-			nc.logger.Error(" failed to send message to ProduceChannel", zap.Error(err))
-		}
-
-		nc.logger.Info("SyncProductAt Succeed",
-			zap.String("Username:", username),
-			zap.String("DeviceID:", deviceID),
-			zap.Int64("Now", time.Now().UnixNano()/1e6))
-	}
 
 COMPLETE:
 	//完成
@@ -1041,7 +893,6 @@ COMPLETE:
 		return errors.Wrap(err, errorMsg)
 	}
 }
-*/
 
 /*
 6-1 发起同步请求
@@ -1100,7 +951,7 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 			zap.Uint64("TeamsAt", req.TeamsAt),
 			zap.Uint64("TagsAt", req.TagsAt),
 			zap.Uint64("WatchAt", req.WatchAt),
-			zap.Uint64("ProductAt", req.ProductAt),
+			zap.Uint64("SysmtemMsgAt", req.SysmtemMsgAt),
 		)
 
 		//延时200ms下发
@@ -1143,12 +994,12 @@ func (nc *NsqClient) HandleSync(msg *models.Message) error {
 				nc.logger.Debug("SyncWatchAt is done")
 			}
 
-			//取消了
-			// if err := nc.SyncProductAt(username, token, deviceID, req); err != nil {
-			// 	nc.logger.Error("SyncProductAt 失败，Error", zap.Error(err))
-			// } else {
-			// 	nc.logger.Debug("SyncProductAt is done")
-			// }
+			//系统公告
+			if err := nc.SyncSystemMsgAt(username, token, deviceID, req); err != nil {
+				nc.logger.Error("SyncSystemMsgAt 失败，Error", zap.Error(err))
+			} else {
+				nc.logger.Debug("SyncSystemMsgAt is done")
+			}
 
 			//发送SyncDoneEvent
 			nc.SendSyncDoneEventToUser(username, deviceID, token)

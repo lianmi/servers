@@ -29,9 +29,10 @@ message SyncEventReq{
    //用户关注商户的同步事件
    //是否必填-是 
    fixed64 watchAt=6;
-   //用户关注商户的商品发生更改同步事件-上架、编辑、下架
+
+   //系统公告同步事件
    //是否必填-是 
-   fixed64 productAt=7;
+   fixed64 sysmtemMsgAt=7;
 
 }
 

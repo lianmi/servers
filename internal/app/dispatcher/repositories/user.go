@@ -151,6 +151,8 @@ func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch
 		TeamSwitch:      teamSwitch,      // 群聊消息提醒
 		SoundSwitch:     soundSwitch,     // 声音提醒
 	}
+	s.logger.Debug("SavePushSetting ", zap.Any("pushSetting", pushSetting))
+
 	where := models.PushSetting{
 		Username: username,
 	}

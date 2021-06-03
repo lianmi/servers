@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	// "net"
 	"github.com/lianmi/servers/lmSdkClient/business"
 
 	"github.com/eclipse/paho.golang/paho" //支持v5.0
@@ -32,7 +31,7 @@ func DoSyncEvent() error {
 		TeamsAt:       0,
 		TagsAt:        0,
 		WatchAt:       0,
-		ProductAt:     0,
+		SysmtemMsgAt:  0,
 	}
 	content, _ := proto.Marshal(req)
 	topic := "lianmi/cloud/dispatcher"
