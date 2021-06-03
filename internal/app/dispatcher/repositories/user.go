@@ -144,13 +144,17 @@ func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch
 	var err error
 	var currentPushSetting models.PushSetting
 
-	pushSetting := &models.PushSetting{
-		Username:        username,        // 用户注册号
-		NewRemindSwitch: newRemindSwitch, // 新消息提醒
-		DetailSwitch:    detailSwitch,    // 通知栏消息详情
-		TeamSwitch:      teamSwitch,      // 群聊消息提醒
-		SoundSwitch:     soundSwitch,     // 声音提醒
-	}
+	//如果想更新所有字段值，包括零值，就是不想忽略掉空值字段怎么办？
+	//使用map类型，替代上面的结构体变量
+
+	//定义map类型，key为字符串，value为interface{}类型，方便保存任意值
+	pushSetting := make(map[string]interface{})
+	pushSetting["username"] = username                 // 用户注册号
+	pushSetting["new_remind_switch"] = newRemindSwitch // 新消息提醒
+	pushSetting["detail_switch"] = detailSwitch        // 通知栏消息详情
+	pushSetting["team_switch"] = teamSwitch            // 群聊消息提醒
+	pushSetting["sound_switch"] = soundSwitch          // 声音提醒
+
 	s.logger.Debug("SavePushSetting ", zap.Any("pushSetting", pushSetting))
 
 	where := models.PushSetting{
