@@ -288,6 +288,42 @@ func (pc *LianmiApisController) PushSetting(c *gin.Context) {
 
 }
 
+//GET 查询用户消息设置
+func (pc *LianmiApisController) GetPushSetting(c *gin.Context) {
+	pc.logger.Debug("GetPushSetting start ...")
+
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+
+	type PushSettingResp struct {
+		NewRemindSwitch bool `gorm:"new_remind_switch" json:"new_remind_switch" ` // 新消息提醒
+		DetailSwitch    bool `json:"detail_switch" json:"detail_switch"`          // 通知栏消息详情
+		TeamSwitch      bool `json:"team_switch" json:"team_switch"`              // 群聊消息提醒
+		SoundSwitch     bool `json:"sound_switch" json:"sound_switch"`            // 声音提醒
+	}
+
+	// var resp PushSettingResp
+
+	resp, err := pc.service.GetPushSetting(username)
+	if err != nil {
+		pc.logger.Error("GetPushSetting error", zap.Error(err))
+		RespData(c, http.StatusOK, 500, "GetPushSetting error")
+		return
+	}
+
+	RespData(c, http.StatusOK, 200, &PushSettingResp{
+		NewRemindSwitch: resp.NewRemindSwitch,
+		DetailSwitch:    resp.DetailSwitch,
+		TeamSwitch:      resp.TeamSwitch,
+		SoundSwitch:     resp.SoundSwitch,
+	})
+
+}
+
 //GET  解除 绑定手机
 func (pc *LianmiApisController) UnBindmobile(c *gin.Context) {
 	pc.logger.Debug("UnBindWechat start ...")

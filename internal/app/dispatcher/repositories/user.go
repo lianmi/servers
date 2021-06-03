@@ -139,9 +139,13 @@ func (s *MysqlLianmiRepository) UserBindWechat(username, openId string) error {
 	return nil
 }
 
+//保存用户的消息推送设置
 func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error {
-	// PushSetting
+	var err error
+	var currentPushSetting models.PushSetting
+
 	pushSetting := &models.PushSetting{
+		Username:        username,        // 用户注册号
 		NewRemindSwitch: newRemindSwitch, // 新消息提醒
 		DetailSwitch:    detailSwitch,    // 通知栏消息详情
 		TeamSwitch:      teamSwitch,      // 群聊消息提醒
@@ -150,6 +154,23 @@ func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch
 	where := models.PushSetting{
 		Username: username,
 	}
+	if err = s.db.Model(&models.PushSetting{}).Where(&where).First(&currentPushSetting).Error; err != nil { //没记录也会触发
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("记录不存在，需要新增", zap.String("username", username))
+			//增加记录
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(pushSetting).Error; err != nil {
+				s.logger.Error("增加PushSetting表失败", zap.Error(err))
+				return err
+			} else {
+				s.logger.Debug("增加PushSetting表成功")
+			}
+		} else {
+			return err
+		}
+	}
+
+	//有记录
+
 	// 同时更新多个字段
 	result := s.db.Model(&models.PushSetting{}).Where(&where).Updates(pushSetting)
 
@@ -165,7 +186,42 @@ func (s *MysqlLianmiRepository) SavePushSetting(username string, newRemindSwitch
 		s.logger.Error("SavePushSetting, 修改用户设置成功")
 	}
 	return nil
+}
 
+//根据username查询此用户的推送设置
+func (s *MysqlLianmiRepository) GetPushSetting(username string) (*models.PushSetting, error) {
+	var err error
+	var currentPushSetting models.PushSetting
+
+	//默认设置
+	pushSetting := &models.PushSetting{
+		Username:        username, // 用户注册号
+		NewRemindSwitch: true,     // 新消息提醒
+		DetailSwitch:    true,     // 通知栏消息详情
+		TeamSwitch:      true,     // 群聊消息提醒
+		SoundSwitch:     true,     // 声音提醒
+	}
+	where := models.PushSetting{
+		Username: username,
+	}
+	if err = s.db.Model(&models.PushSetting{}).Where(&where).First(&currentPushSetting).Error; err != nil { //没记录也会触发
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("记录不存在，需要新增", zap.String("username", username))
+			//增加记录
+			if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(pushSetting).Error; err != nil {
+				s.logger.Error("增加PushSetting表失败", zap.Error(err))
+				return nil, err
+			} else {
+				s.logger.Debug("增加PushSetting表成功")
+				return pushSetting, nil
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	//有记录
+	return &currentPushSetting, nil
 }
 
 //给username解除绑定手机

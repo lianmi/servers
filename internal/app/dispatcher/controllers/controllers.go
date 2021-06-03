@@ -459,6 +459,7 @@ func CreateInitControllersFn(
 			userGroup.POST("/bindwechat", pc.UserBindWechat) //手机登录之后绑定微信
 			userGroup.GET("/unbindmobile", pc.UnBindmobile)  // 解除绑定微信的手机
 			userGroup.POST("/pushsetting", pc.PushSetting)   // 用户消息设置开关
+			userGroup.GET("/pushsetting", pc.GetPushSetting) // 查询用户消息设置
 		}
 
 		//=======店铺模块==========/

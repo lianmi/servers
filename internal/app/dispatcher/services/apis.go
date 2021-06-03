@@ -40,6 +40,9 @@ type LianmiApisService interface {
 	//保存消息推送设置
 	SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error
 
+	//查询用户消息设置
+	GetPushSetting(username string) (*models.PushSetting, error)
+
 	UnBindmobile(username string) error
 
 	//多条件不定参数批量分页获取用户列表
@@ -385,6 +388,11 @@ func (s *DefaultLianmiApisService) UserBindWechat(username, openId string) error
 
 func (s *DefaultLianmiApisService) SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error {
 	return s.Repository.SavePushSetting(username, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch)
+}
+
+//查询用户消息设置
+func (s *DefaultLianmiApisService) GetPushSetting(username string) (*models.PushSetting, error) {
+	return s.Repository.GetPushSetting(username)
 }
 
 func (s *DefaultLianmiApisService) UnBindmobile(username string) error {

@@ -28,7 +28,11 @@ type LianmiRepository interface {
 	//手机登录之后绑定微信
 	UserBindWechat(username, openId string) error
 
+	//保存用户的消息推送设置
 	SavePushSetting(username string, newRemindSwitch, detailSwitch, teamSwitch, soundSwitch bool) error
+
+	//查询用户消息设置
+	GetPushSetting(username string) (*models.PushSetting, error)
 
 	//给username解除绑定手机
 	UnBindmobile(username string) (err error)
