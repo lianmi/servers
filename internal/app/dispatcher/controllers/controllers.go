@@ -614,6 +614,13 @@ func CreateInitControllersFn(
 			customerServiceGroup.POST("/submitgrade", pc.SubmitGrade)
 		}
 
+		//======= 推送测试 模块==========/
+		pushGroup := r.Group("/v1/push")
+		pushGroup.Use(authMiddleware.MiddlewareFunc())
+		{
+			pushGroup.POST("/test", pc.PushTest)
+		}
+
 		//=======后台各个功能模块==========/
 		adminGroup := r.Group("/admin") //带/admin的路由都必须使用Bearer JWT，并且Role为admin才能正常访问
 		adminGroup.Use(authMiddleware.MiddlewareFunc())

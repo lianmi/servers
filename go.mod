@@ -55,6 +55,7 @@ require (
 	github.com/mbobakov/grpc-consul-resolver v1.4.1
 	github.com/miekg/dns v1.1.31 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/modood/pushapi v0.0.0-20210422023002-01488a4e8f21
 	github.com/multiformats/go-multiaddr v0.3.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/nsqio/go-nsq v1.0.8
