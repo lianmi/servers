@@ -113,6 +113,8 @@ func (s *MysqlLianmiRepository) GetIsBindWechat(username string) (bool, error) {
 			return false, err
 		}
 	}
+	s.logger.Debug("用户数据", zap.Any("data", user))
+
 	return user.WXOpenID != "", nil
 }
 
@@ -131,27 +133,30 @@ func (s *MysqlLianmiRepository) UserBindWechat(username, openId string) error {
 			s.logger.Debug("用户不存在", zap.String("username", username))
 			return errors.Wrapf(err, "用户不存在[username=%s]", username)
 		} else {
-			result := s.db.Model(&models.User{}).Where(&models.User{
-				UserBase: models.UserBase{
-					Username: username,
-				},
-			}).Update("wx_open_id", openId)
+			return err
+		}
+	} else {
+		//找到此用户
+		result := s.db.Model(&models.User{}).Where(&models.User{
+			UserBase: models.UserBase{
+				Username: username,
+			},
+		}).Update("wx_open_id", openId)
 
-			//updated records count
-			s.logger.Debug("UserBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
+		//updated records count
+		s.logger.Debug("UserBindmobile result: ", zap.Int64("RowsAffected", result.RowsAffected), zap.Error(result.Error))
 
-			if result.Error != nil {
-				s.logger.Error("绑定微信失败",
-					zap.String("username", username),
-					zap.String("WXOpenID", openId),
-					zap.Error(result.Error))
-				return result.Error
-			} else {
-				s.logger.Debug("绑定手机成功",
-					zap.String("username", username),
-					zap.String("WXOpenID", openId),
-				)
-			}
+		if result.Error != nil {
+			s.logger.Error("绑定微信失败",
+				zap.String("username", username),
+				zap.String("WXOpenID", openId),
+				zap.Error(result.Error))
+			return result.Error
+		} else {
+			s.logger.Debug("绑定微信成功",
+				zap.String("username", username),
+				zap.String("WXOpenID", openId),
+			)
 		}
 	}
 
