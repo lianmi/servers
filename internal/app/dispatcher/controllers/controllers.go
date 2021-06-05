@@ -618,7 +618,8 @@ func CreateInitControllersFn(
 		pushGroup := r.Group("/v1/push")
 		pushGroup.Use(authMiddleware.MiddlewareFunc())
 		{
-			pushGroup.POST("/test", pc.PushTest)
+			pushGroup.POST("/xiaotest", pc.XiaomiPushTest)
+			pushGroup.POST("/huaweitest", pc.HuaweiPushTest)
 		}
 
 		//=======后台各个功能模块==========/
