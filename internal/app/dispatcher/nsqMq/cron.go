@@ -8,12 +8,13 @@ import (
 	// LMCommon "github.com/lianmi/servers/internal/common"
 	// "github.com/lianmi/servers/internal/pkg/sts"
 	// "github.com/lianmi/servers/internal/pkg/models"
-	"github.com/robfig/cron"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/robfig/cron"
+	"go.uber.org/zap"
 )
 
 func (nc *NsqClient) RunCron() {
@@ -89,6 +90,11 @@ func (nc *NsqClient) RunCron() {
 		}
 
 		nc.logger.Info("AddUserLike done.")
+
+	})
+
+	//每隔30分钟获取一次huawei access_token
+	c.AddFunc("* */30 * * * ?", func() {
 
 	})
 
