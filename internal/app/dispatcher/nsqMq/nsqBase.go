@@ -265,6 +265,18 @@ func (nc *NsqClient) RedisInit() {
 
 }
 
+func (nc *NsqClient) GetLogger() *zap.Logger {
+	return nc.logger
+}
+
+func (nc *NsqClient) GetRedisPool() *redis.Pool {
+	return nc.redisPool
+}
+
+func (nc *NsqClient) GetService() services.LianmiApisService {
+	return nc.service
+}
+
 /*
 mqtt broker auth 插件初始化
 */
@@ -315,7 +327,7 @@ func (nc *NsqClient) Start() error {
 	//mqtt broker auth初始化
 	go nc.MqttBrokerRedisAuth()
 
-	//Go程，启动定时任务
+	//Go程，启动定时任务 TODO
 	go nc.RunCron()
 
 	//Go程，启动multichannel

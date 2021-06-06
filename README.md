@@ -73,8 +73,8 @@ $ make dart
 ```
 
 ## 定时任务类
-https://github.com/robfig/cron
-例子在： /Users/mac/developments/lianmi/lm-cloud/cron_demo
+https://github.com/robfig/cron/v3
+例子在： /Users/mac/developments/goprojects/src/cron-manager
 使用说明：
 https://www.jianshu.com/p/fd3dda663953
 
@@ -431,7 +431,7 @@ tail -f chatservice.log
 ```
 
 
-### 推送
+### 推送第三方包
 
 /Users/mac/developments/goprojects/src/pushapi
 

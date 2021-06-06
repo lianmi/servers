@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lianmi/servers/internal/common/codes"
-	"github.com/modood/pushapi/huaweipush"
-	"github.com/modood/pushapi/xiaomipush"
+	"github.com/lianmi/servers/internal/pkg/pushapi/huaweipush"
+	"github.com/lianmi/servers/internal/pkg/pushapi/xiaomipush"
 	"go.uber.org/zap"
 )
 

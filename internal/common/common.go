@@ -278,3 +278,10 @@ const (
 	WechatLoginAppid  = "wx239c33b9be7cd047"               // 微信登陆 appid
 	WechatLoginSecret = "431e4bec654f13edb7be0f018214244b" // 微信密钥
 )
+
+//华为 huawei  push
+const (
+	HuaweiAppId     = "104392783"
+	HuaweiAppSecret = "098cf02491a1b050d6fdf4247cd2dbce9ad05d049bc4eeaee1da6721acc6220c"
+	HuaweiAuthURL   = "https://oauth-login.cloud.huawei.com/oauth2/v3/token"
+)
