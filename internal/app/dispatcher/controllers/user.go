@@ -1181,7 +1181,7 @@ func (pc *LianmiApisController) UserUploadDeviceInfo(c *gin.Context) {
 		return
 	}
 	type DataBodyInfo struct {
-		ID         string `json:"id"`
+		IMEI       string `json:"imei"`
 		IMDeviceID string `json:"im_device_id"`
 		DeviceName string `json:"device_name"`
 		OSType     string `json:"os_type"`
@@ -1209,9 +1209,9 @@ func (pc *LianmiApisController) UserUploadDeviceInfo(c *gin.Context) {
 	}
 
 	deviceitem := models.LoginDeviceInfo{
-		UserDeviceId: fmt.Sprintf("%s:%s", username, datainfo.ID),
+		UserDeviceId: fmt.Sprintf("%s:%s", username, datainfo.IMEI),
 		UserID:       username,
-		IMEI:         datainfo.ID,
+		IMEI:         datainfo.IMEI,
 		DeviceName:   datainfo.DeviceName,
 		IMDeviceID:   datainfo.IMDeviceID,
 		OSType:       datainfo.OSType,

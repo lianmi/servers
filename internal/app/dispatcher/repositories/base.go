@@ -294,19 +294,25 @@ type LianmiRepository interface {
 
 	//获取商户的opk
 	GetStoreOpkByBusiness(id string) (string, error)
+
 	// 处理订单兑奖业务 username 当前token 的用户 orderID 处理的订单 . prize 兑奖的金额 , 并返回购买的用户id
 	OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error)
+
 	// 通过用户名和订单id 删除这条订单
 	OrderDeleteByUserAndOrderid(username string, orderid string) error
+
 	// 删除该用户名的所有订单
 	DeleteUserOrdersByUserID(username string) error
+
 	// 通过关键字查询订单
 	OrderSerachByKeyWord(username string, req *models.ReqKeyWordDataType) (*[]models.OrderItems, error)
 
 	//管理员修改App版本号及功能详情
 	ManagerSetVersionLast(req *models.VersionInfo) error
+
 	// 通过 微信 openid 获取 用户id
 	GetUserByWechatOpenid(openid string) (string, error)
+
 	// 绑定微信openid
 	UpdateUserWxOpenID(username string, openid string) error
 
@@ -314,6 +320,7 @@ type LianmiRepository interface {
 
 	ManagerDeleteSystemMsg(id uint) error
 
+	//保存用户的设备信息， 用于推送
 	UserSaveDeviceInfo(item *models.LoginDeviceInfo) error
 }
 

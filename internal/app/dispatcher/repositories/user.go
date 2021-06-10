@@ -1311,6 +1311,7 @@ func (s *MysqlLianmiRepository) UpdateUserWxOpenID(username string, openid strin
 	return err
 }
 
+//保存用户的设备信息， 用于推送
 func (s *MysqlLianmiRepository) UserSaveDeviceInfo(item *models.LoginDeviceInfo) error {
 	deviceInfo := new(models.LoginDeviceInfo)
 	where := models.LoginDeviceInfo{UserDeviceId: item.UserDeviceId}

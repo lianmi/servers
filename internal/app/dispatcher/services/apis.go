@@ -27,6 +27,7 @@ type LianmiApisService interface {
 	DisBlockUser(username string) error
 	Register(user *models.User) (string, error)
 
+	//保存用户的设备信息， 用于推送
 	UserSaveDeviceInfo(deviceInfo *models.LoginDeviceInfo) error
 
 	ResetPassword(mobile, password string, user *models.User) error
@@ -1032,7 +1033,7 @@ func (s *DefaultLianmiApisService) ManagerDeleteSystemMsg(id uint) error {
 	return s.Repository.ManagerDeleteSystemMsg(id)
 }
 
+//保存用户的设备信息， 用于推送
 func (s *DefaultLianmiApisService) UserSaveDeviceInfo(deviceInfo *models.LoginDeviceInfo) error {
-
 	return s.Repository.UserSaveDeviceInfo(deviceInfo)
 }
