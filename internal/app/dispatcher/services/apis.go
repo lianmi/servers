@@ -924,11 +924,9 @@ func (s *DefaultLianmiApisService) GetVipPriceList(payType int) (*Auth.GetVipPri
 //设置当前商户默认OPK
 func (s *DefaultLianmiApisService) SetDefaultOPK(username, opk string) error {
 	return s.Repository.SetDefaultOPK(username, opk)
-
 }
 
 func (s *DefaultLianmiApisService) GetStoreProductLists(o *Order.ProductsListReq) (*[]models.StoreProductItems, error) {
-	// panic("implement me")
 	return s.Repository.GetStoreProductLists(o)
 }
 
@@ -937,13 +935,10 @@ func (s *DefaultLianmiApisService) AddStoreProductItem(item *models.StoreProduct
 }
 
 func (s *DefaultLianmiApisService) GetGeneralProductFromDB(req *Order.GetGeneralProductPageReq) (*[]models.GeneralProduct, error) {
-	// panic("implement me")
 	return s.Repository.GetGeneralProductFromDB(req)
-
 }
 
 func (s *DefaultLianmiApisService) SavaOrderItemToDB(item *models.OrderItems) error {
-	// panic("implement me")
 	return s.Repository.SavaOrderItemToDB(item)
 }
 
@@ -952,9 +947,7 @@ func (s *DefaultLianmiApisService) GetOrderListByUser(username string, limit int
 }
 
 func (s *DefaultLianmiApisService) GetOrderListByID(orderID string) (*models.OrderItems, error) {
-	// panic("implement me")
 	return s.Repository.GetOrderListByID(orderID)
-
 }
 
 func (s *DefaultLianmiApisService) SetOrderStatusByOrderID(orderID string, status int) error {
@@ -965,10 +958,7 @@ func (s *DefaultLianmiApisService) SetOrderStatusByOrderID(orderID string, statu
 // 仅能处理 拒单,接单,确认收获这三种状态
 // 其他状态均不可以想这个接口处理
 func (s *DefaultLianmiApisService) UpdateOrderStatus(userid string, storeID string, orderID string, status int) (*models.OrderItems, error) {
-	//panic("implement me")
-
 	return s.Repository.UpdateOrderStatus(userid, storeID, orderID, status)
-
 }
 
 func (s *DefaultLianmiApisService) GetUserType(username string) (int, error) {
@@ -983,13 +973,11 @@ func (s *DefaultLianmiApisService) UpdateOrderStatusByWechatCallback(orderid str
 func (s *DefaultLianmiApisService) GetStoreOpkByBusiness(businessId string) (string, error) {
 	//panic("implement me")
 	return s.Repository.GetStoreOpkByBusiness(businessId)
-
 }
 
 //从redis里获取订单当前最新的数据及状态
 func (s *DefaultLianmiApisService) GetOrderInfo(orderID string) (*models.OrderInfo, error) {
 	return s.Repository.GetOrderInfo(orderID)
-
 }
 
 func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID string, prize float64, prizedPhoto string) (string, error) {
@@ -998,9 +986,7 @@ func (s *DefaultLianmiApisService) OrderPushPrize(username string, orderID strin
 }
 
 func (s *DefaultLianmiApisService) OrderDeleteByUserAndOrderid(username string, orderid string) error {
-	//panic("implement me")
 	return s.Repository.OrderDeleteByUserAndOrderid(username, orderid)
-
 }
 
 func (s *DefaultLianmiApisService) DeleteUserOrdersByUserID(username string) error {
@@ -1029,7 +1015,6 @@ func (s *DefaultLianmiApisService) ManagerAddSystemMsg(level int, title, content
 }
 
 func (s *DefaultLianmiApisService) ManagerDeleteSystemMsg(id uint) error {
-
 	return s.Repository.ManagerDeleteSystemMsg(id)
 }
 
