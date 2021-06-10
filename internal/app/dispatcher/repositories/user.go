@@ -1310,3 +1310,42 @@ func (s *MysqlLianmiRepository) UpdateUserWxOpenID(username string, openid strin
 	err := s.db.Model(&models.User{}).Where(&whereUser).Updates(&updateUser).Error
 	return err
 }
+
+func (s *MysqlLianmiRepository) UserSaveDeviceInfo(item *models.LoginDeviceInfo) error {
+	deviceInfo := new(models.LoginDeviceInfo)
+	where := models.LoginDeviceInfo{UserDeviceId: item.UserDeviceId}
+
+	//记录不存在错误(RecordNotFound)，返回false
+
+	if err := s.db.Model(&models.LoginDeviceInfo{}).Where(&where).First(deviceInfo).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("记录不存在，新增")
+			err = s.db.Create(item).Error
+			return err
+		} else {
+			return err
+		}
+	} else {
+		//存在此记录，需要update
+
+		result := s.db.Model(&models.LoginDeviceInfo{}).Where(&where).Updates(&models.LoginDeviceInfo{
+			DeviceName: item.DeviceName,
+			OSType:     item.OSType,
+			PushToken:  item.PushToken,
+		})
+
+		//updated records count
+		s.logger.Debug("UserSaveDeviceInfo result: ",
+			zap.Int64("RowsAffected", result.RowsAffected),
+			zap.Error(result.Error))
+
+		if result.Error != nil {
+			s.logger.Error("登陆的设备信息修改失败", zap.Error(result.Error))
+			return result.Error
+		} else {
+			s.logger.Debug("登陆的设备信息修改成功")
+		}
+
+		return nil
+	}
+}

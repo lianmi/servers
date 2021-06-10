@@ -102,3 +102,20 @@ type WechatBaseInfoDataType struct {
 	City     string `json:"city"`
 	Country  string `json:"country"`
 }
+
+// 登陆的设备信息
+type LoginDeviceInfo struct {
+	// 设备信息
+	UserDeviceId string         `json:"-" gorm:"primarykey;type:char(255)"` // 用户设备
+	CreatedAt    time.Time      `json:"-"`
+	UpdatedAt    time.Time      `json:"-"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAtInt int64          `json:"time" gorm:"-"`
+	IMEI         string         `json:"imei"`         // imei
+	UserID       string         `json:"user_id"`      // 用户id
+	IMDeviceID   string         `json:"im_device_id"` // im 的设备id
+	DeviceName   string         `json:"device_name"`  // 设备名
+	OSType       string         `json:"os_type"`      // 系统类型
+	OSVersion    string         `json:"os_version"`   // 系统版本
+	PushToken    string         `json:"push_token"`   //目标推送平台Token(必填)
+}

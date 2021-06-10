@@ -313,6 +313,8 @@ type LianmiRepository interface {
 	ManagerAddSystemMsg(level int, title, content string) error
 
 	ManagerDeleteSystemMsg(id uint) error
+
+	UserSaveDeviceInfo(item *models.LoginDeviceInfo) error
 }
 
 type MysqlLianmiRepository struct {

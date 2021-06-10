@@ -27,6 +27,8 @@ type LianmiApisService interface {
 	DisBlockUser(username string) error
 	Register(user *models.User) (string, error)
 
+	UserSaveDeviceInfo(deviceInfo *models.LoginDeviceInfo) error
+
 	ResetPassword(mobile, password string, user *models.User) error
 	GetUserRoles(username string) []*models.Role
 	GetUser(username string) (*Auth.UserRsp, error)
@@ -1028,4 +1030,9 @@ func (s *DefaultLianmiApisService) ManagerAddSystemMsg(level int, title, content
 func (s *DefaultLianmiApisService) ManagerDeleteSystemMsg(id uint) error {
 
 	return s.Repository.ManagerDeleteSystemMsg(id)
+}
+
+func (s *DefaultLianmiApisService) UserSaveDeviceInfo(deviceInfo *models.LoginDeviceInfo) error {
+
+	return s.Repository.UserSaveDeviceInfo(deviceInfo)
 }

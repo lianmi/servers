@@ -67,6 +67,7 @@ go mod edit -replace=github.com/eclipse/paho.golang@v0.9.0=github.com/eclipse/pa
 
 ## proto文件编译
 ```
+$ flutter pub global decativate protoc_plugin
 $ flutter pub global activate protoc_plugin
 $ make proto
 $ make dart

@@ -1170,3 +1170,65 @@ func (pc *LianmiApisController) GetUserinfoFromWechat(token, openid string) *mod
 		return nil
 	}
 }
+
+// 上传用户设备信息
+func (pc *LianmiApisController) UserUploadDeviceInfo(c *gin.Context) {
+	// 用户上传设备信息
+	username, _, isok := pc.CheckIsUser(c)
+
+	if !isok {
+		RespFail(c, http.StatusUnauthorized, 401, "token is fail")
+		return
+	}
+	type DataBodyInfo struct {
+		ID         string `json:"id"`
+		IMDeviceID string `json:"im_device_id"`
+		DeviceName string `json:"device_name"`
+		OSType     string `json:"os_type"`
+		OSVersion  string `json:"os_version"`
+		PushToken  string `json:"push_token"` //目标推送平台Token(必填)
+	}
+
+	var datainfo DataBodyInfo
+
+	if c.BindJSON(&datainfo) != nil {
+		pc.logger.Error("binding JSON error ")
+		RespData(c, http.StatusOK, codes.InvalidParams, "Unmarshal error")
+		return
+	}
+
+	pc.logger.Debug("UserUploadDeviceInfo",
+		zap.String("userName", username),
+		//zap.String("deviceID", deviceID),
+		zap.Any("datainfo", datainfo))
+
+	if datainfo.DeviceName == "" || datainfo.PushToken == "" {
+		pc.logger.Error("传参不正确")
+		RespData(c, http.StatusOK, codes.InvalidParams, "传参不正确")
+		return
+	}
+
+	deviceitem := models.LoginDeviceInfo{
+		UserDeviceId: fmt.Sprintf("%s:%s", username, datainfo.ID),
+		UserID:       username,
+		IMEI:         datainfo.ID,
+		DeviceName:   datainfo.DeviceName,
+		IMDeviceID:   datainfo.IMDeviceID,
+		OSType:       datainfo.OSType,
+		OSVersion:    datainfo.OSVersion,
+		PushToken:    datainfo.PushToken,
+	}
+
+	err := pc.service.UserSaveDeviceInfo(&deviceitem)
+	if err != nil {
+
+		pc.logger.Error("deviceinfo", zap.Error(err))
+		RespFail(c, http.StatusNotFound, codes.ERROR, "UserSaveDeviceInfo error")
+		return
+
+	}
+	pc.logger.Debug("UserSaveDeviceInfo ok")
+
+	RespOk(c, http.StatusOK, codes.SUCCESS)
+
+}
