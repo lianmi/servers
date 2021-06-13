@@ -27,7 +27,6 @@ type Application struct {
 	dispatcherNsqClient *dispatcherNsq.NsqClient
 	chatNsqClient       *chatNsq.NsqClient
 	orderNsqClient      *orderNsq.NsqClient
-	// walletNsqClient     *walletNsq.NsqClient
 	mqttClient *mqtt.MQTTClient
 }
 

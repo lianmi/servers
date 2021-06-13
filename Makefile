@@ -1,4 +1,5 @@
-apps = 'dispatcher' 'chatservice' 'orderservice' 
+apps = 'dispatcher' 'chatservice' 
+# 'orderservice' 
  
 #BINARY='lianmi-admin-server'
 
