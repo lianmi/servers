@@ -9,14 +9,14 @@ services:
       # - ${LOG_DIR}/chatservice.log:/tmp/chatservice.log
       - /root/developments/lianmi/work/logs/chatservice.log:/tmp/chatservice.log
 
-  lianmi-orderservice:
-    image: lianmi/orderservice:0.1
-    build: ./orderservice
-    container_name: lianmi-orderservice
-    restart: unless-stopped
-    volumes:
-      # - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
-      - /root/developments/lianmi/work/logs/orderservice.log:/tmp/orderservice.log
+  # lianmi-orderservice:
+  #   image: lianmi/orderservice:0.1
+  #   build: ./orderservice
+  #   container_name: lianmi-orderservice
+  #   restart: unless-stopped
+  #   volumes:
+  #     # - ${LOG_DIR}/orderservice.log:/tmp/orderservice.log
+  #     - /root/developments/lianmi/work/logs/orderservice.log:/tmp/orderservice.log
 
   lianmi-dispatcher:
     image: lianmi/dispatcher:0.1
